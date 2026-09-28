@@ -1,0 +1,155 @@
+import { useEffect, useRef, useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
+import { Spinner } from '@/components/ui/spinner'
+import { useActionSubmit } from '@/hooks/use-action-submit'
+import { parseCents } from '@/lib/utils'
+
+import { AbschlussContainer } from './AbschlussContainer'
+import { AbschlussHeader } from './AbschlussHeader'
+import { AbschlussLeer } from './AbschlussLeer'
+import { BarzahlungFelder } from './BarzahlungFelder'
+import type { Position } from './Bestellung'
+import { KommentarField } from './CommentField'
+import {
+  calculateZahlungsbetraege,
+  toPositionRefs,
+  toReceiptItems,
+} from './drawerUtils'
+import { Receipt } from './Receipt'
+import { RestbetragZeile } from './RestbetragZeile'
+import type { Tisch } from './Tisch'
+import type { TischBackend } from './TischBackend'
+
+interface ZahlungAbschlussProps {
+  backend: Pick<TischBackend, 'zahlungKassieren'>
+  tisch: Tisch
+  // Zu kassierende Positionen; `menge` ist die Auswahl-Menge, nicht die volle Position.
+  positionenToPay: Position[]
+  totalCents: number
+  restNachZahlungCents: number
+  zahlungKassiert: () => void
+  variant: 'sheet' | 'spalte'
+}
+
+// Kein Client-Idempotenz-Schlüssel: die Idempotenz ist zustandsbasiert (bereits
+// bezahlte Positionen → position_nicht_bezahlbar), und der Loading-Guard
+// verhindert den Doppel-Submit.
+export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
+  const [kommentar, setKommentar] = useState('')
+  const [erhaltenEuro, setErhaltenEuro] = useState('')
+  const [zielbetragEuro, setZielbetragEuro] = useState('')
+  const [andererAktiv, setAndererAktiv] = useState(false)
+
+  const noPositionenSelected = props.positionenToPay.length === 0
+
+  // In der dauerhaften Spalte überlebt der Eingabe-State sonst einen
+  // Auswahl-Reset; eine neue Zusammenstellung startet deshalb mit leeren
+  // Eingaben.
+  const warLeerRef = useRef(noPositionenSelected)
+  useEffect(() => {
+    if (warLeerRef.current && !noPositionenSelected) {
+      setErhaltenEuro('')
+      setZielbetragEuro('')
+      setAndererAktiv(false)
+      setKommentar('')
+    }
+    warLeerRef.current = noPositionenSelected
+  }, [noPositionenSelected])
+
+  const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
+    props.totalCents,
+    parseCents(erhaltenEuro),
+    parseCents(zielbetragEuro),
+  )
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Zahlung kassieren',
+    onSuccess: () => {
+      setErhaltenEuro('')
+      setZielbetragEuro('')
+      setAndererAktiv(false)
+      setKommentar('')
+      props.zahlungKassiert()
+    },
+  })
+
+  const onSubmit = async () => {
+    await run(async () => {
+      await props.backend.zahlungKassieren({
+        tischId: props.tisch.id,
+        positionen: toPositionRefs(props.positionenToPay),
+        kommentar,
+      })
+    })
+  }
+
+  const inhalt = (
+    <>
+      <AbschlussHeader
+        variant={props.variant}
+        eyebrow="Zahlung für"
+        title={props.tisch.name}
+        description={`Zahlung für ${props.tisch.name}`}
+      />
+      <DrawerBody className="mx-auto w-full max-w-sm">
+        {noPositionenSelected ? (
+          <AbschlussLeer>Positionen auswählen, um zu kassieren.</AbschlussLeer>
+        ) : (
+          <>
+            <Receipt
+              positionen={toReceiptItems(props.positionenToPay)}
+              totalPrice={props.totalCents}
+            />
+            <BarzahlungFelder
+              gesamtCents={props.totalCents}
+              erhaltenEuro={erhaltenEuro}
+              onErhaltenEuroChange={setErhaltenEuro}
+              zielbetragEuro={zielbetragEuro}
+              onZielbetragEuroChange={setZielbetragEuro}
+              andererAktiv={andererAktiv}
+              onAndererAktivChange={setAndererAktiv}
+              rueckgeldCents={rueckgeldCents}
+              trinkgeldCents={trinkgeldCents}
+            />
+            <div className="px-4 pt-3">
+              <KommentarField
+                value={kommentar}
+                onChange={(value) => {
+                  setKommentar(value)
+                }}
+              />
+            </div>
+          </>
+        )}
+      </DrawerBody>
+      <DrawerFooter className="mx-auto w-full max-w-sm">
+        {props.variant === 'spalte' && (
+          <RestbetragZeile cents={props.restNachZahlungCents} />
+        )}
+        <Button
+          disabled={loading || noPositionenSelected}
+          onClick={() => {
+            void onSubmit()
+          }}
+        >
+          {loading ? <Spinner /> : null} Kassieren
+        </Button>
+        {props.variant === 'sheet' && (
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={loading}>
+              Abbrechen
+            </Button>
+          </DrawerClose>
+        )}
+      </DrawerFooter>
+    </>
+  )
+
+  return (
+    <AbschlussContainer variant={props.variant} pending={loading}>
+      {inhalt}
+    </AbschlussContainer>
+  )
+}

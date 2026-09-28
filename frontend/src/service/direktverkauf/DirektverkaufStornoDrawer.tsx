@@ -1,0 +1,133 @@
+import { useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { Spinner } from '@/components/ui/spinner'
+import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useMengen } from '@/hooks/use-mengen'
+import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
+import { formatEuro } from '@/lib/utils'
+
+import { PositionAuswahlListe } from '../PositionAuswahlListe'
+import { KommentarField } from '../table/CommentField'
+import {
+  calculateTotalPrice,
+  selectPositionen,
+  toAuswahlPositionen,
+  toPositionRefs,
+} from '../table/drawerUtils'
+import type { DirektverkaufHistorieEintrag } from './Direktverkauf'
+import type { DirektverkaufBackend } from './DirektverkaufBackend'
+
+interface DirektverkaufStornoDrawerProps {
+  backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
+  verkauf: DirektverkaufHistorieEintrag
+  onClose: () => void
+  onStorniert: () => void
+}
+
+export function DirektverkaufStornoDrawer({
+  backend,
+  verkauf,
+  onClose,
+  onStorniert,
+}: DirektverkaufStornoDrawerProps) {
+  const [kommentar, setKommentar] = useState('')
+  const { mengen, add, remove } = useMengen<string>(
+    (positionId) =>
+      verkauf.offenePositionen.find((p) => p.positionId === positionId)
+        ?.menge ?? 0,
+  )
+
+  // Die Positionsauswahl meldet bereits useMengen; der getippte Grund kommt
+  // hinzu, weil er ein zweites Mal formuliert werden müsste.
+  useOffenerVorgang(kommentar.trim() !== '')
+
+  const selectedPositionen = selectPositionen(verkauf.offenePositionen, mengen)
+  const totalPrice = calculateTotalPrice(selectedPositionen)
+  const noPositionenSelected = selectedPositionen.length === 0
+  const kommentarInvalid = kommentar.trim().length < 3
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Stornierung ausführen',
+    onSuccess: () => {
+      onStorniert()
+    },
+  })
+
+  const onSubmit = async () => {
+    await run(async () => {
+      await backend.direktverkaufStornieren({
+        verkaufId: verkauf.verkaufId,
+        positionen: toPositionRefs(selectedPositionen),
+        kommentar,
+      })
+    })
+  }
+
+  return (
+    <Drawer
+      open
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onClose()
+      }}
+    >
+      <DrawerContent pending={loading}>
+        <DrawerHeader className="mx-auto w-full max-w-sm">
+          <DrawerTitle>Verkauf stornieren</DrawerTitle>
+          <DrawerDescription>
+            Positionen aus diesem Verkauf zum Stornieren auswählen.
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody className="mx-auto w-full max-w-sm">
+          <PositionAuswahlListe
+            positionen={toAuswahlPositionen(verkauf.offenePositionen)}
+            mengen={mengen}
+            onAdd={add}
+            onRemove={remove}
+          />
+          {!noPositionenSelected && (
+            <div className="flex justify-between font-bold px-4 pt-2 pb-2 border-t-2">
+              <div>Stornierung gesamt</div>
+              <div>{formatEuro(totalPrice)}</div>
+            </div>
+          )}
+          <div className="px-4">
+            <KommentarField
+              required
+              invalid={kommentarInvalid}
+              onChange={(value) => {
+                setKommentar(value)
+              }}
+            />
+          </div>
+        </DrawerBody>
+        <DrawerFooter className="mx-auto w-full max-w-sm">
+          <Button
+            variant="destructive"
+            disabled={loading || noPositionenSelected || kommentarInvalid}
+            onClick={() => {
+              void onSubmit()
+            }}
+          >
+            {loading ? <Spinner /> : null} Stornierung erteilen
+          </Button>
+          <DrawerClose asChild>
+            <Button variant="outline" disabled={loading}>
+              Abbrechen
+            </Button>
+          </DrawerClose>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  )
+}

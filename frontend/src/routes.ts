@@ -158,7 +158,7 @@ export const router = createBrowserRouter([
             path: 'tische',
             loader: ServiceTischauswahlLoader,
             lazy: async () => ({
-              Component: (await import('./service/TableSelectionPage'))
+              Component: (await import('./service/table/TableSelectionPage'))
                 .TableSelectionPage,
             }),
           },
@@ -166,14 +166,15 @@ export const router = createBrowserRouter([
             path: 'direktverkauf',
             loader: ServiceDirektverkaufLoader,
             lazy: async () => ({
-              Component: (await import('./service/DirektverkaufPage'))
-                .DirektverkaufPage,
+              Component: (
+                await import('./service/direktverkauf/DirektverkaufPage')
+              ).DirektverkaufPage,
             }),
           },
           {
             path: 'tische/:tischId',
             lazy: async () => ({
-              Component: (await import('./service/TablePage')).TablePage,
+              Component: (await import('./service/table/TablePage')).TablePage,
             }),
             loader: ServiceTableGuard,
           },

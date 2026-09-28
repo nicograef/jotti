@@ -1,0 +1,456 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Produkt } from '@/lib/produktSchemas'
+import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+
+import type { Position } from './Bestellung'
+import { TablePage } from './TablePage'
+import type { TischSession } from './Tisch'
+
+function position(positionId: string): Position {
+  return {
+    positionId,
+    varianteId: 1,
+    produktName: 'Bratwurst',
+    varianteName: 'Normal',
+    kategorie: 'essen',
+    steuersatz: 'regel',
+    einzelpreisCents: 350,
+    menge: 1,
+    bestellerUserId: 1,
+    bestellerName: 'Tester',
+  }
+}
+
+const testProdukt: Produkt = {
+  id: 1,
+  name: 'Bratwurst',
+  kategorie: 'essen',
+  steuersatz: 'ermaessigt',
+  status: 'active',
+  varianten: [
+    {
+      id: 1,
+      name: 'Normal',
+      preisCents: 350,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
+
+// `tischId` bildet den :tischId-Param nach — Tischwechsel ohne Remount.
+const testState = vi.hoisted(() => ({
+  tischId: '1',
+  produkte: [] as Produkt[],
+  produkteError: false,
+}))
+
+vi.mock('react-router', () => ({
+  useParams: () => ({ tischId: testState.tischId }),
+}))
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
+
+// Handy-Pfad: Kopfbereich und Fehlerzustand sind in beiden Layouts gleich; der
+// Split selbst ist manuelle Abnahme.
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: () => true,
+}))
+
+vi.mock('@/lib/Backend', () => ({
+  BackendSingleton: {},
+}))
+
+// Die eigene Servicekraft (für die „Meine Positionen"-Filterung in Zahlung);
+// canCancel/canRebook, damit der Storno-/Umbuchen-Pfad der Historie greift.
+vi.mock('@/lib/Auth', () => ({
+  AuthSingleton: { userId: 1, canCancel: true, canRebook: true },
+}))
+
+vi.mock('../product/hooks', () => ({
+  useAktiveProdukte: () => ({
+    produkte: testState.produkte,
+    isPending: false,
+    isError: testState.produkteError,
+    refetch: vi.fn(),
+  }),
+}))
+
+const { getTischState, getTischHistorie, stornierungErteilen } = vi.hoisted(
+  () => ({
+    getTischState: vi.fn<() => Promise<TischSession>>(),
+    getTischHistorie: vi.fn<() => Promise<unknown[]>>(),
+    stornierungErteilen: vi.fn<() => Promise<void>>(),
+  }),
+)
+
+vi.mock('./TischBackend', () => ({
+  TischBackend: class {
+    getTischState = getTischState
+    getTischHistorie = getTischHistorie
+    stornierungErteilen = stornierungErteilen
+  },
+}))
+
+// Tischzustand mit offenem Saldo. Der Saldo ist bewusst ungleich 0, damit er
+// sich im DOM eindeutig von den 0,00-€-Summen der Bestell-Leiste unterscheidet.
+const stammtisch: TischSession = {
+  tischId: 1,
+  tischName: 'Stammtisch',
+  saldoCents: 1250,
+  unbezahltePositionen: [],
+  fuerMichErledigt: true,
+}
+
+beforeEach(() => {
+  VorgangsRegisterSingleton.zuruecksetzen()
+})
+
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+  testState.tischId = '1'
+  testState.produkte = []
+  testState.produkteError = false
+})
+
+function renderPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={queryClient}>
+      <TablePage />
+    </QueryClientProvider>,
+  )
+}
+
+describe('TablePage', () => {
+  it('zeigt bei Query-Fehler einen Fehlerzustand statt der Leer-Defaults', async () => {
+    getTischState.mockRejectedValue(new Error('Netzabbruch'))
+    getTischHistorie.mockRejectedValue(new Error('Netzabbruch'))
+    renderPage()
+
+    expect(
+      await screen.findByText('Tischdaten konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
+    // der Tisch wirkt sonst fälschlich abgerechnet.
+    expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
+  })
+
+  it('zeigt bei Produkt-Fehler den Bestellen-Tab als Fehlerzustand statt leerer Liste', async () => {
+    testState.produkteError = true
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(
+      await screen.findByText('Produkte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    // Die Leer-Defaults des Bestellen-Tabs (Korb-Summe 0,00 €) dürfen bei
+    // einem Fehler nicht erscheinen — das Sortiment wirkt sonst leer.
+    expect(screen.queryByText(/0,00 €/)).not.toBeInTheDocument()
+  })
+
+  it('lädt die Tischdaten über „Erneut versuchen" nach einem Fehler neu', async () => {
+    getTischState
+      .mockRejectedValueOnce(new Error('Netzabbruch'))
+      .mockResolvedValue(stammtisch)
+    getTischHistorie
+      .mockRejectedValueOnce(new Error('Netzabbruch'))
+      .mockResolvedValue([])
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Erneut versuchen' }),
+    )
+
+    expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Tischdaten konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('zeigt ohne Fehler den Tischzustand mit Saldo', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByText('Stammtisch')).toBeInTheDocument()
+    expect(screen.getByText('12,50 €')).toBeInTheDocument()
+  })
+
+  it('zeigt "Alles bezahlt" ohne unbezahlte Positionen', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    expect(await screen.findByText('Alles bezahlt')).toBeInTheDocument()
+  })
+
+  it('zeigt die Anzahl unbezahlter Positionen als Badge', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1'), position('p2')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    renderPage()
+
+    const badge = await screen.findByText('2 unbezahlt')
+    expect(screen.queryByText('Alles bezahlt')).not.toBeInTheDocument()
+    // „Unbezahlt" wartet auf die Servicekraft, ist kein Gefahrenzustand: Warn-Amber
+    // statt destructive.
+    expect(badge).toHaveAttribute('data-variant', 'warn')
+  })
+
+  // Radix hängt inaktive Tab-Inhalte aus; ohne den nach TablePage gehobenen
+  // State ginge die Auswahl beim Tab-Wechsel verloren.
+  it('behält den Bestell-Korb über einen Tab-Wechsel hinweg', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
+
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+  })
+
+  it('behält die Kassieren-Auswahl über einen Tab-Wechsel hinweg', async () => {
+    getTischState.mockResolvedValue({
+      ...stammtisch,
+      unbezahltePositionen: [position('p1')],
+    })
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(screen.getByRole('button', { name: 'Produkt hinzufügen' }))
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+  })
+
+  // Der useMengen-`max` deckelt nur beim `add`: schrumpft die unbezahlte Menge
+  // einer ausgewählten Position (Storno-Refetch beim Schließen des Erfolgs-Pops),
+  // muss die gehobene Auswahl sinken; eine verschwundene Position fällt heraus.
+  it('deckelt die Kassieren-Auswahl, wenn ein Refetch kleinere unbezahlte Mengen liefert', async () => {
+    const posMehr = { ...position('p1'), menge: 2 }
+    const posWeg = position('p2')
+    getTischState
+      .mockResolvedValueOnce({
+        ...stammtisch,
+        unbezahltePositionen: [posMehr, posWeg],
+      })
+      .mockResolvedValue({
+        ...stammtisch,
+        unbezahltePositionen: [{ ...posMehr, menge: 1 }],
+      })
+    getTischHistorie.mockResolvedValue([
+      {
+        art: 'bestellung',
+        id: '00000000-0000-0000-0000-000000000001',
+        userId: 1,
+        userName: 'Tester',
+        tischId: 1,
+        positionen: [posMehr],
+        gesamtPreisCents: 700,
+        kommentar: '',
+        aufgenommenAm: '2026-06-18T12:00:00Z',
+        stornierbarePositionen: [posMehr],
+        umbuchbarePositionen: [],
+      },
+    ])
+    stornierungErteilen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
+    )
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[0],
+    )
+    await user.click(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' })[1],
+    )
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '10,50',
+    )
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Stornierung erteilen' }),
+    )
+    await screen.findByText('Stornierung gebucht.')
+    await user.click(screen.getByRole('status'))
+
+    // p1 ist auf die neue Obergrenze (1) gedeckelt, p2 ist verschwunden.
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    expect(await screen.findByText(/1 von 1 ausgewählt/)).toBeInTheDocument()
+    expect(screen.queryByText(/2 von 1 ausgewählt/)).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole('button', { name: 'Produkt hinzufügen' }),
+    ).toHaveLength(1)
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '3,50',
+    )
+  })
+
+  it('startet die Auswahl bei einem Tischwechsel leer', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    // Eigener QueryClient, damit Re-Renders die Provider-Instanz teilen; jeder
+    // Aufruf liefert ein frisches Element, sonst überspringt React das
+    // Neurendern (referenzgleiche Props).
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const renderUi = () => (
+      <QueryClientProvider client={queryClient}>
+        <TablePage />
+      </QueryClientProvider>
+    )
+    const { rerender } = render(renderUi())
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+    ).toHaveTextContent('3,50')
+
+    // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
+    testState.tischId = '2'
+    rerender(renderUi())
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Bestellung überprüfen/ }),
+      ).toBeDisabled()
+    })
+  })
+
+  // Tischwechsel: TablePage bleibt gemountet und setzt den Korb nur zurück. Ein
+  // stehen gebliebener Vorgang blockierte den erzwungenen Reload dauerhaft.
+  it('gibt den Bestell-Korb beim Tischwechsel im Vorgangs-Register frei', async () => {
+    testState.produkte = [testProdukt]
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([])
+    const user = userEvent.setup()
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const renderUi = () => (
+      <QueryClientProvider client={queryClient}>
+        <TablePage />
+      </QueryClientProvider>
+    )
+    const { rerender, unmount } = render(renderUi())
+
+    await screen.findByText('Stammtisch')
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
+    testState.tischId = '2'
+    rerender(renderUi())
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    unmount()
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+
+  // Der Refetch des Tisch-States läuft erst beim Schließen des Pops.
+  it('zeigt nach der Stornierung den Erfolgs-Pop und lädt erst beim Schließen neu', async () => {
+    getTischState.mockResolvedValue(stammtisch)
+    getTischHistorie.mockResolvedValue([
+      {
+        art: 'bestellung',
+        id: '00000000-0000-0000-0000-000000000001',
+        userId: 1,
+        userName: 'Tester',
+        tischId: 1,
+        positionen: [position('p1')],
+        gesamtPreisCents: 350,
+        kommentar: '',
+        aufgenommenAm: '2026-06-18T12:00:00Z',
+        stornierbarePositionen: [position('p1')],
+        umbuchbarePositionen: [],
+      },
+    ])
+    stornierungErteilen.mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Stammtisch')
+    const ladeCalls = getTischState.mock.calls.length
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('button', { name: /Bestellung/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Stornierung erteilen' }),
+    )
+
+    await screen.findByText('Stornierung gebucht.')
+    expect(getTischState.mock.calls.length).toBe(ladeCalls)
+
+    await user.click(screen.getByRole('status'))
+    await waitFor(() => {
+      expect(getTischState.mock.calls.length).toBeGreaterThan(ladeCalls)
+    })
+  })
+})

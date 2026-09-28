@@ -1,0 +1,86 @@
+import type { MengenSteuerung } from '@/hooks/use-mengen'
+import { useIsMobile } from '@/hooks/use-mobile'
+import type { Produkt } from '@/lib/produktSchemas'
+
+import { ServiceSplitLayout } from '../ServiceSplitLayout'
+import { BestellungAbschluss } from './BestellungAbschluss'
+import { BestellungDrawer } from './BestellungDrawer'
+import { calculateTotalPrice, toBestellungData } from './drawerUtils'
+import { ProductList, ProductListSkeleton } from './ProductList'
+import type { Tisch } from './Tisch'
+import type { TischBackend } from './TischBackend'
+
+interface BestellungTabProps {
+  backend: Pick<TischBackend, 'bestellungAufnehmen'>
+  tisch: Tisch
+  products: Produkt[]
+  productsLoading: boolean
+  // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
+  // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
+  mengenSteuerung: MengenSteuerung<number>
+  onErfolg: (nachricht: string) => void
+}
+
+export function BestellungTab({
+  backend,
+  tisch,
+  products,
+  productsLoading,
+  mengenSteuerung,
+  onErfolg,
+}: BestellungTabProps) {
+  const isMobile = useIsMobile()
+  const { mengen, add, remove, reset } = mengenSteuerung
+
+  if (productsLoading) {
+    return <ProductListSkeleton />
+  }
+
+  const bestellungAufgenommen = () => {
+    reset()
+    onErfolg('Bestellung wurde aufgenommen.')
+  }
+
+  const productList = (
+    <ProductList
+      products={products}
+      variantMengen={mengen}
+      onAdd={add}
+      onRemove={remove}
+    />
+  )
+
+  // Ab lg feste Abschluss-Spalte: der Abschluss-Inhalt mountet genau einmal.
+  if (!isMobile) {
+    const { receiptItems, inputItems } = toBestellungData(products, mengen)
+    return (
+      <ServiceSplitLayout
+        auswahl={productList}
+        abschluss={
+          <BestellungAbschluss
+            variant="spalte"
+            backend={backend}
+            tisch={tisch}
+            receiptItems={receiptItems}
+            positionen={inputItems}
+            totalCents={calculateTotalPrice(receiptItems)}
+            bestellungAufgenommen={bestellungAufgenommen}
+          />
+        }
+      />
+    )
+  }
+
+  return (
+    <>
+      <BestellungDrawer
+        backend={backend}
+        tisch={tisch}
+        products={products}
+        mengen={mengen}
+        bestellungAufgenommen={bestellungAufgenommen}
+      />
+      {productList}
+    </>
+  )
+}
