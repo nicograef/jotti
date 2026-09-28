@@ -33,80 +33,68 @@ func TestError(t *testing.T) {
 	}
 }
 
+// fakeDB becomes reachable once its clock reaches upAt; sleeping advances the clock.
+type fakeDB struct {
+	now, upAt time.Duration
+}
+
+var errDown = errors.New("connection refused")
+
+func (d *fakeDB) ping() error {
+	if d.now < d.upAt {
+		return errDown
+	}
+	return nil
+}
+
+func (d *fakeDB) sleep(dur time.Duration) { d.now += dur }
+
 func TestPingWithRetry(t *testing.T) {
 	t.Run("succeeds on the first attempt without sleeping", func(t *testing.T) {
-		pings, sleeps := 0, 0
-		err := PingWithRetry(func() error {
-			pings++
-			return nil
-		}, 30*time.Second, time.Second, func(time.Duration) { sleeps++ })
+		d := &fakeDB{}
+		err := PingWithRetry(d.ping, 30*time.Second, time.Second, d.sleep)
 
 		if err != nil {
-			t.Fatalf("expected nil error, got %v", err)
+			t.Errorf("expected nil error, got %v", err)
 		}
-		if pings != 1 {
-			t.Errorf("expected 1 ping, got %d", pings)
-		}
-		if sleeps != 0 {
-			t.Errorf("expected no sleeps, got %d", sleeps)
+		if d.now != 0 {
+			t.Errorf("expected no waiting, waited %v", d.now)
 		}
 	})
 
 	t.Run("succeeds after transient failures", func(t *testing.T) {
-		pings, sleeps := 0, 0
-		err := PingWithRetry(func() error {
-			pings++
-			if pings < 3 {
-				return errors.New("connection refused")
-			}
-			return nil
-		}, 30*time.Second, time.Second, func(time.Duration) { sleeps++ })
+		d := &fakeDB{upAt: 2 * time.Second}
+		err := PingWithRetry(d.ping, 30*time.Second, time.Second, d.sleep)
 
 		if err != nil {
-			t.Fatalf("expected nil error, got %v", err)
+			t.Errorf("expected nil error, got %v", err)
 		}
-		if pings != 3 {
-			t.Errorf("expected 3 pings, got %d", pings)
-		}
-		if sleeps != 2 {
-			t.Errorf("expected 2 sleeps between attempts, got %d", sleeps)
+		if d.now != 2*time.Second {
+			t.Errorf("expected to stop waiting once the database is up after 2s, waited %v", d.now)
 		}
 	})
 
 	t.Run("gives up after the budget is exhausted", func(t *testing.T) {
-		down := errors.New("still down")
-		pings, sleeps := 0, 0
-		err := PingWithRetry(func() error {
-			pings++
-			return down
-		}, 5*time.Second, time.Second, func(time.Duration) { sleeps++ })
+		d := &fakeDB{upAt: time.Hour}
+		err := PingWithRetry(d.ping, 5*time.Second, time.Second, d.sleep)
 
-		if !errors.Is(err, down) {
-			t.Fatalf("expected the last ping error, got %v", err)
+		if !errors.Is(err, errDown) {
+			t.Errorf("expected the last ping error, got %v", err)
 		}
-		if pings != 5 {
-			t.Errorf("expected 5 ping attempts (budget/interval), got %d", pings)
-		}
-		if sleeps != 4 {
-			t.Errorf("expected 4 sleeps (no sleep after the final attempt), got %d", sleeps)
+		if d.now != 4*time.Second {
+			t.Errorf("expected 4s of waiting (5 attempts, no sleep after the final one), waited %v", d.now)
 		}
 	})
 
 	t.Run("tries at least once when the interval exceeds the budget", func(t *testing.T) {
-		pings, sleeps := 0, 0
-		err := PingWithRetry(func() error {
-			pings++
-			return errors.New("down")
-		}, time.Second, 30*time.Second, func(time.Duration) { sleeps++ })
+		d := &fakeDB{upAt: time.Hour}
+		err := PingWithRetry(d.ping, time.Second, 30*time.Second, d.sleep)
 
-		if err == nil {
-			t.Fatal("expected an error, got nil")
+		if !errors.Is(err, errDown) {
+			t.Errorf("expected the ping error, got %v", err)
 		}
-		if pings != 1 {
-			t.Errorf("expected exactly 1 ping, got %d", pings)
-		}
-		if sleeps != 0 {
-			t.Errorf("expected no sleeps, got %d", sleeps)
+		if d.now != 0 {
+			t.Errorf("expected no waiting, waited %v", d.now)
 		}
 	})
 }
