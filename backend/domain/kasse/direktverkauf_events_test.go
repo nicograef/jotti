@@ -90,7 +90,10 @@ func TestNewDirektverkaufStorniertEvent_ValidatesAndStoresPositionen(t *testing.
 	if _, err := uuid.Parse(data.StornierungID); err != nil {
 		t.Errorf("expected server-generated UUID stornierungId, got %q", data.StornierungID)
 	}
-	if len(data.Positionen) != 1 || data.Positionen[0].PositionID != posID || data.Positionen[0].Menge != 2 {
+	if len(data.Positionen) != 1 {
+		t.Fatalf("expected one Position, got %+v", data.Positionen)
+	}
+	if data.Positionen[0].PositionID != posID || data.Positionen[0].Menge != 2 {
 		t.Errorf("expected one Position {%s, 2}, got %+v", posID, data.Positionen)
 	}
 	if data.Positionen[0].ProduktName != "Cola" {

@@ -424,7 +424,7 @@ func TestApplyEvent_DoesNotMutateInputState(t *testing.T) {
 	}
 
 	if len(state.UnbezahltePositionen) != wantLen {
-		t.Errorf("original state UnbezahltePositionen length mutated: was %d, now %d",
+		t.Fatalf("original state UnbezahltePositionen length mutated: was %d, now %d",
 			wantLen, len(state.UnbezahltePositionen))
 	}
 	if state.UnbezahltePositionen[0].Menge != wantMenge {

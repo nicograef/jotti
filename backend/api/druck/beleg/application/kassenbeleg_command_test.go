@@ -428,6 +428,9 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
 	if err != nil {
@@ -604,6 +607,9 @@ func TestKassenbelegDrucken_VerspaeteteSignatur_TraegtNachsigniertVermerk(t *tes
 	}
 	if status != BelegStatusEingereiht {
 		t.Errorf("expected status eingereiht, got %q", status)
+	}
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
@@ -933,6 +939,9 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 
 	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); err != nil {
 		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
 	}
 
 	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)

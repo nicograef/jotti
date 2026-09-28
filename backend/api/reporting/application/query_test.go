@@ -619,7 +619,10 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if anna.UserID != 7 || anna.KassiertCents != 1500 || anna.AbzugebenCents != 1500 || anna.Erledigt {
 		t.Errorf("expected Anna mit Umsatz und offener Arbeit, got %+v", anna)
 	}
-	if len(anna.OffeneTische) != 1 || anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
+	if len(anna.OffeneTische) != 1 {
+		t.Fatalf("expected Anna offen an genau einem Tisch, got %+v", anna.OffeneTische)
+	}
+	if anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
 	}
 	// OffenCents comes from the domain: 2 × 375 = 750 cents.
@@ -641,7 +644,10 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if bert.UserID != 8 || bert.UserName != "Bert" || bert.Name != "" || bert.KassiertCents != 0 || bert.AbzugebenCents != 0 || bert.Erledigt {
 		t.Errorf("expected Bert ohne Umsatz mit offener Arbeit, got %+v", bert)
 	}
-	if len(bert.OffeneTische) != 1 || bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlOffen != 1 {
+	if len(bert.OffeneTische) != 1 {
+		t.Fatalf("expected Bert offen an genau einem Tisch, got %+v", bert.OffeneTische)
+	}
+	if bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlOffen != 1 {
 		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
 	}
 	if bert.OffeneTische[0].OffenCents != 300 {

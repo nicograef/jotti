@@ -72,7 +72,10 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 	if len(resp.Historie[0].Positionen) != 1 || resp.Historie[0].Positionen[0].Steuersatz == "" {
 		t.Errorf("expected one position with steuersatz, got %+v", resp.Historie[0].Positionen)
 	}
-	if len(resp.Historie[0].OffenePositionen) != 1 || resp.Historie[0].OffenePositionen[0].Menge != 1 {
+	if len(resp.Historie[0].OffenePositionen) != 1 {
+		t.Fatalf("expected one offene Position, got %+v", resp.Historie[0].OffenePositionen)
+	}
+	if resp.Historie[0].OffenePositionen[0].Menge != 1 {
 		t.Errorf("expected one offene Position with menge 1, got %+v", resp.Historie[0].OffenePositionen)
 	}
 	if resp.Historie[0].OffenePositionen[0].Steuersatz == "" {
