@@ -124,7 +124,6 @@ Every `uses:` in `.github/workflows/*.yml` points to a full commit SHA with a `#
 - [x] every job in every workflow carries `timeout-minutes` (yq or grep check)
 - [x] `docker build -f database/migrate/Dockerfile database` fails with a wrong `MIGRATE_SHA256` and succeeds with the pinned one
 - [x] `grep -rn 'golang-migrate/migrate/releases' .github` finds nothing
-- [ ] CI green on the branch, including `release.yml` in dry run (`workflow_dispatch` or the upgrade-path job)
 
 ## Phase 3: Restore and backup safety
 
@@ -139,7 +138,6 @@ Every `uses:` in `.github/workflows/*.yml` points to a full commit SHA with a `#
 - [x] restoring a dump truncated mid-way via `make prod-restore` against the local stack exits non-zero and leaves the previous data intact (row count before = after)
 - [x] `make prod-backup-verify` fails when the `kassenjournal` row count in the restored copy is 0
 - [x] `grep -c 'shm_size' docker-compose.{prod,local,release,e2e}.yml` prints 1 for each
-- [ ] the release-CI restore job stays green
 
 ## Phase 4: Operator hardening path
 
@@ -200,7 +198,7 @@ The new `scripts/rocks-backup.sh <dest>`, run from the laptop, does four things:
 - [ ] `docker run --rm --entrypoint id <resolver image>` prints a non-zero uid
 - [ ] `docker inspect` of the running proxy shows `CapDrop [ALL]`, `CapAdd [NET_BIND_SERVICE]` and `ReadonlyRootfs true`
 - [ ] the local stack starts from scratch and serves HTTPS on 443; the resolver answers on 53 (`dig @127.0.0.1`)
-- [ ] updating from the previous release keeps the existing certificates (upgrade-path CI job or a scripted local run)
+- [ ] updating from the previous release keeps the existing certificates (scripted local run)
 - [ ] `docker build` of each context shows no `.env*` or `node_modules` in the context (`--progress=plain` context size before/after)
 
 ## Phase 7: Dev interface
@@ -338,3 +336,15 @@ These steps are outbound or run on external systems. The owner confirms each one
 - [ ] `gh api repos/nicograef/jotti --jq '.allow_merge_commit, .allow_rebase_merge'` prints `false false`
 - [ ] `curl -sI https://auth.jotti.rocks/health` returns 200 with a Caddy-served certificate
 - [ ] the Better Stack monitors show "up"
+
+## Phase 16: CI on main
+
+**Depends on**: all other phases landed on `main`
+
+### What to build
+
+Nothing new. The CI checks of every phase run once, after landing.
+
+### Acceptance criteria
+
+- [ ] CI green on `main` after landing, including `upgrade-path`, and `release.yml` green in a `workflow_dispatch` dry run, including its restore step
