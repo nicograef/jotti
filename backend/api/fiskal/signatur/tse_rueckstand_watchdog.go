@@ -18,16 +18,11 @@ type rueckstandStore interface {
 	CloseTSEStoerung(ctx context.Context, grundArt string) error
 }
 
-// tseRueckstandWatchdog dokumentiert Signatur-Rückstände im
-// Störungsprotokoll: Er prüft im Tick-Intervall das Alter des ältesten
-// offenen Signaturauftrags, öffnet ab der Rückstands-Schwelle einen
-// Rückstands-Zeitraum und schließt ihn beim Unterschreiten. Als eigener
-// Ticker neben dem Signatur-Worker dokumentiert er auch einen hängenden
-// Worker und hängt nicht am Leser-Traffic.
+// tseRueckstandWatchdog records signing backlogs in the Störungsprotokoll.
+// Its own ticker lets it record a hung worker too, independent of reader traffic.
 type tseRueckstandWatchdog struct {
 	store rueckstandStore
-	// tickInterval ist der Prüf-Takt; 0 (Zero Value in Tests) fällt auf
-	// tse.WatchdogTickIntervall zurück.
+	// tickInterval 0 falls back to tse.WatchdogTickIntervall.
 	tickInterval time.Duration
 	now          func() time.Time
 }
@@ -39,7 +34,7 @@ func NewTSERueckstandWatchdog(database *sql.DB) Runner {
 	}
 }
 
-// Run startet den Watchdog und blockiert bis ctx abgebrochen wird.
+// Run blocks until ctx is cancelled.
 func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 	interval := w.tickInterval
 	if interval <= 0 {
@@ -59,9 +54,6 @@ func (w *tseRueckstandWatchdog) Run(ctx context.Context) {
 	}
 }
 
-// tick führt eine Loop-Iteration aus. Ein Panic wird abgefangen und geloggt
-// statt den Run-Loop zu beenden — die Überwachung läuft am nächsten Tick
-// weiter.
 func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	defer recoverPanic("TSE-Rückstands-Watchdog")
 
@@ -70,10 +62,7 @@ func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	}
 }
 
-// checkRueckstand öffnet den Rückstands-Zeitraum, sobald der älteste
-// offene Auftrag die Rückstands-Schwelle erreicht, und schließt ihn, sobald
-// der Rückstand abgebaut ist. Beide Schritte sind idempotent; der Watchdog
-// schließt nur Zeiträume seiner Grund-Art.
+// checkRueckstand is idempotent and closes only rueckstand periods.
 func (w *tseRueckstandWatchdog) checkRueckstand(ctx context.Context) error {
 	aeltester, err := w.store.GetAeltesterOffenerTSESignaturauftrag(ctx)
 	if err != nil {

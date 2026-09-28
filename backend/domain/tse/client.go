@@ -17,15 +17,11 @@ const (
 
 var ErrUnvollstaendigeCredentials = errors.New("tse credentials are incomplete")
 
-// ErrTransactionNichtGefunden zeigt an, dass eine Transaktion bei der TSE
-// (noch) nicht existiert — der Signatur-Worker startet sie dann neu.
+// ErrTransactionNichtGefunden tells the signing worker to start the transaction fresh.
 var ErrTransactionNichtGefunden = errors.New("tse transaction not found")
 
-// AuftragsFehler kennzeichnet einen auftragsspezifischen Signierfehler (etwa von
-// fiskaly zurückgewiesene processData): der Worker verbucht einen Fehlversuch und
-// überspringt den Auftrag, ein Gift-Auftrag staut nie die Queue. Jeder nicht so
-// gekennzeichnete Fehler gilt als TSE-weit, bricht den Durchlauf ab und schaltet
-// den Worker in den Störungszustand.
+// AuftragsFehler marks a job-specific signing error, such as processData rejected by fiskaly.
+// Any unmarked error counts as TSE-wide; see docs/handbuch.md §3.13 (Signatur-Worker).
 type AuftragsFehler struct {
 	Err error
 }
@@ -56,24 +52,20 @@ func (c Credentials) Validate() error {
 	return nil
 }
 
-// TSEClient bildet das atomare Transaktionsmuster ab: Start eröffnet die
-// Transaktion (processType/processData sind laut DSFinV-K bei Start immer
-// leer), Finish schließt sie mit dem finalen Schema ab. Beide Aufrufe
-// adressieren die Transaktion über die von jotti erzeugte tx-ID (UUIDv4).
+// TSEClient implements the atomic pattern: Start carries no process data (DSFinV-K Anhang I), Finish the final schema.
+// See docs/compliance.md §3.2.
 type TSEClient interface {
 	StartTransaction(ctx context.Context, txID string) (StartResult, error)
 	FinishTransaction(ctx context.Context, txID string, processType string, processData string) (FinishResult, error)
 }
 
-// ConnectionTester: TestConnection ist die volle Diagnose (TSS- und Client-Abruf,
-// Seriennummer), Umgebung der leichte Pfad allein aus dem Auth-Token.
+// ConnectionTester: TestConnection is the full diagnosis, Umgebung the light path from the auth token alone.
 type ConnectionTester interface {
 	TestConnection(ctx context.Context) (VerbindungStatus, error)
 	Umgebung(ctx context.Context) (Umgebung, error)
 }
 
-// TransactionRetriever fragt den Ist-Zustand einer Transaktion bei der TSE ab.
-// Existiert die Transaktion nicht, wird ErrTransactionNichtGefunden geliefert.
+// TransactionRetriever returns ErrTransactionNichtGefunden for an unknown transaction.
 type TransactionRetriever interface {
 	RetrieveTransaction(ctx context.Context, txID string) (RetrieveResult, error)
 }
@@ -86,8 +78,7 @@ const (
 	TransactionStateCancelled TransactionState = "CANCELLED"
 )
 
-// RetrieveResult ist der bei der TSE gespeicherte Stand einer Transaktion; die
-// Signaturdaten trägt es nur bei abgeschlossenen Transaktionen.
+// RetrieveResult carries signature data only for finished transactions.
 type RetrieveResult struct {
 	State TransactionState
 	FinishResult
@@ -111,10 +102,8 @@ type FinishResult struct {
 	QRCodeData        string
 }
 
-// VerbindungStatus: Umgebung, TSSState, ClientState und ClientSerialNumber füllt
-// die Repository-Schicht aus den fiskaly-Antworten; SeriennummerKorrekt setzt die
-// Application-Schicht, die die jotti-Kassen-Seriennummer mit der
-// Client-serial_number abgleicht.
+// VerbindungStatus: the repository fills the fiskaly fields; the application layer sets SeriennummerKorrekt.
+// It compares the jotti Kassen-Seriennummer with the client serial_number.
 type VerbindungStatus struct {
 	Umgebung            Umgebung
 	TSSState            string

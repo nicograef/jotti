@@ -40,12 +40,12 @@ type mockTSESignaturStore struct {
 	offene            []tse_repo.OffenerSignaturauftrag
 	quittierungen     []quittierung
 	fehlversuche      []fehlversuch
-	geoeffnet         []string // Grund-Arten der geöffneten Störungszeiträume
-	geschlossen       []string // Grund-Arten der geschlossenen Störungszeiträume
+	geoeffnet         []string // Grund-Arten of opened periods
+	geschlossen       []string // Grund-Arten of closed periods
 	nichtKonfiguriert []tse_repo.OffenerSignaturauftrag
 	getErr            error
 	quittiereErr      error
-	// verarbeitet signalisiert jede Quittierung (für Run-Loop-Tests ohne Sleeps).
+	// verarbeitet signals each acknowledgement so run-loop tests need no sleeps.
 	verarbeitet chan struct{}
 }
 
@@ -120,8 +120,7 @@ func newWorkerClient(fake tsetest.FakeClient) tseClientFactory {
 	}
 }
 
-// zaehlenderClient zählt die fiskaly-Aufrufe — für Tests, die belegen, dass
-// der Durchlauf abbricht bzw. der Störungszustand fiskaly in Ruhe lässt.
+// zaehlenderClient counts fiskaly calls to prove a run aborts or the outage state stays silent.
 type zaehlenderClient struct {
 	tsetest.FakeClient
 	mu    sync.Mutex
@@ -155,8 +154,7 @@ func (c *zaehlenderClient) FinishTransaction(ctx context.Context, txID string, p
 	return c.FakeClient.FinishTransaction(ctx, txID, processType, processData)
 }
 
-// txAbhaengigerClient signiert je nach txID erfolgreich oder lehnt mit dem
-// hinterlegten Fehler ab — für Gift-Auftrag-Tests.
+// txAbhaengigerClient fails only the txIDs it holds an error for, for poison-job tests.
 type txAbhaengigerClient struct {
 	ablehnungen map[string]error
 }
@@ -226,10 +224,8 @@ func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
 	}
 }
 
-// Ein TSE-weiter Fehler (hier: Verbindungsfehler) bricht den Durchlauf beim
-// ersten Auftrag ab: keine Auftrags-Fehlversuche, der zweite Auftrag wird gar
-// nicht versucht, der Störungszeitraum tse_fehler wird geöffnet und der
-// Worker betritt den Störungszustand.
+// A TSE-wide error aborts the run at the first job without counting attempts.
+// It opens the tse_fehler period and enters the outage state.
 func TestTSESignaturWorker_ProcessOnce_TSEWeiterFehlerBrichtDurchlaufAb(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{
 		{ID: 2, TxID: "tx-2", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^5.00"},
@@ -269,10 +265,8 @@ func TestTSESignaturWorker_ProcessOnce_TSEWeiterFehlerBrichtDurchlaufAb(t *testi
 	}
 }
 
-// Ein auftragsspezifischer Fehler (tse.AuftragsFehler, etwa eine
-// 400-Ablehnung) verbucht einen Fehlversuch am Auftrag und überspringt ihn:
-// Der nachfolgende Auftrag wird im selben Durchlauf signiert, es entsteht
-// keine Störung — ein Gift-Auftrag staut nie die Queue.
+// A job-specific error counts an attempt and skips the job; the next job still signs in the same run.
+// A poison job never blocks the queue or opens an outage.
 func TestTSESignaturWorker_ProcessOnce_AuftragsFehlerUeberspringtUndSigniertWeiter(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{
 		{ID: 10, TxID: "tx-gift", ProcessType: "Kassenbeleg-V1", ProcessData: "kaputt"},
@@ -307,8 +301,7 @@ func TestTSESignaturWorker_ProcessOnce_AuftragsFehlerUeberspringtUndSigniertWeit
 	}
 }
 
-// Eine bei fiskaly stornierte Transaktion (unerwarteter Zustand CANCELLED)
-// hängt an diesem einen Auftrag: Fehlversuch statt Durchlauf-Abbruch.
+// A CANCELLED transaction at fiskaly concerns only its job: a failed attempt, not an aborted run.
 func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          12,
@@ -337,11 +330,8 @@ func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *t
 	}
 }
 
-// Im Störungszustand lässt der Worker fiskaly bis zum Backoff-Ablauf in
-// Ruhe: Trigger und Ticks führen zu keinem fiskaly-Aufruf. Nach Ablauf ist
-// der erste Auftrag die Half-Open-Probe: Scheitert sie TSE-weit, wächst der
-// Backoff; gelingt sie, läuft die volle Aufarbeitung und die erste
-// erfolgreiche Signatur schließt den Störungszeitraum.
+// During backoff no trigger or tick calls fiskaly; afterwards the half-open probe grows the backoff on failure.
+// On success the full backlog signs and the first signature closes the period.
 func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{
 		{ID: 20, TxID: "tx-20", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^1.00"},
@@ -358,12 +348,12 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	// Durchlauf 1: TSE-weiter Fehler — Störungszustand, Backoff 5s.
+	// Run 1: TSE-wide error, outage state, 5s backoff.
 	if err := worker.processOnce(ctx); err == nil {
 		t.Fatal("expected TSE-weiten Fehler")
 	}
 
-	// Während des Backoffs: kein einziger fiskaly-Aufruf.
+	// No fiskaly call during the backoff.
 	jetzt = jetzt.Add(2 * time.Second)
 	callsVorher := client.anzahlCalls()
 	if err := worker.processOnce(ctx); err != nil {
@@ -373,8 +363,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		t.Errorf("expected no fiskaly calls during stoerung, got %d new", client.anzahlCalls()-callsVorher)
 	}
 
-	// Probe nach Backoff-Ablauf scheitert TSE-weit: ein Aufruf, Serie und
-	// Backoff wachsen (5s -> 10s).
+	// The probe fails TSE-wide: one call, the backoff grows from 5s to 10s.
 	jetzt = jetzt.Add(4 * time.Second)
 	callsVorher = client.anzahlCalls()
 	if err := worker.processOnce(ctx); err == nil {
@@ -390,9 +379,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		t.Errorf("expected gewachsenen Backoff 10s, got %v", worker.stoerungNaechsterVersuch.Sub(jetzt))
 	}
 
-	// TSE erholt sich: Die Probe gelingt, die volle Aufarbeitung signiert
-	// beide Aufträge, die erste erfolgreiche Signatur schließt den
-	// Störungszeitraum und setzt die Serie zurück.
+	// The probe succeeds: both jobs sign, the period closes and the series resets.
 	client.FakeClient = tsetest.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 70, LogTime: jetzt},
@@ -413,8 +400,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 	}
 }
 
-// Der Störungs-Backoff ist deterministisch (ohne Jitter): Basis 5s,
-// verdoppelt je Fehlerserie, gedeckelt auf 2 Minuten.
+// The outage backoff is deterministic: 5s, doubled per series, capped at 2 minutes.
 func TestTSEStoerungBackoff_DeterministischeKurve(t *testing.T) {
 	tests := []struct {
 		serie    int
@@ -436,9 +422,7 @@ func TestTSEStoerungBackoff_DeterministischeKurve(t *testing.T) {
 	}
 }
 
-// Jeder Durchlauf hat eine Deadline: Ein hängender fiskaly-Aufruf wird
-// abgebrochen und als TSE-weiter Fehler behandelt (Störungszustand statt
-// blockiertem Worker).
+// A hanging fiskaly call hits the run deadline and counts as a TSE-wide error instead of blocking the worker.
 func TestTSESignaturWorker_ProcessOnce_DurchlaufDeadlineBrichtAb(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          30,
@@ -469,10 +453,8 @@ func TestTSESignaturWorker_ProcessOnce_DurchlaufDeadlineBrichtAb(t *testing.T) {
 	}
 }
 
-// Heilt das 409-Szenario: Die Transaktion wurde bei fiskaly bereits
-// abgeschlossen (z. B. Abbruch zwischen Signierung und Quittierung). Der
-// Worker übernimmt die vorhandene Signatur, ohne neu zu signieren —
-// Start/Finish würden in diesem Test fehlschlagen.
+// Heals the 409 case: a transaction already finished at fiskaly is adopted without re-signing.
+// Start and Finish would fail in this test.
 func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          3,
@@ -522,8 +504,7 @@ func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T
 	}
 }
 
-// Eine bei fiskaly noch aktive Transaktion (Start kam durch, Finish nicht)
-// wird nur noch abgeschlossen — ein erneuter Start würde fehlschlagen.
+// A transaction still active at fiskaly is only finished; a second Start would fail.
 func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{
 		ID:          4,
@@ -575,8 +556,7 @@ func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *tes
 	}
 }
 
-// Der TSE-Client wird über Durchläufe hinweg wiederverwendet (samt
-// Auth-Token) und nur bei geänderten Zugangsdaten neu gebaut.
+// The TSE client and its auth token survive runs and are rebuilt only on changed credentials.
 func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 	settingsRepo := &mockTSESettingsReader{conf: configuredTSE()}
 	worker := &tseSignaturWorker{
@@ -608,10 +588,8 @@ func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 	}
 }
 
-// Ohne vorhandene TSE-Konfiguration markiert der Worker offene Aufträge
-// endgültig als tse_nicht_konfiguriert und öffnet den keine_konfiguration-
-// Störungszeitraum. Getestet für beide Fälle fehlender Konfiguration:
-// gar keine Zeile (db.ErrNotFound) und vorhandene, aber leere Konfiguration.
+// Without a configuration, open jobs become tse_nicht_konfiguriert and keine_konfiguration opens.
+// Covers both a missing row (db.ErrNotFound) and an empty one.
 func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -646,9 +624,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 	}
 }
 
-// Ohne markierbare Aufträge (kein offener Auftrag) öffnet der Worker keinen
-// Störungszeitraum — der keine_konfiguration-Ausfall belegt reale Vorgänge,
-// nicht einen frisch installierten, noch unbenutzten Kassenstand.
+// With no open job, no period opens: keine_konfiguration records real transactions, not a fresh unused install.
 func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoerung(t *testing.T) {
 	store := &mockTSESignaturStore{}
 	worker := &tseSignaturWorker{
@@ -666,8 +642,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoeru
 	}
 }
 
-// Nicht lesbare Konfiguration (echter DB-Fehler, nicht db.ErrNotFound) ist kein
-// Dauerzustand: Der Worker markiert nichts und gibt den Fehler zurück.
+// A configuration read error is transient: the worker marks nothing and returns the error.
 func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t *testing.T) {
 	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{ID: 1, TxID: "tx-1"}, {ID: 2, TxID: "tx-2"}, {ID: 3, TxID: "tx-3"}}}
 	worker := &tseSignaturWorker{
@@ -707,8 +682,7 @@ func signierenderFakeClient() tseClientFactory {
 	})
 }
 
-// Der Sofort-Trigger nach einem Commit stößt den Durchlauf ohne Warten auf
-// den Polling-Tick an (Tick steht auf einer Stunde).
+// The post-commit trigger starts a run without waiting for the one-hour tick.
 func TestTSESignaturWorker_Run_SofortTrigger(t *testing.T) {
 	store := &mockTSESignaturStore{
 		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 6, TxID: "tx-6", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^1.00"}},
@@ -736,9 +710,7 @@ func TestTSESignaturWorker_Run_SofortTrigger(t *testing.T) {
 	}
 }
 
-// panicEinmalStore panict beim ersten Laden der offenen Aufträge und
-// funktioniert danach normal — für den Beleg, dass ein Panic den Run-Loop
-// nicht beendet.
+// panicEinmalStore panics on the first load only.
 type panicEinmalStore struct {
 	*mockTSESignaturStore
 	panicMu  sync.Mutex
@@ -756,8 +728,7 @@ func (s *panicEinmalStore) GetOffeneTSESignaturauftraege(ctx context.Context, li
 	return s.mockTSESignaturStore.GetOffeneTSESignaturauftraege(ctx, limit)
 }
 
-// Ein Panic im Durchlauf stoppt die Signierung nicht dauerhaft: Der Run-Loop
-// fängt ihn ab und der nächste Trigger verarbeitet den offenen Auftrag.
+// A panic in one run does not stop signing; the next trigger processes the open job.
 func TestTSESignaturWorker_Run_PanicStopptSignierungNicht(t *testing.T) {
 	store := &panicEinmalStore{mockTSESignaturStore: &mockTSESignaturStore{
 		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 8, TxID: "tx-8", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^3.00"}},
@@ -776,8 +747,8 @@ func TestTSESignaturWorker_Run_PanicStopptSignierungNicht(t *testing.T) {
 	cancel, done := runWorker(t, worker)
 	defer func() { cancel(); <-done }()
 
-	trigger <- struct{}{} // erster Durchlauf panict
-	trigger <- struct{}{} // zweiter Durchlauf signiert
+	trigger <- struct{}{} // first run panics
+	trigger <- struct{}{} // second run signs
 
 	select {
 	case <-store.verarbeitet:
@@ -786,8 +757,7 @@ func TestTSESignaturWorker_Run_PanicStopptSignierungNicht(t *testing.T) {
 	}
 }
 
-// Der Polling-Tick fängt verlorene Trigger (Crash zwischen Commit und
-// Trigger): Ohne jeden Trigger wird der offene Auftrag am Tick verarbeitet.
+// The polling tick catches lost triggers: with no trigger at all, the tick processes the open job.
 func TestTSESignaturWorker_Run_PollingFallbackFaengtVerloreneTrigger(t *testing.T) {
 	store := &mockTSESignaturStore{
 		offene:      []tse_repo.OffenerSignaturauftrag{{ID: 7, TxID: "tx-7", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^2.00"}},
@@ -797,7 +767,7 @@ func TestTSESignaturWorker_Run_PollingFallbackFaengtVerloreneTrigger(t *testing.
 		settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
 		store:        store,
 		newTSEClient: signierenderFakeClient(),
-		trigger:      make(chan struct{}), // nie ausgelöst
+		trigger:      make(chan struct{}), // never fired
 		pollInterval: 10 * time.Millisecond,
 		now:          time.Now,
 	}

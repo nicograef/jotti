@@ -24,8 +24,7 @@ func (t Konfiguration) Credentials() Credentials {
 }
 
 func (t Konfiguration) Validate() error {
-	// Komplett leer ist gültig (TSE nicht konfiguriert); sind Felder gesetzt, gilt
-	// die Vier-Felder-Regel aus Credentials (alle oder keines).
+	// Fully empty means not configured; otherwise all four credential fields are required.
 	if !t.leer() {
 		if err := t.Credentials().Validate(); err != nil {
 			return err

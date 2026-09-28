@@ -3,15 +3,11 @@ package tse
 import "time"
 
 const (
-	// NachsigniertSchwelle: Eine Signatur, die später als diese Spanne nach
-	// der Auftragserstellung entsteht, trägt das Nachsigniert-Kennzeichen —
-	// ihre TSE-Zeitpunkte weichen sichtbar vom Belegdatum ab.
+	// NachsigniertSchwelle: a later signature gets the Nachsigniert mark, as its TSE times visibly differ from the receipt date.
 	NachsigniertSchwelle = time.Minute
-	// RueckstandSchwelle: Ab diesem Alter des ältesten offenen Auftrags
-	// dokumentiert der Rückstands-Watchdog einen Rückstands-Störungszeitraum.
+	// RueckstandSchwelle is the age of the oldest open job at which the watchdog opens a rueckstand period.
 	RueckstandSchwelle = 2 * time.Minute
-	// WatchdogTickIntervall ist der Prüf-Takt des Rückstands-Watchdogs; die
-	// Rückstands-Schwelle materialisiert nur am Tick.
+	// WatchdogTickIntervall bounds how late past RueckstandSchwelle a period opens.
 	WatchdogTickIntervall = 10 * time.Second
 )
 
@@ -19,8 +15,7 @@ type Signaturstatus string
 
 const (
 	SignaturstatusVorhanden Signaturstatus = "vorhanden"
-	// SignaturstatusNachsigniert: Signatur liegt vor, entstand aber später als
-	// NachsigniertSchwelle; der Beleg trägt das Nachsigniert-Kennzeichen.
+	// SignaturstatusNachsigniert: signed later than NachsigniertSchwelle after the job was created.
 	SignaturstatusNachsigniert Signaturstatus = "nachsigniert"
 	SignaturstatusAusfall      Signaturstatus = "ausfall"
 	SignaturstatusAusstehend   Signaturstatus = "ausstehend"
@@ -28,19 +23,14 @@ const (
 
 type SignaturstatusErgebnis struct {
 	Status Signaturstatus
-	// Signatur ist bei Vorhanden und Nachsigniert gesetzt.
+	// Signatur is set for Vorhanden and Nachsigniert.
 	Signatur *Signatur
-	// AusfallGrund ist bei Ausfall gesetzt: der Endstatus des Auftrags
-	// (fehlgeschlagen, tse_nicht_konfiguriert) oder die Grund-Art des aktiven
-	// Störungszeitraums.
+	// AusfallGrund is the job's final status or the active period's Grund-Art.
 	AusfallGrund string
 }
 
-// DetermineSignaturstatus ist die einzige Implementierung des Ausfallbegriffs;
-// Beleg-Abruf und Kassenabschluss-Gate urteilen über sie. Ausfall ist allein der
-// Endstatus des Auftrags (fehlgeschlagen, tse_nicht_konfiguriert) oder ein offener
-// Auftrag bei aktivem Störungszeitraum — Fehlversuche unterhalb der Maximalzahl
-// und geschlossene Zeiträume zählen nicht.
+// DetermineSignaturstatus is the only implementation of Ausfall; retries below the maximum and closed periods never count.
+// See docs/handbuch.md §3.13 (Störungsprotokoll und Signaturstatus).
 func DetermineSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoerung) SignaturstatusErgebnis {
 	switch auftrag.Status {
 	case StatusErledigt:

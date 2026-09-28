@@ -6,17 +6,14 @@ import (
 	"strings"
 )
 
-// ErrSetupAuthFehlgeschlagen: Authentifizierung mit API-Key/-Secret
-// fehlgeschlagen — fast immer falsche Zugangsdaten.
+// ErrSetupAuthFehlgeschlagen almost always means a wrong API key or secret.
 var ErrSetupAuthFehlgeschlagen = errors.New("tse setup authentication failed")
 
-// ErrSetupTSSLimitErreicht: das fiskaly-Konto hat die Obergrenze aktiver TSS
-// erreicht (in TEST fünf; fiskaly: E_TSS_LIMIT_REACHED). Alte TEST-TSS räumt
-// fiskaly bei Inaktivität selbst ab.
+// ErrSetupTSSLimitErreicht is fiskaly's E_TSS_LIMIT_REACHED (five active TSS in TEST).
+// fiskaly removes inactive TEST TSS by itself.
 var ErrSetupTSSLimitErreicht = errors.New("tse setup tss limit reached")
 
-// SetupCredentials kommt ohne TSS-/Client-ID aus: beide entstehen erst im Verlauf
-// der Einrichtung.
+// SetupCredentials has no TSS or client ID because the setup creates both.
 type SetupCredentials struct {
 	ApiKey    string
 	ApiSecret string
@@ -40,44 +37,38 @@ type ClientInfo struct {
 	State        string
 }
 
-// TSSErstellt ist das Ergebnis der TSS-Neuanlage (Zustand CREATED, einmaliger
-// Admin-PUK). Der PUK wird nie persistiert oder geloggt — er fließt nur bis in
-// die einmalige Anzeige an den Admin.
+// TSSErstellt carries the one-time admin PUK of a CREATED TSS.
+// The PUK is never persisted or logged; it only reaches the one-time admin display.
 type TSSErstellt struct {
 	ID    string
 	PUK   string
 	State string
 }
 
-// SetupClient kapselt die fiskaly-Operationen der geführten TSE-Einrichtung.
-// ListTSS liefert die Umgebung aus der fiskaly-Antwort mit, damit der Befund
-// TEST/LIVE auch bei leerem Konto anzeigen kann.
+// SetupClient holds the fiskaly operations of the guided TSE setup.
+// ListTSS returns the Umgebung so the report shows TEST/LIVE even for an empty account.
 type SetupClient interface {
 	ListTSS(ctx context.Context) (Umgebung, []TSSInfo, error)
 	ListClients(ctx context.Context, tssID string) ([]ClientInfo, error)
 
 	RetrieveTSSStammdaten(ctx context.Context, tssID string) (Stammdaten, error)
 
-	// CreateTSS legt eine neue TSS an (Zustand CREATED) mit einmaligem Admin-PUK.
+	// CreateTSS returns a CREATED TSS with its one-time admin PUK.
 	CreateTSS(ctx context.Context) (TSSErstellt, error)
-	// GetAdminPUK liest den Admin-PUK erneut aus. fiskaly liefert ihn nur, solange
-	// die TSS im Zustand CREATED ist (Admin-PIN noch nicht gesetzt) — das trägt die
-	// Wiederaufnahme nach einem Abbruch ohne erneute Nutzereingabe.
+	// GetAdminPUK works only while the TSS is CREATED (admin PIN not yet set).
+	// This lets an aborted setup resume without new user input.
 	GetAdminPUK(ctx context.Context, tssID string) (string, error)
-	// PersonalisiereTSS überführt die TSS von CREATED nach UNINITIALIZED.
+	// PersonalisiereTSS moves the TSS from CREATED to UNINITIALIZED.
 	PersonalisiereTSS(ctx context.Context, tssID string) error
-	// SetAdminPIN setzt mit dem PUK die Admin-PIN der TSS. Derselbe Endpunkt
-	// setzt eine verlorene PIN neu bzw. entsperrt eine nach fünf Fehlversuchen
-	// gesperrte PIN — auch auf einer bereits personalisierten TSS.
+	// SetAdminPIN also resets a lost PIN or unblocks one locked after five failed attempts.
+	// This works on an already personalised TSS too.
 	SetAdminPIN(ctx context.Context, tssID, puk, pin string) error
-	// AuthentifiziereAdmin hebt das aktuelle Zugriffstoken für die folgenden
-	// Admin-Operationen der TSS auf Admin-Rechte an.
+	// AuthentifiziereAdmin elevates the current access token for the following admin operations.
 	AuthentifiziereAdmin(ctx context.Context, tssID, pin string) error
-	// InitialisiereTSS überführt die TSS nach INITIALIZED (signierbereit).
+	// InitialisiereTSS moves the TSS to INITIALIZED, ready to sign.
 	InitialisiereTSS(ctx context.Context, tssID string) error
 	RegistriereClient(ctx context.Context, tssID, clientID, serialNumber string) error
-	// ReaktiviereClient setzt einen DEREGISTERED Client auf state=REGISTERED. Die
-	// serial_number ist je TSS eindeutig, ein zweiter Client mit derselben
-	// Seriennummer entsteht darum nie. Setzt Admin-Authentifizierung voraus.
+	// ReaktiviereClient re-registers a DEREGISTERED client, since serial_number is unique per TSS.
+	// It requires admin authentication.
 	ReaktiviereClient(ctx context.Context, tssID, clientID string) error
 }

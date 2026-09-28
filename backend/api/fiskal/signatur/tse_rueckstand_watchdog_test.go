@@ -21,7 +21,7 @@ type mockRueckstandStore struct {
 	getErr      error
 	geoeffnet   []stoerungAufruf
 	geschlossen []string
-	// geprueft signalisiert jeden Durchlauf (für Run-Loop-Tests ohne Sleeps).
+	// geprueft signals each run so run-loop tests need no sleeps.
 	geprueft chan struct{}
 }
 
@@ -65,9 +65,7 @@ func newTestWatchdog(store *mockRueckstandStore) *tseRueckstandWatchdog {
 	return &tseRueckstandWatchdog{store: store, now: func() time.Time { return watchdogJetzt }}
 }
 
-// Der Watchdog öffnet den Rückstands-Zeitraum an der Schwelle allein anhand
-// des Auftragsalters — ohne Mitwirkung des Signatur-Workers. Ein hängender
-// Worker wird damit genauso dokumentiert wie eine langsame TSE.
+// The watchdog opens the rueckstand period from job age alone, so a hung worker is recorded like a slow TSE.
 func TestRueckstandWatchdog_OeffnetAbSchwelle_AuchOhneWorker(t *testing.T) {
 	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle)
 	store := &mockRueckstandStore{aeltester: &alt}
@@ -132,8 +130,7 @@ func TestRueckstandWatchdog_StoreFehlerWirdGemeldet(t *testing.T) {
 	}
 }
 
-// panicEinmalRueckstandStore panict beim ersten Abfragen des ältesten offenen
-// Auftrags und funktioniert danach normal.
+// panicEinmalRueckstandStore panics on the first query only.
 type panicEinmalRueckstandStore struct {
 	*mockRueckstandStore
 	panicMu  sync.Mutex
@@ -151,8 +148,7 @@ func (s *panicEinmalRueckstandStore) GetAeltesterOffenerTSESignaturauftrag(ctx c
 	return s.mockRueckstandStore.GetAeltesterOffenerTSESignaturauftrag(ctx)
 }
 
-// Ein Panic im Durchlauf beendet den Watchdog nicht: Der Run-Loop fängt ihn
-// ab und prüft am nächsten Tick weiter.
+// A panic in one run does not stop the watchdog; the next tick checks again.
 func TestRueckstandWatchdog_Run_PanicStopptUeberwachungNicht(t *testing.T) {
 	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle - time.Second)
 	store := &panicEinmalRueckstandStore{mockRueckstandStore: &mockRueckstandStore{aeltester: &alt, geprueft: make(chan struct{}, 1)}}
@@ -177,9 +173,7 @@ func TestRueckstandWatchdog_Run_PanicStopptUeberwachungNicht(t *testing.T) {
 	<-done
 }
 
-// Die Rückstands-Schwelle materialisiert nur am Tick: Der Run-Loop prüft im
-// Tick-Intervall und öffnet den Zeitraum am nächsten Tick nach der
-// Schwellen-Überschreitung.
+// The threshold takes effect only on a tick: the period opens on the first tick past it.
 func TestRueckstandWatchdog_Run_OeffnetAmTick(t *testing.T) {
 	alt := watchdogJetzt.Add(-tse.RueckstandSchwelle - time.Second)
 	store := &mockRueckstandStore{aeltester: &alt, geprueft: make(chan struct{}, 1)}

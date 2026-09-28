@@ -10,15 +10,14 @@ import (
 	"github.com/nicograef/jotti/backend/db/dbtest"
 )
 
-// Der Advisory Lock sichert die Single-Prozess-Annahme: Hält eine zweite
-// Session den Lock, bekommt der Worker ihn nicht (kein Fail-Fast, Retry am
-// nächsten Tick); nach der Freigabe erwirbt der Retry ihn.
+// While another session holds the advisory lock, the worker is refused without failing fast.
+// After release, the next tick's retry acquires it.
 func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 	db := dbtest.Open()
 	t.Cleanup(func() { _ = db.Close() })
 	ctx := context.Background()
 
-	// Erste „Instanz": eigene, gepinnte Session hält den Lock.
+	// First "instance": its own pinned session holds the lock.
 	halter, err := db.Conn(ctx)
 	if err != nil {
 		t.Fatalf("Halter-Connection oeffnen: %v", err)
@@ -36,12 +35,12 @@ func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 	worker := &tseSignaturWorker{lockDB: db}
 	defer worker.releaseLock()
 
-	// Zweite Instanz wartet: ensureLock liefert false, die App läuft weiter.
+	// Second instance waits: ensureLock returns false, the app keeps running.
 	if worker.ensureLock(ctx) {
 		t.Fatal("Worker hat den Lock erhalten, obwohl eine zweite Session ihn haelt")
 	}
 
-	// Freigabe durch die haltende Session — der Retry am nächsten Tick erwirbt den Lock.
+	// The holder releases; the next tick's retry acquires the lock.
 	if _, err := halter.ExecContext(ctx, "SELECT pg_advisory_unlock($1)", tseSignaturWorkerLockKey); err != nil {
 		t.Fatalf("Halter-Lock freigeben: %v", err)
 	}
@@ -50,7 +49,7 @@ func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 		t.Fatal("Worker hat den Lock nach der Freigabe nicht erworben")
 	}
 
-	// Der Lock ist session-gebunden gehalten: Eine weitere Session bekommt ihn nicht.
+	// The lock is session-scoped: a further session is refused.
 	var frei bool
 	if err := db.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", tseSignaturWorkerLockKey).Scan(&frei); err != nil {
 		t.Fatalf("Kontroll-Lock pruefen: %v", err)

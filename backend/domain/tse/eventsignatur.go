@@ -1,9 +1,7 @@
 package tse
 
-// EventSignatur ist der TSE-Stand eines Events aus der Signaturauftrags-Tabelle:
-// processType-Snapshot plus Signatur, sobald der Worker quittiert hat (nil solange
-// unsigniert). Ein Event ohne Eintrag ist nicht signaturpflichtig — der Export
-// kennt keine zweite Quelle.
+// EventSignatur has a nil Signatur while unsigned; an event without one is not subject to signing.
+// See docs/handbuch.md §3.13 (Ein Leseweg).
 type EventSignatur struct {
 	ProcessType string
 	Signatur    *Signatur

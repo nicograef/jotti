@@ -2,8 +2,7 @@ package tse
 
 import "time"
 
-// Status eines Signaturauftrags (CHECK-Constraint der Tabelle
-// tse_signaturauftraege).
+// Signaturauftrag status values, mirrored by the tse_signaturauftraege CHECK constraint.
 const (
 	StatusOffen                = "offen"
 	StatusErledigt             = "erledigt"
@@ -17,11 +16,8 @@ type SignaturauftragStand struct {
 	Signatur   *Signatur
 }
 
-// SignaturQueueZustand ist der on demand berechnete Zustand der Signatur-Queue
-// für das Admin-Monitoring: Rückstand (offene Aufträge, Alter des ältesten) und
-// Leistung über ein gleitendes 15-Minuten-Fenster — so unterscheidet sich ein
-// wachsender von einem schrumpfenden Rückstand. FehlgeschlageneAuftraege und
-// LetzterFehler gelten nur für die aktive Kassensitzung.
+// SignaturQueueZustand measures throughput over a sliding 15-minute window to tell a growing from a shrinking backlog.
+// FehlgeschlageneAuftraege and LetzterFehler cover only the active Kassensitzung.
 type SignaturQueueZustand struct {
 	OffeneAuftraege          int
 	FehlgeschlageneAuftraege int

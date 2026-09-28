@@ -12,15 +12,13 @@ type RegistrierterClient struct {
 	SerialNumber string
 }
 
-// ReaktivierterClient: eine Reaktivierung trägt keine serial_number, sie aktiviert
-// den vorhandenen Client unter seiner ID wieder.
+// ReaktivierterClient has no serial_number because reactivation keeps the existing client ID.
 type ReaktivierterClient struct {
 	TssID    string
 	ClientID string
 }
 
-// FakeSetupClient hat Pointer-Receiver, damit die Aufzeichnungsfelder über den
-// Interface-Wert hinweg sichtbar bleiben.
+// FakeSetupClient uses pointer receivers so the recorded fields stay visible through the interface value.
 type FakeSetupClient struct {
 	UmgebungResponse tse.Umgebung
 	TSSResponse      []tse.TSSInfo
