@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: init dev dev-up down restart logs status \
+.PHONY: init up up-attached down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
        lint-backend lint-backend-full lint-frontend lint \
        fmt-backend fmt-frontend fmt-repo fmt \
@@ -21,16 +21,16 @@
 init: ## .env erzeugen (idempotent, sichere Secrets)
 	./scripts/init-env.sh
 
-dev: ## Dev-Stack starten (docker compose, detached)
+up: ## Dev-Stack starten (docker compose, detached)
 	docker compose up --build -d
 
-dev-up: ## Dev-Stack starten (Vordergrund, mit Logs)
+up-attached: ## Dev-Stack starten (Vordergrund, mit Logs)
 	docker compose up --build
 
 down: ## Dev-Stack stoppen
 	docker compose down
 
-restart: down dev ## Dev-Stack neu starten
+restart: down up ## Dev-Stack neu starten
 
 logs: ## Dev-Stack Logs folgen
 	docker compose logs -f

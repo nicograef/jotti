@@ -29,7 +29,7 @@ Für den Einsatz beim Vereinsfest braucht ihr die Kommandozeile nicht: Ladet das
 
 ```bash
 make init
-make dev
+make up
 # Frontend: http://localhost | API: http://localhost/api
 ```
 
@@ -73,7 +73,7 @@ Wo der Code steht, hängt vom Setup ab:
 - **Manuelles `docker compose` (Entwicklung/Self-Hosting):** aus dem Backend-Log lesen:
 
   ```bash
-  # Dev-Stack (make dev)
+  # Dev-Stack (make up)
   docker compose logs backend-dev | grep ADMIN-EINMALPASSWORT
   # Self-Hosting (make prod-init / make prod-up)
   docker compose -f docker-compose.prod.yml logs backend | grep ADMIN-EINMALPASSWORT

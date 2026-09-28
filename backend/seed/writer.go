@@ -82,7 +82,7 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 			return fmt.Errorf("kassenjournal prüfen: %w", err)
 		}
 		if anzahl > 0 {
-			return fmt.Errorf("datenbank enthält bereits %d kassenjournal-event(s) — seed abgebrochen ohne Schreibzugriff; zum Zurücksetzen: make clean && make dev, danach make seed", anzahl)
+			return fmt.Errorf("datenbank enthält bereits %d kassenjournal-event(s) — seed abgebrochen ohne Schreibzugriff; zum Zurücksetzen: make clean && make up, danach make seed", anzahl)
 		}
 	}
 

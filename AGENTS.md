@@ -45,7 +45,7 @@ jotti stays minimal for volunteers who operate it under stress. A feature must j
 ```sh
 bash scripts/setup-dev-tools.sh   # once; then put $(go env GOPATH)/bin on PATH
 make init                         # .env with generated secrets
-make dev                          # dev stack via docker compose, frontend on http://localhost
+make up                           # dev stack via docker compose, frontend on http://localhost
 ```
 
 `make help` lists every target. `docs/README.md` says which doc answers which question.
