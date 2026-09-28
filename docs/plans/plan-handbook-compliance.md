@@ -179,11 +179,11 @@ The new `scripts/rocks-backup.sh <dest>`, run from the laptop, does four things:
 
 ### Acceptance criteria
 
-- [ ] `docker compose -f docker-compose.rocks.yml config -q` passes; `grep -rn 'certbot\|nginx.rocks\|initial-cert' --exclude-dir=node_modules --exclude=CHANGELOG.md .` finds nothing outside `frontend/`/`website/` nginx files
-- [ ] `caddy validate --config reverse-proxy/Caddyfile.rocks --adapter caddyfile` passes (inside the built image)
-- [ ] local rocks stack with Caddy's internal CA: `curl -skI` shows the four hosts' expected status, the redirects and the headers; the 2nd `/register` call within a minute returns 429
-- [ ] `scripts/rocks-backup.sh` against a local container with SSH (or the VPS, owner-run) yields a file whose `integrity_check` is `ok`
-- [ ] `shellcheck scripts/rocks-*.sh` clean; `make check-repo` green
+- [x] `docker compose -f docker-compose.rocks.yml config -q` passes; `grep -rn 'certbot\|nginx.rocks\|initial-cert' --exclude-dir=node_modules --exclude=CHANGELOG.md .` finds nothing outside `frontend/`/`website/` nginx files
+- [x] `caddy validate --config reverse-proxy/Caddyfile.rocks --adapter caddyfile` passes (inside the built image)
+- [x] local rocks stack with Caddy's internal CA: `curl -skI` shows the four hosts' expected status, the redirects and the headers; the 2nd `/register` call within a minute returns 429
+- [x] `scripts/rocks-backup.sh` against a local container with SSH (or the VPS, owner-run) yields a file whose `integrity_check` is `ok`
+- [x] `shellcheck scripts/rocks-*.sh` clean; `make check-repo` green
 
 ## Phase 6: Container hardening and build contexts
 
