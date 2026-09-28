@@ -110,17 +110,3 @@ decompress() {
     cat "$SELECTED"
   fi
 }
-
-# tracked_text_files — the tracked corpus both repo-wide text gates police.
-# Excluded: the changelog and plans, paths frozen by the freeze discipline, and
-# generated or vendored files.
-tracked_text_files() {
-  git ls-files \
-    ':(glob,exclude)CHANGELOG.md' \
-    ':(glob,exclude)docs/plans/**' \
-    ':(glob,exclude)docs/rechtsquellen/**' \
-    ':(glob,exclude)database/migrations/**' \
-    ':(glob,exclude)backend/sqlc/dbgen/**' \
-    ':(glob,exclude)**/pnpm-lock.yaml' \
-    ':(glob,exclude)**/go.sum'
-}
