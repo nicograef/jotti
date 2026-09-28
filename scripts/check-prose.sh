@@ -3,7 +3,6 @@
 #
 # Usage:
 #   make check-repo                            # or: ./scripts/check-prose.sh
-#   PROSE_CAPS=1 ./scripts/check-prose.sh      # also enforce the prose caps
 #   ./scripts/check-prose.sh --list-caps       # print every cap violation as file:line: reason
 #   Exceptions: scripts/check-prose.allow (one path per line, "# reason").
 #
@@ -233,15 +232,13 @@ for file in "${files[@]}"; do
   fi
 done
 
-if [[ "${PROSE_CAPS:-0}" == "1" ]]; then
-  while IFS= read -r violation; do
-    error "$violation"
-    violations=$((violations + 1))
-  done < <(cap_violations)
-fi
+while IFS= read -r violation; do
+  error "$violation"
+  violations=$((violations + 1))
+done < <(cap_violations)
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations violation(s) of the current-state rule or the prose caps (see $ALLOWLIST to allow a file for the current-state rule)."
 fi
 
-info "No historical or handoff prose found outside $ALLOWLIST."
+info "No historical or handoff prose found outside $ALLOWLIST, and the prose caps hold."
