@@ -194,7 +194,7 @@ rocks-init: ## jotti.rocks Ersteinrichtung (Stack bauen und starten, Zertifikate
 	./scripts/rocks-init.sh
 
 rocks-up: ## jotti.rocks Stack starten/aktualisieren (Landing + Demo App, inkl. Caddyfile)
-	docker compose -f docker-compose.rocks.yml up -d --build
+	docker compose -f docker-compose.rocks.yml up -d --build --remove-orphans
 	docker compose -f docker-compose.rocks.yml up -d --no-deps --force-recreate reverse-proxy
 
 rocks-down: ## jotti.rocks Stack stoppen

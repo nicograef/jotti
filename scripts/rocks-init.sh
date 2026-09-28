@@ -62,7 +62,7 @@ for name in "$DOMAIN_WWW" "$DOMAIN_DEMO" "$DOMAIN_AUTH"; do
 done
 
 info "Building and starting the stack..."
-docker compose -f "$COMPOSE_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" up -d --build --remove-orphans
 
 for container in "${CONTAINERS[@]}"; do
   if wait_for_healthy "$container"; then

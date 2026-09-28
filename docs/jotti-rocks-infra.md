@@ -67,6 +67,17 @@ VPS_PUBLIC_IP=<öffentliche IPv4 des VPS>
 Frischer VPS: `make rocks-init` baut und startet den Stack, wartet auf die Healthchecks
 und prüft HTTPS. Danach aktualisiert `make rocks-up` den Stack.
 
+Einmaliger Umstieg eines VPS, auf dem noch der nginx/certbot-Stack läuft: Caddy holt seine
+Zertifikate per HTTP-01-Challenge über Port 80. Port 80 darf deshalb nur der Container
+`jotti-reverse-proxy` belegen, den `make rocks-up` durch Caddy ersetzt. Ein anderer
+Prozess auf Port 80 muss vorher weg (`sudo ss -ltnp 'sport = :80'` zeigt ihn).
+`make rocks-up` entfernt den verwaisten Container `jotti-certbot` selbst
+(`--remove-orphans`). Danach die alten Zertifikats-Volumes löschen:
+
+```bash
+docker volume rm jotti_letsencrypt jotti_certbot-challenges
+```
+
 `auth.jotti.rocks` löst erst auf, wenn der Stack läuft und die Delegation (Abschnitt 3)
 aktiv ist. Bis dahin scheitert Caddys Zertifikatsanfrage für diesen Host; Caddy
 wiederholt sie selbst.
