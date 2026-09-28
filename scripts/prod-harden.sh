@@ -6,7 +6,7 @@ set -euo pipefail
 #   - ufw: SSH rate-limited, 80/443 allowed, everything else denied inbound
 #   - a fail2ban sshd jail on the systemd journal (SKIP_FAIL2BAN=1 skips it)
 #   - unattended-upgrades for daily security updates
-#   - an sshd drop-in that allows key logins only
+#   - an sshd drop-in that allows key logins only and no root login
 # NOT part of prod-init.sh — run it deliberately, after the stack is up.
 # Postgres is never exposed: docker-compose.prod.yml publishes only 80/443.
 
@@ -55,20 +55,37 @@ detect_ssh_port() {
 SSH_PORT="${SSH_PORT:-$(detect_ssh_port)}"
 [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || fatal "SSH_PORT must be a number (got: $SSH_PORT)."
 
-# The key-only drop-in is written only when the login user already has a key:
-# without one, turning passwords off locks them out.
-LOGIN_USER="${SUDO_USER:-$(id -un)}"
-LOGIN_HOME="$(getent passwd "$LOGIN_USER" | cut -d: -f6)"
-has_ssh_key() {
-  $SUDO grep -qsE '(^|[[:space:]])(ssh-|ecdsa-|sk-)' "$LOGIN_HOME/.ssh/authorized_keys"
+# key_sudo_user — prints the first non-root member of group sudo whose
+# authorized_keys holds a key; the drop-in disables root login, so that user is the way back in.
+key_sudo_user() {
+  local user home
+  for user in $(getent group sudo | cut -d: -f4 | tr ',' ' '); do
+    [[ "$user" == root ]] && continue
+    home="$(getent passwd "$user" | cut -d: -f6)"
+    if [[ -n "$home" ]] && $SUDO grep -qsE '(^|[[:space:]])(ssh-|ecdsa-|sk-)' "$home/.ssh/authorized_keys"; then
+      printf '%s\n' "$user"
+      return 0
+    fi
+  done
+  return 1
 }
+
+if [[ -f /etc/ssh/sshd_config ]]; then
+  if ! SSH_USER="$(key_sudo_user)"; then
+    error "Kein Benutzer in der Gruppe sudo mit SSH-Schlüssel gefunden. Die Härtung sperrt die Root-Anmeldung, ihr würdet euch aussperren."
+    error "Behebung: Benutzer anlegen (adduser NAME), in die Gruppe sudo aufnehmen (usermod -aG sudo NAME),"
+    error "euren Schlüssel kopieren (ssh-copy-id NAME@SERVER), Anmeldung als NAME testen, dann erneut ausführen."
+    fatal "Abgebrochen. Es wurde nichts geändert."
+  fi
+  info "SSH login after hardening: $SSH_USER (key, sudo)"
+fi
 
 info "SSH port to keep open: $SSH_PORT"
 
 echo ""
 warn "This will harden THIS host:"
 warn "  ufw: limit $SSH_PORT/tcp (SSH), allow 80/tcp, 443/tcp, 443/udp; deny all other inbound."
-warn "  fail2ban sshd jail, unattended-upgrades, SSH logins by key only."
+warn "  fail2ban sshd jail, unattended-upgrades, SSH logins by key only, no root login."
 read -r -p "Continue? Type 'yes' to proceed: " answer
 [[ "$answer" == "yes" ]] || fatal "Aborted by user. Nothing was changed."
 
@@ -145,11 +162,11 @@ configure_sshd() {
   fi
   $SUDO install -d -m 0755 /etc/ssh/sshd_config.d /run/sshd
   $SUDO tee "$dropin" >/dev/null <<'EOF'
-# Managed by jotti scripts/prod-harden.sh — SSH logins by key only.
+# Managed by jotti scripts/prod-harden.sh — SSH logins by key only, no root login.
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
-PermitRootLogin prohibit-password
+PermitRootLogin no
 EOF
   if ! $SUDO sshd -t; then
     $SUDO rm -f "$dropin"
@@ -161,15 +178,12 @@ EOF
 }
 
 ssh_key_only=false
-if [[ ! -f /etc/ssh/sshd_config ]]; then
-  warn "No /etc/ssh/sshd_config found — skipping the key-only SSH drop-in."
-elif ! has_ssh_key; then
-  warn "No SSH key in $LOGIN_HOME/.ssh/authorized_keys — skipping the key-only SSH drop-in."
-  warn "Add your public key there, check that a key login works, then re-run."
-else
+if [[ -f /etc/ssh/sshd_config ]]; then
   configure_sshd
   ssh_key_only=true
-  info "sshd allows key logins only."
+  info "sshd allows key logins only, root login is off."
+else
+  warn "No /etc/ssh/sshd_config found — skipping the key-only SSH drop-in."
 fi
 
 echo ""
@@ -186,9 +200,9 @@ else
 fi
 echo "  Updates:        unattended-upgrades daily; reboots after kernel updates stay manual."
 if [[ "$ssh_key_only" == true ]]; then
-  echo "  SSH:            key logins only."
+  echo "  SSH:            key logins only, no root login ($SSH_USER has sudo)."
 else
-  echo "  SSH:            password logins still allowed."
+  echo "  SSH:            unchanged (no sshd found)."
 fi
 echo ""
 warn "Before logging out, open a SECOND SSH session to confirm you are not locked out."

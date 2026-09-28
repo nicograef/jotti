@@ -62,12 +62,24 @@ lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
 6. **Stack starten** mit `make prod-init`. Das Skript prüft Docker und die
    DNS-Auflösung, zieht die gepinnten Images, startet den Stack und wartet, bis
    Backend und HTTPS gesund antworten.
-7. **Server absichern** mit `make prod-harden`. Die Firewall lässt dann nur SSH
+7. **Eigenen Benutzer mit SSH-Schlüssel anlegen.** Der nächste Schritt sperrt die
+   Anmeldung als `root`. Legt deshalb vorher einen Benutzer mit sudo-Rechten an:
+
+   ```bash
+   adduser verein
+   usermod -aG sudo verein
+   ```
+
+   Kopiert dann von eurem Rechner aus euren SSH-Schlüssel auf den Server, etwa mit
+   `ssh-copy-id verein@<eure-domain>`. Prüft, dass die Anmeldung als `verein` per
+   Schlüssel klappt.
+
+8. **Server absichern** mit `make prod-harden`. Die Firewall lässt dann nur SSH
    und die jotti-Ports 80 und 443 durch und bremst wiederholte SSH-Anmeldeversuche.
-   Das Skript richtet automatische Sicherheitsupdates ein und schaltet die
-   SSH-Anmeldung per Passwort ab. Hinterlegt deshalb vorher euren SSH-Schlüssel auf
-   dem Server; ohne Schlüssel bleibt die Passwort-Anmeldung an. Prüft vor dem
-   Abmelden in einer zweiten SSH-Sitzung, dass ihr noch hineinkommt.
+   Das Skript richtet automatische Sicherheitsupdates ein. Die SSH-Anmeldung klappt
+   danach nur noch per Schlüssel und nicht mehr als `root`. Fehlt der Benutzer aus
+   Schritt 7, bricht das Skript ab, ohne etwas zu ändern. Prüft vor dem Abmelden in
+   einer zweiten SSH-Sitzung, dass ihr noch hineinkommt.
 
 Danach ist jotti unter `https://<eure-domain>` erreichbar; HTTP leitet automatisch
 auf HTTPS um.
