@@ -347,4 +347,4 @@ Nothing new. The CI checks of every phase run once, after landing.
 
 ### Acceptance criteria
 
-- [ ] CI green on `main` after landing, including `upgrade-path`, and `release.yml` green in a `workflow_dispatch` dry run, including its restore step
+- [x] CI green on `main` after landing, including `upgrade-path`, and `release.yml` green in a `workflow_dispatch` dry run, including its restore step
