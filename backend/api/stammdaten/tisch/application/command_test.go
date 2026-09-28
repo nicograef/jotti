@@ -45,7 +45,7 @@ func TestTischErstellen_Error(t *testing.T) {
 
 	_, err := command.TischErstellen(context.Background(), "Tisch 1")
 	if err == nil {
-		t.Fatalf("expected error, got nil")
+		t.Errorf("expected error, got nil")
 	}
 }
 
@@ -73,7 +73,7 @@ func TestTischAktualisieren_NotFound(t *testing.T) {
 
 	err := command.TischAktualisieren(context.Background(), 999, "New Name")
 	if !errors.Is(err, ErrTischNotFound) {
-		t.Fatalf("expected ErrTischNotFound, got %v", err)
+		t.Errorf("expected ErrTischNotFound, got %v", err)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestTischAktivieren_NotFound(t *testing.T) {
 
 	err := command.TischAktivieren(context.Background(), 999)
 	if !errors.Is(err, ErrTischNotFound) {
-		t.Fatalf("expected ErrTischNotFound, got %v", err)
+		t.Errorf("expected ErrTischNotFound, got %v", err)
 	}
 }
 
@@ -129,7 +129,7 @@ func TestTischDeaktivieren_NotFound(t *testing.T) {
 
 	err := command.TischDeaktivieren(context.Background(), 999)
 	if !errors.Is(err, ErrTischNotFound) {
-		t.Fatalf("expected ErrTischNotFound, got %v", err)
+		t.Errorf("expected ErrTischNotFound, got %v", err)
 	}
 }
 
@@ -140,7 +140,7 @@ func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 
 	err := command.TischDeaktivieren(context.Background(), 1)
 	if !errors.Is(err, ErrTischSaldoOffen) {
-		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
+		t.Errorf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
 	tbl, err := repo.GetTisch(context.Background(), 1)
@@ -230,7 +230,7 @@ func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
 	command := Command{TischRepo: repo, FavoritRepo: favoriten}
 
 	if err := command.TischLoeschen(context.Background(), 1); !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 
 	tbl, err := repo.GetTisch(context.Background(), 1)
@@ -250,7 +250,7 @@ func TestTischLoeschen_SaldoOffen(t *testing.T) {
 
 	err := command.TischLoeschen(context.Background(), 1)
 	if !errors.Is(err, ErrTischSaldoOffen) {
-		t.Fatalf("expected ErrTischSaldoOffen, got %v", err)
+		t.Errorf("expected ErrTischSaldoOffen, got %v", err)
 	}
 
 	tbl, err := repo.GetTisch(context.Background(), 1)

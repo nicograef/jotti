@@ -24,7 +24,7 @@ func TestCreateUser(t *testing.T) {
 		t.Errorf("expected user ID 1, got %d", userID)
 	}
 	if !regexp.MustCompile(`^\d{6}$`).MatchString(onetimePassword) {
-		t.Fatalf("Expected exactly 6 digits, got %s", onetimePassword)
+		t.Errorf("Expected exactly 6 digits, got %s", onetimePassword)
 	}
 }
 
@@ -49,7 +49,7 @@ func TestUpdateUser_Success(t *testing.T) {
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
 
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Errorf("expected no error, got %v", err)
 	}
 }
 
@@ -60,6 +60,6 @@ func TestUpdateUser_Error(t *testing.T) {
 	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
 
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected database error, got %v", err)
+		t.Errorf("expected database error, got %v", err)
 	}
 }

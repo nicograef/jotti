@@ -32,6 +32,6 @@ func TestGetAllUsers_Error(t *testing.T) {
 	_, err := Query{UserRepo: repo}.GetAllUsers(context.Background())
 
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected database error, got %v", err)
+		t.Errorf("expected database error, got %v", err)
 	}
 }

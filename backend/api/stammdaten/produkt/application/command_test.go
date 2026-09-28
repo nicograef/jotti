@@ -42,7 +42,7 @@ func TestCreateProdukt_AlreadyExists(t *testing.T) {
 
 	_, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if !errors.Is(err, ErrProduktAlreadyExists) {
-		t.Fatalf("expected ErrProduktAlreadyExists, got %v", err)
+		t.Errorf("expected ErrProduktAlreadyExists, got %v", err)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 
 	err := cmd.UpdateProdukt(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if !errors.Is(err, ErrProduktNotFound) {
-		t.Fatalf("expected ErrProduktNotFound, got %v", err)
+		t.Errorf("expected ErrProduktNotFound, got %v", err)
 	}
 }
 
@@ -81,7 +81,7 @@ func TestUpdateProdukt_AlreadyExists(t *testing.T) {
 
 	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
 	if !errors.Is(err, ErrProduktAlreadyExists) {
-		t.Fatalf("expected ErrProduktAlreadyExists, got %v", err)
+		t.Errorf("expected ErrProduktAlreadyExists, got %v", err)
 	}
 }
 
@@ -91,7 +91,7 @@ func TestVerschiebeProdukt_NotFound(t *testing.T) {
 
 	err := cmd.VerschiebeProdukt(context.Background(), 999, produkt.RichtungHoch)
 	if !errors.Is(err, ErrProduktNotFound) {
-		t.Fatalf("expected ErrProduktNotFound, got %v", err)
+		t.Errorf("expected ErrProduktNotFound, got %v", err)
 	}
 }
 
@@ -101,7 +101,7 @@ func TestVerschiebeVariante_NotFound(t *testing.T) {
 
 	err := cmd.VerschiebeVariante(context.Background(), 999, produkt.RichtungRunter)
 	if !errors.Is(err, ErrVarianteNotFound) {
-		t.Fatalf("expected ErrVarianteNotFound, got %v", err)
+		t.Errorf("expected ErrVarianteNotFound, got %v", err)
 	}
 }
 
@@ -157,7 +157,7 @@ func TestDeleteVariante_FremdeVariante(t *testing.T) {
 
 	err := cmd.DeleteVariante(context.Background(), fremdes.ID, variante.ID)
 	if !errors.Is(err, ErrVarianteNotFound) {
-		t.Fatalf("expected ErrVarianteNotFound, got %v", err)
+		t.Errorf("expected ErrVarianteNotFound, got %v", err)
 	}
 
 	unberuehrt, err := repo.GetVariante(context.Background(), variante.ID)

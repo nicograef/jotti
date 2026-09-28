@@ -80,7 +80,7 @@ func TestGeldtransitBuchen_DuplikatGeldtransitId_IdempotenterErfolg(t *testing.T
 	}
 
 	if err := cmd.GeldtransitBuchen(ctx, userID, "test", geldtransitID, "einlage", 1000, "Test"); err != nil {
-		t.Fatalf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
 	}
 
 	var eventCount int

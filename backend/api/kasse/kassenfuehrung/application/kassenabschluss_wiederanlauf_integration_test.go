@@ -155,7 +155,7 @@ func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 
 	// Wiederanlauf muss abbrechen: Der alte Ist-Bestand ist durch die Buchung veraltet.
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); !errors.Is(err, ErrBuchungenNachKassensturz) {
-		t.Fatalf("Wiederanlauf erwartet ErrBuchungenNachKassensturz, bekam: %v", err)
+		t.Errorf("Wiederanlauf erwartet ErrBuchungenNachKassensturz, bekam: %v", err)
 	}
 
 	// Kein Abschluss-Event darf geschrieben worden sein.
@@ -274,7 +274,7 @@ func TestKasseAbschliessen_RetryNachTischzahlung_BrichtAb(t *testing.T) {
 	signaturauftraegeErledigen(t, db)
 
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); !errors.Is(err, ErrBuchungenNachKassensturz) {
-		t.Fatalf("Wiederanlauf erwartet ErrBuchungenNachKassensturz, bekam: %v", err)
+		t.Errorf("Wiederanlauf erwartet ErrBuchungenNachKassensturz, bekam: %v", err)
 	}
 
 	if count := countJournalEvents(t, db, string(kasse.EventTypeDifferenzSollIstGebuchtV1)); count != 0 {

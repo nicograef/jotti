@@ -118,7 +118,7 @@ func TestKassensitzungEroeffnen_BetreiberNichtKonfiguriert(t *testing.T) {
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if !errors.Is(err, ErrBetreiberNichtKonfiguriert) {
-		t.Fatalf("expected ErrBetreiberNichtKonfiguriert, got %v", err)
+		t.Errorf("expected ErrBetreiberNichtKonfiguriert, got %v", err)
 	}
 }
 
@@ -132,7 +132,7 @@ func TestKassensitzungEroeffnen_BetreiberDatabaseError(t *testing.T) {
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if !errors.Is(err, ErrDatabase) {
-		t.Fatalf("expected ErrDatabase, got %v", err)
+		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if !errors.Is(err, ErrKasseAlreadyOpen) {
-		t.Fatalf("expected ErrKasseAlreadyOpen, got %v", err)
+		t.Errorf("expected ErrKasseAlreadyOpen, got %v", err)
 	}
 }
 
@@ -152,7 +152,7 @@ func TestGeldtransitBuchen(t *testing.T) {
 
 	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "einlage", 10000, "Wechselgeld nachgelegt")
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Errorf("expected no error, got %v", err)
 	}
 }
 
@@ -179,10 +179,10 @@ func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
 		t.Fatalf("expected two events (kassensturz + tagesabschluss), got %d", len(events))
 	}
 	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
-		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+		t.Errorf("expected first event kassensturz, got %q", events[0].Type)
 	}
 	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+		t.Errorf("expected second event tagesabschluss, got %q", events[1].Type)
 	}
 }
 
@@ -209,13 +209,13 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 		t.Fatalf("expected three events (kassensturz + differenz + tagesabschluss), got %d", len(events))
 	}
 	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
-		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+		t.Errorf("expected first event kassensturz, got %q", events[0].Type)
 	}
 	if events[1].Type != string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
-		t.Fatalf("expected second event differenz, got %q", events[1].Type)
+		t.Errorf("expected second event differenz, got %q", events[1].Type)
 	}
 	if events[2].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected third event tagesabschluss, got %q", events[2].Type)
+		t.Errorf("expected third event tagesabschluss, got %q", events[2].Type)
 	}
 }
 
@@ -263,7 +263,7 @@ func TestKasseAbschliessen_RaeumtFehlgeschlageneDruckauftraegeAuf(t *testing.T) 
 		t.Fatalf("expected two events (kassensturz + tagesabschluss), got %d", len(events))
 	}
 	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+		t.Errorf("expected second event tagesabschluss, got %q", events[1].Type)
 	}
 }
 
@@ -298,7 +298,7 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 		t.Fatalf("expected two events (kassensturz + tagesabschluss) despite cleaner error, got %d", len(events))
 	}
 	if events[1].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected second event tagesabschluss, got %q", events[1].Type)
+		t.Errorf("expected second event tagesabschluss, got %q", events[1].Type)
 	}
 }
 
@@ -394,7 +394,7 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if !errors.Is(err, ErrTischeSaldoOffen) {
-		t.Fatalf("expected ErrTischeSaldoOffen, got %v", err)
+		t.Errorf("expected ErrTischeSaldoOffen, got %v", err)
 	}
 
 	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
@@ -402,7 +402,7 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 		t.Fatalf("expected no read error, got %v", err)
 	}
 	if len(events) != 0 {
-		t.Fatalf("expected no events written when saldo blocks, got %d", len(events))
+		t.Errorf("expected no events written when saldo blocks, got %d", len(events))
 	}
 }
 
@@ -412,7 +412,7 @@ func TestKasseAbschliessen_KasseNichtGeoeffnet(t *testing.T) {
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Fatalf("expected ErrKasseNichtGeoeffnet, got %v", err)
+		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
 
@@ -451,7 +451,7 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
-		t.Fatal("expected an error, got nil")
+		t.Error("expected an error, got nil")
 	}
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
 }
@@ -470,7 +470,7 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
 }
@@ -489,7 +489,7 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict, got %v", err)
+		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
 
@@ -515,7 +515,7 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 		t.Fatalf("expected no read error, got %v", err)
 	}
 	if len(events) != 2 {
-		t.Fatalf("expected kassensturz + tagesabschluss, got %d", len(events))
+		t.Errorf("expected kassensturz + tagesabschluss, got %d", len(events))
 	}
 }
 
@@ -564,7 +564,7 @@ func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testi
 		t.Fatalf("expected three events (vorhandener kassensturz + differenz + tagesabschluss), got %d", len(events))
 	}
 	if events[0].Type != string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
-		t.Fatalf("expected first event kassensturz, got %q", events[0].Type)
+		t.Errorf("expected first event kassensturz, got %q", events[0].Type)
 	}
 	if events[1].Type != string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
 		t.Fatalf("expected second event differenz, got %q", events[1].Type)
@@ -577,7 +577,7 @@ func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testi
 		t.Errorf("expected differenz 500 gegen den dokumentierten Ist-Bestand, got %d", differenzData.BetragCents)
 	}
 	if events[2].Type != string(kasse.EventTypeTagesabschlussErstelltV1) {
-		t.Fatalf("expected third event tagesabschluss, got %q", events[2].Type)
+		t.Errorf("expected third event tagesabschluss, got %q", events[2].Type)
 	}
 }
 
@@ -627,7 +627,7 @@ func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) 
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); !errors.Is(err, ErrBuchungenNachKassensturz) {
-		t.Fatalf("expected ErrBuchungenNachKassensturz, got %v", err)
+		t.Errorf("expected ErrBuchungenNachKassensturz, got %v", err)
 	}
 
 	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
@@ -759,7 +759,7 @@ func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
 	if err == nil {
-		t.Fatal("expected error for corrupt event, got nil")
+		t.Error("expected error for corrupt event, got nil")
 	}
 
 	// Kein tagesabschluss-Event darf trotz des Fehlers geschrieben worden sein.

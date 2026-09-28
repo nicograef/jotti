@@ -95,7 +95,7 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
 	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
 	if len(events) != 0 {
-		t.Fatalf("expected no events written when gate blocks, got %d", len(events))
+		t.Errorf("expected no events written when gate blocks, got %d", len(events))
 	}
 }
 
@@ -133,7 +133,7 @@ func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 	}
 	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
 	if len(events) != 2 {
-		t.Fatalf("expected kassensturz + tagesabschluss written, got %d", len(events))
+		t.Errorf("expected kassensturz + tagesabschluss written, got %d", len(events))
 	}
 }
 
