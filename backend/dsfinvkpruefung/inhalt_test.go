@@ -194,7 +194,7 @@ func TestInhalt_GutesArchivBefundfrei(t *testing.T) {
 		t.Fatalf("Pruefen: %v", err)
 	}
 	if len(befunde) != 0 {
-		t.Fatalf("erwartet befundfrei, erhielt:\n%s", befundText(befunde))
+		t.Errorf("erwartet befundfrei, erhielt:\n%s", befundText(befunde))
 	}
 }
 
@@ -205,7 +205,7 @@ func TestInhalt_StornoOhneReferenz(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "references.csv", "BON_ID;POS_ZEILE;REF_TYP;REF_NAME;REF_BON_ID\r\n")
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelStornoReferenz) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelStornoReferenz, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelStornoReferenz, befundText(befunde))
 	}
 }
 
@@ -215,7 +215,7 @@ func TestInhalt_StornoMitLeeremRefBonID(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "references.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelStornoReferenz) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelStornoReferenz, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelStornoReferenz, befundText(befunde))
 	}
 }
 
@@ -226,7 +226,7 @@ func TestInhalt_StornoMitBonStornoKennzeichen(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelStornoBonStorno) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelStornoBonStorno, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelStornoBonStorno, befundText(befunde))
 	}
 }
 
@@ -237,7 +237,7 @@ func TestInhalt_BargeldabflussIstKeinStorno(t *testing.T) {
 	befunde, _ := PruefenBytes(baueZip(t, gutesInhaltArchiv()))
 	for _, b := range befunde {
 		if b.Regel == regelStornoReferenz {
-			t.Fatalf("Bargeldabfluss fälschlich als Storno gewertet: %s", b.String())
+			t.Errorf("Bargeldabfluss fälschlich als Storno gewertet: %s", b.String())
 		}
 	}
 }
@@ -253,7 +253,7 @@ func TestInhalt_KombiOhneBonkopfAufteilung(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "transactions_vat.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelKombiSteuer) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelKombiSteuer, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelKombiSteuer, befundText(befunde))
 	}
 }
 
@@ -264,7 +264,7 @@ func TestInhalt_BedienerNameLeer(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelBedienerLeer) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelBedienerLeer, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelBedienerLeer, befundText(befunde))
 	}
 }
 
@@ -274,7 +274,7 @@ func TestInhalt_BedienerIDNichtNumerisch(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelBedienerIDNumerisch) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelBedienerIDNumerisch, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelBedienerIDNumerisch, befundText(befunde))
 	}
 }
 
@@ -285,7 +285,7 @@ func TestInhalt_TagesabschlussFalscherBonName(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "transactions.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelTagesabschlussName) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelTagesabschlussName, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelTagesabschlussName, befundText(befunde))
 	}
 }
 
@@ -299,7 +299,7 @@ func TestInhalt_TSEStammdatenUnvollstaendig(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "tse.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelTSEStammdaten) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelTSEStammdaten, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelTSEStammdaten, befundText(befunde))
 	}
 }
 
@@ -310,7 +310,7 @@ func TestInhalt_AbrechnungskreisLeer(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "allocation_groups.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelAbrechnungskreis) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelAbrechnungskreis, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelAbrechnungskreis, befundText(befunde))
 	}
 }
 
@@ -320,6 +320,6 @@ func TestInhalt_AbrechnungskreisOhneBonkopf(t *testing.T) {
 	d := ersetze(gutesInhaltArchiv(), "allocation_groups.csv", kaputt)
 	befunde, _ := PruefenBytes(baueZip(t, d))
 	if !hatBefund(befunde, regelAbrechnungskreis) {
-		t.Fatalf("erwartet Befund %q, erhielt:\n%s", regelAbrechnungskreis, befundText(befunde))
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelAbrechnungskreis, befundText(befunde))
 	}
 }
