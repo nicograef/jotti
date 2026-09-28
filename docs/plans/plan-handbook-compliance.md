@@ -118,12 +118,12 @@ Every `uses:` in `.github/workflows/*.yml` points to a full commit SHA with a `#
 
 ### Acceptance criteria
 
-- [ ] `grep -hE '^\s*-?\s*uses:' .github/workflows/*.yml | grep -vcE '@[0-9a-f]{40}'` prints `0`
-- [ ] a scratch workflow line with `@v5` makes `scripts/check-pins.sh` fail
-- [ ] `grep -c 'persist-credentials: false' .github/workflows/*.yml` equals the checkout count
-- [ ] every job in every workflow carries `timeout-minutes` (yq or grep check)
-- [ ] `docker build -f database/migrate/Dockerfile database` fails with a wrong `MIGRATE_SHA256` and succeeds with the pinned one
-- [ ] `grep -rn 'golang-migrate/migrate/releases' .github` finds nothing
+- [x] `grep -hE '^\s*-?\s*uses:' .github/workflows/*.yml | grep -vcE '@[0-9a-f]{40}'` prints `0`
+- [x] a scratch workflow line with `@v5` makes `scripts/check-pins.sh` fail
+- [x] `grep -c 'persist-credentials: false' .github/workflows/*.yml` equals the checkout count
+- [x] every job in every workflow carries `timeout-minutes` (yq or grep check)
+- [x] `docker build -f database/migrate/Dockerfile database` fails with a wrong `MIGRATE_SHA256` and succeeds with the pinned one
+- [x] `grep -rn 'golang-migrate/migrate/releases' .github` finds nothing
 - [ ] CI green on the branch, including `release.yml` in dry run (`workflow_dispatch` or the upgrade-path job)
 
 ## Phase 3: Restore and backup safety
