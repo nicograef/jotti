@@ -62,6 +62,12 @@ lokalen WLAN stellt sich die Frage nicht, dort ist kein Hoster beteiligt.
 6. **Stack starten** mit `make prod-init`. Das Skript prüft Docker und die
    DNS-Auflösung, zieht die gepinnten Images, startet den Stack und wartet, bis
    Backend und HTTPS gesund antworten.
+7. **Server absichern** mit `make prod-harden`. Die Firewall lässt dann nur SSH
+   und die jotti-Ports 80 und 443 durch und bremst wiederholte SSH-Anmeldeversuche.
+   Das Skript richtet automatische Sicherheitsupdates ein und schaltet die
+   SSH-Anmeldung per Passwort ab. Hinterlegt deshalb vorher euren SSH-Schlüssel auf
+   dem Server; ohne Schlüssel bleibt die Passwort-Anmeldung an. Prüft vor dem
+   Abmelden in einer zweiten SSH-Sitzung, dass ihr noch hineinkommt.
 
 Danach ist jotti unter `https://<eure-domain>` erreichbar; HTTP leitet automatisch
 auf HTTPS um.

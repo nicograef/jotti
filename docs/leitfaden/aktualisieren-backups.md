@@ -57,3 +57,15 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
 
 > 💾 **Backups außer Haus kopieren.** Ein Backup, das nur auf demselben Server
 > liegt, hilft bei dessen Ausfall nicht. Kopiert die Dumps regelmäßig weg.
+
+## Laufender Betrieb
+
+- **Erreichbarkeit:** Lasst einen Überwachungsdienst (z. B. Better Stack oder
+  UptimeRobot) `https://<eure-domain>/api/health` abrufen. Er schlägt Alarm, wenn
+  jotti nicht antwortet. Schaltet dort auch die Warnung vor dem Ablauf des
+  Zertifikats ein.
+- **Speicherplatz:** Prüft vor jeder Veranstaltung mit `df -h`, dass die Platte
+  nicht vollläuft. Alte Images räumt `docker image prune -f` weg.
+- **Neustart nach Kernel-Updates:** Die automatischen Updates starten den Server
+  nicht neu. Liegt die Datei `/var/run/reboot-required` vor, startet ihn außerhalb
+  einer Veranstaltung mit `sudo reboot` neu. jotti läuft danach von selbst wieder an.
