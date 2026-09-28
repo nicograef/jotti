@@ -284,10 +284,7 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected Abschluss to stay successful despite cleaner error, got %v", err)
 	}
-	// Kern der Best-effort-Invariante: Der Cleaner-Fehler wird über eine lokale
-	// Variable geschluckt, nicht über den benannten Return err. Sonst riefe der
-	// defer-Block auf der bereits geschlossenen Sitzung einen Reset auf 'offen'
-	// auf. Kein Reset ist der Beleg, dass der Abschluss endgültig bleibt.
+	// The cleaner error must not reach the named return err. The mock status proves the defer reset did not run.
 	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
 
 	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
@@ -302,11 +299,8 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	}
 }
 
-// TestKasseAbschliessen_TagesabschlussMitEchtenSummen prüft, dass die drei Summen
-// im tagesabschluss-erstellt-Event aus den Journal-Events der Kassensitzung berechnet
-// werden.
-// Der Journal-Mock liefert dabei auch die im selben Vorgang geschriebenen
-// Kassensturz-Events, da sie zum Lesezeitpunkt committed sind.
+// The three Tagesabschluss sums come from the session's journal events. The mock also returns the
+// Kassensturz events written in the same run, since they are committed when read.
 func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 	ctx := context.Background()
 	journalMock := repotest.NewKassenjournalRepo(nil, nil)
@@ -732,11 +726,8 @@ func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 	}
 }
 
-// TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb belegt, dass ein nicht
-// parsebares summen-wirksames Event den Tagesabschluss abbricht und kein
-// tagesabschluss-erstellt-Event schreibt. Inkorrekte Summen im Z-Bon sind
-// schlimmer als ein blockierter Abschluss; praktisch nur bei einem korrupten
-// Store erreichbar.
+// An unparsable sum-relevant event aborts the Tagesabschluss without writing its event: wrong Z-Bon
+// sums are worse than a blocked Abschluss. Reachable only with a corrupt store.
 func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
 	ctx := context.Background()
 	journalMock := repotest.NewKassenjournalRepo(nil, nil)

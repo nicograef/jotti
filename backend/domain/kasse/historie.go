@@ -23,10 +23,8 @@ type HistorieEintrag struct {
 	Stornierung *Stornierung
 	Umbuchung   *Umbuchung
 
-	// StornierbarePositionen and UmbuchbarePositionen are set only on entries that put
-	// positions on the table (a Bestellung or the Zugang of a Umbuchung): per position the
-	// quantity that remains, stornierbar = ordered − cancelled − moved away,
-	// umbuchbar = stornierbar − paid.
+	// Set only on entries that put positions on the table (a Bestellung or a Umbuchung Zugang).
+	// Per position: stornierbar = ordered − cancelled − moved away, umbuchbar = stornierbar − paid.
 	StornierbarePositionen []Position
 	UmbuchbarePositionen   []Position
 }

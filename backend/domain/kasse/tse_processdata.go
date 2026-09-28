@@ -60,12 +60,9 @@ func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, fak
 	), nil
 }
 
-// BuildBestellungProcessData erzeugt die CSV-Darstellung nach
-// DSFinV-K Anhang I: pro Position `<Menge>;"<Bezeichnung>";<Brutto-Einzelpreis>`,
-// Zeilentrenner \r, Anführungszeichen in der Bezeichnung werden verdoppelt.
-// faktor -1 stellt Rücknahmen dar (geldneutrale Korrektur, Umbuchungs-Abgang): DSFinV-K
-// Anhang I sieht für Bestell-Storni negative Mengen vor — ohne Vorzeichen wäre eine
-// Rücknahme TSE-seitig nicht von einer Neubestellung unterscheidbar.
+// BuildBestellungProcessData renders Bestellung-V1 CSV per DSFinV-K Anhang I (docs/compliance.md
+// §3.4). faktor -1 negates quantities for a Rücknahme (Korrektur, Umbuchung-Abgang), as Anhang I
+// prescribes for order cancellations; unsigned, the TSE record would look like a new order.
 func BuildBestellungProcessData(positionen []Position, faktor int) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")
@@ -104,12 +101,9 @@ func BuildGeldtransitProcessData(richtung string, betragCents int) (string, erro
 	}
 }
 
-// BuildEigenbelegProcessData erzeugt Kassenbeleg-V1-processData für USt-neutrale
-// Bargeldbewegungen (Eigenbelege nach AEAO 2.2.3.6.1, z. B. Geldtransit und
-// Kassendifferenz). Der Betrag steht im 0-%-Feld (Feld 5, UST_SCHLUESSEL 5 =
-// nicht steuerbar) und gleicht so die Bar-Zahlung aus; das Vorzeichen folgt dem
-// übergebenen Bargeldbetrag (Abfluss negativ). DSFinV-K Anhang I: Zahlungen von
-// 0.00 müssen entfallen.
+// BuildEigenbelegProcessData renders Kassenbeleg-V1 for VAT-neutral cash movements (Eigenbelege,
+// AEAO 2.2.3.6.1): the signed amount (outflow negative) sits in field 5 (UST_SCHLUESSEL 5, not
+// taxable) to balance the cash payment. A zero payment is omitted (DSFinV-K Anhang I).
 func BuildEigenbelegProcessData(zahlbetragCents int) string {
 	zahlungen := ""
 	if zahlbetragCents != 0 {

@@ -10,15 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Alle Geldsummen-Felder der Kasse-Events und -Projektionen müssen positiv sein: eine Summe
-// wird über Positionen mit Preis >= 1 Cent gebildet, 0-Cent-Positionen sind nicht zulässig.
-// Die Felder sind daher GTE(1).Required(): zog überspringt den GTE-Validator beim
-// Zero-Value, erst Required() lehnt die 0 ab.
-//
-// Fünf Felder werden über die echten Event-Konstruktoren geprüft: dort ist die Summe ein
-// Parameter. Die übrigen sechs kennen keinen Summen-Parameter und werden direkt gegen ihr
-// Schema validiert: die beiden Event-Konstruktoren rechnen die Summe aus den Positionen,
-// die vier Projektions-Builder übernehmen sie aus dem Event.
+// Every money sum of Kasse events and projections is >= 1 Cent, hence GTE(1).Required(): zog skips
+// GTE on the zero value, only Required() rejects 0. Five fields go through the event constructors
+// taking the sum; the other six (summed from positions or copied from the event) through their schema.
 
 func validEventPositionen() []PositionEventData {
 	return []PositionEventData{{

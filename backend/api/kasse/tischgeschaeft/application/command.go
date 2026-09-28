@@ -77,10 +77,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// writeEventOCC schreibt mit Version expectedVersion+1 und bildet den UNIQUE-Verstoß auf ErrConflict ab.
-// expectedVersion muss die Version des Zustands sein, gegen den der Command validiert hat (Projektion
-// bzw. Replay) — nicht ein frisches GetMaxVersion zum Schreibzeitpunkt. Nur so erkennt
-// UNIQUE(subject, version) eine Stream-Änderung seit dem Lesen und verhindert Doppel-Writes.
+// writeEventOCC writes at expectedVersion+1 and maps the UNIQUE violation to ErrConflict.
+// expectedVersion must be the state the command validated against (projection or replay), never a
+// fresh GetMaxVersion, or UNIQUE(subject, version) cannot catch a stream change since reading.
 func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
 	e.Version = expectedVersion + 1
 
@@ -155,10 +154,9 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	return subject, ks.ZNr, t.Name, state, nil
 }
 
-// BestellungAufnehmen ist über bestellungID idempotent (client-seitig erzeugte UUID): Bei
-// OCC-Konflikt entscheidet die Suche nach der bestellungId — Treffer = idempotente Erfolgsantwort,
-// kein Treffer = echter Konflikt (409). Gleiche ID bedeutet denselben Vorgang, der Payload wird
-// nicht verglichen.
+// BestellungAufnehmen is idempotent via the client's bestellungID: on an OCC conflict a stored event
+// with that bestellungId means success (same ID = same operation, payload not compared), none means
+// a real conflict (409).
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -307,9 +305,8 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	// Quelle: OCC gegen den validierten Zustand. Ziel: kein Zustand validiert (reines Anhängen), die
-	// Version kommt erst unmittelbar vor dem Schreiben. Beide Seiten erhalten ihren Signaturauftrag
-	// im selben Commit (fiskalische Projektion).
+	// The source uses OCC against its validated state; the target validates nothing (pure append), so
+	// its version is read right before writing. Both sides get their Signaturauftrag in the same commit.
 	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
 	if err != nil {
 		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
@@ -367,11 +364,9 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
 }
 
-// StornierungErteilen teilt die Stornierung nach Bezahlstatus auf: unbezahlte Mengen werden
-// geldneutral korrigiert (ein bestellung-korrigiert), bezahlte Mengen FIFO ihren Zahlungen
-// zugeordnet und je Zahlung als kassenwirksame Warenrücknahme zurückgenommen (ein
-// stornierung-erteilt mit genau einer ZahlungID). Jedes Event trägt eine eigene TSE-Transaktion,
-// alle werden atomar geschrieben.
+// StornierungErteilen splits by payment status: unpaid quantities become one bestellung-korrigiert,
+// paid ones one stornierung-erteilt per Zahlung (FIFO). Each event gets its own TSE transaction, all
+// are written atomically (docs/handbuch.md §3.7).
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 

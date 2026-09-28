@@ -188,10 +188,9 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	return zNr, nil
 }
 
-// geldtransitID ist eine client-seitig erzeugte UUID (Idempotenz-Schlüssel). Bei
-// UniqueViolation (Duplikat-Einreichung) wird per geldtransitId nachgeschlagen:
-// Treffer = idempotente Erfolgsantwort; kein Treffer = echter OCC-Konflikt (409).
-// Gleiche ID bedeutet denselben Vorgang — der Payload wird nicht verglichen.
+// geldtransitID is the client's idempotency key: on a UniqueViolation a stored event with that
+// geldtransitId means idempotent success (same ID = same operation, payload not compared), none
+// means a real OCC conflict (409).
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -233,12 +232,9 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 	return nil
 }
 
-// KasseAbschliessen schreibt Kassensturz, Differenzbuchung (nur bei Differenz ungleich Null) und
-// Tagesabschluss in dieser Reihenfolge. Es gibt bewusst keine umschließende Transaktion über die
-// drei: ein Teilfehler wird durch einen erneuten Aufruf fortgesetzt, der einen bereits
-// geschriebenen Kassensturz idempotent überspringt. Die Tagessummen berechnet
-// kasse.ComputeAbschlussSummen; dass sie nicht von der SQL-Auswertung abweichen, sichert
-// backend/repository/reporting_repo/summen_abschluss_test.go zu.
+// KasseAbschliessen writes Kassensturz, Differenzbuchung (only if nonzero) and Tagesabschluss without
+// an enclosing transaction: a retry resumes and skips a written Kassensturz (docs/handbuch.md §3.10).
+// reporting_repo/summen_abschluss_test.go pins kasse.ComputeAbschlussSummen to the SQL reporting sums.
 func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (ergebnis KassenabschlussErgebnis, err error) {
 	log := zerolog.Ctx(ctx)
 
@@ -308,14 +304,9 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 	sollBestandCents := kassenbestand.SollBestandCents
 
-	// Wiederanlauf: Ein vorheriger Versuch kann den Kassensturz schon geschrieben haben. Der
-	// dokumentierte Kassensturz zählt — Schritt 1 entfällt, sein Ist-Bestand bleibt maßgeblich.
-	//
-	// Zwischenbuchungen brechen ab: nach einem defer-Reset auf 'offen' können neue Buchungen
-	// entstehen, die der alte Ist-Bestand als Soll-Ist-Differenz verbuchen würde. Zwei Signale
-	// brechen ab: eine Buchung nach dem Kassensturz im Kassensitzungs-Stream und ein seither
-	// veränderter Soll-Bestand (Tischzahlung, Warenrücknahme, Direktverkauf liegen in eigenen
-	// Sub-Streams).
+	// Wiederanlauf: an earlier attempt's Kassensturz counts, with its Ist-Bestand. Bookings since then
+	// abort, or the old Ist-Bestand would book them as Differenz: a later event in this stream
+	// (Geldtransit) or a changed Soll-Bestand (Tisch and Direktverkauf sub-streams) reveals them.
 	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
@@ -410,11 +401,8 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 
-	// Druck-Outbox aufräumen: mit dem committeten Tagesabschluss ist die Sitzung fiskalisch
-	// geschlossen. Best effort — der Fehler wird NICHT in den benannten Return err geschrieben,
-	// sonst meldete der Abschluss einen Fehler, obwohl der Tagesabschluss committed ist; der
-	// defer-Reset selbst bliebe folgenlos, weil SetKassensitzungOffen nur in
-	// 'wird_abgeschlossen' greift. Der Cleaner ist optional (nil-guard).
+	// Best-effort Druck-Outbox cleanup after the committed Tagesabschluss. Its error stays out of the
+	// named return err, or a committed Abschluss would report failure; the cleaner is optional.
 	if c.DruckauftragRepo != nil {
 		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
 			log.Error().Err(cleanupErr).Int("z_nr", ks.ZNr).Msg("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)")
@@ -433,11 +421,9 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	return ergebnis, nil
 }
 
-// findeVorhandenenKassensturz liefert das bereits im Stream stehende
-// kassensturz-durchgefuehrt-Event (oder nil) und ob danach eine Zwischenbuchung liegt.
-// buchungenNachSturz ist true, sobald nach dem Kassensturz ein Event liegt, das nicht zum Abschluss
-// selbst gehört (kasse.IsAbschlussEventType nimmt die aus). Der Kassensitzungs-Stream kennt als
-// solche Zwischenbuchung nur geldtransit-gebucht:v1; Tisch-Buchungen laufen über eigene Sub-Streams.
+// findeVorhandenenKassensturz returns the stream's kassensturz-durchgefuehrt event (or nil) and
+// whether a non-Abschluss event (kasse.IsAbschlussEventType) follows it. In this stream only
+// geldtransit-gebucht:v1 can be one; Tisch bookings live in their own sub-streams.
 func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string) (sturz *kasse.KassensturzDurchgefuehrtV1Data, buchungenNachSturz bool, err error) {
 	log := zerolog.Ctx(ctx)
 

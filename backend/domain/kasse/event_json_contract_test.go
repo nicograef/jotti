@@ -5,14 +5,9 @@ import (
 	"testing"
 )
 
-// Event payloads are stored as JSONB and the reporting layer reads single keys straight from
-// that JSON — the kj_extract_* SQL functions in database/migrations/01_initial.up.sql,
-// sqlc/queries/reporting.sql, and the position parsing in repository/reporting_repo. A
-// struct-tag rename would break those queries silently (no compile error), so these tests
-// pin the JSON keys and field values of every event type.
-//
-// A new EventType needs an entry in allEventTypes, a TestEventContract_* function, and an
-// entry in contractedTypes in TestEventContract_AllTypesPinned.
+// Reporting SQL reads event JSON keys directly (kj_extract_* in 01_initial.up.sql, sqlc/queries/
+// reporting.sql, repository/reporting_repo), so these tests pin the keys a tag rename would break.
+// A new EventType needs entries in allEventTypes and contractedTypes plus a TestEventContract_* func.
 
 // allEventTypes must stay in sync with the EventType constants across the *_events.go files.
 var allEventTypes = []EventType{

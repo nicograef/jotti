@@ -44,11 +44,8 @@ func countJournalEvents(t *testing.T, db *sql.DB, eventType string) int {
 	return count
 }
 
-// TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz: Der erste
-// Abschluss-Versuch schreibt den Kassensturz und scheitert an der
-// Differenzbuchung (Teilfehler). Der Wiederanlauf erkennt den vorhandenen
-// Kassensturz, überspringt Schritt 1 und schließt ab — im Journal steht
-// genau ein kassensturz-durchgefuehrt:v1.
+// The first attempt writes the Kassensturz and fails at the Differenzbuchung. The retry skips the
+// existing Kassensturz and completes, leaving exactly one kassensturz-durchgefuehrt:v1.
 func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 
@@ -112,12 +109,8 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 	}
 }
 
-// TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb: Der erste Abschluss-Versuch
-// schreibt den Kassensturz und scheitert an der Differenzbuchung (Teilfehler). Der defer
-// setzt die Sitzung zurück auf 'offen'; danach entsteht eine echte Zwischenbuchung
-// (Geldtransit). Der Wiederanlauf erkennt die Buchung nach dem protokollierten Kassensturz
-// und bricht mit ErrBuchungenNachKassensturz ab, ohne ein Abschluss-Event zu schreiben —
-// der veraltete Ist-Bestand wird nicht wiederverwendet.
+// After a failed first attempt the defer reopens the session and a Geldtransit is booked. The retry
+// sees the booking after the Kassensturz and aborts without writing, so the stale Ist-Bestand is unused.
 func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 
@@ -175,10 +168,8 @@ func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 	}
 }
 
-// signaturauftraegeErledigen markiert alle offenen Signaturaufträge als erledigt.
-// In Produktion arbeitet sie der Outbox-Worker vor dem nächsten Abschluss ab; hier
-// muss das Signatur-Gate durchlassen, damit der Wiederanlauf die Prüfung auf
-// Zwischenbuchungen überhaupt erreicht.
+// signaturauftraegeErledigen stands in for the signature worker, so the gate passes and the retry
+// reaches the check for intermediate bookings.
 func signaturauftraegeErledigen(t *testing.T, db *sql.DB) {
 	t.Helper()
 	if _, err := db.Exec("UPDATE tse_signaturauftraege SET status = 'erledigt', erledigt_am = now() WHERE status = 'offen'"); err != nil {
@@ -186,10 +177,8 @@ func signaturauftraegeErledigen(t *testing.T, db *sql.DB) {
 	}
 }
 
-// bezahlteBestellungAmTisch bucht an einem frischen Tisch eine Bestellung und ihre
-// Zahlung über dieselben Positionen; die Tisch-Session bleibt mit Saldo 0 zurück.
-// Beide Events liegen im Tisch-Sub-Stream, den die Stream-Prüfung des Wiederanlaufs
-// nicht sieht — die Zahlung zeigt sich allein am Soll-Kassenbestand.
+// bezahlteBestellungAmTisch books and pays an order on a fresh Tisch, leaving Saldo 0. Both events
+// sit in the Tisch sub-stream, so only the Soll-Kassenbestand reveals the payment to the retry.
 func bezahlteBestellungAmTisch(ctx context.Context, t *testing.T, db *sql.DB, userID, betragCents int) {
 	t.Helper()
 
@@ -246,11 +235,8 @@ func bezahlteBestellungAmTisch(ctx context.Context, t *testing.T, db *sql.DB, us
 	}
 }
 
-// TestKasseAbschliessen_RetryNachTischzahlung_BrichtAb: Der erste Versuch schreibt
-// den Kassensturz und scheitert an der Differenzbuchung; der defer setzt die Sitzung
-// zurück auf 'offen'. Danach bezahlt ein Tisch seine Bestellung. Der Wiederanlauf
-// erkennt die Zwischenbuchung am veränderten Soll-Bestand — obwohl sie in einem
-// Sub-Stream liegt — und bricht mit ErrBuchungenNachKassensturz ab.
+// After a failed first attempt the defer reopens the session and a Tisch pays its order. The retry
+// detects the sub-stream booking by the changed Soll-Bestand and aborts with ErrBuchungenNachKassensturz.
 func TestKasseAbschliessen_RetryNachTischzahlung_BrichtAb(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 
@@ -285,11 +271,8 @@ func TestKasseAbschliessen_RetryNachTischzahlung_BrichtAb(t *testing.T) {
 	}
 }
 
-// TestKasseAbschliessen_RetryNachDifferenzbuchung_LaeuftDurch: Der erste Versuch
-// schreibt Kassensturz und Differenzbuchung und scheitert am Tagesabschluss. Beim
-// Wiederanlauf hat die gebuchte Differenz den Soll-Bestand an den gezählten
-// Ist-Bestand angeglichen; der Vergleich ohne sie sieht deshalb keine
-// Zwischenbuchung und der Abschluss läuft durch.
+// The first attempt fails after the Differenzbuchung. Comparing the Soll-Bestand without that
+// Differenz finds no intermediate booking, so the retry completes.
 func TestKasseAbschliessen_RetryNachDifferenzbuchung_LaeuftDurch(t *testing.T) {
 	ctx, _, db, userID := setupKassenfuehrungIntegration(t)
 

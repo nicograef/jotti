@@ -48,11 +48,9 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 	"Kommentar":          z.String().Max(100),
 })
 
-// StornierungErteiltV1Data ist die kassenwirksame Warenrücknahme bereits bezahlter
-// Positionen: ein negativer Umsatz am Ursprungssteuersatz mit Bar-Rückgabe, signiert
-// als Kassenbeleg-V1. ZahlungID referenziert genau die begleichende Zahlung, deren
-// Mengen zurückgenommen werden (eine Warenrücknahme je Zahlung). Der Kommentar ist
-// Pflicht (Dokumentation des Rückgabegrunds für die Betriebsprüfung).
+// StornierungErteiltV1Data is the cash-effective Warenrücknahme of paid positions: negative revenue
+// at the original tax rate plus cash refund, signed as Kassenbeleg-V1 (docs/handbuch.md §3.6).
+// ZahlungID names the one settling payment; the Kommentar records the reason for the tax audit.
 type StornierungErteiltV1Data struct {
 	StornierungID          string              `json:"stornierungId"`
 	ZahlungID              string              `json:"zahlungId"`
@@ -86,10 +84,9 @@ var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
 	"Kommentar":   z.String().Max(100),
 })
 
-// BestellungUmgebuchtV1Data ist die geldneutrale Umbuchung unbezahlter Positionen. Quell-
-// und Zielstrom erhalten je ein Event mit derselben UmbuchungID; der Abgang trägt die
-// ursprünglichen PositionIDs, der Zugang frische. Die Richtung folgt aus dem Tisch des
-// Event-Subjects (QuellTischID vs. ZielTischID).
+// BestellungUmgebuchtV1Data moves unpaid positions money-neutrally: source and target stream each
+// get one event with the same UmbuchungID. The Abgang keeps the original PositionIDs, the Zugang gets
+// fresh ones, and the subject's Tisch against QuellTischID/ZielTischID gives the direction.
 type BestellungUmgebuchtV1Data struct {
 	UmbuchungID  string              `json:"umbuchungId"`
 	QuellTischID int                 `json:"quellTischId"`
@@ -346,10 +343,8 @@ func buildStornierungFromEvent(event e.Event) (Stornierung, error) {
 	return stornierung, nil
 }
 
-// buildKorrekturFromEvent baut die geldneutrale Korrektur als Stornierung mit
-// BarRueckgabe = false. Keine erneute Schema-Prüfung: die Daten wurden bei der
-// Event-Erstellung validiert, und der Kommentar ist hier optional (anders als bei der
-// Warenrücknahme).
+// buildKorrekturFromEvent builds the money-neutral Korrektur as a Stornierung with BarRueckgabe =
+// false. It skips schema validation: the event was validated on creation and its Kommentar is optional.
 func buildKorrekturFromEvent(event e.Event) (Stornierung, error) {
 	if event.Type != string(EventTypeBestellungKorrigiertV1) {
 		return Stornierung{}, fmt.Errorf("unsupported event type: %s", event.Type)

@@ -33,11 +33,9 @@ type zahlungRest struct {
 	cents    int
 }
 
-// ComputeStornoAufteilung spielt die Events einer Tisch-Session nach und teilt eine
-// Storno-Anforderung nach Bezahlstatus auf: je Position zuerst die unbezahlte Menge
-// (geldneutrale Korrektur), der Rest FIFO aus den begleichenden Zahlungen. Der zweite
-// Rückgabewert ist false, wenn eine Menge die noch stornierbare übersteigt oder eine
-// PositionID mehrfach referenziert wird.
+// ComputeStornoAufteilung replays a Tisch-Session and splits a Storno request by payment status:
+// per position the unpaid quantity first (Korrektur), the rest FIFO from the settling payments.
+// It returns false when a quantity exceeds what remains stornierbar or a PositionID repeats.
 func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAufteilung, bool) {
 	details := map[string]Position{}
 	unbezahlt := map[string]int{}

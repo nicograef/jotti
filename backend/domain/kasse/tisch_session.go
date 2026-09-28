@@ -95,10 +95,8 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
 	}
 
-	// SaldoCents ist vollständig aus UnbezahltePositionen abgeleitet (Σ EinzelpreisCents ×
-	// Menge) und wird deshalb hier einmal berechnet statt in jedem Arm fortgeschrieben.
-	// GesamtZahlungenCents ist ein echter Akkumulator (nicht ableitbar) und wird oben je
-	// Arm fortgeschrieben.
+	// SaldoCents derives from UnbezahltePositionen, so it is computed once here; GesamtZahlungenCents
+	// is a true accumulator, updated per arm above (docs/handbuch.md §3.8).
 	state.SaldoCents = saldoAusPositionen(state.UnbezahltePositionen)
 
 	state.LastEventID = evt.ID
@@ -215,10 +213,9 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 	return out
 }
 
-// reduceByPosition subtracts positions from a list, removing entries at quantity zero.
-// Missing positions and over-reductions are tolerated — only use it where that is legitimate
+// reduceByPosition subtracts positions from a clone of list, dropping entries at quantity zero.
+// It tolerates missing positions and over-reductions, so use it only where that is legitimate
 // (ComputeNichtStorniertePositionen: a position may already have been moved away).
-// Works on a clone of list so the caller's backing array is never modified.
 func reduceByPosition(list []Position, reductions []Position) []Position {
 	out := make([]Position, len(list))
 	copy(out, list)
@@ -237,10 +234,9 @@ func reduceByPosition(list []Position, reductions []Position) []Position {
 	return out
 }
 
-// reduceByPositionStrict subtracts positions and fails on inconsistencies: a reduction that
-// hits no position or exceeds the available Menge is the symptom of a slipped double write
-// (OCC violation) and must not silently falsify the projection.
-// Works on a clone of list so the caller's backing array is never modified.
+// reduceByPositionStrict subtracts positions from a clone of list and fails on inconsistencies:
+// a reduction that hits no position or exceeds the available Menge is the symptom of a slipped
+// double write (OCC violation) and must not silently falsify the projection.
 func reduceByPositionStrict(list []Position, reductions []Position) ([]Position, error) {
 	out := make([]Position, len(list))
 	copy(out, list)

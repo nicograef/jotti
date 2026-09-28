@@ -13,15 +13,9 @@ type AbschlussSummen struct {
 	GeldtransitCents int
 }
 
-// ComputeAbschlussSummen aggregiert alle Events einer Kassensitzung zu den
-// drei Z-Bon-Summen gemäß reporting.sql:11-44:
-//
-//	Umsatz        = Zahlungen + Direktverkäufe − Direktverkauf-Storni − Warenrücknahmen
-//	Stornierungen = Warenrücknahmen + Korrekturen + Direktverkauf-Storni
-//	Geldtransit   = Einlagen − Entnahmen
-//
-// Ein nicht parsebares Event eines summen-wirksamen Typs bricht die Berechnung ab:
-// ein stiller falscher Z-Bon wäre schlimmer als ein blockierter Abschluss.
+// ComputeAbschlussSummen yields the three Z-Bon sums with the formulas of GetReportingStats in
+// sqlc/queries/reporting.sql. An unparsable sum-relevant event aborts: a silently wrong Z-Bon is
+// worse than a blocked Abschluss.
 func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 	var s AbschlussSummen
 	for _, evt := range events {

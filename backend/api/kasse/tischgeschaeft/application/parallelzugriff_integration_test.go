@@ -15,20 +15,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-// TestParallelzugriff_ZweiClientsSelberTisch prüft die Konsistenz von
-// Kassenjournal, seiner Projektion (tisch_sessions) und den Salden, wenn zwei
-// nebenläufige Servicekräfte DENSELBEN Tisch bedienen (bestellen, kassieren) —
-// über mehrere Runden hinweg.
-//
-// Jede Servicekraft arbeitet auf einer eigenen Produktvariante (A vs. B), sodass
-// die erwarteten Endsummen je Variante eindeutig sind. Der geteilte Event-Stream
-// des Tisches serialisiert nebenläufige Schreibzugriffe über die optimistische
-// Nebenläufigkeitskontrolle (OCC); ein Konflikt (ErrConflict) ist erwartet und
-// wird per Retry aufgelöst. Am Ende muss gelten:
-//   - Journal-Replay == projizierte tisch_sessions-Zeile (kein Projektions-Drift);
-//   - Saldo 0 (jede bestellte Position wurde genau einmal bezahlt);
-//   - je Variante: bestellte Menge == bezahlte Menge (keine verlorene Position,
-//     keine Doppelbuchung).
+// Two Servicekräfte order and pay at the same Tisch over several rounds, each on its own variant; OCC
+// conflicts are expected and retried. Afterwards replay equals the projection, Saldo is 0, and per
+// variant ordered equals paid quantity (no lost position, no double booking).
 func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteA := setupBestellungIntegration(t)
 
@@ -132,10 +121,8 @@ func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 	}
 }
 
-// bedieneTisch führt für eine Servicekraft runden × (bestellen → kassieren) auf
-// ihrer eigenen Variante aus, plus einen abschließenden Durchlauf für etwaige
-// durch Interleaving übrig gebliebene Positionen. Alle Schreibzugriffe treffen
-// den geteilten Tisch-Stream; OCC-Konflikte werden per Retry aufgelöst.
+// bedieneTisch runs runden × (order → pay) on the Servicekraft's own variant, then a final pay pass
+// for positions left open by interleaving.
 func bedieneTisch(ctx context.Context, cmd Command, subject string, userID int, userName string, produktID, tischID, varianteID, runden, menge int) error {
 	for range runden {
 		bestellungID := uuid.New().String()
@@ -166,10 +153,8 @@ func kassiere(ctx context.Context, cmd Command, subject string, userID int, user
 	})
 }
 
-// offeneRefsFuerVariante liest die aktuelle Tisch-Session und liefert die noch
-// unbezahlten Positionen der gegebenen Variante als PositionRefs. So bearbeitet
-// jede Servicekraft nur ihre eigenen Positionen; eine Doppelverarbeitung
-// derselben Position verhindert zusätzlich die serverseitige Bezahl-Invariante.
+// offeneRefsFuerVariante returns the variant's unpaid positions, so each Servicekraft pays only its
+// own; the server-side Bezahl-Invariante also prevents paying a position twice.
 func offeneRefsFuerVariante(ctx context.Context, cmd Command, subject string, varianteID int) ([]kasse.PositionRef, error) {
 	state, err := cmd.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
@@ -184,10 +169,8 @@ func offeneRefsFuerVariante(ctx context.Context, cmd Command, subject string, va
 	return refs, nil
 }
 
-// retryConflict wiederholt op, solange ein OCC-Konflikt (ErrConflict) auftritt.
-// Nebenläufige Schreibzugriffe auf denselben Stream lösen einen Konflikt aus; der
-// Retry liest den frischen Zustand und versucht erneut. Begrenzt, damit ein echter
-// Dauerfehler nicht zur Endlosschleife wird.
+// retryConflict repeats op while it returns ErrConflict, each try reading fresh state. The cap keeps a
+// persistent error from looping forever.
 func retryConflict(op func() error) error {
 	const maxVersuche = 500
 	for range maxVersuche {

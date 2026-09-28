@@ -9,13 +9,9 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// FuzzApplyEvent prüft die Replay-Kante des Kassenjournals: ApplyEvent verarbeitet die
-// persistierte Event-Data (JSONB) beim Wiederaufbau der tisch_sessions-Projektion. Zu
-// halten ist Panic-Freiheit, egal wie kaputt das JSON ist — ein Panic legte den
-// Projektions-Rebuild (make rebuild-projections) und jede Sitzung mit diesem Event
-// dauerhaft lahm. Fachlich falsche, aber wohlgeformte Payloads dürfen einen Fehler liefern.
-// Der Seed-Korpus stammt aus den eingefrorenen Event-JSON-Contracts
-// (event_json_contract_test.go).
+// FuzzApplyEvent: ApplyEvent must never panic on stored event JSON, however broken, since a panic
+// blocks the projection rebuild and every session holding that event for good. Well-formed but
+// wrong payloads may return an error; the seeds come from event_json_contract_test.go.
 func FuzzApplyEvent(f *testing.F) {
 	seeds := []struct {
 		typ  string
@@ -82,10 +78,8 @@ func FuzzApplyEvent(f *testing.F) {
 			return
 		}
 
-		// Invariante 1 — jede projizierte Position hält eine positive Menge; Menge <= 0 wäre
-		// ein Projektionsfehler. Greift nur bei gültigen Eingabe-Positionen (Menge > 0,
-		// PositionID gesetzt) — eine Menge-0-Position liegt außerhalb des validierten Korpus
-		// und reicht ihren Nulleintrag erwartungsgemäß durch.
+		// Invariant 1: every projected position holds Menge > 0. Checked only for valid input
+		// positions (Menge > 0, PositionID set); a Menge-0 input lies outside the validated corpus.
 		if eingabePositionenGueltig(evt.Data) {
 			for _, pos := range next.UnbezahltePositionen {
 				if pos.Menge <= 0 {

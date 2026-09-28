@@ -15,10 +15,9 @@ type FiskalischerVorgang struct {
 	ProcessData string
 }
 
-// FiskalischeProjektion ist die einzige Stelle, die über Signaturpflicht entscheidet, und
-// entscheidet datenabhängig: Die Sitzungseröffnung ist nur bei Anfangsbestand > 0 ein
-// Geschäftsvorfall (Bareinlage, AEAO 2.2.3.6.1). Ein unbekannter Event-Typ ist ein Fehler,
-// damit ein neuer Typ ohne Projektions-Eintrag nicht still unsigniert bleibt.
+// FiskalischeProjektion alone decides the signature duty, data-dependently: opening a Kassensitzung
+// is a business event only with Anfangsbestand > 0 (Bareinlage, AEAO 2.2.3.6.1; docs/handbuch.md
+// §3.13). An unknown event type is an error, so a new type never stays silently unsigned.
 func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 	switch EventType(evt.Type) {
 	case EventTypeBestellungAufgenommenV1:

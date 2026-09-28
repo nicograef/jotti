@@ -145,10 +145,8 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
-// Schließt die Kassensitzung zwischen dem Lesen und dem Schreiben, lehnt der
-// Trigger des Kassenjournals den Write mit ErrKassensitzungNichtOffen ab. Der
-// Command muss daraus ErrKasseNichtGeoeffnet machen, damit der Handler 409
-// kasse_nicht_geoeffnet liefert statt eines 500.
+// A Kassensitzung closed between read and write makes the journal trigger reject the write. The
+// command maps that to ErrKasseNichtGeoeffnet, so the handler answers 409 instead of 500.
 func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	ctx := context.Background()
 	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
@@ -376,12 +374,8 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	}
 }
 
-// TestZahlungKassieren_KonfliktBeiParallelemCommit stellt das Read–Validate–Sign–Write-
-// Race nach: Der Command validiert gegen die Projektion (LastEventVersion 1), aber im
-// Event-Store liegt bereits ein parallel committetes Event mit Version 2 (z. B. eine
-// zweite Zahlung während der TSE-Signierung). Der Write mit erwarteter Version 1 muss
-// am UNIQUE(subject, version)-Constraint scheitern — der zweite Request bekommt 409
-// statt eine Doppelzahlung durchzuschreiben.
+// Read–validate–write race: the command validated against LastEventVersion 1 while a parallel Zahlung
+// committed version 2. UNIQUE(subject, version) must fail the write: 409, not a double payment.
 func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
@@ -786,10 +780,8 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 }
 
-// Der Kommentar wird auf die Schemagrenze von 100 Bytes gekürzt (zogs Max zählt
-// Bytes). Beide Tischnamen tragen Umlaute: der Zielname endet auf einer
-// Runengrenze, der Quellname erzwingt den Rückschritt um ein Byte, damit keine
-// UTF-8-Folge zerfällt.
+// The Kommentar is cut to the schema limit of 100 bytes (zog's Max counts bytes). The target name ends
+// on a rune boundary, the source name forces a one-byte step back so no UTF-8 sequence splits.
 func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	ctx := context.Background()
 	quellTisch := tisch.Tisch{ID: 1, Name: "T" + strings.Repeat("ä", 49), Status: tisch.ActiveStatus}

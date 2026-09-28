@@ -128,9 +128,8 @@ func TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict(t *te
 	verkaufID := uuid.New().String()
 	subject := kasse.DirektverkaufSubject(ksNr, verkaufID)
 
-	// Vorab-Insert: version 1 im selben Stream, aber mit anderer verkaufId im Datenfeld.
-	// Simuliert einen echten OCC-Konflikt: der Command-Write trifft auf eine bereits belegte
-	// (subject, version). Da die verkaufId nicht übereinstimmt, schlägt der Idempotenz-Check fehl.
+	// Pre-insert version 1 in the same stream with another verkaufId: the command write hits a taken
+	// (subject, version), a real OCC conflict, and the idempotency check finds no match.
 	andereVerkaufID := uuid.New().String()
 	data, err := json.Marshal(map[string]any{
 		"verkaufId":         andereVerkaufID,

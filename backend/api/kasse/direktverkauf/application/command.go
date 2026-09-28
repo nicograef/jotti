@@ -59,11 +59,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// DirektverkaufTaetigen schreibt ein einziges unveränderliches Event in den eigenen Stream des
-// Verkaufs und aktualisiert keine Projektion. verkaufID ist ein client-seitig erzeugter
-// Idempotenz-Schlüssel (UUID): Bei OCC-Konflikt entscheidet die Suche nach der verkaufId — Treffer
-// = idempotente Erfolgsantwort, kein Treffer = echter Konflikt (409). Gleiche ID bedeutet denselben
-// Vorgang, der Payload wird nicht verglichen.
+// DirektverkaufTaetigen writes one immutable event into the sale's own stream, without projection.
+// verkaufID is the client's idempotency key: on an OCC conflict a stored event with that verkaufId
+// means idempotent success (same ID = same operation, payload not compared), none means a real 409.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string) error {
 	log := zerolog.Ctx(ctx)
 
@@ -178,10 +176,9 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	return nil
 }
 
-// expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
-// (1. Event eines frischen Streams: 0; Storno: höchste Version des Replays). Ein
-// UNIQUE(subject, version)-Konflikt — der Stream hat sich seit dem Lesen geändert —
-// wird zu ErrConflict.
+// expectedVersion is the state the command validated against (0 for a fresh stream, the replay's
+// highest version for a Storno). A UNIQUE(subject, version) conflict means the stream changed since
+// reading and becomes ErrConflict.
 func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
 	e.Version = expectedVersion + 1
 

@@ -258,10 +258,8 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		t.Errorf("ComputeAbschlussSummen %+v != sqlReferenzSummen %+v", got, ref)
 	}
 
-	// Erwartete Werte aus der reporting.sql-Formel (manuell gerechnet):
-	// Umsatz:      2238 + 1470 (zahlungen) - 1455 (storno) + 880 (dv) - 335 (dvStorno) = 2798
-	// Storno:      1455 (storno) + 200 (korrektur) + 335 (dvStorno) = 1990
-	// Geldtransit: 500 (einlage) - 150 (entnahme) = 350
+	// Hand-computed from the reporting.sql formulas: Umsatz 2238 + 1470 − 1455 + 880 − 335,
+	// Storno 1455 + 200 + 335, Geldtransit 500 − 150.
 	const wantUmsatz, wantStorno, wantTransit = 2798, 1990, 350
 
 	if got.UmsatzCents != wantUmsatz {

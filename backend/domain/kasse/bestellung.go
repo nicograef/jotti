@@ -87,11 +87,9 @@ func PositionFromEventData(p PositionEventData) Position {
 	}
 }
 
-// PositionEingabeSchema begrenzt die Menge nur auf dem Eingabeweg: Die Obergrenze schützt
-// `EinzelpreisCents * Menge` vor dem int-Überlauf, der auf einen plausiblen Kleinbetrag
-// zurückwickelt. In `positionSchema`, das auch jedes gelesene Event validiert, machte eine
-// Grenze bestehende Events unlesbar. Das Schema ist per Definition required — nie erneut
-// `.Required()` aufrufen (zog mutiert den Empfänger in place).
+// PositionEingabeSchema caps Menge on input only: the cap keeps `EinzelpreisCents * Menge` from
+// overflowing int, and in positionSchema, which also validates stored events, it would make them
+// unreadable. It is already required; never call `.Required()` again, since zog mutates in place.
 var PositionEingabeSchema = z.Int().
 	GTE(1, z.Message("Menge muss mindestens 1 betragen")).
 	LTE(999, z.Message("Menge zu hoch")).

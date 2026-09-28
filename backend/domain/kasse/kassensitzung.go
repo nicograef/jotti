@@ -21,10 +21,8 @@ const (
 	KassensitzungAbgeschlossen     KassensitzungStatus = "abgeschlossen"
 )
 
-// Kassenbestand ist der Soll-Kassenbestand einer Kassensitzung, eine reine Projektion
-// des Kassenjournals. Solange keine Differenz gebucht ist, gilt:
-//
-//	AnfangsbestandCents + BareinnahmenCents + EinlagenCents − EntnahmenCents = SollBestandCents.
+// Kassenbestand is the Soll-Kassenbestand of a Kassensitzung, projected from the Kassenjournal.
+// Until a Differenz is booked, Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = SollBestand.
 type Kassenbestand struct {
 	SollBestandCents    int
 	AnfangsbestandCents int

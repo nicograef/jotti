@@ -11,10 +11,9 @@ import (
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
-// Das Gate urteilt über dieselbe tse.DetermineSignaturstatus-Funktion wie der
-// Beleg-Abruf (kein zweiter Zurechnungspfad): offen ohne Störung ist ausstehend
-// (blockt), offen bei aktivem Störungszeitraum ist Ausfall (lässt durch),
-// Endstatus ist Ausfall bzw. — bei fehlender Konfiguration — deutlich ausgewiesen.
+// The gate judges via tse.DetermineSignaturstatus like the Beleg path (docs/handbuch.md §3.13):
+// offen without Störung is ausstehend and blocks; offen in an active Störungszeitraum and the end
+// states pass as Ausfall, or as flagged when no TSE is configured.
 func TestCheckSignaturGate(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
@@ -99,10 +98,8 @@ func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
 	}
 }
 
-// Ausfall-Reste (endgültig fehlgeschlagen sowie offen bei aktivem
-// Störungszeitraum) lassen den Abschluss zu und werden in der Abschlussmeldung
-// ausgewiesen; tse_nicht_konfiguriert blockiert nie und wird deutlich als „Tag
-// ohne TSE" ausgewiesen.
+// Ausfall-Reste (final fehlgeschlagen, or offen in an active Störungszeitraum) let the Abschluss pass
+// and are reported; tse_nicht_konfiguriert never blocks and is reported as a day without TSE.
 func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
 	ctx := context.Background()
 	now := time.Now().UTC()
