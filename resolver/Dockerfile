@@ -11,7 +11,16 @@ RUN go build -o /go/bin/jotti-resolver .
 
 FROM alpine:3.24
 
+RUN addgroup -S jotti && adduser -S -G jotti jotti
+
 COPY --from=builder /go/bin/jotti-resolver /usr/local/bin/jotti-resolver
+
+# The file capability lets the non-root user bind port 53.
+RUN apk add --no-cache libcap-setcap \
+  && setcap cap_net_bind_service=+ep /usr/local/bin/jotti-resolver \
+  && apk del libcap-setcap
+
+USER jotti
 
 EXPOSE 53/udp 53/tcp
 
