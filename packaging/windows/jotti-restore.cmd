@@ -7,7 +7,8 @@ REM Daten gehen dabei verloren.
 REM
 REM Das Skript startet jotti nicht selbst: nur jotti-start.exe uebergibt dem
 REM Reverse-Proxy die LAN-Adresse des Rechners. Zur zurueckgespielten Datenbank passt
-REM das vorherige Release.
+REM das vorherige Release. Die Wiederherstellung laeuft in einer Transaktion: ein
+REM unvollstaendiges oder fehlerhaftes Backup laesst die Datenbank unveraendert.
 setlocal
 cd /d "%~dp0"
 set ENVFILE=%PROGRAMDATA%\jotti\.env
@@ -32,7 +33,7 @@ echo Stoppe die Anwendung waehrend der Wiederherstellung ...
 if errorlevel 1 goto :error
 
 echo Spiele das letzte Backup ein ...
-docker exec jotti-postgres-local sh -c "set -e; F=$(ls -1 /jotti-backups/jotti-*.sql 2>/dev/null | tail -n 1); if [ -z \"$F\" ]; then echo 'Kein Backup gefunden.'; exit 1; fi; echo \"Verwende $F\"; psql -U admin -d jotti -v ON_ERROR_STOP=1 -f \"$F\""
+docker exec jotti-postgres-local sh -c "set -e; F=$(ls -1 /jotti-backups/jotti-*.sql 2>/dev/null | tail -n 1); if [ -z \"$F\" ]; then echo 'Kein Backup gefunden.'; exit 1; fi; echo \"Verwende $F\"; if ! tail -n 20 \"$F\" | grep -qx -- '-- PostgreSQL database dump complete'; then echo 'Das Backup ist unvollstaendig. Es wurde nichts veraendert.'; exit 1; fi; psql -U admin -d jotti -1 -v ON_ERROR_STOP=1 -f \"$F\"; vacuumdb -U admin -d jotti --analyze-in-stages || echo 'Hinweis: vacuumdb ist fehlgeschlagen, die Daten sind trotzdem wiederhergestellt.'"
 if errorlevel 1 goto :error
 
 echo.
