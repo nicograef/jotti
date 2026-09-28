@@ -210,7 +210,7 @@ func TestCheckBackendComments_ProtectsCodeSpellings(t *testing.T) {
 				t.Fatalf("checkBackendComments: %v", err)
 			}
 			if len(hits) != len(tt.wantHits) {
-				t.Fatalf("expected %d hit(s), got %d: %v", len(tt.wantHits), len(hits), hits)
+				t.Errorf("expected %d hit(s), got %d: %v", len(tt.wantHits), len(hits), hits)
 			}
 			for _, want := range tt.wantHits {
 				if !anyContains(hits, want) {

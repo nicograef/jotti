@@ -128,7 +128,7 @@ func baseValidConfig() Config {
 
 func TestValidateSecrets_Valid(t *testing.T) {
 	if err := ValidateSecrets(baseValidConfig()); err != nil {
-		t.Fatalf("expected valid config to pass, got %v", err)
+		t.Errorf("expected valid config to pass, got %v", err)
 	}
 }
 
