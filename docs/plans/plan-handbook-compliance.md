@@ -101,12 +101,12 @@ Delete `.github/copilot-instructions.md`, `.github/instructions/` and `.claude/w
 
 ### Acceptance criteria
 
-- [ ] `cat CLAUDE.md` prints only `@AGENTS.md`
-- [ ] `grep -rniE 'copilot|CLAUDE_CODE_REMOTE|fable|cloud-session' AGENTS.md CLAUDE.md .claude/ .github/` finds nothing
-- [ ] `test ! -e .github/copilot-instructions.md && test ! -e .github/instructions && test ! -e .claude/workflows`
-- [ ] `jq '.enabledPlugins["handbook@nicograef"], .extraKnownMarketplaces' .claude/settings.json` prints `null null`
-- [ ] every `docs/*.md` and `docs/*/` appears in `docs/README.md` (checked by a `ls`/`grep` loop)
-- [ ] `make check-repo` green
+- [x] `cat CLAUDE.md` prints only `@AGENTS.md`
+- [x] `grep -rniE 'copilot|CLAUDE_CODE_REMOTE|fable|cloud-session' AGENTS.md CLAUDE.md .claude/ .github/` finds nothing
+- [x] `test ! -e .github/copilot-instructions.md && test ! -e .github/instructions && test ! -e .claude/workflows`
+- [x] `jq '.enabledPlugins["handbook@nicograef"], .extraKnownMarketplaces' .claude/settings.json` prints `null null`
+- [x] every `docs/*.md` and `docs/*/` appears in `docs/README.md` (checked by a `ls`/`grep` loop)
+- [x] `make check-repo` green
 
 ## Phase 2: CI supply-chain hardening
 
