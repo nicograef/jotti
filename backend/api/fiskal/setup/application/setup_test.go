@@ -324,6 +324,9 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 	if client.GesetzteAdminPIN != "" {
 		t.Errorf("expected no new admin pin from UNINITIALIZED, got %q", client.GesetzteAdminPIN)
 	}
+	if len(client.PUKAbgefragtFuer) != 0 {
+		t.Errorf("expected no puk refetch from UNINITIALIZED, got one for %v", client.PUKAbgefragtFuer)
+	}
 	if client.AuthentifiziertePIN != "1234567890" {
 		t.Errorf("expected the entered pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
 	}
@@ -616,7 +619,7 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Errorf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
-	if client.GesetzteAdminPIN != "" || repo.gespeichert != nil {
+	if client.GesetzteAdminPIN != "" || len(client.PUKAbgefragtFuer) != 0 || repo.gespeichert != nil {
 		t.Error("expected no operations on environment mismatch")
 	}
 }

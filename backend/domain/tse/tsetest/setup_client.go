@@ -40,6 +40,7 @@ type FakeSetupClient struct {
 	ReaktiviereErr      error
 
 	ErstellteTSS         []tse.TSSErstellt
+	PUKAbgefragtFuer     []string
 	StammdatenTssID      string
 	AdminAuthentifiziert bool
 	GesetzteAdminPIN     string
@@ -81,7 +82,8 @@ func (f *FakeSetupClient) CreateTSS(context.Context) (tse.TSSErstellt, error) {
 	return f.CreateTSSResponse, nil
 }
 
-func (f *FakeSetupClient) GetAdminPUK(context.Context, string) (string, error) {
+func (f *FakeSetupClient) GetAdminPUK(_ context.Context, tssID string) (string, error) {
+	f.PUKAbgefragtFuer = append(f.PUKAbgefragtFuer, tssID)
 	if f.GetAdminPUKErr != nil {
 		return "", f.GetAdminPUKErr
 	}
