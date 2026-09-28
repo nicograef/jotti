@@ -298,8 +298,9 @@ check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
 
 check-frontend: ## Frontend komplett prüfen (Format, Typen, Lint, Test, Build)
+	cd frontend && pnpm install --frozen-lockfile
 	$(MAKE) check-format
-	cd frontend && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
 check-e2e: ## E2E-Suite prüfen (tsc + ESLint, ohne Stack)
 	cd e2e && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint
