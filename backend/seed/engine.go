@@ -45,8 +45,8 @@ type tagesSummen struct {
 	GeldtransitCents          int
 }
 
-// UmsatzGesamtCents follows the reporting definition; the cash-neutral Korrektur does not count.
-// See docs/handbuch.md §7.2.
+// UmsatzGesamtCents follows gesamt_umsatz_cents of GetReportingStats in backend/sqlc/queries/reporting.sql;
+// the cash-neutral Korrektur does not count.
 func (s tagesSummen) UmsatzGesamtCents() int {
 	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents
 }
