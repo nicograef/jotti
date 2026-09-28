@@ -284,11 +284,11 @@ A test helper renders a page with a real QueryClient from `createQueryClient` an
 
 ### Acceptance criteria
 
-- [ ] `grep -rln 'go:build unit' backend` finds nothing
-- [ ] `cd backend && go test ./...` runs as many tests as `-tags=unit` ran before (count via `go test -json`)
-- [ ] `grep -rn 'tags=unit' Makefile .github` finds nothing
-- [ ] `grep -rn 'Error() ==\|err.Error(), "' backend --include=*_test.go` finds nothing
-- [ ] `make check-backend` green
+- [x] `grep -rln 'go:build unit' backend` finds nothing
+- [x] `cd backend && go test ./...` runs as many tests as `-tags=unit` ran before (count via `go test -json`)
+- [x] `grep -rn 'tags=unit' Makefile .github` finds nothing
+- [x] `grep -rn 'Error() ==\|err.Error(), "' backend --include=*_test.go` finds nothing
+- [x] `make check-backend` green
 
 ## Phase 13: Comments at the cap
 
