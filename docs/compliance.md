@@ -301,7 +301,7 @@ Lehnt der Gast ab, ist die Pflicht dennoch erfüllt. § 146a Abs. 2 AO verlangt 
 
 Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K, lesbar durch die Prüfsoftware IDEA. Verbindlich ist v2.4, Stand Dezember 2023. [5] jotti hält den Versionsstring deshalb in einer einzigen Konstante (`dsfinvk.Version`) fest. Eine künftige DSFinV-K-Version ändert ihn an einer Stelle im Code.
 
-Das Paket `backend/dsfinvkpruefung` prüft jeden Export gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Es parst CSV und `index.xml` unabhängig vom Erzeuger (`api/fiskal/dsfinvk`), damit ein beiderseits geteilter Formatfehler auffällt. Beträge plausibilisiert es nicht; das leisten die Golden-File-Tests des Erzeugers.
+Das Test-Paket `backend/dsfinvkpruefung` prüft in einem Integrationstest die Exporte des Seed-Szenarios gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Es parst CSV und `index.xml` unabhängig vom Erzeuger (`api/fiskal/dsfinvk`), damit ein beiderseits geteilter Formatfehler auffällt. Beträge plausibilisiert es nicht; das leisten die Golden-File-Tests des Erzeugers.
 
 ### 6.2 Dateiformat und Grundregeln
 
@@ -317,7 +317,7 @@ Das Paket `backend/dsfinvkpruefung` prüft jeden Export gegen die Struktur- und 
 
 ### 6.3 Modul-Struktur und offizielle Dateinamen
 
-Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Bezeichnung (deutsch):
+Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Bezeichnung (deutsch). Die DSFinV-K erlaubt, nicht befüllte Dateien wegzulassen. Die offizielle `index.xml` deklariert aber alle 20 Dateien, daher exportiert jotti nicht befüllte header-only.
 
 #### A. Stammdatenmodul
 
@@ -328,7 +328,7 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `cashregister.csv`     | Stamm_Kassen         | Kassendaten: Hersteller, Seriennummer, Software-Typ und -Version                                                                                                               |
 | `slaves.csv`           | Stamm_Terminals      | Slave-/Terminal-Kassen. Für jotti gegenstandslos (eine Kasse), header-only exportiert                                                                                          |
 | `pa.csv`               | Stamm_Agenturen      | Stammdaten bei Agenturgeschäft. Für jotti gegenstandslos, header-only exportiert                                                                                               |
-| `vat.csv`              | Stamm_USt            | Stammdaten der verwendeten Steuersätze                                                                                                                                         |
+| `vat.csv`              | Stamm_USt            | Stammdaten der USt-Schlüssel 1–7 (→ [§6.7](#67-steuersatz-verwaltung))                                                                                                         |
 | `tse.csv`              | Stamm_TSE            | TSE-Daten: TSE-Referenz-ID (nur innerhalb eines Kassenabschlusses), Signaturalgorithmus, TSE-Seriennummer (64-stelliger Hexadezimalstring), Public Key und Zertifikat (Base64) |
 
 #### B. Einzelaufzeichnungsmodul (Bonmodul)
@@ -342,8 +342,8 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `references.csv`        | Bon_Referenzen       | Referenzen auf andere Bons, u. a. `REF_BON_ID` bei Stornos                                                                       |
 | `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE`, `EINHEIT`, `STK_BR` (Stückpreis brutto)                                        |
 | `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                             |
-| `itemamounts.csv`       | Bonpos_Preisfindung  | Preisfindung je Position (Rabatte, Zu-/Abschläge). Nur bei vorhandener Preisfindung befüllt, sonst header-only oder weggelassen  |
-| `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Nur bei vorhandenen Zusatzinfos befüllt, sonst header-only oder weggelassen       |
+| `itemamounts.csv`       | Bonpos_Preisfindung  | Preisfindung je Position (Rabatte, Zu-/Abschläge). Für jotti gegenstandslos, header-only exportiert                              |
+| `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Für jotti gegenstandslos, header-only exportiert                                  |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
 #### C. Kassenabschlussmodul (Z-Bon)
