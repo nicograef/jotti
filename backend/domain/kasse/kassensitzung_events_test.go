@@ -1,7 +1,7 @@
 package kasse
 
 import (
-	"strings"
+	"errors"
 	"testing"
 )
 
@@ -22,8 +22,8 @@ func TestNewKassensitzungEroeffnetEvent_LehntNegativenBetragAb(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for negative betragCents, got nil")
 	}
-	if !strings.Contains(err.Error(), "BetragCents") {
-		t.Errorf("expected BetragCents validation error, got %v", err)
+	if !errors.Is(err, ErrEventDatenUngueltig) {
+		t.Errorf("expected ErrEventDatenUngueltig, got %v", err)
 	}
 }
 
@@ -43,7 +43,7 @@ func TestNewKassensturzDurchgefuehrtEvent_LehntNegativenIstBestandAb(t *testing.
 	if err == nil {
 		t.Fatal("expected error for negative istBestandCents, got nil")
 	}
-	if !strings.Contains(err.Error(), "IstBestandCents") {
-		t.Errorf("expected IstBestandCents validation error, got %v", err)
+	if !errors.Is(err, ErrEventDatenUngueltig) {
+		t.Errorf("expected ErrEventDatenUngueltig, got %v", err)
 	}
 }

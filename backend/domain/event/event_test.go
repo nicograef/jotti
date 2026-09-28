@@ -2,6 +2,7 @@ package event
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 )
@@ -37,17 +38,17 @@ func TestValidate_Errors(t *testing.T) {
 	cases := []struct {
 		name     string
 		mutate   func(*Event)
-		expected string
+		expected error
 	}{
-		{"non-positive user ID", func(e *Event) { e.UserID = 0 }, "user ID must be a positive integer"},
-		{"empty user name", func(e *Event) { e.UserName = "" }, "user name must be a non-empty string"},
-		{"whitespace user name", func(e *Event) { e.UserName = "   " }, "user name must be a non-empty string"},
-		{"short type", func(e *Event) { e.Type = "aaa" }, "event type must be at least 5 characters long"},
-		{"zero time", func(e *Event) { e.Time = time.Time{} }, "event time cannot be zero"},
-		{"short subject", func(e *Event) { e.Subject = "" }, "event subject must be a non-empty string"},
-		{"zero version", func(e *Event) { e.Version = 0 }, "event version must be >= 1"},
-		{"negative version", func(e *Event) { e.Version = -1 }, "event version must be >= 1"},
-		{"nil data", func(e *Event) { e.Data = []byte{} }, "event data cannot be empty"},
+		{"non-positive user ID", func(e *Event) { e.UserID = 0 }, ErrInvalidUserID},
+		{"empty user name", func(e *Event) { e.UserName = "" }, ErrEmptyUserName},
+		{"whitespace user name", func(e *Event) { e.UserName = "   " }, ErrEmptyUserName},
+		{"short type", func(e *Event) { e.Type = "aaa" }, ErrInvalidType},
+		{"zero time", func(e *Event) { e.Time = time.Time{} }, ErrZeroTime},
+		{"short subject", func(e *Event) { e.Subject = "" }, ErrEmptySubject},
+		{"zero version", func(e *Event) { e.Version = 0 }, ErrInvalidVersion},
+		{"negative version", func(e *Event) { e.Version = -1 }, ErrInvalidVersion},
+		{"nil data", func(e *Event) { e.Data = []byte{} }, ErrEmptyData},
 	}
 
 	for _, tc := range cases {
@@ -62,8 +63,8 @@ func TestValidate_Errors(t *testing.T) {
 				Data:     json.RawMessage(`{"k": "v"}`),
 			}
 			tc.mutate(e)
-			if err := e.Validate(); err == nil || err.Error() != tc.expected {
-				t.Fatalf("expected error %q, got %v", tc.expected, err)
+			if err := e.Validate(); !errors.Is(err, tc.expected) {
+				t.Errorf("expected error %v, got %v", tc.expected, err)
 			}
 		})
 	}

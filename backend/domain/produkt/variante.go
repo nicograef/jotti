@@ -1,11 +1,15 @@
 package produkt
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	z "github.com/Oudwins/zog"
 )
+
+// ErrPreisUngueltig: der Preis einer Variante verletzt PreisCentsSchema.
+var ErrPreisUngueltig = errors.New("invalid price")
 
 type Status string
 
@@ -70,7 +74,7 @@ func NewVariante(name string, preisCents int) (Variante, error) {
 	}
 
 	if issues := PreisCentsSchema.Validate(&preisCents); issues != nil {
-		return Variante{}, fmt.Errorf("invalid price: %s", issues[0].Message)
+		return Variante{}, fmt.Errorf("%w: %s", ErrPreisUngueltig, issues[0].Message)
 	}
 
 	variante := Variante{
@@ -105,7 +109,7 @@ func (v *Variante) UpdateDetails(name string, preisCents int) error {
 	}
 
 	if issues := PreisCentsSchema.Validate(&preisCents); issues != nil {
-		return fmt.Errorf("invalid price: %s", issues[0].Message)
+		return fmt.Errorf("%w: %s", ErrPreisUngueltig, issues[0].Message)
 	}
 
 	v.Name = name

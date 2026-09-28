@@ -1,8 +1,8 @@
 package kasse
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -46,10 +46,10 @@ func validProjektionsPositionen() []Position {
 	}}
 }
 
-// validateSchema spiegelt das Fehler-Wrapping der Konstruktoren (Fehlerform mit Feldname).
+// validateSchema spiegelt das Fehler-Wrapping der Konstruktoren (validateEventData).
 func validateSchema[T any](schema *z.StructSchema, value *T) error {
 	if errs := schema.Validate(value); errs != nil {
-		return fmt.Errorf("%v", z.Issues.FlattenAndCollect(errs))
+		return fmt.Errorf("%w: %v", ErrEventDatenUngueltig, z.Issues.FlattenAndCollect(errs))
 	}
 	return nil
 }
@@ -161,8 +161,8 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected validation error for 0-sum on %s, got nil", tc.field)
 			}
-			if !strings.Contains(err.Error(), tc.field) {
-				t.Errorf("expected %s validation error, got %v", tc.field, err)
+			if !errors.Is(err, ErrEventDatenUngueltig) {
+				t.Errorf("expected ErrEventDatenUngueltig for %s, got %v", tc.field, err)
 			}
 		})
 		t.Run(tc.name+"/lehntNegativAb", func(t *testing.T) {
@@ -170,8 +170,8 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected validation error for negative sum on %s, got nil", tc.field)
 			}
-			if !strings.Contains(err.Error(), tc.field) {
-				t.Errorf("expected %s validation error, got %v", tc.field, err)
+			if !errors.Is(err, ErrEventDatenUngueltig) {
+				t.Errorf("expected ErrEventDatenUngueltig for %s, got %v", tc.field, err)
 			}
 		})
 		t.Run(tc.name+"/erlaubtPositiv", func(t *testing.T) {

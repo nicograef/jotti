@@ -10,6 +10,17 @@ import (
 	z "github.com/Oudwins/zog"
 )
 
+// Validation errors of New and Validate.
+var (
+	ErrInvalidUserID  = errors.New("user ID must be a positive integer")
+	ErrEmptyUserName  = errors.New("user name must be a non-empty string")
+	ErrInvalidType    = errors.New("event type must be at least 5 characters long")
+	ErrEmptySubject   = errors.New("event subject must be a non-empty string")
+	ErrEmptyData      = errors.New("event data cannot be empty")
+	ErrZeroTime       = errors.New("event time cannot be zero")
+	ErrInvalidVersion = errors.New("event version must be >= 1")
+)
+
 // Event represents a CNCF Cloudevent with additional fields for user association.
 type Event struct {
 	ID       int
@@ -53,19 +64,19 @@ func New(userID int, userName string, eventType string, subject string, data any
 // are validated only by Validate: New has not assigned them yet.
 func validateFields(userID int, userName, eventType, subject string, data json.RawMessage) error {
 	if userID <= 0 {
-		return errors.New("user ID must be a positive integer")
+		return ErrInvalidUserID
 	}
 	if len(strings.TrimSpace(userName)) == 0 {
-		return errors.New("user name must be a non-empty string")
+		return ErrEmptyUserName
 	}
 	if len(strings.TrimSpace(eventType)) < 5 {
-		return errors.New("event type must be at least 5 characters long")
+		return ErrInvalidType
 	}
 	if len(strings.TrimSpace(subject)) < 3 {
-		return errors.New("event subject must be a non-empty string")
+		return ErrEmptySubject
 	}
 	if len(data) == 0 {
-		return errors.New("event data cannot be empty")
+		return ErrEmptyData
 	}
 	return nil
 }
@@ -76,11 +87,11 @@ func (e *Event) Validate() error {
 	}
 
 	if e.Time.IsZero() {
-		return errors.New("event time cannot be zero")
+		return ErrZeroTime
 	}
 
 	if e.Version < 1 {
-		return errors.New("event version must be >= 1")
+		return ErrInvalidVersion
 	}
 
 	return nil

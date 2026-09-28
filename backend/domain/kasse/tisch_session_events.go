@@ -1,6 +1,7 @@
 package kasse
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -112,12 +113,15 @@ var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
 	"BenutzerKommentar": z.String().Max(100),
 })
 
+// ErrEventDatenUngueltig: die Daten eines neuen Events verletzen ihr Schema.
+var ErrEventDatenUngueltig = errors.New("data validation failed")
+
 // validateEventData verpackt einen Schema-Fehlschlag als Konstruktionsfehler
 // ("<label> data validation failed: …").
 func validateEventData[T any](schema *z.StructSchema, data *T, label string) error {
 	if err := schema.Validate(data); err != nil {
 		issues := z.Issues.FlattenAndCollect(err)
-		return fmt.Errorf("%s data validation failed: %v", label, issues)
+		return fmt.Errorf("%s %w: %v", label, ErrEventDatenUngueltig, issues)
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 package produkt
 
 import (
-	"strings"
+	"errors"
 	"testing"
 )
 
@@ -10,8 +10,8 @@ func TestNewVariante_RejectsZeroPrice(t *testing.T) {
 	if err == nil {
 		t.Fatal("erwartete Ablehnung eines 0-Cent-Preises, bekam nil")
 	}
-	if !strings.Contains(err.Error(), "Preis muss mindestens 1 Cent betragen") {
-		t.Fatalf("erwartete klare Preis-Meldung, bekam: %v", err)
+	if !errors.Is(err, ErrPreisUngueltig) {
+		t.Errorf("erwartete ErrPreisUngueltig, bekam: %v", err)
 	}
 }
 
@@ -20,8 +20,8 @@ func TestNewVariante_RejectsNegativePrice(t *testing.T) {
 	if err == nil {
 		t.Fatal("erwartete Ablehnung eines negativen Preises, bekam nil")
 	}
-	if !strings.Contains(err.Error(), "Preis muss mindestens 1 Cent betragen") {
-		t.Fatalf("erwartete klare Preis-Meldung, bekam: %v", err)
+	if !errors.Is(err, ErrPreisUngueltig) {
+		t.Errorf("erwartete ErrPreisUngueltig, bekam: %v", err)
 	}
 }
 
