@@ -97,38 +97,26 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 
-	// Der zweite Lauf darf fiskaly nicht einmal ansprechen. Die Fabrik zählt
-	// jeden Versuch, einen Setup-Client zu bauen — der erste Schritt jeder
-	// fiskaly-Sequenz und damit der schärfste Nachweis.
-	fabrikAufrufe := 0
-	zweiterClient := &tsetest.FakeSetupClient{
-		UmgebungResponse:  tse.UmgebungTest,
-		CreateTSSResponse: tse.TSSErstellt{ID: "tss-zweite", PUK: "puk-456", State: "CREATED"},
-	}
+	// Der zweite Lauf darf fiskaly nicht einmal ansprechen. Seine Fabrik
+	// scheitert: Ein Clientbau vor dem Schloss endete in
+	// ErrTSEVerbindungFehlgeschlagen statt in ErrTSESetupLaeuftBereits.
 	zweiterRepo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	zweiter := Command{
 		TSERepo:             zweiterRepo,
 		KassensitzungenRepo: stubKassensitzungReader{},
 		NewTSESetupClient: func(tse.SetupCredentials) (tse.SetupClient, error) {
-			fabrikAufrufe++
-			return zweiterClient, nil
+			return nil, errors.New("the rejected calls must not build a fiskaly client")
 		},
 	}
 
 	if _, err := zweiter.RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false); !errors.Is(err, ErrTSESetupLaeuftBereits) {
-		t.Fatalf("expected ErrTSESetupLaeuftBereits from the second setup, got %v", err)
+		t.Errorf("expected ErrTSESetupLaeuftBereits from the second setup, got %v", err)
 	}
 	if _, err := zweiter.UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-erste", "", ""); !errors.Is(err, ErrTSESetupLaeuftBereits) {
-		t.Fatalf("expected ErrTSESetupLaeuftBereits from a takeover while a setup runs, got %v", err)
-	}
-	if fabrikAufrufe != 0 {
-		t.Fatalf("expected the rejected calls to never build a fiskaly client, got %d", fabrikAufrufe)
-	}
-	if len(zweiterClient.ErstellteTSS) != 0 {
-		t.Fatalf("expected no second TSS to be created, got %+v", zweiterClient.ErstellteTSS)
+		t.Errorf("expected ErrTSESetupLaeuftBereits from a takeover while a setup runs, got %v", err)
 	}
 	if zweiterRepo.gespeichert != nil {
-		t.Fatalf("expected the rejected calls to save nothing, got %+v", zweiterRepo.gespeichert)
+		t.Errorf("expected the rejected calls to save nothing, got %+v", zweiterRepo.gespeichert)
 	}
 
 	lauf.freigeben()
@@ -136,10 +124,10 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 		t.Fatalf("unexpected error from the first setup: %v", err)
 	}
 	if len(lauf.client.ErstellteTSS) != 1 {
-		t.Fatalf("expected exactly one TSS to be created in total, got %+v", lauf.client.ErstellteTSS)
+		t.Errorf("expected exactly one TSS to be created in total, got %+v", lauf.client.ErstellteTSS)
 	}
 	if lauf.repo.gespeichert == nil || lauf.repo.gespeichert.TssID != "tss-erste" {
-		t.Fatalf("expected the first setup to save its own configuration, got %+v", lauf.repo.gespeichert)
+		t.Errorf("expected the first setup to save its own configuration, got %+v", lauf.repo.gespeichert)
 	}
 }
 
@@ -158,10 +146,10 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 	}
 
 	if err := manuell.UpdateTSEKonfiguration(context.Background(), konfiguration); !errors.Is(err, ErrTSESetupLaeuftBereits) {
-		t.Fatalf("expected ErrTSESetupLaeuftBereits while a setup runs, got %v", err)
+		t.Errorf("expected ErrTSESetupLaeuftBereits while a setup runs, got %v", err)
 	}
 	if manuellesRepo.gespeichert != nil {
-		t.Fatalf("expected the rejected manual save to write nothing, got %+v", manuellesRepo.gespeichert)
+		t.Errorf("expected the rejected manual save to write nothing, got %+v", manuellesRepo.gespeichert)
 	}
 
 	lauf.freigeben()
@@ -169,7 +157,7 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 		t.Fatalf("unexpected error from the running setup: %v", err)
 	}
 	if lauf.repo.gespeichert == nil || lauf.repo.gespeichert.TssID != "tss-erste" {
-		t.Fatalf("expected the setup to save its own configuration, got %+v", lauf.repo.gespeichert)
+		t.Errorf("expected the setup to save its own configuration, got %+v", lauf.repo.gespeichert)
 	}
 
 	// Nach dem Lauf ist das Schloss frei, der manuelle Pfad schreibt wieder.
@@ -177,7 +165,7 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 		t.Fatalf("expected the manual save after the setup to succeed, got %v", err)
 	}
 	if manuellesRepo.gespeichert == nil || manuellesRepo.gespeichert.TssID != "tss-von-hand" {
-		t.Fatalf("expected the manual save to store its configuration, got %+v", manuellesRepo.gespeichert)
+		t.Errorf("expected the manual save to store its configuration, got %+v", manuellesRepo.gespeichert)
 	}
 }
 
@@ -191,7 +179,7 @@ func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 
 	gescheitert := &tsetest.FakeSetupClient{TSSErr: errors.New("fiskaly nicht erreichbar")}
 	if _, err := commandMit(repo, gescheitert).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false); !errors.Is(err, ErrTSEVerbindungFehlgeschlagen) {
-		t.Fatalf("expected ErrTSEVerbindungFehlgeschlagen, got %v", err)
+		t.Errorf("expected ErrTSEVerbindungFehlgeschlagen, got %v", err)
 	}
 
 	erfolgreich := &tsetest.FakeSetupClient{
@@ -199,7 +187,7 @@ func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk-123", State: "CREATED"},
 	}
 	if _, err := commandMit(repo, erfolgreich).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false); err != nil {
-		t.Fatalf("expected the setup after a failed run to start, got %v", err)
+		t.Errorf("expected the setup after a failed run to start, got %v", err)
 	}
 
 	danach := &tsetest.FakeSetupClient{
@@ -207,6 +195,6 @@ func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 		CreateTSSResponse: tse.TSSErstellt{ID: "tss-danach", PUK: "puk-456", State: "CREATED"},
 	}
 	if _, err := commandMit(repo, danach).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false); err != nil {
-		t.Fatalf("expected the setup after a successful run to start, got %v", err)
+		t.Errorf("expected the setup after a successful run to start, got %v", err)
 	}
 }

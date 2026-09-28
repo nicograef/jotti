@@ -79,20 +79,20 @@ func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if befund.Umgebung != "TEST" {
-		t.Fatalf("expected TEST environment, got %q", befund.Umgebung)
+		t.Errorf("expected TEST environment, got %q", befund.Umgebung)
 	}
 	if len(befund.VorhandeneTSS) != 2 {
 		t.Fatalf("expected two TSS in befund, got %d", len(befund.VorhandeneTSS))
 	}
 	tss1 := befund.VorhandeneTSS[0]
 	if tss1.State != "INITIALIZED" {
-		t.Fatalf("expected TSS state INITIALIZED, got %q", tss1.State)
+		t.Errorf("expected TSS state INITIALIZED, got %q", tss1.State)
 	}
 	if tss1.PassenderClient == nil || tss1.PassenderClient.ID != "client-passt" {
-		t.Fatalf("expected matching client client-passt, got %+v", tss1.PassenderClient)
+		t.Errorf("expected matching client client-passt, got %+v", tss1.PassenderClient)
 	}
 	if befund.VorhandeneTSS[1].PassenderClient != nil {
-		t.Fatalf("expected no matching client for tss-2, got %+v", befund.VorhandeneTSS[1].PassenderClient)
+		t.Errorf("expected no matching client for tss-2, got %+v", befund.VorhandeneTSS[1].PassenderClient)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 
 	_, err := q.CheckTSESetup(context.Background(), gueltigeZugangsdaten())
 	if !errors.Is(err, ErrTSESetupZugangsdaten) {
-		t.Fatalf("expected ErrTSESetupZugangsdaten, got %v", err)
+		t.Errorf("expected ErrTSESetupZugangsdaten, got %v", err)
 	}
 }
 
@@ -128,10 +128,10 @@ func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if befund.Umgebung != "LIVE" {
-		t.Fatalf("expected LIVE environment, got %q", befund.Umgebung)
+		t.Errorf("expected LIVE environment, got %q", befund.Umgebung)
 	}
 	if len(befund.VorhandeneTSS) != 0 {
-		t.Fatalf("expected no TSS for an empty account, got %d", len(befund.VorhandeneTSS))
+		t.Errorf("expected no TSS for an empty account, got %d", len(befund.VorhandeneTSS))
 	}
 }
 
@@ -154,10 +154,10 @@ func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !status.IstKonfiguriert {
-		t.Fatal("expected IstKonfiguriert to be true")
+		t.Error("expected IstKonfiguriert to be true")
 	}
 	if status.Umgebung != "LIVE" {
-		t.Fatalf("expected LIVE environment, got %q", status.Umgebung)
+		t.Errorf("expected LIVE environment, got %q", status.Umgebung)
 	}
 }
 
@@ -184,7 +184,7 @@ func TestTestTSEVerbindung_SeriennummerAbweichung(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if status.SeriennummerKorrekt {
-		t.Fatal("expected SeriennummerKorrekt to be false for a deviating serial number")
+		t.Error("expected SeriennummerKorrekt to be false for a deviating serial number")
 	}
 }
 
@@ -211,6 +211,6 @@ func TestTestTSEVerbindung_SeriennummerStimmtUeberein(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !status.SeriennummerKorrekt {
-		t.Fatal("expected SeriennummerKorrekt to be true for a matching serial number")
+		t.Error("expected SeriennummerKorrekt to be true for a matching serial number")
 	}
 }

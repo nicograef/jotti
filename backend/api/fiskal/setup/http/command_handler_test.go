@@ -19,6 +19,8 @@ type mockTSESetupCommand struct {
 	einrichtErr  error
 	uebernehmen  application.TSESetupErgebnis
 	uebernehmErr error
+	// waehrendLebenszyklus läuft, während der fiskaly-Lebenszyklus simuliert wird.
+	waehrendLebenszyklus func()
 }
 
 func (m *mockTSESetupCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Konfiguration) error {
@@ -30,6 +32,9 @@ func (m *mockTSESetupCommand) UpdateTSEKonfiguration(_ context.Context, b tse.Ko
 }
 
 func (m *mockTSESetupCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _ bool) (application.TSESetupErgebnis, error) {
+	if m.waehrendLebenszyklus != nil {
+		m.waehrendLebenszyklus()
+	}
 	if m.einrichtErr != nil {
 		return application.TSESetupErgebnis{}, m.einrichtErr
 	}
@@ -37,6 +42,9 @@ func (m *mockTSESetupCommand) RichteTSEEin(_ context.Context, _ tse.SetupCredent
 }
 
 func (m *mockTSESetupCommand) UebernimmTSE(_ context.Context, _ tse.SetupCredentials, _ tse.Umgebung, _, _, _ string) (application.TSESetupErgebnis, error) {
+	if m.waehrendLebenszyklus != nil {
+		m.waehrendLebenszyklus()
+	}
 	if m.uebernehmErr != nil {
 		return application.TSESetupErgebnis{}, m.uebernehmErr
 	}
@@ -58,16 +66,16 @@ func TestUpdateTSEKonfigurationHandler_Success(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if mock.tse.ApiKey != "my-key" {
-		t.Fatalf("expected api key to be saved, got %q", mock.tse.ApiKey)
+		t.Errorf("expected api key to be saved, got %q", mock.tse.ApiKey)
 	}
 	if mock.tse.ApiSecret != "my-secret" {
-		t.Fatalf("expected api secret to be saved, got %q", mock.tse.ApiSecret)
+		t.Errorf("expected api secret to be saved, got %q", mock.tse.ApiSecret)
 	}
 	if mock.tse.TssID != "tss-123" {
-		t.Fatalf("expected tss id to be saved, got %q", mock.tse.TssID)
+		t.Errorf("expected tss id to be saved, got %q", mock.tse.TssID)
 	}
 	if mock.tse.ClientID != "client-123" {
-		t.Fatalf("expected client id to be saved, got %q", mock.tse.ClientID)
+		t.Errorf("expected client id to be saved, got %q", mock.tse.ClientID)
 	}
 }
 
@@ -82,7 +90,7 @@ func TestUpdateTSEKonfigurationHandler_ClearAllowed(t *testing.T) {
 	handler.UpdateTSEKonfigurationHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+		t.Errorf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -98,7 +106,7 @@ func TestUpdateTSEKonfigurationHandler_TooLongAPIKey(t *testing.T) {
 	handler.UpdateTSEKonfigurationHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", rec.Code)
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -113,7 +121,7 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 	handler.UpdateTSEKonfigurationHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", rec.Code)
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -133,7 +141,7 @@ func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
-		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
 	}
 }
 
@@ -170,10 +178,10 @@ func TestRichteTSEEinHandler_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if resp.Puk != "puk-xyz" || resp.AdminPin != "1234567890" {
-		t.Fatalf("expected puk and admin pin in response, got %+v", resp)
+		t.Errorf("expected puk and admin pin in response, got %+v", resp)
 	}
 	if resp.TssID != "tss-neu" || resp.ClientID != "kasse-serial" || resp.Umgebung != "TEST" {
-		t.Fatalf("unexpected response fields: %+v", resp)
+		t.Errorf("unexpected response fields: %+v", resp)
 	}
 }
 
@@ -190,7 +198,7 @@ func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
 	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", rec.Code)
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -208,7 +216,7 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_bereits_eingerichtet") {
-		t.Fatalf("expected error code tse_bereits_eingerichtet, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_bereits_eingerichtet, got %s", rec.Body.String())
 	}
 }
 
@@ -230,7 +238,7 @@ func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
-		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
 	}
 }
 
@@ -250,7 +258,7 @@ func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 		t.Fatalf("expected status 409, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_laeuft_bereits") {
-		t.Fatalf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_setup_laeuft_bereits, got %s", rec.Body.String())
 	}
 }
 
@@ -277,7 +285,7 @@ func TestUebernimmTSEHandler_Success(t *testing.T) {
 		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tss-halb") || !strings.Contains(rec.Body.String(), "puk-refetch") {
-		t.Fatalf("expected the takeover result in the response, got %s", rec.Body.String())
+		t.Errorf("expected the takeover result in the response, got %s", rec.Body.String())
 	}
 }
 
@@ -294,7 +302,7 @@ func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 	handler.UebernimmTSEHandler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected status 400, got %d", rec.Code)
+		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
 
@@ -312,7 +320,7 @@ func TestUebernimmTSEHandler_UnbekanntePIN(t *testing.T) {
 		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_pin_unbekannt") {
-		t.Fatalf("expected error code tse_setup_pin_unbekannt, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_setup_pin_unbekannt, got %s", rec.Body.String())
 	}
 }
 
@@ -330,6 +338,6 @@ func TestUebernimmTSEHandler_UnbekannterPUK(t *testing.T) {
 		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
 	}
 	if !strings.Contains(rec.Body.String(), "tse_setup_puk_unbekannt") {
-		t.Fatalf("expected error code tse_setup_puk_unbekannt, got %s", rec.Body.String())
+		t.Errorf("expected error code tse_setup_puk_unbekannt, got %s", rec.Body.String())
 	}
 }

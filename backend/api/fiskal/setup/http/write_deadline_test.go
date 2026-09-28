@@ -11,15 +11,13 @@ import (
 )
 
 // deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
-// http.ResponseController sucht, und zählt die Aufrufe. deadlineCountBeforeWrite
-// zählt nur bis zum ersten Schreibvorgang: Nur die Aufrufe DAVOR können der
-// Antwort ein Budget geben.
+// http.ResponseController sucht. fristBeimSchreiben hält die Frist fest, die
+// beim ersten Schreibvorgang gilt: Nur sie gibt der Antwort ein Budget.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
-	deadline                 time.Time
-	deadlineCount            int
-	deadlineCountBeforeWrite int
-	wroteAnything            bool
+	frist              time.Time
+	fristBeimSchreiben time.Time
+	geschrieben        bool
 }
 
 func newDeadlineCapturingWriter() *deadlineCapturingWriter {
@@ -27,22 +25,25 @@ func newDeadlineCapturingWriter() *deadlineCapturingWriter {
 }
 
 func (w *deadlineCapturingWriter) SetWriteDeadline(t time.Time) error {
-	w.deadline = t
-	w.deadlineCount++
-	if !w.wroteAnything {
-		w.deadlineCountBeforeWrite++
-	}
+	w.frist = t
 	return nil
 }
 
 func (w *deadlineCapturingWriter) WriteHeader(code int) {
-	w.wroteAnything = true
+	w.merkeErstenSchreibvorgang()
 	w.ResponseRecorder.WriteHeader(code)
 }
 
 func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
-	w.wroteAnything = true
+	w.merkeErstenSchreibvorgang()
 	return w.ResponseRecorder.Write(b)
+}
+
+func (w *deadlineCapturingWriter) merkeErstenSchreibvorgang() {
+	if !w.geschrieben {
+		w.geschrieben = true
+		w.fristBeimSchreiben = w.frist
+	}
 }
 
 // Die beiden schreibenden TSE-Endpunkte fahren einen fiskaly-Lebenszyklus, der die
@@ -56,34 +57,40 @@ func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
 // Request-Start. Der Aufruf am Handler-Eingang deckt die frühen Fehlerpfade ab,
 // der Aufruf vor dem Schreiben gibt der Antwort ein eigenes Budget.
 func TestTSESetupHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
-	command := &CommandHandler{Command: &mockTSESetupCommand{}}
-
 	faelle := []struct {
 		route   string
-		handler http.HandlerFunc
+		handler func(*CommandHandler) http.HandlerFunc
 		body    string
 	}{
-		{"/admin/tse-einrichten", command.RichteTSEEinHandler(), `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST"}`},
-		{"/admin/tse-uebernehmen", command.UebernimmTSEHandler(), `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST","tssId":"tss-123"}`},
+		{"/admin/tse-einrichten", (*CommandHandler).RichteTSEEinHandler, `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST"}`},
+		{"/admin/tse-uebernehmen", (*CommandHandler).UebernimmTSEHandler, `{"apiKey":"key","apiSecret":"secret","umgebung":"TEST","tssId":"tss-123"}`},
 	}
 
 	for _, fall := range faelle {
 		t.Run(fall.route, func(t *testing.T) {
+			w := newDeadlineCapturingWriter()
+			// Der simulierte Lebenszyklus hält die Frist fest, die während
+			// fiskaly gilt, und lässt Zeit verstreichen, damit eine danach neu
+			// gesetzte Frist später liegt.
+			var fristImLebenszyklus time.Time
+			command := &CommandHandler{Command: &mockTSESetupCommand{waehrendLebenszyklus: func() {
+				fristImLebenszyklus = w.frist
+				time.Sleep(time.Millisecond)
+			}}}
 			req := httptest.NewRequest(http.MethodPost, fall.route, strings.NewReader(fall.body))
 			req.Header.Set("Content-Type", "application/json")
-			w := newDeadlineCapturingWriter()
 
 			before := time.Now()
-			middleware.LoggingMiddleware(fall.handler).ServeHTTP(w, req)
+			middleware.LoggingMiddleware(fall.handler(command)).ServeHTTP(w, req)
 
-			if w.deadlineCount == 0 {
+			if w.fristBeimSchreiben.IsZero() {
 				t.Fatal("expected SetWriteDeadline to reach the real ResponseWriter")
 			}
-			if w.deadlineCountBeforeWrite != 2 {
-				t.Fatalf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+			if fristImLebenszyklus.IsZero() || !w.fristBeimSchreiben.After(fristImLebenszyklus) {
+				t.Errorf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %v during the lifecycle and %v at the first write", fristImLebenszyklus, w.fristBeimSchreiben)
 			}
-			if min := 2 * time.Minute; w.deadline.Before(before.Add(min)) {
-				t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
+			if min := 2 * time.Minute; w.fristBeimSchreiben.Before(before.Add(min)) {
+				t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.fristBeimSchreiben.Sub(before))
 			}
 			if w.Code != http.StatusOK {
 				t.Errorf("expected status 200, got %d: %s", w.Code, w.Body.String())

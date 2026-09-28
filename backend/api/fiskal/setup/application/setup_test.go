@@ -85,18 +85,18 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	}
 
 	if ergebnis.TssID != "tss-neu" {
-		t.Fatalf("expected tss id tss-neu, got %q", ergebnis.TssID)
+		t.Errorf("expected tss id tss-neu, got %q", ergebnis.TssID)
 	}
 	if ergebnis.PUK != "puk-123" {
-		t.Fatalf("expected puk to be returned, got %q", ergebnis.PUK)
+		t.Errorf("expected puk to be returned, got %q", ergebnis.PUK)
 	}
 	if ergebnis.AdminPIN == "" {
-		t.Fatal("expected an admin pin to be returned")
+		t.Error("expected an admin pin to be returned")
 	}
 	// Der Client wird unter einer eigenen UUIDv4 angelegt (fiskaly-Konvention),
 	// nicht unter der Kassen-Seriennummer.
 	if ergebnis.ClientID == "" || ergebnis.ClientID == seriennummer.String() {
-		t.Fatalf("expected a distinct generated client id, got %q", ergebnis.ClientID)
+		t.Errorf("expected a distinct generated client id, got %q", ergebnis.ClientID)
 	}
 
 	if len(client.RegistrierteClients) != 1 {
@@ -104,23 +104,23 @@ func TestRichteTSEEin_LeeresKonto(t *testing.T) {
 	}
 	registriert := client.RegistrierteClients[0]
 	if registriert.SerialNumber != seriennummer.String() {
-		t.Fatalf("expected client registered with kassen serial number as serial_number, got %+v", registriert)
+		t.Errorf("expected client registered with kassen serial number as serial_number, got %+v", registriert)
 	}
 	if registriert.ClientID != ergebnis.ClientID {
-		t.Fatalf("expected client registered under the returned client id %q, got %q", ergebnis.ClientID, registriert.ClientID)
+		t.Errorf("expected client registered under the returned client id %q, got %q", ergebnis.ClientID, registriert.ClientID)
 	}
 	if client.GesetzteAdminPIN != ergebnis.AdminPIN {
-		t.Fatalf("expected the generated pin to be set on the TSS, got %q vs %q", client.GesetzteAdminPIN, ergebnis.AdminPIN)
+		t.Errorf("expected the generated pin to be set on the TSS, got %q vs %q", client.GesetzteAdminPIN, ergebnis.AdminPIN)
 	}
 
 	if repo.gespeichert == nil {
 		t.Fatal("expected the configuration to be saved")
 	}
 	if repo.gespeichert.TssID != "tss-neu" || repo.gespeichert.ClientID != ergebnis.ClientID {
-		t.Fatalf("expected full configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected full configuration to be saved, got %+v", repo.gespeichert)
 	}
 	if !repo.gespeichert.IstKonfiguriert() {
-		t.Fatal("expected the saved configuration to be complete")
+		t.Error("expected the saved configuration to be complete")
 	}
 }
 
@@ -133,13 +133,13 @@ func TestRichteTSEEin_UmgebungAbweichung(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
-		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
+		t.Errorf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no TSS to be created on environment mismatch, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no TSS to be created on environment mismatch, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved on environment mismatch")
+		t.Error("expected no configuration to be saved on environment mismatch")
 	}
 }
 
@@ -151,10 +151,10 @@ func TestRichteTSEEin_BestaetigteUmgebungUngueltig(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.Umgebung(""), false)
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
-		t.Fatalf("expected ErrTSESetupUmgebungAbweichung for an unconfirmed environment, got %v", err)
+		t.Errorf("expected ErrTSESetupUmgebungAbweichung for an unconfirmed environment, got %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no TSS to be created, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no TSS to be created, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -169,13 +169,13 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
-		t.Fatalf("expected ErrTSEBereitsEingerichtet, got %v", err)
+		t.Errorf("expected ErrTSEBereitsEingerichtet, got %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no TSS to be created when an active TSS exists, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no TSS to be created when an active TSS exists, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved when an active TSS exists")
+		t.Error("expected no configuration to be saved when an active TSS exists")
 	}
 }
 
@@ -195,7 +195,7 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 		t.Fatalf("unexpected error with only a disabled TSS present: %v", err)
 	}
 	if len(client.ErstellteTSS) != 1 {
-		t.Fatalf("expected a new TSS to be created, got %+v", client.ErstellteTSS)
+		t.Errorf("expected a new TSS to be created, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -211,10 +211,10 @@ func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEEinrichtung) {
-		t.Fatalf("expected ErrTSEEinrichtung on a failing step, got %v", err)
+		t.Errorf("expected ErrTSEEinrichtung on a failing step, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved when a step fails")
+		t.Error("expected no configuration to be saved when a step fails")
 	}
 }
 
@@ -226,10 +226,10 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSESetupZugangsdaten) {
-		t.Fatalf("expected ErrTSESetupZugangsdaten, got %v", err)
+		t.Errorf("expected ErrTSESetupZugangsdaten, got %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no TSS to be created on auth failure, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no TSS to be created on auth failure, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -248,10 +248,10 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(client.ErstellteTSS) != 1 {
-		t.Fatalf("expected a new TSS to be created despite an existing one, got %+v", client.ErstellteTSS)
+		t.Errorf("expected a new TSS to be created despite an existing one, got %+v", client.ErstellteTSS)
 	}
 	if ergebnis.TssID != "tss-neu" || repo.gespeichert == nil || repo.gespeichert.TssID != "tss-neu" {
-		t.Fatalf("expected the fresh TSS to be set up and saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
+		t.Errorf("expected the fresh TSS to be set up and saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
 	}
 }
 
@@ -266,13 +266,13 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungLive, true)
 	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
-		t.Fatalf("expected ErrTSEBereitsEingerichtet in LIVE despite the flag, got %v", err)
+		t.Errorf("expected ErrTSEBereitsEingerichtet in LIVE despite the flag, got %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no TSS to be created in LIVE, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no TSS to be created in LIVE, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved in LIVE")
+		t.Error("expected no configuration to be saved in LIVE")
 	}
 }
 
@@ -289,10 +289,10 @@ func TestRichteTSEEin_TSSLimitErreicht(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, true)
 	if !errors.Is(err, ErrTSESetupTSSLimitErreicht) {
-		t.Fatalf("expected ErrTSESetupTSSLimitErreicht, got %v", err)
+		t.Errorf("expected ErrTSESetupTSSLimitErreicht, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved when the TSS limit is reached")
+		t.Error("expected no configuration to be saved when the TSS limit is reached")
 	}
 }
 
@@ -314,22 +314,22 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(client.ErstellteTSS) != 0 {
-		t.Fatalf("expected no new TSS to be created on resume, got %+v", client.ErstellteTSS)
+		t.Errorf("expected no new TSS to be created on resume, got %+v", client.ErstellteTSS)
 	}
 	if client.GesetzterAdminPUK != "puk-refetch" {
-		t.Fatalf("expected the pin to be set with the refetched puk, got %q", client.GesetzterAdminPUK)
+		t.Errorf("expected the pin to be set with the refetched puk, got %q", client.GesetzterAdminPUK)
 	}
 	if ergebnis.PUK != "puk-refetch" || ergebnis.AdminPIN == "" {
-		t.Fatalf("expected refetched puk and a fresh pin, got %+v", ergebnis)
+		t.Errorf("expected refetched puk and a fresh pin, got %+v", ergebnis)
 	}
 	if client.GesetzteAdminPIN != ergebnis.AdminPIN {
-		t.Fatalf("expected the fresh pin to be set on the TSS, got %q vs %q", client.GesetzteAdminPIN, ergebnis.AdminPIN)
+		t.Errorf("expected the fresh pin to be set on the TSS, got %q vs %q", client.GesetzteAdminPIN, ergebnis.AdminPIN)
 	}
 	if len(client.RegistrierteClients) != 1 || client.RegistrierteClients[0].SerialNumber != seriennummer.String() {
-		t.Fatalf("expected exactly one client registered with the kassen serial, got %+v", client.RegistrierteClients)
+		t.Errorf("expected exactly one client registered with the kassen serial, got %+v", client.RegistrierteClients)
 	}
 	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-halb" {
-		t.Fatalf("expected the configuration to be saved for the resumed TSS, got %+v", repo.gespeichert)
+		t.Errorf("expected the configuration to be saved for the resumed TSS, got %+v", repo.gespeichert)
 	}
 }
 
@@ -349,19 +349,19 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.GesetzteAdminPIN != "" {
-		t.Fatalf("expected no new admin pin from UNINITIALIZED, got %q", client.GesetzteAdminPIN)
+		t.Errorf("expected no new admin pin from UNINITIALIZED, got %q", client.GesetzteAdminPIN)
 	}
 	if client.AuthentifiziertePIN != "1234567890" {
-		t.Fatalf("expected the entered pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
+		t.Errorf("expected the entered pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
 	}
 	if ergebnis.PUK != "" || ergebnis.AdminPIN != "" {
-		t.Fatalf("expected no new secrets on resume from UNINITIALIZED, got %+v", ergebnis)
+		t.Errorf("expected no new secrets on resume from UNINITIALIZED, got %+v", ergebnis)
 	}
 	if len(client.RegistrierteClients) != 1 {
-		t.Fatalf("expected exactly one client registered, got %d", len(client.RegistrierteClients))
+		t.Errorf("expected exactly one client registered, got %d", len(client.RegistrierteClients))
 	}
 	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-uninit" {
-		t.Fatalf("expected the configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected the configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
 
@@ -381,10 +381,10 @@ func TestUebernimmTSE_InitialisiertOhneClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(client.RegistrierteClients) != 1 || client.RegistrierteClients[0].SerialNumber != seriennummer.String() {
-		t.Fatalf("expected the client to be registered with the kassen serial, got %+v", client.RegistrierteClients)
+		t.Errorf("expected the client to be registered with the kassen serial, got %+v", client.RegistrierteClients)
 	}
 	if repo.gespeichert == nil || repo.gespeichert.ClientID != ergebnis.ClientID {
-		t.Fatalf("expected the configuration to be saved with the registered client, got %+v", repo.gespeichert)
+		t.Errorf("expected the configuration to be saved with the registered client, got %+v", repo.gespeichert)
 	}
 }
 
@@ -407,10 +407,10 @@ func TestUebernimmTSE_VorhandenerPassenderClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(client.RegistrierteClients) != 0 {
-		t.Fatalf("expected no new client registration when a matching client exists, got %+v", client.RegistrierteClients)
+		t.Errorf("expected no new client registration when a matching client exists, got %+v", client.RegistrierteClients)
 	}
 	if ergebnis.ClientID != vorhandenerClient || repo.gespeichert.ClientID != vorhandenerClient {
-		t.Fatalf("expected the existing client to be adopted, got result %q saved %q", ergebnis.ClientID, repo.gespeichert.ClientID)
+		t.Errorf("expected the existing client to be adopted, got result %q saved %q", ergebnis.ClientID, repo.gespeichert.ClientID)
 	}
 }
 
@@ -434,19 +434,19 @@ func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.AdminAuthentifiziert {
-		t.Fatal("expected AuthentifiziereAdmin to be skipped for a ready TSS")
+		t.Error("expected AuthentifiziereAdmin to be skipped for a ready TSS")
 	}
 	if len(client.RegistrierteClients) != 0 || len(client.ReaktivierteClients) != 0 {
-		t.Fatalf("expected no client mutation for a ready TSS, got registered %+v reactivated %+v", client.RegistrierteClients, client.ReaktivierteClients)
+		t.Errorf("expected no client mutation for a ready TSS, got registered %+v reactivated %+v", client.RegistrierteClients, client.ReaktivierteClients)
 	}
 	if ergebnis.PUK != "" || ergebnis.AdminPIN != "" {
-		t.Fatalf("expected no new secrets for a ready TSS, got %+v", ergebnis)
+		t.Errorf("expected no new secrets for a ready TSS, got %+v", ergebnis)
 	}
 	if ergebnis.ClientID != vorhandenerClient {
-		t.Fatalf("expected the existing client to be adopted, got %q", ergebnis.ClientID)
+		t.Errorf("expected the existing client to be adopted, got %q", ergebnis.ClientID)
 	}
 	if repo.gespeichert == nil || repo.gespeichert.ClientID != vorhandenerClient {
-		t.Fatalf("expected the configuration to be saved with the existing client, got %+v", repo.gespeichert)
+		t.Errorf("expected the configuration to be saved with the existing client, got %+v", repo.gespeichert)
 	}
 }
 
@@ -469,16 +469,16 @@ func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !client.AdminAuthentifiziert {
-		t.Fatal("expected AuthentifiziereAdmin to be called for a privileged reactivation")
+		t.Error("expected AuthentifiziereAdmin to be called for a privileged reactivation")
 	}
 	if len(client.RegistrierteClients) != 0 {
-		t.Fatalf("expected no new client registration for a deregistered client, got %+v", client.RegistrierteClients)
+		t.Errorf("expected no new client registration for a deregistered client, got %+v", client.RegistrierteClients)
 	}
 	if len(client.ReaktivierteClients) != 1 || client.ReaktivierteClients[0].ClientID != vorhandenerClient {
-		t.Fatalf("expected the same client to be reactivated, got %+v", client.ReaktivierteClients)
+		t.Errorf("expected the same client to be reactivated, got %+v", client.ReaktivierteClients)
 	}
 	if ergebnis.ClientID != vorhandenerClient || repo.gespeichert.ClientID != vorhandenerClient {
-		t.Fatalf("expected the reactivated client to be saved, got result %q saved %+v", ergebnis.ClientID, repo.gespeichert)
+		t.Errorf("expected the reactivated client to be saved, got result %q saved %+v", ergebnis.ClientID, repo.gespeichert)
 	}
 }
 
@@ -498,10 +498,10 @@ func TestUebernimmTSE_DeregistrierterClientBrauchtPIN(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
-		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
+		t.Errorf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
 	if len(client.ReaktivierteClients) != 0 || repo.gespeichert != nil {
-		t.Fatal("expected no writes when the pin is missing")
+		t.Error("expected no writes when the pin is missing")
 	}
 }
 
@@ -516,10 +516,10 @@ func TestUebernimmTSE_InitialisiertOhneClientBrauchtPIN(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
-		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
+		t.Errorf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
 	if len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
-		t.Fatal("expected no writes when the pin is missing")
+		t.Error("expected no writes when the pin is missing")
 	}
 }
 
@@ -534,10 +534,10 @@ func TestUebernimmTSE_PINErforderlich(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-uninit", "", "")
 	if !errors.Is(err, ErrTSESetupPINErforderlich) {
-		t.Fatalf("expected ErrTSESetupPINErforderlich, got %v", err)
+		t.Errorf("expected ErrTSESetupPINErforderlich, got %v", err)
 	}
 	if len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
-		t.Fatal("expected no writes when the pin is missing")
+		t.Error("expected no writes when the pin is missing")
 	}
 }
 
@@ -554,10 +554,10 @@ func TestUebernimmTSE_UnbekanntePIN(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "0000000000", "")
 	if !errors.Is(err, ErrTSESetupPINUnbekannt) {
-		t.Fatalf("expected ErrTSESetupPINUnbekannt, got %v", err)
+		t.Errorf("expected ErrTSESetupPINUnbekannt, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved on an unknown pin")
+		t.Error("expected no configuration to be saved on an unknown pin")
 	}
 }
 
@@ -578,24 +578,24 @@ func TestUebernimmTSE_PINResetPerPUK(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.GesetzterAdminPUK != "puk-verwahrt" {
-		t.Fatalf("expected the supplied puk to be used for the reset, got %q", client.GesetzterAdminPUK)
+		t.Errorf("expected the supplied puk to be used for the reset, got %q", client.GesetzterAdminPUK)
 	}
 	if ergebnis.AdminPIN == "" || ergebnis.AdminPIN != client.GesetzteAdminPIN {
-		t.Fatalf("expected a fresh pin to be set and returned, got result %q set %q", ergebnis.AdminPIN, client.GesetzteAdminPIN)
+		t.Errorf("expected a fresh pin to be set and returned, got result %q set %q", ergebnis.AdminPIN, client.GesetzteAdminPIN)
 	}
 	// Der PUK ändert sich beim Reset nicht und wird nicht erneut angezeigt.
 	if ergebnis.PUK != "" {
-		t.Fatalf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
+		t.Errorf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
 	}
 	// Die frische PIN treibt den Rest der Übernahme (Admin-Auth + Client).
 	if client.AuthentifiziertePIN != ergebnis.AdminPIN {
-		t.Fatalf("expected the fresh pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
+		t.Errorf("expected the fresh pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
 	}
 	if len(client.RegistrierteClients) != 1 || client.RegistrierteClients[0].SerialNumber != seriennummer.String() {
-		t.Fatalf("expected the client to be registered with the kassen serial, got %+v", client.RegistrierteClients)
+		t.Errorf("expected the client to be registered with the kassen serial, got %+v", client.RegistrierteClients)
 	}
 	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-init" {
-		t.Fatalf("expected the configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected the configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
 
@@ -615,13 +615,13 @@ func TestUebernimmTSE_PINResetPerPUKInLive(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.GesetzterAdminPUK != "puk-verwahrt" || ergebnis.AdminPIN == "" {
-		t.Fatalf("expected a puk-based pin reset in LIVE, got puk %q pin %q", client.GesetzterAdminPUK, ergebnis.AdminPIN)
+		t.Errorf("expected a puk-based pin reset in LIVE, got puk %q pin %q", client.GesetzterAdminPUK, ergebnis.AdminPIN)
 	}
 	if ergebnis.PUK != "" {
-		t.Fatalf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
+		t.Errorf("expected no puk to be returned on a reset, got %q", ergebnis.PUK)
 	}
 	if len(client.RegistrierteClients) != 1 || repo.gespeichert == nil {
-		t.Fatalf("expected the takeover to complete and save, got clients %+v saved %+v", client.RegistrierteClients, repo.gespeichert)
+		t.Errorf("expected the takeover to complete and save, got clients %+v saved %+v", client.RegistrierteClients, repo.gespeichert)
 	}
 }
 
@@ -638,10 +638,10 @@ func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "puk-falsch")
 	if !errors.Is(err, ErrTSESetupPUKUnbekannt) {
-		t.Fatalf("expected ErrTSESetupPUKUnbekannt, got %v", err)
+		t.Errorf("expected ErrTSESetupPUKUnbekannt, got %v", err)
 	}
 	if client.AdminAuthentifiziert || len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
-		t.Fatal("expected no further operations or writes on a wrong puk")
+		t.Error("expected no further operations or writes on a wrong puk")
 	}
 }
 
@@ -657,10 +657,10 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-x", "", "")
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
-		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
+		t.Errorf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
 	if client.GesetzteAdminPIN != "" || repo.gespeichert != nil {
-		t.Fatal("expected no operations on environment mismatch")
+		t.Error("expected no operations on environment mismatch")
 	}
 }
 
@@ -672,7 +672,7 @@ func TestUebernimmTSE_TSSNichtGefunden(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-fehlt", "", "")
 	if !errors.Is(err, ErrTSESetupTSSNichtGefunden) {
-		t.Fatalf("expected ErrTSESetupTSSNichtGefunden, got %v", err)
+		t.Errorf("expected ErrTSESetupTSSNichtGefunden, got %v", err)
 	}
 }
 
@@ -687,10 +687,10 @@ func TestUebernimmTSE_DeaktivierteTSS(t *testing.T) {
 
 	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-tot", "1234567890", "")
 	if !errors.Is(err, ErrTSESetupUebernahmeNichtMoeglich) {
-		t.Fatalf("expected ErrTSESetupUebernahmeNichtMoeglich, got %v", err)
+		t.Errorf("expected ErrTSESetupUebernahmeNichtMoeglich, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatal("expected no configuration to be saved for a disabled TSS")
+		t.Error("expected no configuration to be saved for a disabled TSS")
 	}
 }
 
@@ -716,7 +716,7 @@ func checkStammdaten(t *testing.T, gespeichert *tse.Stammdaten, erwartet tse.Sta
 		gespeichert.PublicKey != erwartet.PublicKey ||
 		gespeichert.Zertifikat != erwartet.Zertifikat ||
 		gespeichert.LogTimeFormat != erwartet.LogTimeFormat {
-		t.Fatalf("persisted stammdaten do not match the fiskaly response, got %+v", gespeichert)
+		t.Errorf("persisted stammdaten do not match the fiskaly response, got %+v", gespeichert)
 	}
 }
 
@@ -736,7 +736,7 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.StammdatenTssID != "tss-neu" {
-		t.Fatalf("expected stammdaten to be fetched for the new TSS, got %q", client.StammdatenTssID)
+		t.Errorf("expected stammdaten to be fetched for the new TSS, got %q", client.StammdatenTssID)
 	}
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
@@ -762,10 +762,10 @@ func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if client.AdminAuthentifiziert {
-		t.Fatal("expected no lifecycle operations for a ready TSS")
+		t.Error("expected no lifecycle operations for a ready TSS")
 	}
 	if client.StammdatenTssID != "tss-init" {
-		t.Fatalf("expected stammdaten to be fetched for the adopted TSS, got %q", client.StammdatenTssID)
+		t.Errorf("expected stammdaten to be fetched for the adopted TSS, got %q", client.StammdatenTssID)
 	}
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
@@ -801,7 +801,7 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEEinrichtung) {
-		t.Fatalf("expected ErrTSEEinrichtung when stammdaten fetch fails, got %v", err)
+		t.Errorf("expected ErrTSEEinrichtung when stammdaten fetch fails, got %v", err)
 	}
 }
 
@@ -832,10 +832,10 @@ func TestUpdateTSEKonfiguration_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 
 	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UpdateTSEKonfiguration(context.Background(), conf)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
-		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+		t.Errorf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
 
@@ -851,10 +851,10 @@ func TestUpdateTSEKonfiguration_ImBarrierestatusAbgelehnt(t *testing.T) {
 	err = commandMitAktiverKassensitzung(repo, kasse.KassensitzungWirdAbgeschlossen).
 		UpdateTSEKonfiguration(context.Background(), conf)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
-		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+		t.Errorf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
 
@@ -863,10 +863,10 @@ func TestRichteTSEEin_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 
 	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
-		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+		t.Errorf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
 
@@ -875,9 +875,9 @@ func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 
 	_, err := commandMitAktiverKassensitzung(repo, kasse.KassensitzungOffen).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-1", "", "")
 	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
-		t.Fatalf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
+		t.Errorf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
 	if repo.gespeichert != nil {
-		t.Fatalf("expected no configuration to be saved, got %+v", repo.gespeichert)
+		t.Errorf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }

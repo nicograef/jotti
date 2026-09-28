@@ -87,19 +87,19 @@ func TestGetTSEKonfigurationHandler_MaskedResponse(t *testing.T) {
 	}
 
 	if !body.ApiKeyGesetzt {
-		t.Fatal("expected apiKeyGesetzt to be true")
+		t.Error("expected apiKeyGesetzt to be true")
 	}
 	if !body.ApiSecretGesetzt {
-		t.Fatal("expected apiSecretGesetzt to be true")
+		t.Error("expected apiSecretGesetzt to be true")
 	}
 	if body.TssID != "tss-123" {
-		t.Fatalf("expected tss id, got %q", body.TssID)
+		t.Errorf("expected tss id, got %q", body.TssID)
 	}
 	if body.ClientID != "client-123" {
-		t.Fatalf("expected client id, got %q", body.ClientID)
+		t.Errorf("expected client id, got %q", body.ClientID)
 	}
 	if !body.IstKonfiguriert {
-		t.Fatal("expected istKonfiguriert to be true")
+		t.Error("expected istKonfiguriert to be true")
 	}
 }
 
@@ -127,10 +127,10 @@ func TestGetTSEKonfigurationHandler_NotFoundReturnsEmpty(t *testing.T) {
 	}
 
 	if body.ApiKeyGesetzt || body.ApiSecretGesetzt || body.IstKonfiguriert {
-		t.Fatal("expected empty response flags to be false")
+		t.Error("expected empty response flags to be false")
 	}
 	if body.TssID != "" || body.ClientID != "" {
-		t.Fatal("expected empty response values")
+		t.Error("expected empty response values")
 	}
 }
 
@@ -163,19 +163,19 @@ func TestTestTSEVerbindungHandler_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Umgebung != "TEST" {
-		t.Fatalf("expected TEST environment, got %q", body.Umgebung)
+		t.Errorf("expected TEST environment, got %q", body.Umgebung)
 	}
 	if body.TSSState != "INITIALIZED" {
-		t.Fatalf("expected INITIALIZED state, got %q", body.TSSState)
+		t.Errorf("expected INITIALIZED state, got %q", body.TSSState)
 	}
 	if body.ClientState != "REGISTERED" {
-		t.Fatalf("expected REGISTERED client state, got %q", body.ClientState)
+		t.Errorf("expected REGISTERED client state, got %q", body.ClientState)
 	}
 	if body.ClientSerialNumber != "kasse-serial-1" {
-		t.Fatalf("expected client serial kasse-serial-1, got %q", body.ClientSerialNumber)
+		t.Errorf("expected client serial kasse-serial-1, got %q", body.ClientSerialNumber)
 	}
 	if !body.SeriennummerKorrekt {
-		t.Fatal("expected seriennummerKorrekt to be true")
+		t.Error("expected seriennummerKorrekt to be true")
 	}
 }
 
@@ -198,7 +198,7 @@ func TestTestTSEVerbindungHandler_NotConfigured(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Code != "tse_nicht_konfiguriert" {
-		t.Fatalf("expected code tse_nicht_konfiguriert, got %q", body.Code)
+		t.Errorf("expected code tse_nicht_konfiguriert, got %q", body.Code)
 	}
 }
 
@@ -221,7 +221,7 @@ func TestTestTSEVerbindungHandler_VerbindungFehlgeschlagen(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Code != "tse_verbindung_fehlgeschlagen" {
-		t.Fatalf("expected code tse_verbindung_fehlgeschlagen, got %q", body.Code)
+		t.Errorf("expected code tse_verbindung_fehlgeschlagen, got %q", body.Code)
 	}
 }
 
@@ -268,16 +268,16 @@ func TestCheckTSESetupHandler_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Umgebung != "TEST" {
-		t.Fatalf("expected TEST environment, got %q", body.Umgebung)
+		t.Errorf("expected TEST environment, got %q", body.Umgebung)
 	}
 	if len(body.VorhandeneTSS) != 2 {
 		t.Fatalf("expected two TSS, got %d", len(body.VorhandeneTSS))
 	}
 	if body.VorhandeneTSS[0].PassenderClient == nil || body.VorhandeneTSS[0].PassenderClient.ID != "client-1" {
-		t.Fatalf("expected matching client client-1, got %+v", body.VorhandeneTSS[0].PassenderClient)
+		t.Errorf("expected matching client client-1, got %+v", body.VorhandeneTSS[0].PassenderClient)
 	}
 	if body.VorhandeneTSS[1].PassenderClient != nil {
-		t.Fatalf("expected no matching client for tss-2, got %+v", body.VorhandeneTSS[1].PassenderClient)
+		t.Errorf("expected no matching client for tss-2, got %+v", body.VorhandeneTSS[1].PassenderClient)
 	}
 }
 
@@ -301,7 +301,7 @@ func TestCheckTSESetupHandler_FalscheZugangsdaten(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Code != "tse_setup_zugangsdaten_ungueltig" {
-		t.Fatalf("expected code tse_setup_zugangsdaten_ungueltig, got %q", body.Code)
+		t.Errorf("expected code tse_setup_zugangsdaten_ungueltig, got %q", body.Code)
 	}
 }
 
@@ -325,7 +325,7 @@ func TestCheckTSESetupHandler_ValidationError(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Code != "validation_error" {
-		t.Fatalf("expected code validation_error, got %q", body.Code)
+		t.Errorf("expected code validation_error, got %q", body.Code)
 	}
 }
 
@@ -352,9 +352,9 @@ func TestGetTSEStatusHandler_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.Umgebung != "TEST" {
-		t.Fatalf("expected TEST, got %q", body.Umgebung)
+		t.Errorf("expected TEST, got %q", body.Umgebung)
 	}
 	if !body.IstKonfiguriert {
-		t.Fatal("expected istKonfiguriert true")
+		t.Error("expected istKonfiguriert true")
 	}
 }

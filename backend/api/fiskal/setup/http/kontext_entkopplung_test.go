@@ -130,7 +130,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 			kette.ServeHTTP(rec, req)
 
 			if probe.kontextStorniert != fall.erwarteStorniert {
-				t.Fatalf("expected the context handed to the application layer to be cancelled=%v after the client aborted, got %v", fall.erwarteStorniert, probe.kontextStorniert)
+				t.Errorf("expected the context handed to the application layer to be cancelled=%v after the client aborted, got %v", fall.erwarteStorniert, probe.kontextStorniert)
 			}
 			if probe.korrelation != "korr-1" {
 				t.Errorf("expected the correlation id to survive in the context, got %q", probe.korrelation)
@@ -160,7 +160,7 @@ func TestTSESetupHandler_LebenszyklusKontextEndetMitDemHandler(t *testing.T) {
 		t.Fatal("expected the handler to hand a context to the application layer")
 	}
 	if erfasst.Err() == nil {
-		t.Fatal("expected the decoupled context to be cancelled once the handler returned")
+		t.Error("expected the decoupled context to be cancelled once the handler returned")
 	}
 	if _, gesetzt := erfasst.Deadline(); !gesetzt {
 		t.Error("expected the decoupled context to carry the leak-guard deadline")
