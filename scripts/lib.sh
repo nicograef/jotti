@@ -103,8 +103,8 @@ decompress() {
 }
 
 # tracked_text_files — the tracked corpus both repo-wide text gates police.
-# Excluded: paths frozen by the freeze discipline, rule texts that quote the
-# banned words themselves, and generated or vendored files.
+# Excluded: the changelog and plans, paths frozen by the freeze discipline, and
+# generated or vendored files.
 tracked_text_files() {
   git ls-files \
     ':(glob,exclude)CHANGELOG.md' \
@@ -112,8 +112,6 @@ tracked_text_files() {
     ':(glob,exclude)docs/rechtsquellen/**' \
     ':(glob,exclude)database/migrations/**' \
     ':(glob,exclude)backend/sqlc/dbgen/**' \
-    ':(glob,exclude)AGENTS.md' \
-    ':(glob,exclude).claude/**' \
     ':(glob,exclude)**/pnpm-lock.yaml' \
     ':(glob,exclude)**/go.sum'
 }
