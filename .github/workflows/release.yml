@@ -136,6 +136,11 @@ jobs:
       # der Restore-Pfad bleibt bewusst unautomatisiert (sein psql-Kern ist mit
       # dem Verify identisch). Der Verify bekommt den Dump explizit übergeben,
       # nicht „neuester im Verzeichnis".
+      # prod-backup-verify.sh fails on an empty kassenjournal; the demo seed
+      # gives the fresh stack events to back up.
+      - name: Smoke test — seed demo data
+        run: docker compose -f docker-compose.release.yml run --rm --no-deps -e JOTTI_ALLOW_SEED=1 backend seed
+
       - name: Smoke-Test — Backup ziehen
         id: backup
         run: |

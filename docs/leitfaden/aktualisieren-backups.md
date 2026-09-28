@@ -34,7 +34,8 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   über `COMPOSE_FILE` auf einen anderen Stack umstellbar (gilt ebenso für
   `make prod-backup`).
 - **Prüfen (gelegentlich):** `make prod-backup-verify` spielt das neueste Backup
-  in einen Wegwerf-Postgres ein und meldet die Tabellenzahl. So wisst ihr, dass
+  in einen Wegwerf-Postgres ein und meldet die Zahl der Kassenjournal-Einträge;
+  ein leeres Kassenjournal gilt als Fehler. So wisst ihr, dass
   ein Backup wirklich wiederherstellbar ist, ohne den laufenden Betrieb
   anzufassen. Einen bestimmten Dump prüft ihr per Argument:
   `./scripts/prod-backup-verify.sh <datei>`.

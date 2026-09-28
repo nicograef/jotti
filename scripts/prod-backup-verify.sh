@@ -5,8 +5,8 @@ set -euo pipefail
 #
 # Proves that a pg_dump from prod-backup.sh is restorable: it replays the dump
 # into a THROWAWAY postgres container (`docker run --rm`, no stack network, no
-# stack volumes) and checks that the restored database has tables. The running
-# stack is never touched.
+# stack volumes) and checks that the restored kassenjournal holds events. The
+# running stack is never touched.
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 
@@ -63,19 +63,19 @@ done
 
 info "Restoring $SELECTED into the throwaway database ..."
 if ! decompress | docker exec -i "$CONTAINER" \
-       psql -U "$PG_USER" -d jotti -q -v ON_ERROR_STOP=1 >/dev/null; then
+       psql -U "$PG_USER" -d jotti -q -1 -v ON_ERROR_STOP=1 -f - >/dev/null; then
   fatal "Restore into the throwaway database failed (see psql errors above)."
 fi
 
-TABLE_COUNT="$(docker exec "$CONTAINER" \
-  psql -U "$PG_USER" -d jotti -tAc \
-  "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'")"
+# A missing table fails the query, so an empty or schema-only dump fails too.
+JOURNAL_COUNT="$(docker exec "$CONTAINER" \
+  psql -U "$PG_USER" -d jotti -tAc "SELECT count(*) FROM kassenjournal" || true)"
 
-if ! [[ "$TABLE_COUNT" =~ ^[0-9]+$ ]] || (( TABLE_COUNT <= 0 )); then
-  fatal "Verify failed: the restored database has no tables (count: ${TABLE_COUNT:-unknown})."
+if ! [[ "$JOURNAL_COUNT" =~ ^[0-9]+$ ]] || (( JOURNAL_COUNT <= 0 )); then
+  fatal "Verify failed: the restored kassenjournal holds no events (count: ${JOURNAL_COUNT:-unknown})."
 fi
 
 echo ""
 info "Verify OK — the dump is restorable."
-info "  Dump:   $SELECTED"
-info "  Tables: $TABLE_COUNT"
+info "  Dump:                 $SELECTED"
+info "  kassenjournal events: $JOURNAL_COUNT"
