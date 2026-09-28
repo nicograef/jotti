@@ -14,10 +14,7 @@ type tseCommandRepo interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
 
-// kassensitzungReader meldet, ob gerade eine Kassensitzung aktiv ist — offen oder
-// wird_abgeschlossen. Änderungen der TSE-Konfiguration sind nur ohne aktive
-// Kassensitzung erlaubt: Das Signaturgeraet darf nicht mitten in einem laufenden
-// Kassentag wechseln.
+// kassensitzungReader reports an aktive Kassensitzung, i.e. offen or wird_abgeschlossen.
 type kassensitzungReader interface {
 	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 }
@@ -28,9 +25,9 @@ type Command struct {
 	NewTSESetupClient   NewTSESetupClient
 }
 
-// ensureKeineAktiveKassensitzung ist der gemeinsame Guard aller drei
-// Änderungspfade (Neuanlage, Übernahme, Zugangsdaten-Wechsel). Der Barrierestatus
-// zählt mit: Ein Abschluss, der noch signiert, gehört zur alten TSS.
+// ensureKeineAktiveKassensitzung keeps the signing device from changing mid-Kassentag
+// (docs/handbuch.md §3.13). wird_abgeschlossen counts too: a closing that still signs belongs to
+// the old TSS.
 func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 	log := zerolog.Ctx(ctx)
 
@@ -45,12 +42,8 @@ func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 	return nil
 }
 
-// UpdateTSEKonfiguration speichert eine von Hand eingetragene TSE-Konfiguration.
-// Sie nimmt dasselbe Schloss wie Neuanlage und Übernahme (einrichtungLaeuft in
-// setup.go): Alle drei schreiben über SaveEinrichtung dieselbe Konfiguration,
-// und in der Oberfläche liegt dieser Pfad direkt unter dem Einrichtungs-Wizard.
-// Ohne das Schloss gewänne der letzte Schreiber, und die Instanz signierte
-// danach gegen eine TSS/Client-Kombination, die nicht die eingerichtete ist.
+// UpdateTSEKonfiguration saves a hand-entered configuration under the setup lock (einrichtungLaeuft).
+// Without it the last writer would win and the instance would sign against a TSS it was not set up with.
 func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
 	log := zerolog.Ctx(ctx)
 
@@ -64,10 +57,8 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 		return err
 	}
 
-	// Auch der direkte Zugangsdaten-Pfad speichert über SaveEinrichtung:
-	// Führt er den Übergang zu konfiguriert aus, laufen Einrichtungs-Sweep und
-	// das Schließen des keine_konfiguration-Störungszeitraums in derselben
-	// Transaktion — sonst bliebe der Zeitraum für immer offen.
+	// SaveEinrichtung, because this path can also make the transition to configured;
+	// otherwise the keine_konfiguration outage would stay open forever.
 	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
 		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
 		return ErrDatabase

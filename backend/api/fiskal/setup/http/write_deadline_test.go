@@ -10,9 +10,8 @@ import (
 	"github.com/nicograef/jotti/backend/api/middleware"
 )
 
-// deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
-// http.ResponseController sucht. fristBeimSchreiben hält die Frist fest, die
-// beim ersten Schreibvorgang gilt: Nur sie gibt der Antwort ein Budget.
+// deadlineCapturingWriter implements the SetWriteDeadline method http.ResponseController looks for.
+// fristBeimSchreiben is the deadline at the first write, the only one that budgets the response.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
 	frist              time.Time
@@ -46,16 +45,9 @@ func (w *deadlineCapturingWriter) merkeErstenSchreibvorgang() {
 	}
 }
 
-// Die beiden schreibenden TSE-Endpunkte fahren einen fiskaly-Lebenszyklus, der die
-// globale 10-Sekunden-Schreibfrist überschreiten kann. Ohne verlängerte Frist
-// stirbt die Antwort auf der Verbindung — samt PUK und Admin-PIN, die genau einmal
-// ausgeliefert und nirgends persistiert werden. Der Test läuft durch die
-// LoggingMiddleware, weil sie in Produktion die gesamte Routenkette umschließt
-// (app/app.go) und die Frist auch durch ihren ResponseWriter-Wrapper ankommen muss.
-//
-// Die Frist muss ZWEIMAL gesetzt werden: Sie ist eine absolute Zeit ab
-// Request-Start. Der Aufruf am Handler-Eingang deckt die frühen Fehlerpfade ab,
-// der Aufruf vor dem Schreiben gibt der Antwort ein eigenes Budget.
+// Without the extended deadline the response carrying the one-time PUK and PIN dies after 10 s.
+// Runs through LoggingMiddleware, which wraps every route in production, and expects a reset before
+// the write.
 func TestTSESetupHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
 	faelle := []struct {
 		route   string
@@ -69,9 +61,8 @@ func TestTSESetupHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testi
 	for _, fall := range faelle {
 		t.Run(fall.route, func(t *testing.T) {
 			w := newDeadlineCapturingWriter()
-			// Der simulierte Lebenszyklus hält die Frist fest, die während
-			// fiskaly gilt, und lässt Zeit verstreichen, damit eine danach neu
-			// gesetzte Frist später liegt.
+			// The lifecycle records the deadline during fiskaly and lets time pass, so a later
+			// reset lies after it.
 			var fristImLebenszyklus time.Time
 			command := &CommandHandler{Command: &mockTSESetupCommand{waehrendLebenszyklus: func() {
 				fristImLebenszyklus = w.frist

@@ -19,7 +19,7 @@ type mockTSESetupCommand struct {
 	einrichtErr  error
 	uebernehmen  application.TSESetupErgebnis
 	uebernehmErr error
-	// waehrendLebenszyklus läuft, während der fiskaly-Lebenszyklus simuliert wird.
+	// waehrendLebenszyklus runs in place of the simulated fiskaly lifecycle.
 	waehrendLebenszyklus func()
 }
 
@@ -125,8 +125,7 @@ func TestUpdateTSEKonfigurationHandler_PartialValuesRejected(t *testing.T) {
 	}
 }
 
-// Auch der manuelle Zugangsdaten-Pfad kommt als 409 an: Er teilt sich das Schloss
-// auf der TSE-Konfiguration mit Neuanlage und Übernahme.
+// The manual credentials path shares the setup lock, so it also answers 409.
 func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{err: application.ErrTSESetupLaeuftBereits}}
 
@@ -145,8 +144,7 @@ func TestUpdateTSEKonfigurationHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEinHandler_Success sichert, dass PUK und Admin-PIN genau einmal
-// in der Antwort an die UI erscheinen.
+// PUK and admin PIN must reach the UI in this one response.
 func TestRichteTSEEinHandler_Success(t *testing.T) {
 	mock := &mockTSESetupCommand{einrichten: application.TSESetupErgebnis{
 		TssID:    "tss-neu",
@@ -185,8 +183,6 @@ func TestRichteTSEEinHandler_Success(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEinHandler_InvalidUmgebung sichert, dass eine ungültige Umgebung
-// abgewiesen wird, ohne den Orchestrator aufzurufen.
 func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
@@ -220,10 +216,8 @@ func TestRichteTSEEinHandler_BereitsEingerichtet(t *testing.T) {
 	}
 }
 
-// TestRichteTSEEinHandler_LaeuftBereits sichert, dass ein zweiter Versuch
-// während einer laufenden Einrichtung als 409 mit eigenem Code ankommt: Die
-// Anfrage war in Ordnung, nur der Zustand ist vorübergehend — der Admin soll
-// warten statt eine zweite, bezahlte TSS anzulegen.
+// A second attempt during a running setup gets 409 with its own code.
+// The admin should wait instead of creating a second, paid TSS.
 func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{einrichtErr: application.ErrTSESetupLaeuftBereits}}
 
@@ -242,8 +236,6 @@ func TestRichteTSEEinHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_LaeuftBereits sichert dieselbe Abbildung für die
-// Übernahme — sie teilt sich das Schloss mit der Neuanlage.
 func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{uebernehmErr: application.ErrTSESetupLaeuftBereits}}
 
@@ -262,8 +254,6 @@ func TestUebernimmTSEHandler_LaeuftBereits(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_Success sichert, dass die Übernahme die TSS-ID
-// entgegennimmt und das Ergebnis (inkl. ggf. neuer Geheimnisse) zurückgibt.
 func TestUebernimmTSEHandler_Success(t *testing.T) {
 	mock := &mockTSESetupCommand{uebernehmen: application.TSESetupErgebnis{
 		TssID:    "tss-halb",
@@ -289,8 +279,6 @@ func TestUebernimmTSEHandler_Success(t *testing.T) {
 	}
 }
 
-// TestUebernimmTSEHandler_FehlendeTssID sichert, dass die Übernahme ohne TSS-ID
-// abgewiesen wird, ohne den Orchestrator aufzurufen.
 func TestUebernimmTSEHandler_FehlendeTssID(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 

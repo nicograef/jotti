@@ -11,10 +11,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse/tsetest"
 )
 
-// blockierenderSetupClient hält einen laufenden Lebenszyklus in ListTSS fest —
-// genau an der Stelle, an der ein zweiter Lauf ohne Schloss noch das leere Konto
-// sähe und eine zweite, bezahlte TSS anlegte. gestartet meldet, dass der Lauf
-// steht; weiter lässt ihn zu Ende laufen.
+// blockierenderSetupClient parks a lifecycle in ListTSS, where an unlocked second run would still
+// see an empty account. gestartet signals the park, weiter releases it.
 type blockierenderSetupClient struct {
 	*tsetest.FakeSetupClient
 	gestartet chan struct{}
@@ -27,9 +25,8 @@ func (c *blockierenderSetupClient) ListTSS(ctx context.Context) (tse.Umgebung, [
 	return c.FakeSetupClient.ListTSS(ctx)
 }
 
-// laufendeEinrichtung ist eine gestartete Einrichtung, die in ListTSS steht und
-// dabei das Schloss hält. freigeben lässt sie zu Ende laufen, fertig liefert
-// danach ihr Ergebnis.
+// laufendeEinrichtung holds the lock while parked in ListTSS; freigeben lets it finish, fertig
+// yields its result.
 type laufendeEinrichtung struct {
 	repo      *stubCommandRepo
 	client    *blockierenderSetupClient
@@ -37,20 +34,9 @@ type laufendeEinrichtung struct {
 	freigeben func()
 }
 
-// starteBlockierteEinrichtung startet eine Einrichtung und kehrt zurück, sobald
-// sie in ListTSS steht.
-//
-// Die Freigabe hängt zusätzlich in t.Cleanup: Ein t.Fatalf zwischen Start und
-// Freigabe beendet die Test-Goroutine per runtime.Goexit, der blockierte Lauf
-// hänge sonst für immer und hielte das paketweite Schloss — jeder folgende
-// Test des Pakets schlüge dann mit ErrTSESetupLaeuftBereits fehl und
-// verschleierte die eigentliche Ursache. sync.OnceFunc macht den doppelten
-// Aufruf (regulär im Test und aus dem Cleanup) unschädlich; der Cleanup wartet
-// danach das Ende des Laufs ab, damit dessen eigenes defer freigeben()
-// (setup.go) nicht in einen Folgetest hineinreicht und dort das frisch genommene
-// Schloss löst. Das Zurücksetzen des Schlosses bleibt als letztes
-// Sicherheitsnetz stehen — es ist als zuerst registrierter Cleanup der zuletzt
-// laufende.
+// The release also runs in t.Cleanup and waits for the run, so a t.Fatalf never leaves the
+// package-wide lock held or lets the run's own release unlock a later test. The lock reset,
+// registered first, runs last as a safety net.
 func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 	t.Helper()
 	t.Cleanup(func() { einrichtungLaeuft.Store(false) })
@@ -78,8 +64,8 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 
 	fertig := make(chan error, 1)
 	go func() {
-		// beendet schließt erst, nachdem RichteTSEEin samt seinem
-		// defer freigeben() zurück ist — darauf wartet der Cleanup.
+		// beendet closes only after RichteTSEEin and its deferred release have returned; the
+		// cleanup waits for it.
 		defer close(beendet)
 		_, err := erster.RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 		fertig <- err
@@ -89,17 +75,14 @@ func starteBlockierteEinrichtung(t *testing.T) *laufendeEinrichtung {
 	return &laufendeEinrichtung{repo: repo, client: blockiert, fertig: fertig, freigeben: freigeben}
 }
 
-// Der Lebenszyklus läuft nach einem Client-Abbruch im Hintergrund weiter — der
-// Admin sieht derweil eine Fehlermeldung und kann sofort erneut starten. Der
-// zweite Aufruf muss deshalb abgelehnt werden, ohne fiskaly anzusprechen: sonst
-// entstünde eine zweite, bezahlte TSS, und die zuletzt gespeicherte Konfiguration
-// passte nicht zu den angezeigten PUK/PIN.
+// A retry while an aborted lifecycle still runs must be refused before contacting fiskaly.
+// Otherwise a second, paid TSS would be created and the saved configuration would not match the
+// shown PUK/PIN.
 func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 
-	// Der zweite Lauf darf fiskaly nicht einmal ansprechen. Seine Fabrik
-	// scheitert: Ein Clientbau vor dem Schloss endete in
-	// ErrTSEVerbindungFehlgeschlagen statt in ErrTSESetupLaeuftBereits.
+	// The second factory fails: building a client before the lock would yield
+	// ErrTSEVerbindungFehlgeschlagen instead of ErrTSESetupLaeuftBereits.
 	zweiterRepo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	zweiter := Command{
 		TSERepo:             zweiterRepo,
@@ -131,10 +114,8 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	}
 }
 
-// Der manuelle Zugangsdaten-Wechsel schreibt über denselben SaveEinrichtung und
-// liegt in der Oberfläche direkt unter dem Wizard. Er muss dasselbe Schloss
-// nehmen: sonst gewänne der spätere Schreiber, und die Instanz signierte gegen
-// eine TSS/Client-Kombination, die nicht die eingerichtete ist.
+// The manual credentials path must take the same lock, or the later writer wins
+// and the instance signs against a TSS it was not set up with.
 func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing.T) {
 	lauf := starteBlockierteEinrichtung(t)
 
@@ -160,7 +141,7 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 		t.Errorf("expected the setup to save its own configuration, got %+v", lauf.repo.gespeichert)
 	}
 
-	// Nach dem Lauf ist das Schloss frei, der manuelle Pfad schreibt wieder.
+	// After the run the lock is free again.
 	if err := manuell.UpdateTSEKonfiguration(context.Background(), konfiguration); err != nil {
 		t.Fatalf("expected the manual save after the setup to succeed, got %v", err)
 	}
@@ -169,9 +150,8 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 	}
 }
 
-// Das Schloss darf keinen Pfad überdauern: Nach einem gescheiterten wie nach
-// einem erfolgreichen Lauf muss die nächste Einrichtung wieder starten können.
-// Sonst wäre ein einziger fiskaly-Aussetzer eine dauerhafte Sperre.
+// The lock must be released after failure and success alike, or one fiskaly hiccup would lock setup
+// for good.
 func TestEinrichtung_SchlossIstNachFehlerUndNachErfolgWiederFrei(t *testing.T) {
 	t.Cleanup(func() { einrichtungLaeuft.Store(false) })
 

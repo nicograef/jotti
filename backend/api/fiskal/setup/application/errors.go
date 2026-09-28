@@ -10,56 +10,43 @@ var ErrDatabase = db.ErrDatabase
 var ErrNotFound = db.ErrNotFound
 var ErrTSENichtKonfiguriert = errors.New("tse_not_configured")
 
-// ErrTSEKonfigurationKassensitzungOffen: Änderung abgelehnt, weil eine
-// Kassensitzung aktiv ist (offen oder wird_abgeschlossen). Das Signaturgerät darf
-// nicht mitten im Kassentag wechseln.
+// ErrTSEKonfigurationKassensitzungOffen rejects a change while a Kassensitzung is offen or
+// wird_abgeschlossen.
 var ErrTSEKonfigurationKassensitzungOffen = errors.New("tse_konfiguration_kassensitzung_offen")
 var ErrTSEVerbindungFehlgeschlagen = errors.New("tse_connection_failed")
 var ErrTSESetupZugangsdaten = errors.New("tse_setup_credentials_invalid")
 
-// ErrTSESetupUmgebungAbweichung zeigt an, dass die vom Admin bestaetigte
-// Umgebung nicht der tatsächlichen Umgebung der Zugangsdaten entspricht — der
-// Schutz vor einer versehentlichen LIVE-Anlage.
+// ErrTSESetupUmgebungAbweichung is the LIVE guard: the confirmed environment differs from the
+// credentials' actual one.
 var ErrTSESetupUmgebungAbweichung = errors.New("tse_setup_umgebung_abweichung")
 
-// ErrTSEBereitsEingerichtet zeigt an, dass das Konto bereits eine aktive TSS
-// enthält. Die automatische Neuanlage wird dann verweigert; die vorhandene TSS
-// lässt sich stattdessen übernehmen (UebernimmTSE).
+// ErrTSEBereitsEingerichtet refuses a new TSS on an account with an active one; UebernimmTSE takes
+// it over instead.
 var ErrTSEBereitsEingerichtet = errors.New("tse_bereits_eingerichtet")
 
-// ErrTSESetupLaeuftBereits: es schreibt bereits jemand an der TSE-Konfiguration,
-// der Aufruf startet gar nicht erst. Zwei überlappende Schreiber legten eine
-// zweite, bezahlte TSS an bzw. überschrieben einander — siehe einrichtungLaeuft
-// in setup.go.
+// ErrTSESetupLaeuftBereits means another writer holds the TSE configuration lock (einrichtungLaeuft).
 var ErrTSESetupLaeuftBereits = errors.New("tse_setup_laeuft_bereits")
 
-// ErrTSEEinrichtung zeigt einen Fehler während des fiskaly-Lebenszyklus an
-// (Anlage, Initialisierung oder Client-Registrierung).
+// ErrTSEEinrichtung is a failed step of the fiskaly lifecycle.
 var ErrTSEEinrichtung = errors.New("tse_einrichtung_fehlgeschlagen")
 
-// ErrTSESetupTSSLimitErreicht: das fiskaly-TEST-Konto hat die Obergrenze von fünf
-// aktiven TSS erreicht (E_TSS_LIMIT_REACHED). fiskaly bereinigt alte TEST-TSS bei
-// Inaktivität; jotti kann sie ohne Admin-PIN nicht stilllegen.
+// ErrTSESetupTSSLimitErreicht maps fiskaly's TEST limit of five active TSS (E_TSS_LIMIT_REACHED).
+// fiskaly purges idle TEST TSS itself; jotti cannot disable them without their admin PIN.
 var ErrTSESetupTSSLimitErreicht = errors.New("tse_setup_tss_limit_erreicht")
 
 var ErrTSESetupTSSNichtGefunden = errors.New("tse_setup_tss_nicht_gefunden")
 
-// ErrTSESetupPINErforderlich zeigt an, dass die Übernahme einer bereits
-// personalisierten TSS (ab UNINITIALIZED) die vom Admin verwahrte Admin-PIN
-// benötigt — sie liegt aber nicht vor.
+// ErrTSESetupPINErforderlich means taking over a TSS from UNINITIALIZED needs the stored admin PIN.
 var ErrTSESetupPINErforderlich = errors.New("tse_setup_pin_erforderlich")
 
-// ErrTSESetupPINUnbekannt zeigt an, dass fiskaly die übergebene Admin-PIN
-// abgelehnt hat — der Admin kennt die verwahrte PIN nicht (mehr). Sackgasse mit
-// Auswegen (fiskaly-Support oder bewusste Neuanlage), kein technischer Fehler.
+// ErrTSESetupPINUnbekannt means fiskaly rejected the admin PIN.
+// It is a user-facing dead end (fiskaly support or a deliberate new TSS), not a technical error.
 var ErrTSESetupPINUnbekannt = errors.New("tse_setup_pin_unbekannt")
 
-// ErrTSESetupUebernahmeNichtMoeglich zeigt an, dass die TSS in einem Zustand ist,
-// aus dem keine Wiederaufnahme möglich ist (z. B. DISABLED oder DEFECTIVE).
+// ErrTSESetupUebernahmeNichtMoeglich means the TSS state allows no resumption, e.g. DISABLED or
+// DEFECTIVE.
 var ErrTSESetupUebernahmeNichtMoeglich = errors.New("tse_setup_uebernahme_nicht_moeglich")
 
-// ErrTSESetupPUKUnbekannt zeigt an, dass fiskaly den beim PIN-Reset übergebenen
-// Admin-PUK abgelehnt hat. Die Zugangsdaten sind zu diesem Zeitpunkt bereits
-// bestaetigt, daher ist ein Fehler beim Setzen der PIN praktisch immer ein
-// falscher PUK. Sackgasse mit Ausweg (fiskaly-Support), kein technischer Fehler.
+// ErrTSESetupPUKUnbekannt means fiskaly rejected the admin PUK during a PIN reset.
+// It is a user-facing dead end (fiskaly support), not a technical error.
 var ErrTSESetupPUKUnbekannt = errors.New("tse_setup_puk_unbekannt")

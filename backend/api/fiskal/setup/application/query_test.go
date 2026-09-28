@@ -50,9 +50,7 @@ func gueltigeZugangsdaten() tse.SetupCredentials {
 	return tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}
 }
 
-// TestCheckTSESetup_ErkenntPassendenClient sichert den Kern des Befunds: die
-// Umgebung und die vorhandenen TSS werden gemeldet, und ein Client, dessen
-// serial_number der Kassen-Seriennummer entspricht, wird als passend erkannt.
+// A client whose serial_number equals the Kassen-Seriennummer counts as matching.
 func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{
@@ -96,9 +94,7 @@ func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 	}
 }
 
-// TestCheckTSESetup_FalscheZugangsdaten sichert, dass ein Auth-Fehler des
-// Setup-Clients zu ErrTSESetupZugangsdaten wird — der Code für die
-// verständliche deutsche Fehlermeldung im Wizard.
+// ErrTSESetupZugangsdaten drives the wizard's readable error message.
 func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{},
@@ -113,8 +109,7 @@ func TestCheckTSESetup_FalscheZugangsdaten(t *testing.T) {
 	}
 }
 
-// TestCheckTSESetup_LeeresKonto sichert, dass ein leeres Konto einen gültigen
-// Befund ohne TSS liefert (keine nil-Slice, kein Fehler).
+// An empty account yields an empty, non-nil TSS slice and no error.
 func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}},
@@ -135,9 +130,7 @@ func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 	}
 }
 
-// Der Status bezieht die Umgebung über den leichten Pfad (tester.Umgebung) und
-// löst nicht den vollen Verbindungstest aus: Der Fake lässt TestConnection
-// bewusst fehlschlagen.
+// The fake fails TestConnection on purpose: the status must use the light tester.Umgebung path.
 func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	q := Query{
 		TSERepo: stubTSERepo{konfiguration: konfiguriert()},
@@ -161,9 +154,6 @@ func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	}
 }
 
-// TestTestTSEVerbindung_SeriennummerAbweichung sichert ab, dass eine Client-
-// serial_number, die nicht der Kassen-Seriennummer entspricht, als Abweichung
-// gemeldet wird (SeriennummerKorrekt = false).
 func TestTestTSEVerbindung_SeriennummerAbweichung(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{
@@ -188,9 +178,6 @@ func TestTestTSEVerbindung_SeriennummerAbweichung(t *testing.T) {
 	}
 }
 
-// TestTestTSEVerbindung_SeriennummerStimmtUeberein sichert den positiven Fall:
-// stimmt die Client-serial_number mit der Kassen-Seriennummer überein, ist der
-// Abgleich erfolgreich.
 func TestTestTSEVerbindung_SeriennummerStimmtUeberein(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{

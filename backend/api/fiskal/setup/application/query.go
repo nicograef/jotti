@@ -29,9 +29,7 @@ type TSEStatus struct {
 	IstKonfiguriert bool
 }
 
-// TSESetupBefund ist das seiteneffektfreie Ergebnis des Prüf-Schritts: die
-// erkannte Umgebung und die vorhandenen TSS samt Zustand. Je TSS wird ein
-// bereits passender Client (Seriennummer = Kassen-Seriennummer) ausgewiesen.
+// TSESetupBefund marks per TSS a client whose serial number equals the Kassen-Seriennummer.
 type TSESetupBefund struct {
 	Umgebung      string
 	VorhandeneTSS []TSSBefund
@@ -119,10 +117,7 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 	return status, nil
 }
 
-// CheckTSESetup führt den seiteneffektfreien Befund aus: Es authentifiziert
-// sich mit den übergebenen Zugangsdaten, listet die vorhandenen TSS und prüft je
-// TSS, ob bereits ein Client mit der Kassen-Seriennummer registriert ist. Es
-// wird nichts gespeichert; nur Lese-Requests gehen an fiskaly.
+// CheckTSESetup is side-effect free: it saves nothing and sends only read requests to fiskaly.
 func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -214,8 +209,7 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 		return status, nil
 	}
 
-	// Für die Statusanzeige genügt die Umgebung aus dem Auth-Token — kein
-	// voller Verbindungstest (TSS-/Client-Abruf) nötig.
+	// The status display needs only the environment from the auth token, not a full connection test.
 	umgebung, err := tester.Umgebung(ctx)
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to determine TSE environment for status")

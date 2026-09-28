@@ -13,9 +13,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// abbruchProbe spielt den Client, der während der Arbeit des Handlers
-// abbricht: Sie storniert den Request-Kontext und hält fest, was der an die
-// Application-Schicht übergebene Kontext danach meldet.
+// abbruchProbe plays a client that aborts mid-handler and records what the application-layer
+// context reports afterwards.
 type abbruchProbe struct {
 	abbrechen        context.CancelFunc
 	kontextStorniert bool
@@ -23,9 +22,8 @@ type abbruchProbe struct {
 	loggerAktiv      bool
 }
 
-// beobachte läuft anstelle der fiskaly-Sequenz. context.WithCancel schließt
-// den Done-Kanal aller Kinder synchron im cancel-Aufruf, die Prüfung direkt
-// danach ist damit deterministisch.
+// context.WithCancel closes every child's Done channel synchronously in cancel,
+// so the check right after it is deterministic.
 func (p *abbruchProbe) beobachte(ctx context.Context) {
 	p.abbrechen()
 	p.kontextStorniert = ctx.Err() != nil
@@ -63,11 +61,8 @@ func (q *abbruchQuery) CheckTSESetup(ctx context.Context, credentials tse.SetupC
 	return q.mockTSESetupQuery.CheckTSESetup(ctx, credentials)
 }
 
-// Die beiden schreibenden Endpunkte fahren einen fiskaly-Lebenszyklus, der nicht
-// mittendrin abbrechen darf: Zurück bliebe eine bezahlte, halbfertige TSS, deren
-// PUK und Admin-PIN es nur in der verlorenen Antwort gab. Sie laufen deshalb unter
-// einem vom Client-Abbruch abgekoppelten Kontext. Die lesenden Endpunkte sind
-// idempotent; sie behalten r.Context() und sollen mit dem Client abbrechen.
+// Writing endpoints must survive a client abort, or a paid, half-built TSS is left behind.
+// Reading endpoints are idempotent and must abort with the client.
 func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing.T) {
 	faelle := []struct {
 		route            string
@@ -145,8 +140,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 	}
 }
 
-// Der abgekoppelte Kontext endet spätestens, wenn der Handler zurückkehrt
-// (defer cancel) — abgekoppelt heisst nicht unsterblich.
+// The detached context still ends when the handler returns (defer cancel).
 func TestTSESetupHandler_LebenszyklusKontextEndetMitDemHandler(t *testing.T) {
 	var erfasst context.Context
 	command := &kontextErfassendesCommand{mockTSESetupCommand: &mockTSESetupCommand{}, erfasst: &erfasst}

@@ -13,48 +13,15 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// adminPINStellen ist die Länge der zufällig erzeugten Admin-PIN. Zehn Ziffern
-// liegen sicher innerhalb der von fiskaly akzeptierten Länge.
+// Ten digits lie safely within the admin PIN length fiskaly accepts.
 const adminPINStellen = 10
 
-// einrichtungLaeuft hält fest, ob gerade jemand an der TSE-Konfiguration
-// schreibt, und trägt damit die fachliche Invariante "es schreibt höchstens
-// einer auf der TSE-Konfiguration". Alle drei Schreibpfade nehmen es:
-// RichteTSEEin, UebernimmTSE und UpdateTSEKonfiguration (command.go) — sie
-// enden alle in SaveEinrichtung.
-//
-// Nötig, seit der Lebenszyklus vom Client-Abbruch entkoppelt ist
-// (lebenszyklusKontext in backend/api/fiskal/setup/http/command_handler.go): Er
-// läuft nach einem Abbruch im Hintergrund weiter, während der Admin bereits
-// eine Fehlermeldung sieht und sofort erneut starten kann. Ohne diese Sperre
-// sähe der zweite Aufruf in ListTSS noch das leere Konto, hatAktiveTSS meldete
-// false, und er legte eine ZWEITE bezahlte LIVE-TSS an. Beide Läufe endeten in
-// saveEinrichtung, der zweite überschriebe den ersten — die dem Admin
-// angezeigten PUK und Admin-PIN gehörten dann zur nicht konfigurierten TSS.
-//
-// Derselbe Ausgang droht ohne den fiskaly-Umweg: Der manuelle
-// Zugangsdaten-Wechsel liegt in der Oberfläche direkt unter dem Wizard
-// (frontend/src/admin/tse/TSEEinrichtungPage.tsx). Speichert der Admin dort von
-// Hand, während die Einrichtung im Hintergrund noch läuft, gewinnt der letzte
-// Schreiber, und die Instanz signiert anschließend gegen eine TSS/Client-
-// Kombination, die nicht die eingerichtete ist.
-//
-// Ein prozessinternes Schloss genügt: jotti läuft je Verein als eine einzige
-// Backend-Instanz (Docker Compose), es gibt keine zweite Instanz, gegen die zu
-// koordinieren wäre. Ein atomarer Schalter statt eines Mutex, weil der zweite
-// Aufruf nicht warten, sondern sofort mit ErrTSESetupLaeuftBereits abbrechen
-// soll. Er liegt auf Paketebene und nicht als Feld in Command: Command hat
-// Wert-Empfänger, ein Wert-Feld wäre pro Methodenaufruf eine eigene Kopie und
-// damit wirkungslos. Ein Zeiger-Feld (*atomic.Bool, einmal in
-// backend/api/admin.go befüllt) wäre prozessweit dasselbe Schloss und damit
-// korrekt — aber unnötige Verdrahtung mit einer Nil-Falle für jeden, der ein
-// Command ohne dieses Feld baut.
+// einrichtungLaeuft admits at most one writer on the TSE configuration (see docs/handbuch.md §3.13).
+// Package-level because Command has value receivers, which would copy a value field per call.
 var einrichtungLaeuft atomic.Bool
 
-// acquireEinrichtung reserviert das Schreibrecht auf der TSE-Konfiguration und
-// liefert die Freigabe dazu; schreibt bereits jemand, endet der Aufruf sofort
-// mit ErrTSESetupLaeuftBereits. Die Freigabe gehört in ein defer, damit auch
-// jeder Fehlerpfad und eine Panik das Schloss wieder lösen.
+// acquireEinrichtung fails fast with ErrTSESetupLaeuftBereits instead of waiting.
+// Callers defer the release so every error path and a panic unlock too.
 func acquireEinrichtung() (func(), error) {
 	if !einrichtungLaeuft.CompareAndSwap(false, true) {
 		return nil, ErrTSESetupLaeuftBereits
@@ -62,9 +29,8 @@ func acquireEinrichtung() (func(), error) {
 	return func() { einrichtungLaeuft.Store(false) }, nil
 }
 
-// TSESetupErgebnis ist das Ergebnis der geführten Einrichtung. PUK und AdminPIN
-// erscheinen genau hier — sie werden weder persistiert noch geloggt und nur
-// einmalig an die UI übergeben, damit der Admin sie extern verwahren kann.
+// TSESetupErgebnis is the only place PUK and AdminPIN appear: never persisted or logged,
+// handed to the UI once for the admin to keep outside jotti.
 type TSESetupErgebnis struct {
 	TssID    string
 	ClientID string
@@ -73,16 +39,8 @@ type TSESetupErgebnis struct {
 	Umgebung string
 }
 
-// RichteTSEEin führt den vollständigen fiskaly-Lebenszyklus für ein leeres Konto
-// durch: TSS anlegen, personalisieren, Admin-PIN setzen, initialisieren, Client
-// mit der Kassen-Seriennummer registrieren. Gespeichert wird erst nach
-// erfolgreichem Abschluss — ein Abbruch hinterlässt keine halbe Konfiguration.
-//
-// Weicht bestaetigteUmgebung von der tatsächlichen ab, bricht die Einrichtung vor
-// jeder Schreiboperation ab (Schutz vor versehentlicher LIVE-Anlage). Existiert
-// bereits eine aktive TSS, wird die Neuanlage verweigert — außer der Admin
-// erzwingt sie in TEST per neuAnlegenTrotzVorhandener: dort darf bewusst eine
-// zweite, frische TSE entstehen. In LIVE bleibt die Sperre hart.
+// RichteTSEEin runs the fiskaly lifecycle on an empty account and saves only after it completes.
+// LIVE guard and the existing-TSS lock with its TEST-only override: docs/handbuch.md §3.13.
 func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
 
@@ -111,9 +69,8 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	// In TEST darf der Admin die Sperre bewusst übergehen; in LIVE nie — eine zweite
-	// LIVE-TSS verursacht laufende Kosten. umgebung ist hier bereits gegen
-	// bestaetigteUmgebung abgeglichen und damit autoritativ.
+	// Only TEST may bypass the lock: a second LIVE TSS incurs ongoing cost.
+	// umgebung is authoritative here because oeffneSetupClient matched it against bestaetigteUmgebung.
 	neuanlageErzwungen := neuAnlegenTrotzVorhandener && umgebung == tse.UmgebungTest
 	if hatAktiveTSS(tssListe) && !neuanlageErzwungen {
 		return TSESetupErgebnis{}, ErrTSEBereitsEingerichtet
@@ -126,12 +83,8 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	}
 	seriennummer := identitaet.Seriennummer.String()
 
-	// Der fiskaly-Client wird unter einer eigenen, frischen UUIDv4 als
-	// Ressourcen-ID (_id) angelegt — fiskaly-Konvention. Die Kassen-Seriennummer
-	// ist die fachliche serial_number (DSFinV-K KASSE_SERIENNR). So bleibt der
-	// technische Client-Identifikator von der fachlichen Seriennummer getrennt
-	// und konsistent mit der Übernahme einer bestehenden TSS, bei der die
-	// vorgefundene Client-_id übernommen wird.
+	// The client _id is a fresh UUIDv4 (fiskaly convention), kept apart from the Kassen-Seriennummer.
+	// The Kassen-Seriennummer is the client's serial_number (docs/compliance.md §3.7).
 	clientID := uuid.NewString()
 
 	pin, err := generateAdminPIN()
@@ -140,13 +93,11 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEEinrichtung
 	}
 
-	// Lebenszyklus CREATED -> UNINITIALIZED -> (PIN) -> INITIALIZED -> Client.
-	// Eine frische TSS startet immer im Zustand CREATED; der PUK stammt direkt aus
-	// der Anlage. Bricht ein Schritt ab, wird nichts gespeichert.
+	// Lifecycle CREATED -> UNINITIALIZED -> (PIN) -> INITIALIZED -> client.
+	// A fresh TSS always starts CREATED, and its PUK comes straight from the creation response.
 	erstellt, err := client.CreateTSS(ctx)
 	if err != nil {
-		// Das fiskaly-TSS-Limit (in TEST fünf aktive TSS) ist kein technischer
-		// Fehler, sondern ein verständlich zu meldender Zustand.
+		// The fiskaly TSS limit (five active TSS in TEST) is a user-facing state, not a technical error.
 		if errors.Is(err, tse.ErrSetupTSSLimitErreicht) {
 			return TSESetupErgebnis{}, ErrTSESetupTSSLimitErreicht
 		}
@@ -171,32 +122,11 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
-// UebernimmTSE übernimmt eine vorhandene TSS und setzt sie aus ihrem aktuellen
-// Zustand bis zum registrierten Client fort — auch als Wiederaufnahme nach einem
-// Abbruch:
-//
-//   - CREATED: der PUK wird idempotent erneut bezogen und eine frische Admin-PIN
-//     erzeugt; beide werden dem Admin einmalig angezeigt. Keine Nutzereingabe.
-//   - INITIALIZED mit passendem, bereits REGISTERED Client: einsatzbereit. Es folgt
-//     keine privilegierte fiskaly-Operation, also keine Admin-PIN nötig — jotti
-//     speichert nur noch die Konfiguration.
-//   - ab UNINITIALIZED (bzw. INITIALIZED ohne fertigen Client): der PUK ist nicht
-//     mehr abrufbar, die verwahrte Admin-PIN ist nötig (pin). Lehnt fiskaly sie ab,
-//     endet der Flow als ErrTSESetupPINUnbekannt. Es werden keine neuen Geheimnisse
-//     angezeigt.
-//   - ab UNINITIALIZED mit Admin-PUK (puk): die PIN ist verloren oder nach fünf
-//     Fehlversuchen gesperrt. jotti setzt mit dem PUK eine frische Zufalls-PIN
-//     (einmalig angezeigt) und fährt fort; der PUK bleibt unverändert und wird nicht
-//     erneut angezeigt, ein falscher endet als ErrTSESetupPUKUnbekannt.
-//
-// Ein passender REGISTERED Client wird unverändert übernommen, ein DEREGISTERED
-// reaktiviert statt neu angelegt (serial_number ist je TSS eindeutig). Wie bei der
-// Neuanlage gilt der LIVE-Schutz, und gespeichert wird erst nach Erfolg.
+// UebernimmTSE drives an existing TSS from its current state to a registered client,
+// which also resumes an aborted setup. PIN/PUK handling per start state: docs/handbuch.md §3.13.
 func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, tssID, pin, puk string) (TSESetupErgebnis, error) {
 	log := zerolog.Ctx(ctx)
 
-	// Dasselbe Schloss wie die Neuanlage: Beide Pfade führen denselben
-	// fiskaly-Lebenszyklus und dürfen sich nicht überlappen.
 	freigeben, err := acquireEinrichtung()
 	if err != nil {
 		return TSESetupErgebnis{}, err
@@ -256,14 +186,11 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		}
 	}
 
-	// Eine INITIALIZED TSS mit fertigem (REGISTERED) Client ist einsatzbereit: keine
-	// privilegierte fiskaly-Operation, daher keine Admin-PIN nötig. Jeder andere Pfad
-	// löst eine Admin-Operation aus und braucht die PIN.
+	// Only this case runs no privileged fiskaly operation and therefore needs no admin PIN.
 	einsatzbereit := state == "INITIALIZED" && aktion == clientFertig
 
-	// PUK/PIN-Strategie nach Zustand (siehe Methodenkommentar). lebenszyklusPUK
-	// treibt nur den CREATED-Schritt (Setzen der ersten PIN); ergebnisPUK/
-	// ergebnisPIN sind die einmalig anzuzeigenden, neu entstandenen Geheimnisse.
+	// lebenszyklusPUK only drives the CREATED step (setting the first PIN).
+	// ergebnisPUK and ergebnisPIN are the newly created secrets, shown once.
 	var lebenszyklusPUK, ergebnisPUK, ergebnisPIN string
 	pinReset := strings.TrimSpace(puk) != ""
 	switch state {
@@ -281,10 +208,8 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	case "UNINITIALIZED", "INITIALIZED":
 		switch {
 		case pinReset:
-			// Verlorene oder gesperrte PIN per PUK zurücksetzen: eine frische
-			// Zufalls-PIN mit dem PUK setzen und damit fortfahren. Die Zugangsdaten
-			// sind durch ListTSS bereits bestaetigt, daher ist ein Fehler hier
-			// praktisch immer ein falscher PUK.
+			// ListTSS already confirmed the credentials, so a failure while setting the PIN
+			// via the PUK is practically always a wrong PUK.
 			pin, err = generateAdminPIN()
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to generate admin pin")
@@ -321,10 +246,8 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
-// oeffneSetupClient baut den fiskaly-Setup-Client, liest die TSS-Liste und
-// hält den LIVE-Schutz: Weicht die tatsächliche Umgebung von der bestätigten
-// ab, endet der Aufruf vor jeder Schreiboperation. zweck geht allein in die
-// Log-Meldung ("setup" / "takeover").
+// oeffneSetupClient holds the LIVE guard: an environment mismatch ends the setup before any write.
+// zweck only labels the log message.
 func (c Command) oeffneSetupClient(ctx context.Context, log *zerolog.Logger, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
 	client, err := c.NewTSESetupClient(credentials)
 	if err != nil {
@@ -352,22 +275,16 @@ func (c Command) oeffneSetupClient(ctx context.Context, log *zerolog.Logger, cre
 	return client, umgebung, tssListe, nil
 }
 
-// saveEinrichtung ist der gemeinsame Speicher-Schritt aller Einrichtungspfade:
-// nach erfolgreichem fiskaly-Lebenszyklus wird die TSE-Konfiguration atomar
-// gespeichert und die fiskalischen TSS-Stammdaten für den DSFinV-K-Export
-// nachgezogen. Schlägt das Speichern fehl, ist die Einrichtung nicht
-// abgeschlossen: die TSS existiert bei fiskaly (per Übernahme einsammelbar),
-// tss_id/client_id werden geloggt (PUK/PIN niemals).
+// If saving fails, the TSS still exists at fiskaly and a takeover recovers it.
+// tss_id and client_id are logged for that, PUK and PIN never.
 func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
 	konfiguration, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to build tse_konfiguration after setup")
 		return ErrTSEEinrichtung
 	}
-	// SaveEinrichtung speichert die Konfiguration und markiert beim Übergang
-	// von nicht konfiguriert zu konfiguriert in derselben Transaktion die noch
-	// offenen, vor-konfigurationellen Aufträge endgültig (Einrichtungs-Sweep)
-	// und schließt den keine_konfiguration-Störungszeitraum.
+	// On the transition to configured, the same transaction finalises pre-configuration orders
+	// and closes the keine_konfiguration outage (docs/handbuch.md §3.13).
 	if err := c.TSERepo.SaveEinrichtung(ctx, konfiguration); err != nil {
 		log.Error().Err(err).Str("tss_id", tssID).Str("client_id", clientID).
 			Msg("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover")
@@ -377,11 +294,8 @@ func (c Command) saveEinrichtung(ctx context.Context, log *zerolog.Logger, clien
 	return c.fetchTSEStammdaten(ctx, log, client, tssID)
 }
 
-// fetchTSEStammdaten liest die fiskalischen TSS-Stammdaten von fiskaly und
-// speichert sie für den DSFinV-K-Export. Die Stammdaten enthalten die
-// TSS-Seriennummer (TSE_SERIAL in der DSFinV-K) sowie Public Key und Zertifikat,
-// die der Export allein aus tse_stammdaten liest; daher ist ein Fehler hier ein
-// harter Einrichtungsfehler.
+// The DSFinV-K export reads TSE serial, public key and certificate only from tse_stammdaten
+// (docs/compliance.md §6.3), so a failure here fails the setup.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, tssID string) error {
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
@@ -394,10 +308,8 @@ func (c Command) fetchTSEStammdaten(ctx context.Context, log *zerolog.Logger, cl
 	return nil
 }
 
-// clientAktion beschreibt, was im Client-Schritt einer INITIALIZED TSS zu tun
-// ist: einen neuen Client registrieren (kein passender vorhanden), einen
-// vorhandenen DEREGISTERED Client reaktivieren, oder nichts (passender Client
-// ist bereits REGISTERED — einsatzbereit).
+// clientAktion is the client step of an INITIALIZED TSS: register a new client,
+// reactivate a DEREGISTERED one, or nothing when the matching client is REGISTERED.
 type clientAktion int
 
 const (
@@ -406,13 +318,8 @@ const (
 	clientFertig
 )
 
-// vollendeLebenszyklus treibt eine TSS von ihrem aktuellen Zustand bis zum
-// registrierten Client. puk wird nur im Zustand CREATED gebraucht (Setzen der
-// frischen Admin-PIN); ab UNINITIALIZED trägt pin die vorhandene Admin-PIN. Bei
-// clientFertig entfällt der privilegierte Client-Schritt samt
-// Admin-Authentifizierung. Schlägt die Authentifizierung mit einer vom Nutzer
-// eingegebenen PIN fehl (Ausgangszustand != CREATED), endet der Flow als
-// ErrTSESetupPINUnbekannt.
+// puk is used only from CREATED to set the fresh admin PIN; from UNINITIALIZED, pin is the existing one.
+// An auth failure with a user-entered PIN (start state != CREATED) ends as ErrTSESetupPINUnbekannt.
 func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.SetupClient, state, tssID, puk, pin, clientID, seriennummer string, aktion clientAktion) error {
 	pinVomNutzer := state != "CREATED"
 	authFehler := func(err error, schritt string) error {
@@ -440,17 +347,14 @@ func vollendeLebenszyklus(ctx context.Context, log *zerolog.Logger, client tse.S
 		}
 		fallthrough
 	case "INITIALIZED":
-		// Ein bereits REGISTERED Client ist fertig — keine fiskaly-Mutation, keine
-		// Admin-Authentifizierung. Aus CREATED/UNINITIALIZED fällt der Code nie mit
-		// clientFertig hier ein, da es dann keinen vorhandenen Client gibt.
+		// clientFertig never falls through from CREATED/UNINITIALIZED: those states have no client yet.
 		if aktion == clientFertig {
 			return nil
 		}
 		if err := client.AuthentifiziereAdmin(ctx, tssID, pin); err != nil {
 			return authFehler(err, "admin-auth (client)")
 		}
-		// Ein DEREGISTERED Client wird per state=REGISTERED reaktiviert statt neu
-		// angelegt — die serial_number ist je TSS eindeutig.
+		// serial_number is unique per TSS, so a DEREGISTERED client is reactivated, not recreated.
 		if aktion == clientReaktivieren {
 			if err := client.ReaktiviereClient(ctx, tssID, clientID); err != nil {
 				return einrichtungsFehler(log, err, "client reaktivieren", tssID)
@@ -475,15 +379,13 @@ func findTSS(tssListe []tse.TSSInfo, tssID string) (tse.TSSInfo, bool) {
 	return tse.TSSInfo{}, false
 }
 
-// einrichtungsFehler protokolliert einen fehlgeschlagenen Lebenszyklus-Schritt
-// (ohne PUK/PIN) und liefert das einheitliche Einrichtungs-Sentinel.
+// einrichtungsFehler logs a failed lifecycle step without PUK or PIN.
 func einrichtungsFehler(log *zerolog.Logger, err error, schritt, tssID string) error {
 	log.Warn().Err(err).Str("schritt", schritt).Str("tss_id", tssID).Msg("TSE setup step failed")
 	return ErrTSEEinrichtung
 }
 
-// hatAktiveTSS meldet, ob das Konto eine nicht deaktivierte TSS enthält. Nur
-// deaktivierte (DISABLED) TSS gelten als tot und blockieren die Neuanlage nicht.
+// Only DISABLED TSS count as dead and do not block a new setup.
 func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	for _, t := range tssListe {
 		if !strings.EqualFold(strings.TrimSpace(t.State), "DISABLED") {

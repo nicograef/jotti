@@ -12,64 +12,19 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// tseSetupWriteTimeout ersetzt für die beiden schreibenden TSE-Endpunkte die
-// globale 10-Sekunden-Schreibfrist des Servers (backend/app/app.go). Beide
-// sprechen synchron mit fiskaly: Die Neuanlage setzt bis zu zehn HTTP-Sequenzen
-// nacheinander ab, jede mit 10 s Zeitlimit und bis zu vier Versuchen
-// (defaultHTTPTimeout, defaultRetryAttempts = 3 in
-// backend/repository/tse_repo/fiskaly_client.go) samt Backoff. Zwei Minuten
-// decken den realistischen Verlauf ab; der Wert ist aus den Timeout- und
-// Retry-Budgets abgeleitet, nicht gemessen.
-//
-// Die Frist begrenzt allein den Schreibvorgang der Antwort und bricht keinen
-// Handler ab. Ein Client-Zeitlimit gibt es nicht, gegen das zu rechnen wäre
-// (frontend/src/lib/Backend.ts setzt keines). Sie muss nur groß genug sein, damit
-// die fertige Antwort noch geschrieben wird: Bei der Einrichtung trägt sie PUK
-// und Admin-PIN, die genau einmal ausgeliefert und nirgends persistiert werden.
+// tseSetupWriteTimeout replaces the server's 10 s write deadline so the one-time PUK and admin PIN
+// still reach the client. Derived from the timeout and retry budgets in tse_repo/fiskaly_client.go,
+// not measured.
 const tseSetupWriteTimeout = 2 * time.Minute
 
-// tseSetupLebenszyklusTimeout ist der Leck-Wächter um den fiskaly-Lebenszyklus
-// der beiden schreibenden Endpunkte — KEIN Reaktionszeit-Budget. Er verhindert
-// ausschließlich, dass eine hängende fiskaly-Verbindung den vom Request
-// abgekoppelten Lebenszyklus dauerhaft offenhält.
-//
-// Der Wert liegt weit über dem Worst Case: Die Übernahme setzt bis zu elf
-// HTTP-Sequenzen ab, jede mit 10 s Zeitlimit und bis zu vier Versuchen
-// (defaultRetryAttempts = 3) mit Backoff von 0,2 + 0,4 + 0,8 s — rund 41 s, in
-// Summe rund 7,5 Minuten. Zu knapp gewählt schnitte dieser Wächter einen
-// laufenden Lebenszyklus mittendrin ab.
-//
-// Bekannte Lücke: Ein von fiskaly geliefertes Retry-After übernimmt
-// parseRetryAfter ungedeckelt (retryDelay in
-// backend/repository/tse_repo/fiskaly_client.go) und sprengt die Rechnung oben.
-// Begrenzt wird es nur durch diesen Wächter selbst: Das Warten hängt am Kontext
-// (sleepWithContext) und endet mit ihm — dann mitten im Lebenszyklus.
+// tseSetupLebenszyklusTimeout only keeps a hung fiskaly connection from holding the detached
+// lifecycle open; it is no response budget. Worst case is about 7.5 min: up to eleven calls of four
+// 10 s attempts plus backoff each.
 const tseSetupLebenszyklusTimeout = 10 * time.Minute
 
-// lebenszyklusKontext liefert den Kontext, unter dem die beiden schreibenden
-// TSE-Endpunkte ihren fiskaly-Lebenszyklus fahren. Er ist bewusst vom
-// Request-Kontext abgekoppelt: Schließt der Client die Verbindung, storniert
-// net/http r.Context(), und der Lebenszyklus bräche mitten in der
-// fiskaly-Sequenz ab. Zurück bliebe eine bezahlte, halbfertige TSS —
-// hatAktiveTSS blockiert den zweiten Versuch mit tse_bereits_eingerichtet, und
-// die Übernahme scheitert an der Admin-PIN, die es nur in der verlorenen Antwort
-// gab (PUK und Admin-PIN werden nirgends persistiert). Erst saveEinrichtung macht
-// die Instanz betriebsfähig, der Lebenszyklus muss also auch ohne Zuhörer zu Ende
-// laufen.
-//
-// context.WithoutCancel erhält die Kontext-Werte (Korrelations-ID, zerolog-Logger)
-// und nimmt nur die Stornierung weg; darüber liegt tseSetupLebenszyklusTimeout.
-// Abgekoppelt ist der Kontext, nicht der Ablauf: Der Handler fährt den
-// Lebenszyklus synchron und kehrt erst mit ihm zurück.
-//
-// Die Zusage gilt dem Client-Abbruch, nicht einem Prozessende: Ein Neustart
-// wartet über http.Server.Shutdown bis zu 30 s (backend/app/app.go), danach wird
-// ein laufender Lebenszyklus mitgerissen und der Endzustand ist wieder die
-// bezahlte, blockierende TSS. Während einer laufenden TSE-Einrichtung darf
-// deshalb kein Deploy und kein Neustart erfolgen.
-//
-// Die beiden lesenden Endpunkte (query_handler.go) behalten r.Context(): Sie sind
-// idempotent, ein Abbruch hinterlässt dort nichts.
+// lebenszyklusKontext detaches the lifecycle from client cancellation but keeps the context values;
+// see docs/handbuch.md §3.13. A client abort would otherwise leave a paid, half-built TSS whose
+// admin PIN existed only in the lost response.
 func lebenszyklusKontext(r *http.Request) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.WithoutCancel(r.Context()), tseSetupLebenszyklusTimeout)
 }
@@ -105,9 +60,7 @@ type tseEinrichtenRequest struct {
 	NeuAnlegenTrotzVorhandener bool   `json:"neuAnlegenTrotzVorhandener"`
 }
 
-// NeuAnlegenTrotzVorhandener ist optional (Default false). Nur in TEST und nur als
-// bewusste Sekundäraktion übergeht das Backend damit die Sperre gegen eine zweite
-// TSS; LIVE bleibt hart gesperrt.
+// NeuAnlegenTrotzVorhandener bypasses the existing-TSS lock in TEST only; LIVE ignores it.
 var tseEinrichtenSchema = z.Struct(z.Shape{
 	"ApiKey":                     z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret":                  z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
@@ -124,10 +77,8 @@ type tseUebernehmenRequest struct {
 	Puk       string `json:"puk"`
 }
 
-// Pin ist optional: bei der Übernahme einer TSS im Zustand CREATED nicht nötig,
-// ab UNINITIALIZED trägt es die vom Admin verwahrte Admin-PIN. Puk ist ebenfalls
-// optional und nur für den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt,
-// setzt jotti mit dem PUK eine frische PIN und übernimmt damit weiter.
+// Pin is the stored admin PIN, needed from UNINITIALIZED on.
+// Puk is set only for a PIN reset after the PIN was lost or locked.
 var tseUebernehmenSchema = z.Struct(z.Shape{
 	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
 	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
@@ -137,8 +88,7 @@ var tseUebernehmenSchema = z.Struct(z.Shape{
 	"Puk":       z.String().Max(100, z.Message("Admin-PUK darf höchstens 100 Zeichen lang sein")).Optional(),
 })
 
-// tseEinrichtenResponse übergibt PUK und Admin-PIN genau einmal an die UI. Sie
-// werden nie persistiert und nie geloggt; der Admin verwahrt sie extern.
+// tseEinrichtenResponse is the only delivery of PUK and admin PIN: never persisted or logged.
 type tseEinrichtenResponse struct {
 	TssID    string `json:"tssId"`
 	ClientID string `json:"clientId"`
@@ -162,8 +112,7 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 
 		if err := h.Command.UpdateTSEKonfiguration(r.Context(), conf); err != nil {
 			switch {
-			// 409 wie bei Neuanlage und Übernahme: Der Pfad teilt sich mit
-			// ihnen das Schloss auf der TSE-Konfiguration.
+			// 409: this path shares the setup lock with RichteTSEEin and UebernimmTSE.
 			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
 				helper.SendConflict(w, "tse_setup_laeuft_bereits")
 			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
@@ -178,9 +127,8 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 	}
 }
 
-// RichteTSEEinHandler legt eine neue TSS an und führt sie bis zum registrierten
-// Client. Der Lebenszyklus läuft unter lebenszyklusKontext, also unabhängig davon,
-// ob der Client noch zuhört.
+// RichteTSEEinHandler runs the lifecycle under lebenszyklusKontext, whether or not the client still
+// listens.
 func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
@@ -200,17 +148,13 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 			body.NeuAnlegenTrotzVorhandener,
 		)
 
-		// Zweites Setzen der Schreibfrist, jetzt für den Schreibvorgang selbst:
-		// Die Frist vom Handler-Eingang ist eine absolute Zeit ab Request-Start
-		// und nach einem langen Lebenszyklus abgelaufen. Diese eine Stelle deckt
-		// den Fehler- wie den Erfolgszweig ab.
+		// The deadline set on entry is absolute and may have expired during a long lifecycle.
+		// Resetting it here covers both the error and the success branch.
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
 			switch {
-			// 409 statt 400: Der Zustand ist vorübergehend, die Anfrage selbst
-			// war in Ordnung — es schreibt nur gerade ein anderer Pfad auf der
-			// TSE-Konfiguration.
+			// 409, not 400: the request is valid, another path is just writing the configuration.
 			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
 				helper.SendConflict(w, "tse_setup_laeuft_bereits")
 			case errors.Is(err, application.ErrTSESetupZugangsdaten):
@@ -242,11 +186,8 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 	}
 }
 
-// UebernimmTSEHandler setzt eine vorhandene TSS aus ihrem aktuellen Zustand bis
-// zum registrierten Client fort. Wie die Neuanlage läuft der Lebenszyklus unter
-// lebenszyklusKontext: Auch hier entstehen unterwegs PUK bzw. Admin-PIN, die es
-// nur in dieser einen Antwort gibt, und ein Abbruch mittendrin liesse die TSS in
-// einem Zustand zurück, aus dem kein zweiter Versuch mehr herausführt.
+// UebernimmTSEHandler also runs under lebenszyklusKontext: a takeover can create a PIN that exists
+// only in this response.
 func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
@@ -268,12 +209,12 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 			body.Puk,
 		)
 
-		// Zweites Setzen der Schreibfrist — siehe RichteTSEEinHandler.
+		// Reset the absolute write deadline, as in RichteTSEEinHandler.
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
 			switch {
-			// 409 wie bei der Neuanlage — beide teilen sich dasselbe Schloss.
+			// 409: shares the setup lock with RichteTSEEin.
 			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
 				helper.SendConflict(w, "tse_setup_laeuft_bereits")
 			case errors.Is(err, application.ErrTSESetupZugangsdaten):
