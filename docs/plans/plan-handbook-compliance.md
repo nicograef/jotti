@@ -227,11 +227,11 @@ Script hygiene across `scripts/`: the handbook header, `[[ ]]`, `${VAR:-default}
 
 ### Acceptance criteria
 
-- [ ] `shellcheck scripts/*.sh` clean; `grep -rn '\[ ' scripts/*.sh` finds no single-bracket tests
-- [ ] `read_env` returns `x` for `KEY="x"\r` (fixture test in `check-shell` or a bats-free shell test)
-- [ ] `docker compose up db` then `ss -ltn | grep 5432` shows `127.0.0.1:5432` only
-- [ ] removing a key from `.env.example`, or a row from `docs/README.md`, makes `make check-repo` fail
-- [ ] a broken link in `AGENTS.md` makes the link gate fail
+- [x] `shellcheck scripts/*.sh` clean; `grep -rn '\[ ' scripts/*.sh` finds no single-bracket tests
+- [x] `read_env` returns `x` for `KEY="x"\r` (fixture test in `check-shell` or a bats-free shell test)
+- [x] `docker compose up db` then `ss -ltn | grep 5432` shows `127.0.0.1:5432` only
+- [x] removing a key from `.env.example`, or a row from `docs/README.md`, makes `make check-repo` fail
+- [x] a broken link in `AGENTS.md` makes the link gate fail
 
 ## Phase 9: Frontend structure
 
