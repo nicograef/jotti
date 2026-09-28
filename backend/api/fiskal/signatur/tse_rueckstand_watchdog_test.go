@@ -171,7 +171,7 @@ func TestRueckstandWatchdog_Run_PanicStopptUeberwachungNicht(t *testing.T) {
 	select {
 	case <-store.geprueft:
 	case <-time.After(2 * time.Second):
-		t.Fatal("Watchdog hat nach dem Panic nicht weiter geprueft")
+		t.Error("Watchdog hat nach dem Panic nicht weiter geprueft")
 	}
 	cancel()
 	<-done
@@ -206,6 +206,6 @@ func TestRueckstandWatchdog_Run_OeffnetAmTick(t *testing.T) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	if len(store.geoeffnet) < 1 {
-		t.Fatal("expected geoeffneten Rueckstands-Zeitraum nach Tick")
+		t.Error("expected geoeffneten Rueckstands-Zeitraum nach Tick")
 	}
 }

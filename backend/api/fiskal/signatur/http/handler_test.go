@@ -63,13 +63,13 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	if body.OffeneAuftraege != 4 || body.FehlgeschlageneAuftraege != 1 || body.RueckstandSekunden != 125 {
-		t.Fatalf("unexpected queue counts: %+v", body)
+		t.Errorf("unexpected queue counts: %+v", body)
 	}
 	if body.LetzterFehler != "fiskaly api error 400" {
-		t.Fatalf("unexpected letzter fehler: %q", body.LetzterFehler)
+		t.Errorf("unexpected letzter fehler: %q", body.LetzterFehler)
 	}
 	if body.SignaturenProMinute != 2.5 || body.SignierdauerP95Sekunden != 3.2 {
-		t.Fatalf("unexpected queue metrics: %+v", body)
+		t.Errorf("unexpected queue metrics: %+v", body)
 	}
 }
 
@@ -100,9 +100,9 @@ func TestGetTSEStoerungenHandler_Success(t *testing.T) {
 		t.Fatalf("expected 2 stoerungen, got %d", len(body.Stoerungen))
 	}
 	if body.Stoerungen[0].Ende != nil {
-		t.Fatalf("expected active stoerung to have null ende, got %v", *body.Stoerungen[0].Ende)
+		t.Errorf("expected active stoerung to have null ende, got %v", *body.Stoerungen[0].Ende)
 	}
 	if body.Stoerungen[1].Ende == nil || body.Stoerungen[1].GrundArt != "tse_fehler" {
-		t.Fatalf("unexpected closed stoerung DTO: %+v", body.Stoerungen[1])
+		t.Errorf("unexpected closed stoerung DTO: %+v", body.Stoerungen[1])
 	}
 }

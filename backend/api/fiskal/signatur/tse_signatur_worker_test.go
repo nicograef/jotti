@@ -36,16 +36,15 @@ type quittierung struct {
 }
 
 type mockTSESignaturStore struct {
-	mu             sync.Mutex
-	offene         []tse_repo.OffenerSignaturauftrag
-	quittierungen  []quittierung
-	fehlversuche   []fehlversuch
-	geoeffnet      []string // Grund-Arten der geöffneten Störungszeiträume
-	geschlossen    []string // Grund-Arten der geschlossenen Störungszeiträume
-	markiertCalls  int      // Aufrufe von MarkOffeneAlsNichtKonfiguriert
-	markiertAnzahl int64    // Rückgabe (Anzahl markierter Aufträge)
-	getErr         error
-	quittiereErr   error
+	mu                sync.Mutex
+	offene            []tse_repo.OffenerSignaturauftrag
+	quittierungen     []quittierung
+	fehlversuche      []fehlversuch
+	geoeffnet         []string // Grund-Arten der geöffneten Störungszeiträume
+	geschlossen       []string // Grund-Arten der geschlossenen Störungszeiträume
+	nichtKonfiguriert []tse_repo.OffenerSignaturauftrag
+	getErr            error
+	quittiereErr      error
 	// verarbeitet signalisiert jede Quittierung (für Run-Loop-Tests ohne Sleeps).
 	verarbeitet chan struct{}
 }
@@ -85,8 +84,10 @@ func (m *mockTSESignaturStore) TSESignaturauftragFehlversuch(_ context.Context, 
 func (m *mockTSESignaturStore) MarkOffeneAlsNichtKonfiguriert(_ context.Context) (int64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.markiertCalls++
-	return m.markiertAnzahl, nil
+	markiert := int64(len(m.offene))
+	m.nichtKonfiguriert = append(m.nichtKonfiguriert, m.offene...)
+	m.offene = nil
+	return markiert, nil
 }
 
 func (m *mockTSESignaturStore) OpenTSEStoerung(_ context.Context, grundArt string, _ string) error {
@@ -212,16 +213,16 @@ func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
 	if store.quittierungen[0].AuftragID != 1 {
-		t.Fatalf("expected auftrag 1, got %d", store.quittierungen[0].AuftragID)
+		t.Errorf("expected auftrag 1, got %d", store.quittierungen[0].AuftragID)
 	}
 	if store.quittierungen[0].Signatur.Signatur != "SIG-1" {
-		t.Fatalf("expected SIG-1, got %q", store.quittierungen[0].Signatur.Signatur)
+		t.Errorf("expected SIG-1, got %q", store.quittierungen[0].Signatur.Signatur)
 	}
 	if !store.quittierungen[0].Signatur.LogTimeStart.Equal(time.Date(2026, 6, 10, 18, 0, 1, 0, time.UTC)) {
-		t.Fatalf("expected log_time_start from start result, got %v", store.quittierungen[0].Signatur.LogTimeStart)
+		t.Errorf("expected log_time_start from start result, got %v", store.quittierungen[0].Signatur.LogTimeStart)
 	}
 	if len(store.fehlversuche) != 0 {
-		t.Fatalf("expected no fehlversuche on success, got %d", len(store.fehlversuche))
+		t.Errorf("expected no fehlversuche on success, got %d", len(store.fehlversuche))
 	}
 }
 
@@ -249,22 +250,22 @@ func TestTSESignaturWorker_ProcessOnce_TSEWeiterFehlerBrichtDurchlaufAb(t *testi
 	}
 
 	if client.anzahlCalls() != 1 {
-		t.Fatalf("expected abort after first auftrag (1 fiskaly call), got %d", client.anzahlCalls())
+		t.Errorf("expected abort after first auftrag (1 fiskaly call), got %d", client.anzahlCalls())
 	}
 	if len(store.fehlversuche) != 0 {
-		t.Fatalf("expected no auftrags-fehlversuche on TSE-weitem Fehler, got %+v", store.fehlversuche)
+		t.Errorf("expected no auftrags-fehlversuche on TSE-weitem Fehler, got %+v", store.fehlversuche)
 	}
 	if len(store.quittierungen) != 0 {
-		t.Fatalf("expected no quittierungen, got %d", len(store.quittierungen))
+		t.Errorf("expected no quittierungen, got %d", len(store.quittierungen))
 	}
 	if len(store.geoeffnet) != 1 || store.geoeffnet[0] != tse.StoerungGrundTSEFehler {
-		t.Fatalf("expected geoeffneten tse_fehler-Zeitraum, got %v", store.geoeffnet)
+		t.Errorf("expected geoeffneten tse_fehler-Zeitraum, got %v", store.geoeffnet)
 	}
 	if worker.stoerungSerie != 1 {
-		t.Fatalf("expected fehlerserie 1, got %d", worker.stoerungSerie)
+		t.Errorf("expected fehlerserie 1, got %d", worker.stoerungSerie)
 	}
 	if !worker.stoerungNaechsterVersuch.Equal(jetzt.Add(5 * time.Second)) {
-		t.Fatalf("expected naechsten Versuch nach 5s Backoff, got %v", worker.stoerungNaechsterVersuch)
+		t.Errorf("expected naechsten Versuch nach 5s Backoff, got %v", worker.stoerungNaechsterVersuch)
 	}
 }
 
@@ -293,16 +294,16 @@ func TestTSESignaturWorker_ProcessOnce_AuftragsFehlerUeberspringtUndSigniertWeit
 	}
 
 	if len(store.fehlversuche) != 1 || store.fehlversuche[0].AuftragID != 10 {
-		t.Fatalf("expected one fehlversuch for auftrag 10, got %+v", store.fehlversuche)
+		t.Errorf("expected one fehlversuch for auftrag 10, got %+v", store.fehlversuche)
 	}
 	if len(store.quittierungen) != 1 || store.quittierungen[0].AuftragID != 11 {
-		t.Fatalf("expected auftrag 11 signed in same run, got %+v", store.quittierungen)
+		t.Errorf("expected auftrag 11 signed in same run, got %+v", store.quittierungen)
 	}
 	if len(store.geoeffnet) != 0 {
-		t.Fatalf("expected no stoerung on auftragsspezifischem Fehler, got %v", store.geoeffnet)
+		t.Errorf("expected no stoerung on auftragsspezifischem Fehler, got %v", store.geoeffnet)
 	}
 	if worker.stoerungSerie != 0 {
-		t.Fatalf("expected keine fehlerserie, got %d", worker.stoerungSerie)
+		t.Errorf("expected keine fehlerserie, got %d", worker.stoerungSerie)
 	}
 }
 
@@ -329,10 +330,10 @@ func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *t
 		t.Fatalf("expected no durchlauf error, got %v", err)
 	}
 	if len(store.fehlversuche) != 1 || store.fehlversuche[0].AuftragID != 12 {
-		t.Fatalf("expected fehlversuch for auftrag 12, got %+v", store.fehlversuche)
+		t.Errorf("expected fehlversuch for auftrag 12, got %+v", store.fehlversuche)
 	}
 	if len(store.geoeffnet) != 0 {
-		t.Fatalf("expected no stoerung, got %v", store.geoeffnet)
+		t.Errorf("expected no stoerung, got %v", store.geoeffnet)
 	}
 }
 
@@ -369,7 +370,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		t.Fatalf("expected gated durchlauf without error, got %v", err)
 	}
 	if client.anzahlCalls() != callsVorher {
-		t.Fatalf("expected no fiskaly calls during stoerung, got %d new", client.anzahlCalls()-callsVorher)
+		t.Errorf("expected no fiskaly calls during stoerung, got %d new", client.anzahlCalls()-callsVorher)
 	}
 
 	// Probe nach Backoff-Ablauf scheitert TSE-weit: ein Aufruf, Serie und
@@ -380,13 +381,13 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		t.Fatal("expected TSE-weiten Fehler der Probe")
 	}
 	if client.anzahlCalls() != callsVorher+1 {
-		t.Fatalf("expected exactly one probe call, got %d", client.anzahlCalls()-callsVorher)
+		t.Errorf("expected exactly one probe call, got %d", client.anzahlCalls()-callsVorher)
 	}
 	if worker.stoerungSerie != 2 {
-		t.Fatalf("expected fehlerserie 2, got %d", worker.stoerungSerie)
+		t.Errorf("expected fehlerserie 2, got %d", worker.stoerungSerie)
 	}
 	if !worker.stoerungNaechsterVersuch.Equal(jetzt.Add(10 * time.Second)) {
-		t.Fatalf("expected gewachsenen Backoff 10s, got %v", worker.stoerungNaechsterVersuch.Sub(jetzt))
+		t.Errorf("expected gewachsenen Backoff 10s, got %v", worker.stoerungNaechsterVersuch.Sub(jetzt))
 	}
 
 	// TSE erholt sich: Die Probe gelingt, die volle Aufarbeitung signiert
@@ -402,13 +403,13 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 		t.Fatalf("expected recovery durchlauf without error, got %v", err)
 	}
 	if len(store.quittierungen) != 2 {
-		t.Fatalf("expected volle Aufarbeitung (2 quittierungen), got %d", len(store.quittierungen))
+		t.Errorf("expected volle Aufarbeitung (2 quittierungen), got %d", len(store.quittierungen))
 	}
 	if len(store.geschlossen) != 1 || store.geschlossen[0] != tse.StoerungGrundTSEFehler {
-		t.Fatalf("expected geschlossenen tse_fehler-Zeitraum, got %v", store.geschlossen)
+		t.Errorf("expected geschlossenen tse_fehler-Zeitraum, got %v", store.geschlossen)
 	}
 	if worker.stoerungSerie != 0 || !worker.stoerungNaechsterVersuch.IsZero() {
-		t.Fatalf("expected zurueckgesetzten Stoerungszustand, got serie=%d next=%v", worker.stoerungSerie, worker.stoerungNaechsterVersuch)
+		t.Errorf("expected zurueckgesetzten Stoerungszustand, got serie=%d next=%v", worker.stoerungSerie, worker.stoerungNaechsterVersuch)
 	}
 }
 
@@ -458,13 +459,13 @@ func TestTSESignaturWorker_ProcessOnce_DurchlaufDeadlineBrichtAb(t *testing.T) {
 		t.Fatal("expected deadline abort as durchlauf error")
 	}
 	if len(store.fehlversuche) != 0 {
-		t.Fatalf("expected no fehlversuche on deadline abort, got %+v", store.fehlversuche)
+		t.Errorf("expected no fehlversuche on deadline abort, got %+v", store.fehlversuche)
 	}
 	if len(store.geoeffnet) != 1 || store.geoeffnet[0] != tse.StoerungGrundTSEFehler {
-		t.Fatalf("expected geoeffneten tse_fehler-Zeitraum, got %v", store.geoeffnet)
+		t.Errorf("expected geoeffneten tse_fehler-Zeitraum, got %v", store.geoeffnet)
 	}
 	if worker.stoerungSerie != 1 {
-		t.Fatalf("expected fehlerserie 1, got %d", worker.stoerungSerie)
+		t.Errorf("expected fehlerserie 1, got %d", worker.stoerungSerie)
 	}
 }
 
@@ -507,17 +508,17 @@ func TestTSESignaturWorker_ProcessOnce_BereitsFinishedWirdQuittiert(t *testing.T
 	}
 
 	if len(store.fehlversuche) != 0 {
-		t.Fatalf("expected no fehlversuch, got %+v", store.fehlversuche)
+		t.Errorf("expected no fehlversuch, got %+v", store.fehlversuche)
 	}
 	if len(store.quittierungen) != 1 {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
 	signatur := store.quittierungen[0].Signatur
 	if signatur.Signatur != "SIG-3" || signatur.TransaktionNummer != 43 || signatur.SignaturZaehler != 702 {
-		t.Fatalf("expected retrieved signature data, got %+v", signatur)
+		t.Errorf("expected retrieved signature data, got %+v", signatur)
 	}
 	if !signatur.LogTimeStart.Equal(time.Date(2026, 6, 10, 18, 5, 1, 0, time.UTC)) {
-		t.Fatalf("expected retrieved log_time_start, got %v", signatur.LogTimeStart)
+		t.Errorf("expected retrieved log_time_start, got %v", signatur.LogTimeStart)
 	}
 }
 
@@ -560,17 +561,17 @@ func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *tes
 	}
 
 	if len(store.fehlversuche) != 0 {
-		t.Fatalf("expected no fehlversuch, got %+v", store.fehlversuche)
+		t.Errorf("expected no fehlversuch, got %+v", store.fehlversuche)
 	}
 	if len(store.quittierungen) != 1 {
 		t.Fatalf("expected one quittierung, got %d", len(store.quittierungen))
 	}
 	signatur := store.quittierungen[0].Signatur
 	if signatur.Signatur != "SIG-4" || signatur.TransaktionNummer != 44 {
-		t.Fatalf("expected finish signature data, got %+v", signatur)
+		t.Errorf("expected finish signature data, got %+v", signatur)
 	}
 	if !signatur.LogTimeStart.Equal(time.Date(2026, 6, 10, 18, 7, 1, 0, time.UTC)) {
-		t.Fatalf("expected log_time_start from retrieved transaction, got %v", signatur.LogTimeStart)
+		t.Errorf("expected log_time_start from retrieved transaction, got %v", signatur.LogTimeStart)
 	}
 }
 
@@ -578,13 +579,11 @@ func TestTSESignaturWorker_ProcessOnce_AktiveTransaktionWirdAbgeschlossen(t *tes
 // Auth-Token) und nur bei geänderten Zugangsdaten neu gebaut.
 func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 	settingsRepo := &mockTSESettingsReader{conf: configuredTSE()}
-	factoryCalls := 0
 	worker := &tseSignaturWorker{
 		settingsRepo: settingsRepo,
 		store:        &mockTSESignaturStore{},
 		newTSEClient: func(_ tse.Credentials) (tseWorkerClient, error) {
-			factoryCalls++
-			return tsetest.FakeClient{}, nil
+			return &tsetest.FakeClient{}, nil
 		},
 		now: time.Now,
 	}
@@ -592,19 +591,20 @@ func TestTSESignaturWorker_ClientWiederverwendung(t *testing.T) {
 	if err := worker.processOnce(context.Background()); err != nil {
 		t.Fatalf("first run failed: %v", err)
 	}
+	ersterClient := worker.client
 	if err := worker.processOnce(context.Background()); err != nil {
 		t.Fatalf("second run failed: %v", err)
 	}
-	if factoryCalls != 1 {
-		t.Fatalf("expected client to be reused (1 factory call), got %d", factoryCalls)
+	if worker.client != ersterClient {
+		t.Error("expected client to be reused across runs")
 	}
 
 	settingsRepo.conf.ApiSecret = "rotated-secret"
 	if err := worker.processOnce(context.Background()); err != nil {
 		t.Fatalf("third run failed: %v", err)
 	}
-	if factoryCalls != 2 {
-		t.Fatalf("expected client rebuild after credential change, got %d factory calls", factoryCalls)
+	if worker.client == ersterClient || worker.clientCreds.ApiSecret != "rotated-secret" {
+		t.Errorf("expected client rebuild after credential change, got creds %+v", worker.clientCreds)
 	}
 }
 
@@ -622,7 +622,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := &mockTSESignaturStore{markiertAnzahl: 2}
+			store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{ID: 1, TxID: "tx-1"}, {ID: 2, TxID: "tx-2"}}}
 			worker := &tseSignaturWorker{
 				settingsRepo: tt.settingsRepo,
 				store:        store,
@@ -633,14 +633,14 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 			if err := worker.processOnce(context.Background()); err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
-			if store.markiertCalls != 1 {
-				t.Fatalf("expected one Markierung, got %d", store.markiertCalls)
+			if len(store.nichtKonfiguriert) != 2 || len(store.offene) != 0 {
+				t.Errorf("expected both offene Auftraege marked, got marked %+v, offen %+v", store.nichtKonfiguriert, store.offene)
 			}
 			if len(store.geoeffnet) != 1 || store.geoeffnet[0] != tse.StoerungGrundKeineKonfiguration {
-				t.Fatalf("expected geoeffneten keine_konfiguration-Zeitraum, got %v", store.geoeffnet)
+				t.Errorf("expected geoeffneten keine_konfiguration-Zeitraum, got %v", store.geoeffnet)
 			}
 			if len(store.quittierungen) != 0 {
-				t.Fatalf("expected no quittierungen without configuration, got %d", len(store.quittierungen))
+				t.Errorf("expected no quittierungen without configuration, got %d", len(store.quittierungen))
 			}
 		})
 	}
@@ -650,7 +650,7 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationMarkiertEndgueltig(t *te
 // Störungszeitraum — der keine_konfiguration-Ausfall belegt reale Vorgänge,
 // nicht einen frisch installierten, noch unbenutzten Kassenstand.
 func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoerung(t *testing.T) {
-	store := &mockTSESignaturStore{markiertAnzahl: 0}
+	store := &mockTSESignaturStore{}
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: db.ErrNotFound},
 		store:        store,
@@ -661,18 +661,15 @@ func TestTSESignaturWorker_ProcessOnce_OhneKonfigurationOhneAuftraegeKeineStoeru
 	if err := worker.processOnce(context.Background()); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if store.markiertCalls != 1 {
-		t.Fatalf("expected one Markierung attempt, got %d", store.markiertCalls)
-	}
 	if len(store.geoeffnet) != 0 {
-		t.Fatalf("expected keinen Stoerungszeitraum ohne markierte Auftraege, got %v", store.geoeffnet)
+		t.Errorf("expected keinen Stoerungszeitraum ohne markierte Auftraege, got %v", store.geoeffnet)
 	}
 }
 
 // Nicht lesbare Konfiguration (echter DB-Fehler, nicht db.ErrNotFound) ist kein
 // Dauerzustand: Der Worker markiert nichts und gibt den Fehler zurück.
 func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t *testing.T) {
-	store := &mockTSESignaturStore{markiertAnzahl: 3}
+	store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{ID: 1, TxID: "tx-1"}, {ID: 2, TxID: "tx-2"}, {ID: 3, TxID: "tx-3"}}}
 	worker := &tseSignaturWorker{
 		settingsRepo: &mockTSESettingsReader{err: errors.New("connection reset")},
 		store:        store,
@@ -683,11 +680,11 @@ func TestTSESignaturWorker_ProcessOnce_NichtLesbareKonfigurationMarkiertNichts(t
 	if err := worker.processOnce(context.Background()); err == nil {
 		t.Fatal("expected error for unreadable configuration")
 	}
-	if store.markiertCalls != 0 {
-		t.Fatalf("expected no Markierung on unreadable configuration, got %d", store.markiertCalls)
+	if len(store.nichtKonfiguriert) != 0 || len(store.offene) != 3 {
+		t.Errorf("expected no Markierung on unreadable configuration, got marked %+v, offen %+v", store.nichtKonfiguriert, store.offene)
 	}
 	if len(store.geoeffnet) != 0 {
-		t.Fatalf("expected keinen Stoerungszeitraum, got %v", store.geoeffnet)
+		t.Errorf("expected keinen Stoerungszeitraum, got %v", store.geoeffnet)
 	}
 }
 
@@ -735,7 +732,7 @@ func TestTSESignaturWorker_Run_SofortTrigger(t *testing.T) {
 	select {
 	case <-store.verarbeitet:
 	case <-time.After(5 * time.Second):
-		t.Fatal("Sofort-Trigger hat keinen Durchlauf angestossen")
+		t.Error("Sofort-Trigger hat keinen Durchlauf angestossen")
 	}
 }
 
@@ -785,7 +782,7 @@ func TestTSESignaturWorker_Run_PanicStopptSignierungNicht(t *testing.T) {
 	select {
 	case <-store.verarbeitet:
 	case <-time.After(5 * time.Second):
-		t.Fatal("Signierung lief nach dem Panic nicht weiter")
+		t.Error("Signierung lief nach dem Panic nicht weiter")
 	}
 }
 
@@ -811,6 +808,6 @@ func TestTSESignaturWorker_Run_PollingFallbackFaengtVerloreneTrigger(t *testing.
 	select {
 	case <-store.verarbeitet:
 	case <-time.After(5 * time.Second):
-		t.Fatal("Polling-Fallback hat den offenen Auftrag nicht verarbeitet")
+		t.Error("Polling-Fallback hat den offenen Auftrag nicht verarbeitet")
 	}
 }

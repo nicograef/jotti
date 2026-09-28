@@ -56,6 +56,6 @@ func TestTSESignaturWorker_AdvisoryLock_ZweiteSessionHaeltLock(t *testing.T) {
 		t.Fatalf("Kontroll-Lock pruefen: %v", err)
 	}
 	if frei {
-		t.Fatal("Lock war trotz haltendem Worker frei erwerbbar")
+		t.Error("Lock war trotz haltendem Worker frei erwerbbar")
 	}
 }
