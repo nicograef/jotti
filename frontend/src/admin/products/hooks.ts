@@ -9,7 +9,7 @@ export const produktBackend = new ProduktBackend(BackendSingleton)
 
 export const ALLE_PRODUKTE_KEY = 'alle-produkte'
 
-export function useAllProdukte() {
+export function useAllProdukte(): { produkte: Produkt[]; isPending: boolean } {
   const { data: produkte = [] as Produkt[], isPending } = useQuery({
     queryKey: [ALLE_PRODUKTE_KEY],
     queryFn: () => produktBackend.getAllProdukte(),

@@ -9,7 +9,7 @@ export const tischBackend = new TischBackend(BackendSingleton)
 
 export const ALLE_TISCHE_KEY = 'alle-tische'
 
-export function useAllTische() {
+export function useAllTische(): { tische: Tisch[]; isPending: boolean } {
   const { data: tische = [] as Tisch[], isPending } = useQuery({
     queryKey: [ALLE_TISCHE_KEY],
     queryFn: () => tischBackend.getAllTische(),

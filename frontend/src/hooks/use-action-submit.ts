@@ -15,7 +15,10 @@ export function useActionSubmit({
   actionLabel,
   byCode,
   onSuccess,
-}: UseActionSubmitOptions) {
+}: UseActionSubmitOptions): {
+  loading: boolean
+  run: (fn: () => Promise<void>) => Promise<void>
+} {
   const [loading, setLoading] = useState(false)
 
   // Eine laufende Buchung ist ein offener Vorgang: Ein Reload mitten im Flug

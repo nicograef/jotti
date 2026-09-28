@@ -6,9 +6,13 @@ import {
   TSEBackend,
   type TSEEinrichten,
   type TSEEinrichtenErgebnis,
+  type TSEKonfiguration,
   type TSEKonfigurationSpeichern,
   type TSESetupBefund,
   type TSESetupZugangsdaten,
+  type TSESignaturQueue,
+  type TSEStatus,
+  type TSEStoerung,
   type TSEUebernehmen,
   type TSEVerbindungStatus,
 } from './TSEBackend'
@@ -24,7 +28,16 @@ export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
 // teilen diese Schwelle.
 export const RUECKSTAND_WARN_SEKUNDEN = 60
 
-export function useTSEKonfiguration() {
+interface TSEKonfigurationResult {
+  tseKonfiguration: TSEKonfiguration | undefined
+  isPending: boolean
+  error: Error | null
+  saveTSEKonfiguration: (config: TSEKonfigurationSpeichern) => Promise<void>
+  clearTSEKonfiguration: () => Promise<void>
+  testTSEVerbindung: () => Promise<TSEVerbindungStatus>
+}
+
+export function useTSEKonfiguration(): TSEKonfigurationResult {
   const queryClient = useQueryClient()
   const { isPending, data, error } = useQuery({
     queryKey: [TSE_KONFIGURATION_KEY],
@@ -64,7 +77,12 @@ export function checkTSESetup(
   return tseBackend.checkTSESetup(zugangsdaten)
 }
 
-export function useTSEEinrichtung() {
+interface TSEEinrichtungResult {
+  richteTSEEin: (eingabe: TSEEinrichten) => Promise<TSEEinrichtenErgebnis>
+  uebernimmTSE: (eingabe: TSEUebernehmen) => Promise<TSEEinrichtenErgebnis>
+}
+
+export function useTSEEinrichtung(): TSEEinrichtungResult {
   const queryClient = useQueryClient()
 
   const richteTSEEin = async (
@@ -88,7 +106,11 @@ export function useTSEEinrichtung() {
   return { richteTSEEin, uebernimmTSE }
 }
 
-export function useTSESignaturQueue() {
+export function useTSESignaturQueue(): {
+  queue: TSESignaturQueue | undefined
+  isPending: boolean
+  error: Error | null
+} {
   const { data, isPending, error } = useQuery({
     queryKey: [TSE_SIGNATUR_QUEUE_KEY],
     queryFn: () => tseBackend.getTSESignaturQueue(),
@@ -97,7 +119,11 @@ export function useTSESignaturQueue() {
   return { queue: data, isPending, error }
 }
 
-export function useTSEStoerungen() {
+export function useTSEStoerungen(): {
+  stoerungen: TSEStoerung[]
+  isPending: boolean
+  error: Error | null
+} {
   const {
     isPending,
     data = [],
@@ -110,7 +136,11 @@ export function useTSEStoerungen() {
   return { stoerungen: data, isPending, error }
 }
 
-export function useTSEStatus() {
+export function useTSEStatus(): {
+  tseStatus: TSEStatus | undefined
+  isPending: boolean
+  error: Error | null
+} {
   const { data, isPending, error } = useQuery({
     queryKey: [TSE_STATUS_KEY],
     queryFn: () => tseBackend.getTSEStatus(),

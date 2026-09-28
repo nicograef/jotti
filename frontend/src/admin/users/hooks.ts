@@ -9,7 +9,7 @@ export const userBackend = new UserBackend(BackendSingleton)
 
 export const ALLE_USERS_KEY = 'alle-users'
 
-export function useAllUsers() {
+export function useAllUsers(): { users: User[]; isPending: boolean } {
   const { data: users = [] as User[], isPending } = useQuery({
     queryKey: [ALLE_USERS_KEY],
     queryFn: () => userBackend.getAllUsers(),

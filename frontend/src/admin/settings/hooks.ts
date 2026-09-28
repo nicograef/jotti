@@ -5,6 +5,7 @@ import { BackendSingleton } from '@/lib/Backend'
 import {
   DruckstationBackend,
   type DruckstationConfig,
+  type FehlgeschlagenerDruckauftrag,
   type Kategorie,
 } from './DruckstationBackend'
 
@@ -14,7 +15,15 @@ export const DRUCKSTATIONEN_KEY = 'druckstationen'
 export const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY =
   'fehlgeschlagene-druckauftraege'
 
-export function useDruckstationen() {
+interface DruckstationenResult {
+  druckstationen: DruckstationConfig[]
+  isPending: boolean
+  error: Error | null
+  updateDruckstation: (newConfig: DruckstationConfig) => Promise<void>
+  testbonDrucken: (kategorie: Kategorie) => Promise<void>
+}
+
+export function useDruckstationen(): DruckstationenResult {
   const queryClient = useQueryClient()
   const {
     isPending,
@@ -43,7 +52,16 @@ export function useDruckstationen() {
   }
 }
 
-export function useFehlgeschlageneDruckauftraege() {
+interface FehlgeschlageneDruckauftraegeResult {
+  druckauftraege: FehlgeschlagenerDruckauftrag[]
+  isPending: boolean
+  error: Error | null
+  erneutVersuchen: (id: number) => Promise<void>
+  verwerfen: (id: number) => Promise<void>
+  alleVerwerfen: () => Promise<number>
+}
+
+export function useFehlgeschlageneDruckauftraege(): FehlgeschlageneDruckauftraegeResult {
   const queryClient = useQueryClient()
   const {
     isPending,

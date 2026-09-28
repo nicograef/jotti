@@ -23,7 +23,10 @@ export function useFormActionSubmit<TFieldValues extends FieldValues>({
   byCode,
   fieldErrorsByCode,
   onSuccess,
-}: UseFormActionSubmitOptions<TFieldValues>) {
+}: UseFormActionSubmitOptions<TFieldValues>): {
+  loading: boolean
+  run: (fn: () => Promise<void>) => Promise<void>
+} {
   const [loading, setLoading] = useState(false)
 
   // Ein laufender Submit ist ein offener Vorgang: Ein Reload mitten im Flug

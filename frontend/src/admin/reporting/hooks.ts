@@ -1,4 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQuery,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
@@ -20,7 +24,10 @@ export const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY =
 export const REPORT_KEY = 'report'
 export const LIVE_REPORTING_KEY = 'live-reporting'
 
-export function useAbgeschlosseneKassensitzungen() {
+export function useAbgeschlosseneKassensitzungen(): {
+  kassensitzungen: AbgeschlosseneSitzung[]
+  isPending: boolean
+} {
   const { data: kassensitzungen = [] as AbgeschlosseneSitzung[], isPending } =
     useQuery({
       queryKey: [ABGESCHLOSSENE_KASSENSITZUNGEN_KEY],
@@ -29,7 +36,10 @@ export function useAbgeschlosseneKassensitzungen() {
   return { kassensitzungen, isPending }
 }
 
-export function useReport(kassensitzungNr: number | null) {
+export function useReport(kassensitzungNr: number | null): {
+  result: ReportingData | null
+  isPending: boolean
+} {
   const { data: result = null as ReportingData | null, isPending } = useQuery({
     queryKey: [REPORT_KEY, kassensitzungNr],
     queryFn: () => reportingBackend.getReporting(kassensitzungNr ?? 0),
@@ -38,7 +48,14 @@ export function useReport(kassensitzungNr: number | null) {
   return { result, isPending }
 }
 
-export function useLiveReporting() {
+interface LiveReportingResult {
+  liveData: LiveReportingData | null
+  isPending: boolean
+  dataUpdatedAt: number
+  refetch: UseQueryResult<LiveReportingData | null>['refetch']
+}
+
+export function useLiveReporting(): LiveReportingResult {
   const {
     data: liveData = null as LiveReportingData | null,
     isPending,
@@ -53,7 +70,10 @@ export function useLiveReporting() {
   return { liveData, isPending, dataUpdatedAt, refetch }
 }
 
-export function useDsfinvkExport() {
+export function useDsfinvkExport(): {
+  exportieren: (kassensitzungNr: number | null) => void
+  isPending: boolean
+} {
   const mutation = useMutation({
     mutationFn: (kassensitzungNr: number | null) =>
       reportingBackend.exportDsfinvk(kassensitzungNr),

@@ -1,13 +1,32 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
 
-import type { EigeneUebersicht, TischSession } from './Tisch'
+import type { Bestellung } from './Bestellung'
+import type { Stornierung } from './Stornierung'
+import type {
+  AktiverTischMitFavorit,
+  EigeneUebersicht,
+  Tisch,
+  TischSession,
+} from './Tisch'
 import { TischBackend } from './TischBackend'
+import type { Umbuchung } from './Umbuchung'
+import type { Zahlung } from './Zahlung'
 
 export const tischBackend = new TischBackend(BackendSingleton)
 
-export function useAktiveTische() {
+interface QueryResult<T> {
+  isPending: boolean
+  isError: boolean
+  refetch: UseQueryResult<T>['refetch']
+}
+
+type TischHistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
+
+export function useAktiveTische(): QueryResult<Tisch[]> & {
+  tische: Tisch[]
+} {
   const {
     data: tische = [],
     isPending,
@@ -20,7 +39,9 @@ export function useAktiveTische() {
   return { tische, isPending, isError, refetch }
 }
 
-export function useTischHistorie(tischId: number) {
+export function useTischHistorie(
+  tischId: number,
+): QueryResult<TischHistorieEintrag[]> & { historie: TischHistorieEintrag[] } {
   const {
     data: historie = [],
     isPending,
@@ -41,7 +62,9 @@ const DEFAULT_TISCH_STATE: TischSession = {
   fuerMichErledigt: true,
 }
 
-export function useTischState(tischId: number) {
+export function useTischState(
+  tischId: number,
+): QueryResult<TischSession> & { state: TischSession } {
   const {
     data: state = DEFAULT_TISCH_STATE,
     isPending,
@@ -55,7 +78,11 @@ export function useTischState(tischId: number) {
 }
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
-export function useAktiveTischeMitFavoriten() {
+export function useAktiveTischeMitFavoriten(): {
+  tische: AktiverTischMitFavorit[]
+  isError: boolean
+  refetch: UseQueryResult<AktiverTischMitFavorit[]>['refetch']
+} {
   const {
     data: tische = [],
     isError,
@@ -68,7 +95,9 @@ export function useAktiveTischeMitFavoriten() {
 }
 
 export const MEINE_TISCHE_STATE_KEY = 'meine-tische-state'
-export function useMeineTischeState() {
+export function useMeineTischeState(): QueryResult<TischSession[]> & {
+  tische: TischSession[]
+} {
   const {
     data: tische = [],
     isPending,
@@ -91,7 +120,9 @@ const DEFAULT_EIGENE_UEBERSICHT: EigeneUebersicht = {
   abzugebenCents: 0,
 }
 
-export function useEigeneUebersicht() {
+export function useEigeneUebersicht(): QueryResult<EigeneUebersicht> & {
+  uebersicht: EigeneUebersicht
+} {
   const {
     data: uebersicht = DEFAULT_EIGENE_UEBERSICHT,
     isPending,
