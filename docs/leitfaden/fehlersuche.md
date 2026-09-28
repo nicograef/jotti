@@ -9,31 +9,43 @@ description: 'Wenn die grüne Adresse der lokalen jotti-Kasse auf den Handys nic
 
 ## Grüne Adresse lädt nicht (DNS-Rebind-Schutz)
 
-jotti holt für den lokalen Betrieb ein echtes Let's-Encrypt-Zertifikat auf einen
-Namen, der eure private LAN-IP enthält (z. B. `192-168-1-50.<id>.lokal.jotti.rocks`
-→ `192.168.1.50`). Das ist gewollt und sicher, aber viele Router haben einen
-DNS-Rebind-Schutz, der genau diese Kombination („öffentlicher Name zeigt auf eine
-private IP") als möglichen Angriff einstuft und blockiert. Die Antwort kommt dann im
-WLAN leer an, und das Handy kann die grüne Adresse nicht öffnen.
+jotti holt für den lokalen Betrieb ein echtes Let's-Encrypt-Zertifikat. Es lautet
+auf einen Namen, der eure private LAN-IP enthält (z. B.
+`192-168-1-50.<id>.lokal.jotti.rocks` → `192.168.1.50`).
+
+Das ist gewollt und sicher. Viele Router haben aber einen DNS-Rebind-Schutz. Er
+stuft genau diese Kombination („öffentlicher Name zeigt auf eine private IP") als
+möglichen Angriff ein und blockiert sie.
+
+Die Antwort kommt dann im WLAN leer an, und das Handy kann die grüne Adresse nicht
+öffnen.
 
 DNS-Rebind-Schutz ist die wahrscheinliche Ursache, wenn die Fallback-Adresse
-`https://<LAN-IP>` funktioniert, die grüne Adresse aber nicht, oder wenn es „auf
-Handy A geht, auf Handy B aber nicht". Bis die Ausnahme eingetragen ist, könnt ihr
-jederzeit mit der Fallback-Adresse weiterarbeiten. Der Verkauf muss nicht warten.
+`https://<LAN-IP>` funktioniert, die grüne Adresse aber nicht. Dasselbe gilt, wenn
+es „auf Handy A geht, auf Handy B aber nicht".
+
+Bis die Ausnahme eingetragen ist, könnt ihr jederzeit mit der Fallback-Adresse
+weiterarbeiten. Der Verkauf muss nicht warten.
 
 Die im Standardweg genannte Router-Ausnahme behebt das: `lokal.jotti.rocks` einmalig
 von der Prüfung ausnehmen. Danach funktioniert die grüne Adresse im gesamten
-Vereins-WLAN. Die Ausnahme erlaubt private IPs nur für diese eine Domain; der
-Rebind-Schutz für alle anderen Domains bleibt aktiv.
+Vereins-WLAN.
+
+Die Ausnahme erlaubt private IPs nur für diese eine Domain; der Rebind-Schutz für
+alle anderen Domains bleibt aktiv.
 
 ## Router-Hinweise
 
-**Fritz!Box** (häufigster Router im Vereinsumfeld): `http://fritz.box` öffnen und
-anmelden → Heimnetz → Netzwerk → Netzwerkeinstellungen → „Weitere Einstellungen" →
-Abschnitt „DNS-Rebind-Schutz". Im Feld „Diese Domain(s) ausnehmen" genau
-`lokal.jotti.rocks` eintragen und mit „Übernehmen" speichern. Falls die grüne
-Adresse danach weiterhin blockiert wird, zusätzlich den vollständigen Hostnamen aus
-der Status-Seite eintragen.
+**Fritz!Box** (häufigster Router im Vereinsumfeld):
+
+1. `http://fritz.box` öffnen und anmelden.
+2. Heimnetz → Netzwerk → Netzwerkeinstellungen → „Weitere Einstellungen" →
+   Abschnitt „DNS-Rebind-Schutz" aufrufen.
+3. Im Feld „Diese Domain(s) ausnehmen" genau `lokal.jotti.rocks` eintragen und mit
+   „Übernehmen" speichern.
+
+Falls die grüne Adresse danach weiterhin blockiert wird, zusätzlich den
+vollständigen Hostnamen aus der Status-Seite eintragen.
 
 Andere Router, gleiches Prinzip (`lokal.jotti.rocks` ausnehmen), andere
 Bezeichnungen:
@@ -48,10 +60,12 @@ Nach jeder Änderung den DNS-Dienst des Routers neu laden bzw. neu starten. Hat 
 Router keinen Rebind-Schutz, blockiert er auch nichts, dann liegt die Ursache
 woanders (siehe unten).
 
-Nach einem vollständigen Router-Neustart (z. B. nach einem Stromausfall) wendet
-eine Fritz!Box die eingetragene Ausnahme erst an, wenn der Router wieder Internet
-hat. Ohne Internet bleibt die grüne Adresse so lange blockiert, obwohl die
-Ausnahme eingetragen ist. Solange mit der [Fallback-Adresse](#fallback-adresse)
+Nach einem vollständigen Router-Neustart (z. B. nach einem Stromausfall) gilt
+für die Fritz!Box eine Besonderheit. Sie wendet die eingetragene Ausnahme erst an,
+wenn der Router wieder Internet hat.
+
+Ohne Internet bleibt die grüne Adresse so lange blockiert, obwohl die Ausnahme
+eingetragen ist. Solange mit der [Fallback-Adresse](#fallback-adresse)
 weiterarbeiten — der Verkauf muss nicht warten.
 
 ## Weitere Stolpersteine
@@ -73,29 +87,34 @@ Kassenrechners erreichen kann:
 ## Fallback-Adresse
 
 Die Fallback-Adresse `https://<LAN-IP>` funktioniert unabhängig vom
-DNS-Rebind-Schutz und auch ohne Internet. Sie zeigt beim ersten Zugriff pro Gerät
-eine einmalige Browserwarnung (selbstsigniertes Zertifikat), die bestätigt werden
-muss. Danach ist der Verkauf normal möglich.
+DNS-Rebind-Schutz und auch ohne Internet.
+
+Sie zeigt beim ersten Zugriff pro Gerät eine einmalige Browserwarnung
+(selbstsigniertes Zertifikat), die bestätigt werden muss. Danach ist der Verkauf
+normal möglich.
 
 ## Internet oder TSE fällt aus
 
 Weiterverkaufen ist erlaubt, ihr müsst den Verkauf nicht stoppen. jotti bucht
-ganz normal weiter und signiert alle in der Ausfallzeit gebuchten Vorgänge
-automatisch nach, sobald die Verbindung zur TSE zurück ist. Die Störung wird
-dabei automatisch dokumentiert; nachsignierte Belege tragen den Vermerk
-„Nachsigniert am …". Ihr müsst nichts weiter tun, nur die Internetverbindung
-wiederherstellen (Router prüfen, ggf. neu starten).
+ganz normal weiter. Alle in der Ausfallzeit gebuchten Vorgänge signiert es
+automatisch nach, sobald die Verbindung zur TSE zurück ist.
+
+Die Störung wird dabei automatisch dokumentiert; nachsignierte Belege tragen den
+Vermerk „Nachsigniert am …". Ihr müsst nichts weiter tun, nur die
+Internetverbindung wiederherstellen (Router prüfen, ggf. neu starten).
 
 ## Nach einem Update startet jotti nicht mehr
 
-Sehr selten passt nach einem Update (meist von einer sehr alten Version) das in der
-Datenbank gespeicherte Passwort nicht mehr zum Installations-Schlüssel. jotti
-startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab. Eure
-Daten sind dabei nicht verloren. Es gibt zwei datenerhaltende Wege zurück:
+Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
+nicht mehr zum Installations-Schlüssel. Meist betrifft das Updates von einer sehr
+alten Version.
+
+jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab.
+Eure Daten sind dabei nicht verloren. Es gibt zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet
-   mit dem Hinweis, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
+   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern. Am Ende
+   weist es darauf hin, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
    schadet nicht. Danach einmal neu anmelden.
 2. Habt ihr noch die **`.env` aus der alten Installation**, kopiert ihr sie nach
    `C:\ProgramData\jotti\.env` und startet `jotti-start.exe` erneut. Dann verwendet
