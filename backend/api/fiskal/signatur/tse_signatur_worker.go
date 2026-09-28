@@ -146,7 +146,7 @@ func (w *tseSignaturWorker) ensureLock(ctx context.Context) bool {
 
 	if w.lockConn != nil {
 		if err := w.lockConn.PingContext(ctx); err != nil {
-			w.lockConn.Close() //nolint:errcheck,gosec // Connection ist bereits abgerissen
+			w.lockConn.Close() //nolint:errcheck,gosec // connection is already broken
 			w.lockConn = nil
 			w.lockHeld = false
 		} else if w.lockHeld {
@@ -165,7 +165,7 @@ func (w *tseSignaturWorker) ensureLock(ctx context.Context) bool {
 
 	if err := w.lockConn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", tseSignaturWorkerLockKey).Scan(&w.lockHeld); err != nil {
 		log.Error().Err(err).Msg("TSE-Signatur-Worker: Advisory Lock nicht pruefbar")
-		w.lockConn.Close() //nolint:errcheck,gosec // Connection wird verworfen
+		w.lockConn.Close() //nolint:errcheck,gosec // connection is discarded
 		w.lockConn = nil
 		w.lockHeld = false
 		return false
