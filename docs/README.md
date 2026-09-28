@@ -3,6 +3,7 @@
 Welches Dokument welche Frage beantwortet. Große Dokumente gezielt abschnittsweise lesen.
 
 - [anforderungen.md](anforderungen.md): Welche Funktion trägt welche Anforderungs-ID, und warum fehlen die Nicht-Ziele?
+- [backlog.md](backlog.md): Welche Produktentscheidungen und Folgekandidaten sind offen?
 - [compliance.md](compliance.md): Was verlangen KassenSichV, GoBD, DSFinV-K und ELSTER von Entwickler und Betreiber?
 - [decisions.md](decisions.md): Welche Architektur- und Produktentscheidungen sind bindend?
 - [handbuch.md](handbuch.md): Wie ist jotti gebaut: Bounded Contexts, Invarianten, Event Sourcing, Schichten, Bereiche und Rollen?
