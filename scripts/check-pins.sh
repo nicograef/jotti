@@ -12,6 +12,8 @@ set -euo pipefail
 # it was shipped with. Compared per image name is the tag up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
 # its own version and collides with a tag pin of the same image.
+# Every `uses:` in .github/workflows/*.yml names a full commit SHA plus a
+# `# vX.Y.Z` comment: a tag can be moved to other code after review.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -253,8 +255,27 @@ if [ "${#pm_values[@]}" -gt 1 ]; then
   done
 fi
 
+# Local actions (./path) come from the checked-out commit itself.
+while IFS=$'\t' read -r loc ref; do
+  error "$loc: action not pinned to a commit SHA with a # vX.Y.Z comment: $ref"
+  violations=$((violations + 1))
+done < <(
+  for file in "${workflow_files[@]+"${workflow_files[@]}"}"; do
+    awk -v file="$file" '
+      match($0, /^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*/) {
+        ref = substr($0, RSTART + RLENGTH)
+        gsub(/["'\'']/, "", ref)
+        if (ref ~ /^\.\//) next
+        if (ref !~ /^[^[:space:]@]+@[0-9a-f]{40}[[:space:]]+#[[:space:]]*v[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*$/) {
+          print file ":" FNR "\t" ref
+        }
+      }
+    ' "$file"
+  done
+)
+
 if [ "$violations" -gt 0 ]; then
   fatal "$violations version pin violation(s) found."
 fi
 
-info "Every third-party image and all three packageManager fields carry one pinned version."
+info "Every third-party image, action and all three packageManager fields carry one pinned version."
