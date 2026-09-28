@@ -12,7 +12,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
+import { setViewportWidth } from '@/test/render'
 
+import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
 import { DirektverkaufTab } from './direktverkauf/DirektverkaufTab'
 import { ErfolgsPop } from './ErfolgsPop'
 import { ServiceDock } from './ServiceDock'
@@ -21,12 +24,6 @@ import { ServiceDock } from './ServiceDock'
 // ihn nicht aufrufen (prüft der Flow-Test unten).
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
-}))
-
-// Der Buchungsflow-Test unten prüft den Handy-Pfad (Dock-Button plus
-// Bottom-Sheet); ab lg trägt die feste Spalte den Abschluss.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => true,
 }))
 
 describe('ErfolgsPop', () => {
@@ -112,17 +109,17 @@ const testProdukt: Produkt = {
 // Spiegelt die Verdrahtung der Buchungsseiten: Der Erfolg öffnet den Pop, der
 // Refetch (hier `reload`) läuft erst beim Schließen.
 function DirektverkaufMitPop({
-  direktverkaufTaetigen,
+  backend,
   reload,
 }: {
-  direktverkaufTaetigen: () => Promise<void>
+  backend: DirektverkaufBackend
   reload: () => void
 }) {
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   return (
     <ServiceDock leiste={null}>
       <DirektverkaufTab
-        backend={{ direktverkaufTaetigen }}
+        backend={backend}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={(nachricht) => {
@@ -142,18 +139,25 @@ function DirektverkaufMitPop({
 }
 
 describe('Erfolgs-Pop im Buchungsflow', () => {
+  // Der Buchungsflow-Test unten prüft den Handy-Pfad (Dock-Button plus
+  // Bottom-Sheet); ab lg trägt die feste Spalte den Abschluss.
+  beforeEach(() => {
+    setViewportWidth(375)
+  })
+
   afterEach(() => {
     cleanup()
+    setViewportWidth(1024)
   })
 
   it('öffnet den Pop ohne Erfolgs-Toast und lädt erst nach dem Schließen nach', async () => {
     const { toast } = await import('sonner')
     const user = userEvent.setup()
     const reload = vi.fn()
-    const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
+    const fake = new FakeBackend().respond('service/direktverkauf-taetigen', {})
     render(
       <DirektverkaufMitPop
-        direktverkaufTaetigen={direktverkaufTaetigen}
+        backend={new DirektverkaufBackend(fake)}
         reload={reload}
       />,
     )

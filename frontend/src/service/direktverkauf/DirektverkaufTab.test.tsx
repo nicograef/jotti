@@ -1,11 +1,13 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useIsMobile } from '@/hooks/use-mobile'
 import type { Produkt } from '@/lib/produktSchemas'
+import { FakeBackend } from '@/test/FakeBackend'
+import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
+import { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufTab } from './DirektverkaufTab'
 
 vi.mock('sonner', () => ({
@@ -15,14 +17,18 @@ vi.mock('sonner', () => ({
 // Standardmäßig Handy-Layout (Dock-Aktionsbutton plus Bottom-Sheet); ein Test
 // unten schaltet auf Desktop, um die Verdrahtung der festen Spalte zu prüfen.
 // Das container-neutrale Verhalten der Spalte deckt DirektverkaufAbschluss.test.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: vi.fn(() => true),
-}))
+beforeEach(() => {
+  setViewportWidth(375)
+})
 
 afterEach(() => {
   cleanup()
-  vi.mocked(useIsMobile).mockReturnValue(true)
+  setViewportWidth(1024)
 })
+
+function backend(): FakeBackend {
+  return new FakeBackend().respond('service/direktverkauf-taetigen', {})
+}
 
 const testProdukt: Produkt = {
   id: 1,
@@ -45,20 +51,20 @@ const testProdukt: Produkt = {
 }
 
 function renderDirektverkauf() {
-  const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
+  const fake = backend()
   // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
   // DirektverkaufTab hier in ein Dock eingebettet (leiste bleibt leer).
   render(
     <ServiceDock leiste={null}>
       <DirektverkaufTab
-        backend={{ direktverkaufTaetigen }}
+        backend={new DirektverkaufBackend(fake)}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}
       />
     </ServiceDock>,
   )
-  return { direktverkaufTaetigen }
+  return { fake }
 }
 
 describe('DirektverkaufTab', () => {
@@ -72,7 +78,7 @@ describe('DirektverkaufTab', () => {
 
   it('schließt einen Verkauf über den Drawer mit genau einem Backend-Call ab und setzt zurück', async () => {
     const user = userEvent.setup()
-    const { direktverkaufTaetigen } = renderDirektverkauf()
+    const { fake } = renderDirektverkauf()
 
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
@@ -89,9 +95,9 @@ describe('DirektverkaufTab', () => {
     )
 
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+      expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(1)
     })
-    expect(direktverkaufTaetigen).toHaveBeenCalledWith(
+    expect(fake.bodies('service/direktverkauf-taetigen')).toEqual([
       expect.objectContaining({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         verkaufId: expect.stringMatching(
@@ -100,7 +106,7 @@ describe('DirektverkaufTab', () => {
         positionen: [{ produktId: 1, varianteId: 1, menge: 1 }],
         kommentar: '',
       }),
-    )
+    ])
 
     await waitFor(() => {
       expect(dialog).not.toBeInTheDocument()
@@ -109,13 +115,12 @@ describe('DirektverkaufTab', () => {
   })
 
   it('rendert ab lg die feste Abschluss-Spalte statt Dock und Drawer', async () => {
-    vi.mocked(useIsMobile).mockReturnValue(false)
+    setViewportWidth(1024)
     const user = userEvent.setup()
-    const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
     render(
       <DirektverkaufTab
-        backend={{ direktverkaufTaetigen }}
+        backend={new DirektverkaufBackend(backend())}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}

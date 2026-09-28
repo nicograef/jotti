@@ -1,20 +1,28 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+import { signIn, signOut } from '@/test/auth'
+import { FakeBackend } from '@/test/FakeBackend'
 
 import { type User } from './User'
+import { UserBackend } from './UserBackend'
 import { Users } from './Users'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
-// Der eigene Account kommt aus dem Auth-Singleton; im Test ist die userId 1.
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: {
-    get userId() {
-      return 1
-    },
-  },
-}))
+// The own account comes from the auth singleton; in the test the userId is 1.
+beforeEach(() => {
+  signIn({ userId: 1, role: 'admin' })
+})
 
 // Radix DropdownMenu misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
 class ResizeObserverStub {
@@ -46,24 +54,23 @@ function user(overrides: Partial<User> = {}): User {
   }
 }
 
-function backend() {
-  return {
-    activateUser: vi.fn().mockResolvedValue(undefined),
-    deactivateUser: vi.fn().mockResolvedValue(undefined),
-    deleteUser: vi.fn().mockResolvedValue(undefined),
-  }
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/activate-user', {})
+    .respond('admin/deactivate-user', {})
+    .respond('admin/delete-user', {})
 }
 
 function renderUsers(
   users: User[],
   overrides: Partial<Parameters<typeof Users>[0]> = {},
 ) {
-  const be = overrides.backend ?? backend()
+  const fake = backend()
   const onResetPassword = vi.fn().mockResolvedValue(undefined)
   render(
     <Users
       loading={false}
-      backend={be}
+      backend={new UserBackend(fake)}
       users={users}
       onEdit={vi.fn()}
       onStatusChange={vi.fn()}
@@ -72,10 +79,13 @@ function renderUsers(
       {...overrides}
     />,
   )
-  return { be, onResetPassword }
+  return { fake, onResetPassword }
 }
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  signOut()
+})
 
 describe('Users', () => {
   it('renders labelled role badges instead of star symbols', () => {
@@ -139,12 +149,12 @@ describe('Users', () => {
 
   it('deactivates a user via the status switch', async () => {
     const u = userEvent.setup()
-    const { be } = renderUsers([
+    const { fake } = renderUsers([
       user({ id: 7, name: 'Felix Maier', status: 'active' }),
     ])
 
     await u.click(screen.getByRole('switch', { name: /deaktivieren/i }))
 
-    expect(be.deactivateUser).toHaveBeenCalledWith(7)
+    expect(fake.bodies('admin/deactivate-user')).toEqual([{ id: 7 }])
   })
 })

@@ -1,57 +1,64 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { BackendError } from '@/lib/Backend'
+import type { Produkt } from '@/lib/produktSchemas'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { DirektverkaufPage } from './DirektverkaufPage'
 
-const testState = vi.hoisted(() => ({
-  produkteError: false,
-  historieError: false,
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
 }))
-const reloadProdukte = vi.hoisted(() => vi.fn())
 
-vi.mock('@/lib/Backend', () => ({
-  BackendSingleton: {},
-}))
+const testProdukt: Produkt = {
+  id: 1,
+  name: 'Bratwurst',
+  kategorie: 'essen',
+  steuersatz: 'ermaessigt',
+  status: 'active',
+  varianten: [
+    {
+      id: 1,
+      name: 'Normal',
+      preisCents: 350,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
 
 // Handy-Pfad: der Fehlerzustand ist in beiden Layouts derselbe.
-vi.mock('@/hooks/use-mobile', () => ({
-  useIsMobile: () => true,
-}))
-
-vi.mock('../product/hooks', () => ({
-  useAktiveProdukte: () => ({
-    produkte: [],
-    isPending: false,
-    isError: testState.produkteError,
-    refetch: reloadProdukte,
-  }),
-}))
-
-vi.mock('./hooks', () => ({
-  direktverkaufBackend: {},
-  useDirektverkaufHistorie: () => ({
-    historie: [],
-    isPending: false,
-    isError: testState.historieError,
-    refetch: vi.fn(),
-  }),
-}))
+beforeEach(() => {
+  setViewportWidth(375)
+})
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  testState.produkteError = false
-  testState.historieError = false
+  setViewportWidth(1024)
 })
 
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('service/get-aktive-produkte', { produkte: [] })
+    .respond('service/get-direktverkauf-historie', { historie: [] })
+}
+
 describe('DirektverkaufPage', () => {
-  it('zeigt bei Produkt-Fehler einen Fehlerzustand statt der Leer-Defaults', () => {
-    testState.produkteError = true
-    render(<DirektverkaufPage />)
+  it('zeigt bei Produkt-Fehler einen Fehlerzustand statt der Leer-Defaults', async () => {
+    renderWithBackend(
+      <DirektverkaufPage />,
+      backend().fail('service/get-aktive-produkte'),
+    )
 
     expect(
-      screen.getByText('Produkte konnten nicht geladen werden'),
+      await screen.findByText('Produkte konnten nicht geladen werden'),
     ).toBeInTheDocument()
     // Der Leer-Default (Verkaufs-Summe 0,00 €) darf bei einem Fehler nicht
     // erscheinen — das Sortiment wirkt sonst leer und der Verkauf abgerechnet.
@@ -59,24 +66,39 @@ describe('DirektverkaufPage', () => {
   })
 
   it('lädt die Produkte über „Erneut versuchen" neu', async () => {
-    testState.produkteError = true
     const user = userEvent.setup()
-    render(<DirektverkaufPage />)
+    const getAktiveProdukte = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new BackendError(400, 'test_fehler')
+      })
+      .mockReturnValue({ produkte: [testProdukt] })
+    renderWithBackend(
+      <DirektverkaufPage />,
+      backend().respond('service/get-aktive-produkte', getAktiveProdukte),
+    )
 
-    await user.click(screen.getByRole('button', { name: 'Erneut versuchen' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Erneut versuchen' }),
+    )
 
-    expect(reloadProdukte).toHaveBeenCalled()
+    expect(await screen.findByText('Bratwurst')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Produkte konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
   })
 
   it('zeigt bei Historie-Fehler einen Fehlerzustand im Historie-Reiter', async () => {
-    testState.historieError = true
     const user = userEvent.setup()
-    render(<DirektverkaufPage />)
+    renderWithBackend(
+      <DirektverkaufPage />,
+      backend().fail('service/get-direktverkauf-historie'),
+    )
 
     await user.click(screen.getByRole('tab', { name: 'Historie' }))
 
     expect(
-      screen.getByText('Historie konnte nicht geladen werden'),
+      await screen.findByText('Historie konnte nicht geladen werden'),
     ).toBeInTheDocument()
   })
 })

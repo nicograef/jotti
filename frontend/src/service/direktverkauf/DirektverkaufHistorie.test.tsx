@@ -1,26 +1,40 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { signIn, signOut } from '@/test/auth'
+import { FakeBackend } from '@/test/FakeBackend'
 
 import type { DirektverkaufHistorieEintrag } from './Direktverkauf'
+import { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufHistorie } from './DirektverkaufHistorie'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
-vi.mock('@/lib/Auth', () => ({
-  AuthSingleton: { canCancel: true },
-}))
+// Serviceleitung so the cancellation path (canCancel) applies.
+beforeEach(() => {
+  signIn({ role: 'serviceleitung' })
+})
 
 afterEach(() => {
   cleanup()
+  signOut()
 })
 
-const positionId = '22222222-2222-2222-2222-222222222222'
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('serviceleitung/direktverkauf-stornieren', {})
+    .respond('service/beleg-drucken', { status: 'eingereiht' })
+}
+
+const verkaufId = '00000000-0000-4000-8000-000000000001'
+const positionId = '00000000-0000-4000-8000-000000000002'
+const stornierungId = '00000000-0000-4000-8000-000000000003'
 
 const verkauf: DirektverkaufHistorieEintrag = {
-  verkaufId: '11111111-1111-1111-1111-111111111111',
+  verkaufId,
   userName: 'Anna',
   getaetigtAm: '2026-06-08T10:00:00Z',
   positionen: [
@@ -69,7 +83,7 @@ describe('DirektverkaufHistorie', () => {
           menge: 2,
         },
         {
-          positionId: '44444444-4444-4444-4444-444444444444',
+          positionId: '00000000-0000-4000-8000-000000000004',
           varianteId: 2,
           produktName: 'Brezel',
           varianteName: '',
@@ -84,10 +98,7 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[mehrpositionenVerkauf]}
         historieLoading={false}
-        backend={{
-          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
-          kassenbelegDrucken: vi.fn().mockResolvedValue('eingereiht'),
-        }}
+        backend={new DirektverkaufBackend(backend())}
         onErfolg={vi.fn()}
       />,
     )
@@ -97,14 +108,13 @@ describe('DirektverkaufHistorie', () => {
 
   it('cancels selected positions with exactly one backend call', async () => {
     const user = userEvent.setup()
-    const direktverkaufStornieren = vi.fn().mockResolvedValue(undefined)
-    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    const fake = backend()
     const onErfolg = vi.fn()
     render(
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
-        backend={{ direktverkaufStornieren, kassenbelegDrucken }}
+        backend={new DirektverkaufBackend(fake)}
         onErfolg={onErfolg}
       />,
     )
@@ -123,13 +133,17 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(direktverkaufStornieren).toHaveBeenCalledTimes(1)
+      expect(
+        fake.bodies('serviceleitung/direktverkauf-stornieren'),
+      ).toHaveLength(1)
     })
-    expect(direktverkaufStornieren).toHaveBeenCalledWith({
-      verkaufId: '11111111-1111-1111-1111-111111111111',
-      positionen: [{ positionId, menge: 1 }],
-      kommentar: 'Rückgabe',
-    })
+    expect(fake.bodies('serviceleitung/direktverkauf-stornieren')).toEqual([
+      {
+        verkaufId,
+        positionen: [{ positionId, menge: 1 }],
+        kommentar: 'Rückgabe',
+      },
+    ])
     // Statt sofortigem Refetch meldet der Storno den Erfolg über den Pop-Text;
     // der Refetch folgt beim Schließen des Pops (DirektverkaufPage).
     expect(onErfolg).toHaveBeenCalledWith('Stornierung gebucht.')
@@ -137,15 +151,12 @@ describe('DirektverkaufHistorie', () => {
 
   it('triggers kassenbeleg print for a sale with exactly one backend call', async () => {
     const user = userEvent.setup()
-    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    const fake = backend()
     render(
       <DirektverkaufHistorie
         historie={[verkauf]}
         historieLoading={false}
-        backend={{
-          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
-          kassenbelegDrucken,
-        }}
+        backend={new DirektverkaufBackend(fake)}
         onErfolg={vi.fn()}
       />,
     )
@@ -156,23 +167,21 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(kassenbelegDrucken).toHaveBeenCalledTimes(1)
+      expect(fake.bodies('service/beleg-drucken')).toHaveLength(1)
     })
-    expect(kassenbelegDrucken).toHaveBeenCalledWith({
-      verkaufId: '11111111-1111-1111-1111-111111111111',
-    })
+    expect(fake.bodies('service/beleg-drucken')).toEqual([{ verkaufId }])
   })
 
   it('triggers stornobeleg print with the stornierungId of the cancellation', async () => {
     const user = userEvent.setup()
-    const kassenbelegDrucken = vi.fn().mockResolvedValue('eingereiht')
+    const fake = backend()
     const stornierterVerkauf: DirektverkaufHistorieEintrag = {
       ...verkauf,
       offenePositionen: [],
       gesamtStorniertCents: 1000,
       stornierungen: [
         {
-          stornierungId: '33333333-3333-3333-3333-333333333333',
+          stornierungId,
           storniertAm: '2026-06-08T11:00:00Z',
           gesamtStornierungCents: 1000,
         },
@@ -182,10 +191,7 @@ describe('DirektverkaufHistorie', () => {
       <DirektverkaufHistorie
         historie={[stornierterVerkauf]}
         historieLoading={false}
-        backend={{
-          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
-          kassenbelegDrucken,
-        }}
+        backend={new DirektverkaufBackend(fake)}
         onErfolg={vi.fn()}
       />,
     )
@@ -196,11 +202,10 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(kassenbelegDrucken).toHaveBeenCalledTimes(1)
+      expect(fake.bodies('service/beleg-drucken')).toHaveLength(1)
     })
-    expect(kassenbelegDrucken).toHaveBeenCalledWith({
-      verkaufId: '11111111-1111-1111-1111-111111111111',
-      stornierungId: '33333333-3333-3333-3333-333333333333',
-    })
+    expect(fake.bodies('service/beleg-drucken')).toEqual([
+      { verkaufId, stornierungId },
+    ])
   })
 })
