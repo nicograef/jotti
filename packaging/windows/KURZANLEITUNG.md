@@ -37,9 +37,10 @@ Ein **Kassenrechner** im WLAN, die Helfer bedienen jotti auf ihren **Handys**.
 
 Beim ersten Start legt jotti automatisch den Admin-Benutzer an und erzeugt
 einen einmaligen Anmelde-Code aus 6 Ziffern. Der Code steht in der
-Startkonsole (dem Fenster von `jotti-start.exe`). Ist die Konsole schon
-geschlossen, jotti einfach neu starten, dann wird ein neuer Code erzeugt und
-angezeigt.
+Startkonsole (dem Fenster von `jotti-start.exe`).
+
+Ist die Konsole schon geschlossen, jotti einfach neu starten. Dann wird ein
+neuer Code erzeugt und angezeigt.
 
 Die jotti-Oberfläche öffnen (die Zugangsadresse steht auf der Status-Seite
 `http://localhost:8484`) und **nicht** normal anmelden, sondern „Neues
@@ -59,7 +60,7 @@ ihr danach selbst im Admin-Bereich an.
 - Den **QR-Code** von der Status-Seite scannen oder die angezeigte **grüne
   Adresse** eintippen → **grünes Schloss, keine Warnung**, anmelden.
 - **Falls die grüne Adresse (noch) nicht geht:** Die Status-Seite nennt dann den
-  **Fallback** `https://<LAN-IP>` — beim ersten Zugriff pro Gerät einmal die
+  **Fallback** `https://<LAN-IP>`. Beim ersten Zugriff pro Gerät einmal die
   Browserwarnung bestätigen, danach anmelden. Öffnet ein Handy die grüne Adresse
   gar nicht, blockiert vermutlich der Router (DNS-Rebind-Schutz). Die
   Router-Anleitung verlinkt die Status-Seite; sie steht auch online unter
@@ -69,9 +70,10 @@ ihr danach selbst im Admin-Bereich an.
 
 Der gedruckte Kassenbeleg braucht einen Drucker (siehe
 <https://jotti.rocks/docs/leitfaden/haeufige-fragen/>). Für den Bondruck
-zusätzlich **`jotti-relay.exe`** doppelklicken. Es läuft ohne
-Administratorrechte und nimmt seine Zugangsdaten aus der `.env`, die
-`jotti-start.exe` angelegt hat (in `C:\ProgramData\jotti`).
+zusätzlich **`jotti-relay.exe`** doppelklicken.
+
+Es läuft ohne Administratorrechte. Seine Zugangsdaten nimmt es aus der `.env`,
+die `jotti-start.exe` angelegt hat (in `C:\ProgramData\jotti`).
 
 Außerdem im Admin-Bereich unter „Bondrucker" je Station die „Drucker-IP"
 eintragen — auch für den Kassenbeleg. Ohne konfigurierte Station wird nichts
@@ -80,7 +82,7 @@ gedruckt.
 ## Probleme
 
 - **„Port 80 ist durch ‚X' (PID …) belegt"** (oder Port 443): Das genannte
-  Programm beenden (häufig Skype, IIS oder eine VM-Software) und
+  Programm beenden (häufig Skype, IIS oder eine VM-Software). Danach
   `jotti-start.exe` erneut starten.
 - **Fenster schließt sich zu schnell:** Es bleibt bis zum Enter-Druck offen;
   steht oben eine Fehlermeldung, diese zuerst lesen.
@@ -97,11 +99,14 @@ Zertifikate bleiben erhalten** und stehen beim nächsten Start wieder bereit.
 ## Am nächsten Festtag
 
 Wieder dieselben zwei Doppelklicks (`jotti-start.exe`, bei Bedarf
-`jotti-relay.exe`) inklusive UAC-Bestätigung. Hat der Rechner eine neue
-Netzwerk-Adresse, **zeigt die Status-Seite sie erneut** — für die grüne Adresse
-gilt weiterhin dasselbe Zertifikat, also **keine neue Warnung**. Auf der
-Fallback-Adresse bestätigt jedes Gerät die Browserwarnung für die neue Adresse
-einmal erneut.
+`jotti-relay.exe`) inklusive UAC-Bestätigung.
+
+Hat der Rechner eine neue Netzwerk-Adresse, **zeigt die Status-Seite sie
+erneut**. Für die grüne Adresse gilt weiterhin dasselbe Zertifikat, also
+**keine neue Warnung**.
+
+Auf der Fallback-Adresse bestätigt jedes Gerät die Browserwarnung für die neue
+Adresse einmal erneut.
 
 ## Daten nach dem Fest sichern (optional)
 
@@ -139,14 +144,18 @@ Download-Link, so aktualisiert ihr jotti in drei Schritten:
 
 **Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
 Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
-Programmordners (in Docker-Volumes). Egal wohin ihr entpackt — der Schlüssel folgt
-den Daten, jotti findet beides beim Start wieder. Den alten Ordner erst löschen,
-wenn das nächste Fest gelaufen ist: bis dahin liegt darin die `jotti-start.exe` des
-vorherigen Release — der Rückweg, falls das Update Ärger macht.
+Programmordners (in Docker-Volumes).
+
+Egal wohin ihr entpackt — der Schlüssel folgt den Daten, jotti findet beides
+beim Start wieder.
+
+Den alten Ordner erst löschen, wenn das nächste Fest gelaufen ist. Bis dahin
+liegt darin die `jotti-start.exe` des vorherigen Release — der Rückweg, falls
+das Update Ärger macht.
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht **alle**
 > Docker-Volumes — und damit **Daten, Installations-Schlüssel und das grüne
-> Zertifikat** unwiderruflich (auch ein Update bringt sie dann nicht zurück). Zum
+> Zertifikat** unwiderruflich. Auch ein Update bringt sie dann nicht zurück. Zum
 > Beenden immer **`jotti-stop.cmd`** verwenden: das stoppt nur die Container und
 > lässt alles erhalten.
 
@@ -156,19 +165,21 @@ Ablauf beschreibt <https://jotti.rocks/docs/leitfaden/aktualisieren/>.
 
 ## Wenn nach einem Update niemand mehr hineinkommt
 
-Sehr selten — meist nach einem Update von einer **sehr alten** Version — passt das
-in der Datenbank gespeicherte Passwort nicht mehr zum aktuellen
-Installations-Schlüssel. jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab.
-**Eure Daten sind dabei nicht verloren** — nur das Schloss passt nicht zum
+Sehr selten passt das in der Datenbank gespeicherte Passwort nicht mehr zum
+aktuellen Installations-Schlüssel. Das passiert meist nach einem Update von
+einer **sehr alten** Version.
+
+jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung
+ab. **Eure Daten sind dabei nicht verloren** — nur das Schloss passt nicht zum
 Schlüssel. Zwei datenerhaltende Wege zurück:
 
 1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern, und endet
-   mit dem Hinweis, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
+   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern. Am Ende
+   weist es darauf hin, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
    schadet nicht. Danach einmal **neu anmelden**.
 2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
-   **`C:\ProgramData\jotti\.env`** und startet `jotti-start.exe` erneut — dann
+   **`C:\ProgramData\jotti\.env`** und startet `jotti-start.exe` erneut. Dann
    verwendet jotti wieder den ursprünglichen Schlüssel.
 
 > 🔒 **Sicherheit:** Dieser Windows-Aufbau läuft nur im lokalen WLAN. Öffnet ihn
