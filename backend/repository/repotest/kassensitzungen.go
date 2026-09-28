@@ -2,56 +2,62 @@ package repotest
 
 import (
 	"context"
+	"slices"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-// NewKassensitzungenRepo creates a new mock repository with an optional open Kassensitzung and error.
-func NewKassensitzungenRepo(offeneKS *kasse.Kassensitzung, err error) *KassensitzungenRepo {
-	return &KassensitzungenRepo{
-		offeneKS: offeneKS,
-		err:      err,
-	}
+// NewKassensitzungenRepo creates a fake holding a copy of ks (nil: no Kassensitzung) that
+// returns err from every read and write.
+func NewKassensitzungenRepo(ks *kasse.Kassensitzung, err error) *KassensitzungenRepo {
+	m := &KassensitzungenRepo{err: err}
+	m.SetOffeneKassensitzung(ks)
+	return m
 }
 
+// KassensitzungenRepo keeps its own copy of the Kassensitzung, so the status transitions
+// never touch a fixture shared between tests.
 type KassensitzungenRepo struct {
 	offeneKS *kasse.Kassensitzung
 	err      error
-
-	// Abschluss-Barriere: Aufrufzähler, um Reset/Resume zu testen. Die Setter mutieren den
-	// übergebenen Kassensitzungs-Zeiger bewusst nicht (er ist in Tests oft ein geteiltes Fixture).
-	WirdAbgeschlossenCalls int
-	OffenCalls             int
 }
 
-// GetAktiveKassensitzung returns the mock Kassensitzung when it is 'offen' or 'wird_abgeschlossen'
-// (both count as active) and nil when it is closed.
+// GetAktiveKassensitzung returns a copy of the Kassensitzung when it is 'offen' or
+// 'wird_abgeschlossen' (both count as active) and nil when it is closed.
 func (m *KassensitzungenRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	if m.offeneKS != nil && m.offeneKS.Status == kasse.KassensitzungAbgeschlossen {
+	if m.offeneKS == nil || m.offeneKS.Status == kasse.KassensitzungAbgeschlossen {
 		return nil, nil
 	}
-	return m.offeneKS, nil
+	ks := *m.offeneKS
+	return &ks, nil
 }
 
-// SetKassensitzungWirdAbgeschlossen records the barrier call and reports one affected row.
-func (m *KassensitzungenRepo) SetKassensitzungWirdAbgeschlossen(_ context.Context, _ int) (int64, error) {
-	m.WirdAbgeschlossenCalls++
+// SetKassensitzungWirdAbgeschlossen sets the barrier like its query: only an active
+// Kassensitzung with this zNr changes, and the affected row count reports it.
+func (m *KassensitzungenRepo) SetKassensitzungWirdAbgeschlossen(_ context.Context, zNr int) (int64, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
-	return 1, nil
+	return m.setStatus(zNr, kasse.KassensitzungWirdAbgeschlossen, kasse.KassensitzungOffen, kasse.KassensitzungWirdAbgeschlossen), nil
 }
 
-// SetKassensitzungOffen records the reset call and reports one affected row.
-func (m *KassensitzungenRepo) SetKassensitzungOffen(_ context.Context, _ int) (int64, error) {
-	m.OffenCalls++
+// SetKassensitzungOffen resets the barrier like its query: only from 'wird_abgeschlossen'.
+func (m *KassensitzungenRepo) SetKassensitzungOffen(_ context.Context, zNr int) (int64, error) {
 	if m.err != nil {
 		return 0, m.err
 	}
-	return 1, nil
+	return m.setStatus(zNr, kasse.KassensitzungOffen, kasse.KassensitzungWirdAbgeschlossen), nil
+}
+
+func (m *KassensitzungenRepo) setStatus(zNr int, neu kasse.KassensitzungStatus, von ...kasse.KassensitzungStatus) int64 {
+	if m.offeneKS == nil || m.offeneKS.ZNr != zNr || !slices.Contains(von, m.offeneKS.Status) {
+		return 0
+	}
+	m.offeneKS.Status = neu
+	return 1
 }
 
 func (m *KassensitzungenRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
@@ -74,7 +80,11 @@ func (m *KassensitzungenRepo) GetAllKassensitzungen(_ context.Context) ([]kasse.
 	return []kasse.Kassensitzung{}, nil
 }
 
-// SetOffeneKassensitzung sets the open Kassensitzung for the mock.
+// SetOffeneKassensitzung replaces the fake's Kassensitzung with a copy of ks (nil: none).
 func (m *KassensitzungenRepo) SetOffeneKassensitzung(ks *kasse.Kassensitzung) {
-	m.offeneKS = ks
+	m.offeneKS = nil
+	if ks != nil {
+		kopie := *ks
+		m.offeneKS = &kopie
+	}
 }

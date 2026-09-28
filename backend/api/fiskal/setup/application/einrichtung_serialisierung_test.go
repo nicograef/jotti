@@ -124,8 +124,8 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	if fabrikAufrufe != 0 {
 		t.Fatalf("expected the rejected calls to never build a fiskaly client, got %d", fabrikAufrufe)
 	}
-	if zweiterClient.CreateTSSCalls != 0 {
-		t.Fatalf("expected no second TSS to be created, got %d calls", zweiterClient.CreateTSSCalls)
+	if len(zweiterClient.ErstellteTSS) != 0 {
+		t.Fatalf("expected no second TSS to be created, got %+v", zweiterClient.ErstellteTSS)
 	}
 	if zweiterRepo.gespeichert != nil {
 		t.Fatalf("expected the rejected calls to save nothing, got %+v", zweiterRepo.gespeichert)
@@ -135,8 +135,8 @@ func TestEinrichtung_ZweiterAufrufWaehrendLaufendemErstenAbgelehnt(t *testing.T)
 	if err := <-lauf.fertig; err != nil {
 		t.Fatalf("unexpected error from the first setup: %v", err)
 	}
-	if lauf.client.CreateTSSCalls != 1 {
-		t.Fatalf("expected exactly one TSS to be created in total, got %d", lauf.client.CreateTSSCalls)
+	if len(lauf.client.ErstellteTSS) != 1 {
+		t.Fatalf("expected exactly one TSS to be created in total, got %+v", lauf.client.ErstellteTSS)
 	}
 	if lauf.repo.gespeichert == nil || lauf.repo.gespeichert.TssID != "tss-erste" {
 		t.Fatalf("expected the first setup to save its own configuration, got %+v", lauf.repo.gespeichert)

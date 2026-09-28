@@ -135,8 +135,8 @@ func TestRichteTSEEin_UmgebungAbweichung(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no TSS to be created on environment mismatch, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no TSS to be created on environment mismatch, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
 		t.Fatal("expected no configuration to be saved on environment mismatch")
@@ -153,8 +153,8 @@ func TestRichteTSEEin_BestaetigteUmgebungUngueltig(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung for an unconfirmed environment, got %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no TSS to be created, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no TSS to be created, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -171,8 +171,8 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
 		t.Fatalf("expected ErrTSEBereitsEingerichtet, got %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no TSS to be created when an active TSS exists, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no TSS to be created when an active TSS exists, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
 		t.Fatal("expected no configuration to be saved when an active TSS exists")
@@ -194,8 +194,8 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error with only a disabled TSS present: %v", err)
 	}
-	if client.CreateTSSCalls != 1 {
-		t.Fatalf("expected a new TSS to be created, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 1 {
+		t.Fatalf("expected a new TSS to be created, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -228,8 +228,8 @@ func TestRichteTSEEin_FalscheZugangsdaten(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupZugangsdaten) {
 		t.Fatalf("expected ErrTSESetupZugangsdaten, got %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no TSS to be created on auth failure, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no TSS to be created on auth failure, got %+v", client.ErstellteTSS)
 	}
 }
 
@@ -247,8 +247,8 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.CreateTSSCalls != 1 {
-		t.Fatalf("expected a new TSS to be created despite an existing one, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 1 {
+		t.Fatalf("expected a new TSS to be created despite an existing one, got %+v", client.ErstellteTSS)
 	}
 	if ergebnis.TssID != "tss-neu" || repo.gespeichert == nil || repo.gespeichert.TssID != "tss-neu" {
 		t.Fatalf("expected the fresh TSS to be set up and saved, got result %q saved %+v", ergebnis.TssID, repo.gespeichert)
@@ -268,8 +268,8 @@ func TestRichteTSEEin_NeuAnlegenTrotzVorhandenerInLiveVerweigert(t *testing.T) {
 	if !errors.Is(err, ErrTSEBereitsEingerichtet) {
 		t.Fatalf("expected ErrTSEBereitsEingerichtet in LIVE despite the flag, got %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no TSS to be created in LIVE, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no TSS to be created in LIVE, got %+v", client.ErstellteTSS)
 	}
 	if repo.gespeichert != nil {
 		t.Fatal("expected no configuration to be saved in LIVE")
@@ -313,11 +313,11 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.CreateTSSCalls != 0 {
-		t.Fatalf("expected no new TSS to be created on resume, got %d calls", client.CreateTSSCalls)
+	if len(client.ErstellteTSS) != 0 {
+		t.Fatalf("expected no new TSS to be created on resume, got %+v", client.ErstellteTSS)
 	}
-	if client.GetAdminPUKCalls != 1 {
-		t.Fatalf("expected the puk to be refetched once, got %d calls", client.GetAdminPUKCalls)
+	if client.GesetzterAdminPUK != "puk-refetch" {
+		t.Fatalf("expected the pin to be set with the refetched puk, got %q", client.GesetzterAdminPUK)
 	}
 	if ergebnis.PUK != "puk-refetch" || ergebnis.AdminPIN == "" {
 		t.Fatalf("expected refetched puk and a fresh pin, got %+v", ergebnis)
@@ -348,8 +348,8 @@ func TestUebernimmTSE_WiederaufnahmeUninitialized(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.GetAdminPUKCalls != 0 {
-		t.Fatalf("expected no puk refetch from UNINITIALIZED, got %d calls", client.GetAdminPUKCalls)
+	if client.GesetzteAdminPIN != "" {
+		t.Fatalf("expected no new admin pin from UNINITIALIZED, got %q", client.GesetzteAdminPIN)
 	}
 	if client.AuthentifiziertePIN != "1234567890" {
 		t.Fatalf("expected the entered pin to be used for admin auth, got %q", client.AuthentifiziertePIN)
@@ -433,8 +433,8 @@ func TestUebernimmTSE_EinsatzbereitOhnePIN(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.AuthAdminCalls != 0 {
-		t.Fatalf("expected AuthentifiziereAdmin to be skipped for a ready TSS, got %d calls", client.AuthAdminCalls)
+	if client.AdminAuthentifiziert {
+		t.Fatal("expected AuthentifiziereAdmin to be skipped for a ready TSS")
 	}
 	if len(client.RegistrierteClients) != 0 || len(client.ReaktivierteClients) != 0 {
 		t.Fatalf("expected no client mutation for a ready TSS, got registered %+v reactivated %+v", client.RegistrierteClients, client.ReaktivierteClients)
@@ -468,7 +468,7 @@ func TestUebernimmTSE_DeregistrierterClientReaktiviert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.AuthAdminCalls == 0 {
+	if !client.AdminAuthentifiziert {
 		t.Fatal("expected AuthentifiziereAdmin to be called for a privileged reactivation")
 	}
 	if len(client.RegistrierteClients) != 0 {
@@ -640,7 +640,7 @@ func TestUebernimmTSE_PINResetFalscherPUK(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupPUKUnbekannt) {
 		t.Fatalf("expected ErrTSESetupPUKUnbekannt, got %v", err)
 	}
-	if client.AuthAdminCalls != 0 || len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
+	if client.AdminAuthentifiziert || len(client.RegistrierteClients) != 0 || repo.gespeichert != nil {
 		t.Fatal("expected no further operations or writes on a wrong puk")
 	}
 }
@@ -659,7 +659,7 @@ func TestUebernimmTSE_UmgebungAbweichung(t *testing.T) {
 	if !errors.Is(err, ErrTSESetupUmgebungAbweichung) {
 		t.Fatalf("expected ErrTSESetupUmgebungAbweichung, got %v", err)
 	}
-	if client.GetAdminPUKCalls != 0 || repo.gespeichert != nil {
+	if client.GesetzteAdminPIN != "" || repo.gespeichert != nil {
 		t.Fatal("expected no operations on environment mismatch")
 	}
 }
@@ -735,8 +735,8 @@ func TestRichteTSEEin_PersistiertStammdaten(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-neu" {
-		t.Fatalf("expected stammdaten to be fetched once for the new TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
+	if client.StammdatenTssID != "tss-neu" {
+		t.Fatalf("expected stammdaten to be fetched for the new TSS, got %q", client.StammdatenTssID)
 	}
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
@@ -761,11 +761,11 @@ func TestUebernimmTSE_EinsatzbereitPersistiertStammdaten(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.AuthAdminCalls != 0 {
-		t.Fatalf("expected no lifecycle operations for a ready TSS, got %d admin auth calls", client.AuthAdminCalls)
+	if client.AdminAuthentifiziert {
+		t.Fatal("expected no lifecycle operations for a ready TSS")
 	}
-	if client.StammdatenCalls != 1 || client.StammdatenTssID != "tss-init" {
-		t.Fatalf("expected stammdaten to be fetched once for the adopted TSS, got %d calls for %q", client.StammdatenCalls, client.StammdatenTssID)
+	if client.StammdatenTssID != "tss-init" {
+		t.Fatalf("expected stammdaten to be fetched for the adopted TSS, got %q", client.StammdatenTssID)
 	}
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }

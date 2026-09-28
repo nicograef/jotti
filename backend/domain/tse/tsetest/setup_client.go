@@ -41,16 +41,14 @@ type FakeSetupClient struct {
 	RegistriereErr      error
 	ReaktiviereErr      error
 
-	CreateTSSCalls      int
-	GetAdminPUKCalls    int
-	StammdatenCalls     int
-	StammdatenTssID     string
-	AuthAdminCalls      int
-	GesetzteAdminPIN    string
-	GesetzterAdminPUK   string
-	AuthentifiziertePIN string
-	RegistrierteClients []RegistrierterClient
-	ReaktivierteClients []ReaktivierterClient
+	ErstellteTSS         []tse.TSSErstellt
+	StammdatenTssID      string
+	AdminAuthentifiziert bool
+	GesetzteAdminPIN     string
+	GesetzterAdminPUK    string
+	AuthentifiziertePIN  string
+	RegistrierteClients  []RegistrierterClient
+	ReaktivierteClients  []ReaktivierterClient
 }
 
 var _ tse.SetupClient = (*FakeSetupClient)(nil)
@@ -70,7 +68,6 @@ func (f *FakeSetupClient) ListClients(_ context.Context, tssID string) ([]tse.Cl
 }
 
 func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string) (tse.Stammdaten, error) {
-	f.StammdatenCalls++
 	f.StammdatenTssID = tssID
 	if f.StammdatenErr != nil {
 		return tse.Stammdaten{}, f.StammdatenErr
@@ -79,15 +76,14 @@ func (f *FakeSetupClient) RetrieveTSSStammdaten(_ context.Context, tssID string)
 }
 
 func (f *FakeSetupClient) CreateTSS(context.Context) (tse.TSSErstellt, error) {
-	f.CreateTSSCalls++
 	if f.CreateTSSErr != nil {
 		return tse.TSSErstellt{}, f.CreateTSSErr
 	}
+	f.ErstellteTSS = append(f.ErstellteTSS, f.CreateTSSResponse)
 	return f.CreateTSSResponse, nil
 }
 
 func (f *FakeSetupClient) GetAdminPUK(context.Context, string) (string, error) {
-	f.GetAdminPUKCalls++
 	if f.GetAdminPUKErr != nil {
 		return "", f.GetAdminPUKErr
 	}
@@ -108,10 +104,10 @@ func (f *FakeSetupClient) SetAdminPIN(_ context.Context, _, puk, pin string) err
 }
 
 func (f *FakeSetupClient) AuthentifiziereAdmin(_ context.Context, _, pin string) error {
-	f.AuthAdminCalls++
 	if f.AuthAdminErr != nil {
 		return f.AuthAdminErr
 	}
+	f.AdminAuthentifiziert = true
 	f.AuthentifiziertePIN = pin
 	return nil
 }

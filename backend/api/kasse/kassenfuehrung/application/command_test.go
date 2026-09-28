@@ -84,6 +84,17 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 	}
 }
 
+func assertSitzungStatus(t *testing.T, repo *repotest.KassensitzungenRepo, want kasse.KassensitzungStatus) {
+	t.Helper()
+	ks, err := repo.GetAktiveKassensitzung(context.Background())
+	if err != nil || ks == nil {
+		t.Fatalf("expected an active Kassensitzung, got %v (err %v)", ks, err)
+	}
+	if ks.Status != want {
+		t.Errorf("Kassensitzung status = %q, want %q", ks.Status, want)
+	}
+}
+
 func TestKassensitzungEroeffnen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil) // no open KS
@@ -278,9 +289,7 @@ func TestKasseAbschliessen_CleanerFehlerBleibtBestEffort(t *testing.T) {
 	// Variable geschluckt, nicht über den benannten Return err. Sonst riefe der
 	// defer-Block auf der bereits geschlossenen Sitzung einen Reset auf 'offen'
 	// auf. Kein Reset ist der Beleg, dass der Abschluss endgültig bleibt.
-	if sitzungMock.OffenCalls != 0 {
-		t.Fatalf("expected NO reset to offen after cleaner error (Abschluss ist endgueltig), got %d", sitzungMock.OffenCalls)
-	}
+	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
 
 	events, err := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
 	if err != nil {
@@ -424,12 +433,7 @@ func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if sitzungMock.WirdAbgeschlossenCalls != 1 {
-		t.Fatalf("expected barrier to be set once, got %d", sitzungMock.WirdAbgeschlossenCalls)
-	}
-	if sitzungMock.OffenCalls != 0 {
-		t.Fatalf("expected no reset on success, got %d", sitzungMock.OffenCalls)
-	}
+	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
 }
 
 // Schlägt der Abschluss nach dem Statuswechsel fehl, wird die Sitzung best effort auf 'offen'
@@ -450,12 +454,7 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
 		t.Fatal("expected an error, got nil")
 	}
-	if sitzungMock.WirdAbgeschlossenCalls != 1 {
-		t.Fatalf("expected barrier to be set once, got %d", sitzungMock.WirdAbgeschlossenCalls)
-	}
-	if sitzungMock.OffenCalls != 1 {
-		t.Fatalf("expected status reset to offen after error, got %d", sitzungMock.OffenCalls)
-	}
+	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
 }
 
 // Ein Versionskonflikt bedeutet einen konkurrierenden zweiten Abschluss — die unterlegene
@@ -474,9 +473,7 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
 	}
-	if sitzungMock.OffenCalls != 0 {
-		t.Fatalf("expected NO reset on conflict, got %d", sitzungMock.OffenCalls)
-	}
+	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungWirdAbgeschlossen)
 }
 
 // Ein Deadlock (40P01) beim Event-Write wird wie ein Konflikt behandelt (409 statt 500);
