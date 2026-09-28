@@ -108,6 +108,10 @@ if ! wait_for_healthy "$BACKEND_CONTAINER"; then
 fi
 info "Backend healthy."
 
+# Only dangling layers go; the previous release's images stay tagged for a rollback.
+info "Removing dangling images ..."
+docker image prune -f >/dev/null || warn "docker image prune failed; the update itself succeeded."
+
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 https_ok=false
 if [[ -n "$DOMAIN" ]]; then
