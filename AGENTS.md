@@ -2,9 +2,9 @@
 
 jotti: a free mobile point-of-sale system (mPOS) for German non-profits (e.V., gGmbH, gUG, foundations, church bodies) at temporary catering events. Typical use: club festivals, Christmas markets, concerts; 2–3 times a year, 5–50 tables, 5–30 volunteer helpers. Service staff take orders, collect payment and cancel per table in the browser of their own smartphones (BYOD). Admins manage products, tables and users. Self-hosted via Docker Compose, mobile-first, under a proprietary source-available licence (non-commercial, usage agreement required).
 
-Deliberately absent: card payment, reservations, inventory, delivery, multiple sites, CRM, kiosk mode. Every extra feature adds complexity for volunteer teams; `docs/anforderungen.md` gives each non-goal its reason.
+Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen.md` (excluded features, each with its reason).
 
-**Compliance.** jotti is an electronic recording system under § 1 KassenSichV and needs a TSE under § 146a AO. The fiskaly cloud TSE and the DSFinV-K export are built in. The operator files the § 146a (4) AO notification by hand in ELSTER; automating it is a permanent non-goal. `docs/compliance.md` holds the details. The original texts of the statutes and specs (AO, UStG, KassenSichV, GoBD, DSFinV-K, BSI TR-03153, fiskaly API) lie in `docs/rechtsquellen/`; consult them before the web.
+**Compliance.** jotti is an electronic recording system under § 1 KassenSichV and needs a TSE under § 146a AO. `docs/compliance.md` holds the TSE, DSFinV-K and ELSTER details. The original texts of the statutes and specs (AO, UStG, KassenSichV, GoBD, DSFinV-K, BSI TR-03153, fiskaly API) lie in `docs/rechtsquellen/`; consult them before the web.
 
 ## Rules
 

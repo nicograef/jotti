@@ -21,7 +21,6 @@ jotti ist nicht geeignet für:
 
 - Dauerbetrieb (Restaurant, Café)
 - Kommerzielle Gastro-Betriebe
-- Kartenzahlung, NFC, Online-Zahlungen
 - Professionelles Gastro-Personal
 - Großveranstaltungen mit 100+ Tischen
 - Veranstaltungsorte ohne WLAN

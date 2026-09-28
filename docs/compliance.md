@@ -36,7 +36,7 @@ Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkei
 
 ### 2.6 Elektronische Kassenmeldepflicht (§ 146a Abs. 4 AO)
 
-Seit dem 1. Januar 2025 müssen elektronische Aufzeichnungssysteme dem zuständigen Finanzamt elektronisch gemeldet werden: über ELSTER, manuell im Portal oder programmatisch via ERiC. Fristen und Umsetzung: Abschnitt 7. [1, 11]
+Elektronische Aufzeichnungssysteme sind dem zuständigen Finanzamt zu melden. Fristen, Meldeweg und Daten: Abschnitt 7. [1, 11]
 
 ### 2.7 Sonderfall: Source-Available Self-hosted (Pflichten des Entwicklers)
 
@@ -78,18 +78,20 @@ Die `processType`-Werte sind in der DSFinV-K, Anhang I, festgelegt; der AEAO zu 
 
 **Mapping auf jotti-Events:**
 
-| jotti-Event                  | processType        | Anmerkung                                                                                    |
-| ---------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
-| `bestellung-aufgenommen:v1`  | `Bestellung-V1`    | Sofort geschlossen (Festzelt-Muster, §3.6)                                                   |
-| `zahlung-kassiert:v1`        | `Kassenbeleg-V1`   | Tisch-Teilzahlung oder Vollzahlung                                                           |
-| `direktverkauf-getaetigt:v1` | `Kassenbeleg-V1`   | Atomar, keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
-| `direktverkauf-storniert:v1` | `Kassenbeleg-V1`   | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                      |
-| `stornierung-erteilt:v1`     | `Kassenbeleg-V1`   | Warenrücknahme bezahlter Positionen, negative Beträge, `REF_BON_ID` auf die Zahlung          |
-| `bestellung-korrigiert:v1`   | `Bestellung-V1`    | Geldneutrale Korrektur unbezahlter Positionen, ohne Zahlungszeile                            |
-| `bestellung-umgebucht:v1`    | `Bestellung-V1`    | Geldneutrale Umbuchung unbezahlter Positionen zwischen Tischen, ohne Zahlungszeile           |
-| Tagesabschluss (Z-Bon)       | `SonstigerVorgang` | Aggregierte Tagessummen                                                                      |
-
-Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendifferenz): [handbuch.md §3.13](handbuch.md#313-tse-architektur).
+| jotti-Event                     | processType        | Anmerkung                                                                                    |
+| ------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
+| `bestellung-aufgenommen:v1`     | `Bestellung-V1`    | Sofort geschlossen (Festzelt-Muster, §3.6)                                                   |
+| `zahlung-kassiert:v1`           | `Kassenbeleg-V1`   | Tisch-Teilzahlung oder Vollzahlung                                                           |
+| `direktverkauf-getaetigt:v1`    | `Kassenbeleg-V1`   | Atomar, keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
+| `direktverkauf-storniert:v1`    | `Kassenbeleg-V1`   | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                      |
+| `stornierung-erteilt:v1`        | `Kassenbeleg-V1`   | Warenrücknahme bezahlter Positionen, negative Beträge, `REF_BON_ID` auf die Zahlung          |
+| `bestellung-korrigiert:v1`      | `Bestellung-V1`    | Geldneutrale Korrektur unbezahlter Positionen, ohne Zahlungszeile                            |
+| `bestellung-umgebucht:v1`       | `Bestellung-V1`    | Geldneutrale Umbuchung unbezahlter Positionen zwischen Tischen, ohne Zahlungszeile           |
+| `kassensitzung-eroeffnet:v1`    | `Kassenbeleg-V1`   | Eigenbeleg über die Bareinlage, nur bei Anfangsbestand > 0                                   |
+| `geldtransit-gebucht:v1`        | `Kassenbeleg-V1`   | Eigenbeleg über die Ein- oder Auszahlung                                                     |
+| `differenz-soll-ist-gebucht:v1` | `Kassenbeleg-V1`   | Eigenbeleg über die Kassendifferenz                                                          |
+| `tagesabschluss-erstellt:v1`    | `SonstigerVorgang` | Tagesabschluss (Z-Bon), aggregierte Tagessummen                                              |
+| `kassensturz-durchgefuehrt:v1`  | —                  | Nicht signaturpflichtig                                                                      |
 
 ### 3.4 Datenformat-Vorgaben (`processData`)
 
@@ -106,7 +108,7 @@ Das vollständige Mapping aller jotti-Vorgänge (inkl. Geldtransit, Kassendiffer
 | Hardware-TSE | Physisches Gerät (USB-Stick, microSD-/SD-Karte)    | Swissbit, Epson, cryptovision (für D-Trust)         |
 | Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal, Swissbit, Diebold Nixdorf |
 
-Für jotti ist die Cloud-TSE gesetzt; eine Hardware-TSE wird nicht angebunden, und Anbieter ohne einsehbare API-Spezifikation werden nicht integriert (Begründung: [decisions.md, D09](decisions.md)). Gewählter Zielanbieter: fiskaly (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern); `Credentials` und die Einrichtung sind auf fiskaly zugeschnitten, ein zweiter Anbieter wäre mehr als ein Adapter-Austausch.
+jotti bindet die Cloud-TSE von fiskaly an (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes); Entscheidung und Gründe: [decisions.md, D09](decisions.md). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern); `Credentials` und die Einrichtung sind auf fiskaly zugeschnitten, ein zweiter Anbieter wäre mehr als ein Adapter-Austausch.
 
 ### 3.6 Das Festzelt-Muster: Atomare TSE-Transaktionen
 

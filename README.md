@@ -8,7 +8,7 @@ Ein kostenloses **Gastronomie-Kassensystem (mPOS)** mit einsehbarem Quellcode (S
 Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren und stornieren — alles pro Tisch, alles im Browser. Admins verwalten Produkte, Tische und Benutzer, führen den Kassenbestand und erstellen den Tagesabschluss.
 
 > **Kostenlos. Self-hosted. Auf die KassenSichV ausgelegt.**
-> Keine Hardware-Bindung, keine Softwarekosten, kein Cloud-Abo für jotti selbst; allein die gesetzlich vorgeschriebene Cloud-TSE von fiskaly (und optional ein Server) kostet laufend. jotti bringt die fiskalischen Bausteine mit: eine BSI-zertifizierte Cloud-TSE, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
+> Keine Hardware-Bindung, keine Softwarekosten, kein Cloud-Abo für jotti selbst; allein die gesetzlich vorgeschriebene Cloud-TSE von fiskaly (und optional ein Server) kostet laufend. jotti bringt die fiskalischen Bausteine mit: TSE-Anbindung, Belegausgabe nach § 146a AO, ein append-only Kassenjournal (GoBD) und den DSFinV-K-Export (v2.4). Den konformen Betrieb (TSE-Vertrag, Kassenmeldung, Aufbewahrung) verantwortet der Betreiber.
 
 ## Was jotti kann
 
@@ -17,9 +17,7 @@ Servicekräfte nehmen auf ihren eigenen Smartphones Bestellungen auf, kassieren 
 - **Kassenführung:** fortlaufend nummerierte Kassensitzungen, Anfangsbestand, Soll-Bestand nach Komponenten, Einlagen und Entnahmen (Geldtransit), Kassensturz mit automatisch gebuchter Differenz, Tagesabschluss (Z-Bon) mit fortlaufender Nummer und Umsatzaggregation.
 - **Abrechnung und Reporting:** Tagesabrechnung nach Steuersatz, Abrechnung je Servicekraft, Produktumsatz-Reporting, DSFinV-K-Export als ZIP-Archiv (v2.4).
 - **Verwaltung und Sicherheit:** Admin-Bereich für Produkte (mit Varianten und Steuersätzen), Tische, Benutzer und Betreiber-Stammdaten; Rollen `admin`, `serviceleitung`, `service`; Onboarding per Einmalpasswort, Argon2id-Hashing, JWT-Auth.
-- **Fiskal:** Event-Sourcing für eine lückenlose, unveränderliche Bestellhistorie; integrierte Cloud-TSE von fiskaly mit Signatur jedes Vorgangs; Belegausgabe mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.
-
-Was jotti bewusst nicht kann: [docs/produktbeschreibung.md](docs/produktbeschreibung.md#62-was-jotti-bewusst-nicht-ist).
+- **Fiskal:** Event-Sourcing für eine lückenlose, unveränderliche Bestellhistorie; TSE-Signatur jedes Vorgangs; Belegausgabe mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.
 
 ## Installation für Vereine
 
@@ -91,13 +89,9 @@ Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen: [docs/handbu
 
 Eingetragene Vereine (e.V.), gemeinnützige Organisationen und NPOs mit ehrenamtlichen Teams (5–30 Helfer:innen), die temporäre Veranstaltungen im Bargeld-Betrieb abrechnen.
 
-**Nicht geeignet für:**
+Was jotti bewusst nicht ist und wofür es nicht taugt: [docs/produktbeschreibung.md](docs/produktbeschreibung.md).
 
-- Dauerbetrieb (Restaurants, Cafés)
-- Kartenzahlung / NFC / Online-Payment
-- Kommerzielle Gastro-Betriebe (ohne separate Lizenz)
-
-> **Compliance-Hinweis:** jotti ist ein elektronisches Aufzeichnungssystem nach § 1 KassenSichV und unterliegt damit der TSE-Pflicht nach § 146a AO. Die fiskalischen Bausteine (TSE-Anbindung, Belegausgabe und DSFinV-K-Export v2.4) sind integriert; eine geprüfte Konformität wird nicht zugesichert. jotti erfüllt die TSE-Pflicht über eine Cloud-TSE von fiskaly — der Betreiber schließt den Vertrag mit fiskaly selbst ab und trägt die API-Schlüssel über den geführten TSE-Assistenten im Admin-Bereich ein (jotti speichert sie in seiner Datenbank). Weitere Informationen: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
+> **Compliance-Hinweis:** Eine geprüfte Konformität wird nicht zugesichert. TSE-Pflicht, TSE-Anbieter und Betreiberpflichten: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
 
 ## Lizenz & Urheberrecht
 
