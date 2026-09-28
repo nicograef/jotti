@@ -1,5 +1,3 @@
-tmp/
-
 # ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
@@ -9,16 +7,13 @@ Thumbs.db
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+*.swp
 
 # ── Environment ──────────────────────────────────────────────────────────────
 .env
 .env.*
 !.env.example
 !.env.fiskaly-test.example
-
-# Host-Zustand des Windows-Starters (ordnerlokal nur im Linux-Dev-Lauf; unter
-# Windows liegt er in %PROGRAMDATA%\jotti)
-last-version
 
 # ── Node ─────────────────────────────────────────────────────────────────────
 node_modules/
@@ -27,44 +22,46 @@ node_modules/
 # ── Go ───────────────────────────────────────────────────────────────────────
 /vendor/
 
-# Cross-compilierte Windows-Exes (Build-Artefakte; landen im Release-ZIP unter dist/)
-windows/starter/jotti-start.exe
-windows/relay/jotti-relay.exe
-
-# Binaries von make build-relay / build-resolver / build-local-proxy
-/windows/relay/relay
-/resolver/resolver
-/reverse-proxy/reverse-proxy
+# ── Python ───────────────────────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
 
 # ── Build artifacts ──────────────────────────────────────────────────────────
 dist/
 build/
-
-# ── E2E (Playwright) / Website-Build ─────────────────────────────────────────
-/e2e/playwright-report/
-/e2e/test-results/
-/e2e/blob-report/
-/website/.astro/
-
-# ── Backups (pg_dump output of make prod-backup) ─────────────────────────────
-/backups/
+*.exe
+*.class
+a.out
+# Binaries of make build-relay / build-resolver / build-local-proxy
+/windows/relay/relay
+/resolver/resolver
+/reverse-proxy/reverse-proxy
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs
 *.log
 
-# ── Miscellaneous ───────────────────────────────────────────────────────────
-*.bak
-*.tmp
-*.swp
-temp/
-# Claude Code personal settings
+# ── Claude Code ──────────────────────────────────────────────────────────────
 .claude/settings.local.json
 .claude/worktrees/
-
-# Playwright-MCP-Artefakte
 .playwright-mcp/
 
-# Python bytecode
-__pycache__/
-a.out
+# ── jotti ────────────────────────────────────────────────────────────────────
+# Windows starter state in a Linux dev run; on Windows it lives in %PROGRAMDATA%\jotti
+last-version
+# pg_dump output of make prod-backup
+/backups/
+# Playwright reports and the Astro build cache
+/e2e/playwright-report/
+/e2e/test-results/
+/e2e/blob-report/
+/website/.astro/
+
+# ── Scratch ──────────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.bak
+*.tmp
