@@ -25,22 +25,24 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write # GitHub-Release anlegen
       packages: write # Images nach GHCR pushen
     env:
       SERVICES: backend frontend migrate reverse-proxy
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0 # volle History inkl. aller Tags für git-cliff
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache: false
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Version bestimmen
         id: version
@@ -57,7 +59,7 @@ jobs:
       # beiden Pfaden; beim Dispatch nur als Vorschau in der Job-Summary.
       - name: Changelog generieren
         id: changelog
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
           config: cliff.toml
           args: --latest --strip header
@@ -180,7 +182,8 @@ jobs:
 
       - name: GitHub-Release veröffentlichen
         if: steps.version.outputs.publish == 'true'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: dist/jotti-windows-${{ steps.version.outputs.version }}.zip
           body: ${{ steps.changelog.outputs.content }}

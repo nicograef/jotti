@@ -17,6 +17,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -28,9 +29,11 @@ jobs:
       scripts: ${{ steps.changes.outputs.scripts }}
       ci: ${{ steps.changes.outputs.ci }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check for changes
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
           filters: |
@@ -68,12 +71,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: backend/go.sum
@@ -122,12 +128,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: backend/go.sum
@@ -138,13 +147,13 @@ jobs:
       # second pass loads [integration unit]; the integration-only pass stays
       # because whole-program linters (unused) judge each file set on its own.
       - name: golangci-lint (integration)
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./backend
 
       - name: golangci-lint (unit)
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./backend
@@ -154,12 +163,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.resolver == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./resolver
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: resolver/go.sum
@@ -183,7 +195,7 @@ jobs:
           fi
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./resolver
@@ -206,12 +218,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.proxy == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./reverse-proxy
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: reverse-proxy/go.sum
@@ -235,7 +250,7 @@ jobs:
           fi
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./reverse-proxy
@@ -253,12 +268,15 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.windows == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         module: [relay, starter]
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache: false
@@ -286,7 +304,7 @@ jobs:
           fi
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.14.0
           working-directory: ./windows/${{ matrix.module }}
@@ -307,18 +325,21 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.frontend == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./frontend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: frontend/package.json
           run_install: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: "pnpm"
@@ -340,15 +361,18 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.website == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: website/package.json
           run_install: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: "pnpm"
@@ -370,8 +394,11 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.scripts == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Run shellcheck
         run: shellcheck -x scripts/*.sh
@@ -381,20 +408,23 @@ jobs:
   # tree, so no path filter narrows it correctly.
   repo-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: backend/go.sum
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: frontend/package.json
           run_install: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: "pnpm"
@@ -414,6 +444,7 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:17.11
@@ -436,8 +467,10 @@ jobs:
       run:
         working-directory: ./backend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: backend/go.sum
@@ -477,6 +510,7 @@ jobs:
     needs: changes
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PREVIOUS_VERSION: v0.18.0
       # Throwaway CI-only values (no secrets); long enough to pass the
@@ -508,8 +542,10 @@ jobs:
           --health-timeout 5s
           --health-retries 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.1
           cache-dependency-path: backend/go.sum
@@ -573,8 +609,11 @@ jobs:
   # secrets, JOTTI_ENABLE_TEST_API=1).
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build and start the E2E stack
         env:
@@ -597,12 +636,12 @@ jobs:
           docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml logs
           exit 1
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           package_json_file: e2e/package.json
           run_install: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: "pnpm"
@@ -628,7 +667,7 @@ jobs:
 
       - name: Upload Playwright artefacts on failure
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report
           path: |
