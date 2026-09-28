@@ -136,9 +136,9 @@ Every `uses:` in `.github/workflows/*.yml` points to a full commit SHA with a `#
 
 ### Acceptance criteria
 
-- [ ] restoring a dump truncated mid-way via `make prod-restore` against the local stack exits non-zero and leaves the previous data intact (row count before = after)
-- [ ] `make prod-backup-verify` fails when the `kassenjournal` row count in the restored copy is 0
-- [ ] `grep -c 'shm_size' docker-compose.{prod,local,release,e2e}.yml` prints 1 for each
+- [x] restoring a dump truncated mid-way via `make prod-restore` against the local stack exits non-zero and leaves the previous data intact (row count before = after)
+- [x] `make prod-backup-verify` fails when the `kassenjournal` row count in the restored copy is 0
+- [x] `grep -c 'shm_size' docker-compose.{prod,local,release,e2e}.yml` prints 1 for each
 - [ ] the release-CI restore job stays green
 
 ## Phase 4: Operator hardening path
