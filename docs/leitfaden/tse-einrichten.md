@@ -27,17 +27,18 @@ Mehr ist im HUB nicht nötig. Die TSS (so heißt eure TSE im fiskaly-Konto) anle
 
 1. Im Admin-Bereich „Finanzamt & TSE" öffnen, in der Schrittkarte „2 · TSE aktiv" auf „TSE einrichten" klicken.
 2. API-Key und API-Secret eingeben und auf „fiskaly-Konto prüfen" klicken. Die Prüfung legt nichts an, sie liest nur. jotti zeigt danach die Umgebung an (TEST grau, LIVE rot) und listet die gefundenen TSS auf.
-3. Ist das Konto leer, bietet jotti „TSE einrichten" an: Es legt eine neue TSS an, initialisiert sie und registriert diese Kasse als Client. In LIVE müsst ihr erst das Wort „LIVE" eintippen.
+3. Ist das Konto leer, bietet jotti „TSE einrichten" an. Dabei legt jotti eine neue TSS an, initialisiert sie und registriert diese Kasse als Client. In LIVE müsst ihr erst das Wort „LIVE" eintippen.
 4. jotti zeigt danach genau einmal den **Admin-PUK** und die **Admin-PIN** an. Notiert beide sofort und verwahrt sie außerhalb von jotti (siehe unten). Erst nach dem Häkchen „Ich habe Admin-PUK und Admin-PIN sicher verwahrt" geht es weiter.
 5. „Verbindung testen & abschließen" klicken. Steht „Verbindung bestätigt", ist die TSE einsatzbereit.
 
 ## Admin-PUK und Admin-PIN verwahren
 
 fiskaly vergibt beim Anlegen einer TSS einen Admin-PUK, mit dem jotti eine
-zufällige Admin-PIN setzt. Beide gehören zur TSS, nicht zu jotti. Im normalen
-Kassenbetrieb braucht ihr sie nicht (jotti signiert über API-Key und Secret), wohl
-aber für spätere Verwaltungsaufgaben, etwa wenn ihr die TSS auf einer neuen
-Installation übernehmt.
+zufällige Admin-PIN setzt. Beide gehören zur TSS, nicht zu jotti.
+
+Im normalen Kassenbetrieb braucht ihr sie nicht, denn jotti signiert über API-Key
+und Secret. Ihr braucht sie aber für spätere Verwaltungsaufgaben, etwa wenn ihr
+die TSS auf einer neuen Installation übernehmt.
 
 So verwahrt ihr richtig:
 
@@ -46,7 +47,7 @@ So verwahrt ihr richtig:
 - Nicht nur auf dem Gerät, das ihr für die Einrichtung benutzt habt.
 - So, dass die Nachfolge im Vorstand sie wiederfindet.
 
-> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, der Admin-PUK aber verwahrt, setzt jotti die PIN über den PUK zurück (siehe [TSE-Sonderfälle](tse-sonderfaelle.md)). Gehen PUK und PIN beide verloren, könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen. Der Admin-PUK ist deshalb euer wichtigstes Geheimnis.
+> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, hilft der verwahrte Admin-PUK. jotti setzt die PIN darüber zurück (siehe [TSE-Sonderfälle](tse-sonderfaelle.md)). Gehen PUK und PIN beide verloren, könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen. Der Admin-PUK ist deshalb euer wichtigstes Geheimnis.
 
 ## Von TEST zu LIVE wechseln (inkl. Kosten)
 

@@ -8,13 +8,13 @@ description: 'Den selbst gehosteten jotti-Server (Experten-Weg) sicher aktualisi
 > ℹ️ **Dieser Weg gilt für den eigenen Server.** Betreibt ihr jotti per
 > Windows-Doppelklick, folgt stattdessen [Aktualisieren (Standardweg)](aktualisieren.md).
 
-Tragt in der `.env` unter `JOTTI_VERSION` die gewünschte Release-Version ein (die
-aktuelle Nummer steht auf der
-[GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases)) und führt
-`make prod-update` aus. Das Skript sichert die Datenbank automatisch, bevor es die
-neuen Images zieht und die Migrationen ausführt, und prüft danach die Gesundheit.
-Bleibt der Stack ungesund, bricht es ab und zeigt, wie ihr mit dem eben erstellten
-Backup zurückkehrt.
+Tragt in der `.env` unter `JOTTI_VERSION` die gewünschte Release-Version ein und
+führt `make prod-update` aus. Die aktuelle Nummer steht auf der
+[GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases).
+
+Das Skript sichert die Datenbank automatisch, bevor es die neuen Images zieht und
+die Migrationen ausführt. Danach prüft es die Gesundheit. Bleibt der Stack
+ungesund, bricht es ab und zeigt, wie ihr mit dem eben erstellten Backup zurückkehrt.
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Updates verändern die Datenbank und lassen
 > sich nicht zurücknehmen; eine ältere Version kann mit den neuen Daten nicht mehr
@@ -34,13 +34,13 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   über `COMPOSE_FILE` auf einen anderen Stack umstellbar (gilt ebenso für
   `make prod-backup`).
 - **Prüfen (gelegentlich):** `make prod-backup-verify` spielt das neueste Backup
-  in einen Wegwerf-Postgres ein und meldet die Zahl der Kassenjournal-Einträge;
-  ein leeres Kassenjournal gilt als Fehler. So wisst ihr, dass
+  in einen Wegwerf-Postgres ein und meldet die Zahl der Kassenjournal-Einträge.
+  Ein leeres Kassenjournal gilt als Fehler. So wisst ihr, dass
   ein Backup wirklich wiederherstellbar ist, ohne den laufenden Betrieb
   anzufassen. Einen bestimmten Dump prüft ihr per Argument:
   `./scripts/prod-backup-verify.sh <datei>`.
 - **Täglich automatisch:** Für einen täglichen Dump liegen Vorlagen im Repository
-  (systemd-Timer unter `packaging/systemd/` oder cron unter `packaging/cron/`); die
+  (systemd-Timer unter `packaging/systemd/` oder cron unter `packaging/cron/`). Die
   Installationsschritte stehen als Kommentar in den Dateien.
 - **Überwachung (optional):** Tragt unter `BACKUP_PING_URL` die URL eines
   Überwachungsdienstes ein (z. B. healthchecks.io). Nach jedem erfolgreichen Backup
