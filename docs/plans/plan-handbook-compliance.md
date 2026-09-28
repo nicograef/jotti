@@ -334,7 +334,7 @@ These steps are outbound or run on external systems. The owner confirms each one
 
 - [x] `gh api repos/nicograef/jotti/rulesets` lists the `main` ruleset with `non_fast_forward` and `deletion`
 - [x] `gh api repos/nicograef/jotti --jq '.allow_merge_commit, .allow_rebase_merge'` prints `false false`
-- [ ] `curl -sI https://auth.jotti.rocks/health` returns 200 with a Caddy-served certificate
+- [x] `curl -sI https://auth.jotti.rocks/health` returns 200 with a Caddy-served certificate
 - [ ] the Better Stack monitors show "up"
 
 ## Phase 16: CI on main
