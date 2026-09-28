@@ -1,8 +1,5 @@
-// Zweispaltiges Service-Layout ab lg (1024 px, siehe docs/decisions.md D07/D08):
-// links die Auswahl, rechts die dauerhaft sichtbare Abschluss-Spalte. Die Höhe
-// kommt per `h-full` vom höhenbegrenzten Flex-Container der Seite statt aus einem
-// eigenen calc — so stimmt sie weiter, wenn Header- oder Reiter-Höhe sich ändern.
-// Nur ab lg gerendert; useIsMobile entscheidet im Aufrufer.
+// Two-column Service layout from lg (docs/decisions.md D07/D08), rendered only there; useIsMobile decides in the caller.
+// `h-full` takes the height from the page's height-bounded flex container, so header or tab height changes need no calc.
 export function ServiceSplitLayout({
   auswahl,
   abschluss,

@@ -60,10 +60,8 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
-        // Kein Auto-Fokus auf ein Eingabefeld beim Öffnen (keine ungefragte
-        // Tastatur auf dem Handy). Der Fokus wandert stattdessen auf den
-        // Sheet-Container (tabIndex -1 via Radix FocusScope), damit Fokus-Trap,
-        // Escape und Fokusrückgabe unverändert greifen.
+        // No autofocus on an input on open, so phones don't raise the keyboard unasked. Focus moves to the container
+        // instead (tabIndex -1 via Radix FocusScope), keeping focus trap, Escape and focus return intact.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           if (event.currentTarget instanceof HTMLElement) {

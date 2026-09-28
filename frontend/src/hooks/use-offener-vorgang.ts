@@ -3,13 +3,8 @@ import { useEffect } from 'react'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 /**
- * Der einzige Weg, ins Vorgangs-Register zu schreiben: meldet einen offenen
- * Vorgang, solange `offen` gilt, und gibt ihn im Effekt-Cleanup wieder frei.
- *
- * Das Cleanup ist zwingend: Ein Tischwechsel setzt nur Zustand zurück (die
- * Seite bleibt gemountet), der Wechsel zwischen Drawer- und Spaltenlayout
- * tauscht ganze Teilbäume aus. Eine stehen gebliebene Anmeldung ließe den
- * erzwungenen Reload für immer auf einen Vorgang warten, den es nicht gibt.
+ * The only way to write to the Vorgangs-Register: registers an open Vorgang while `offen` holds and releases it in the effect cleanup.
+ * The cleanup is mandatory: a Tisch switch only resets state and a layout switch swaps subtrees, so a stale entry would block the forced reload forever.
  */
 export function useOffenerVorgang(offen: boolean): void {
   useEffect(() => {

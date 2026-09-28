@@ -33,10 +33,8 @@ export function VariantChip(props: VariantChipProps) {
   const isActive = props.variant.status === VarianteStatus.ACTIVE
   const verschiebbar = !(props.isFirst && props.isLast)
 
-  // `relative z-10` ist Pflicht: Der Switch bringt eine unsichtbare
-  // Trefferflächen-Erweiterung mit (after:-inset-x-3, 12 px je Seite) und liegt
-  // sonst über den unpositionierten Geschwistern — ein Tipp auf die zugewandte
-  // Kante von Pfeil oder Name-Button schaltete dann die Variante.
+  // `relative z-10` is required: the Switch's invisible hit-area extension (after:-inset-x-3) otherwise
+  // covers the unpositioned siblings, and a tap on the near edge of arrow or name button would toggle the variant.
   const chevronClass =
     'relative z-10 -my-1 shrink-0 cursor-pointer rounded-full'
 

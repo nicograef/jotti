@@ -1,10 +1,8 @@
 import type { ReactNode } from 'react'
 
-// Login-Glows: rein dekorativ (aria-hidden, pointer-events-none), im Druck
-// ausgeblendet. Das Clipping liegt in einer eigenen absolut positionierten Ebene
-// (inset-0 overflow-hidden -z-10), damit der äußere Container normalen Überlauf
-// behält und hohe Karten auf kurzen/Landscape-Viewports scrollbar bleiben.
-// `isolate` hält diese Ebene über dem Hintergrund und hinter der Karte.
+// Decorative login glows (aria-hidden, pointer-events-none, hidden in print). Clipping lives in its own absolute layer
+// so the outer container keeps normal overflow and tall cards stay scrollable on short viewports; `isolate` keeps the
+// layer above the background and behind the card.
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative isolate flex flex-col min-h-screen items-center justify-start pt-16 sm:justify-center sm:pt-4 p-4 bg-primary/5">

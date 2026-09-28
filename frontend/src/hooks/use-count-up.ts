@@ -3,13 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 const DAUER_MS = 700
 
 /**
- * Zählt einen ganzzahligen Wert bei Änderung über 700 ms animiert zum neuen
- * Wert und endet exakt am Zielwert; beim ersten Rendern wird nicht animiert.
- *
- * Ohne Animationsumgebung — reduzierte Bewegung, fehlendes
- * `requestAnimationFrame` oder `matchMedia` — erscheint sofort der Zielwert.
- * Das Test-Setup meldet reduzierte Bewegung; ein Test, der animieren will,
- * muss `matchMedia` selbst stubben.
+ * Animates an integer to its new value over 700 ms, ending exactly on it; the first render does not animate.
+ * Without an animation environment (reduced motion, no `requestAnimationFrame` or `matchMedia`) the target shows at once.
  */
 export function useCountUp(ziel: number): number {
   const [wert, setWert] = useState(ziel)

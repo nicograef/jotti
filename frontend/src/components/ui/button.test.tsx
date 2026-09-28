@@ -8,12 +8,8 @@ afterEach(() => {
 })
 
 describe('Button destructive-solid variant', () => {
-  // Der solide destructive-Button trägt seinen AA-Kontrast über das Token
-  // --destructive-solid-foreground (Light: Weiß, Dark: red-950 auf der
-  // aufgehellten Fläche). jsdom kennt keine berechneten Farben — der reale
-  // Kontrast wird im axe-E2E-Gate (admin-kontrast-axe.spec.ts) gemessen; hier
-  // wird nur verankert, dass der Variant existiert und die Token-Flächen- und
-  // -Textklassen verdrahtet.
+  // jsdom computes no colours, so the axe E2E gate (admin-kontrast-axe.spec.ts) measures the real AA contrast.
+  // This test only pins that the variant exists and wires the token fill and text classes.
   it('applies the solid destructive surface and the foreground token class', () => {
     const classes = buttonVariants({ variant: 'destructive-solid' })
     expect(classes).toContain('bg-destructive')

@@ -12,24 +12,14 @@ import { CLIENT_VERSION, istVersionsabweichung } from '@/lib/version'
 export const RELOAD_VERMERK_SCHLUESSEL = 'JOTTI_RELOAD_ZIELVERSION'
 
 /**
- * - `aus` — die Versionen passen, oder es gibt noch keine Antwort.
- * - `laedt` — die Seite lädt neu.
- * - `wartet` — Abweichung bei offenem Vorgang; der Reload folgt, sobald das
- *   Register leer wird.
- * - `gebremst` — ein Reload blieb wirkungslos; dieser Client lädt nicht mehr
- *   von selbst.
+ * `wartet`: mismatch with an open Vorgang; the reload follows once the register is empty.
+ * `gebremst`: a reload had no effect, so this client no longer reloads on its own.
  */
 export type VersionsZustand = 'aus' | 'laedt' | 'wartet' | 'gebremst'
 
 /**
- * Trägt dieser Client nicht die vermerkte Zielversion, war der Reload
- * wirkungslos und es darf kein zweiter folgen. Eingelöst wird der Vermerk erst
- * bei Einigkeit mit dem Server (`useVersionsGuard`).
- *
- * Ohne die Bremse läuft das Update-Fenster in eine Endlosschleife: Das Backend
- * wird vor dem Frontend ersetzt (`docker-compose.prod.yml`, `depends_on`) und
- * meldet die neue Version, während der alte Container das alte Bundle
- * ausliefert. Ein Limit je Seitenleben hilft nicht — jeder Reload beginnt eines.
+ * A client without the noted target version had an ineffective reload, so no second one may follow.
+ * Without this brake the update window loops forever (docs/handbuch.md §6.8, Schleifenbremse).
  */
 function bremseAuswerten(clientVersion: string): boolean {
   const zielVersion = sessionStorage.getItem(RELOAD_VERMERK_SCHLUESSEL)
@@ -65,19 +55,14 @@ export function useVersionsGuard(): VersionsZustand {
   )
   const bereitsGeladen = useRef(false)
 
-  // Einigkeit löst den Vermerk ein, gleich welche Version in ihm steht: Nach
-  // Rollback oder Vorwärts-Korrektur trägt der Client eine andere als die
-  // vermerkte Zielversion. Löste nur der exakte Treffer ein, bliebe der Vermerk
-  // für die Lebensdauer des Tabs stehen und entschärfte jede spätere Erkennung.
+  // Agreement clears the note whatever version it holds: after a rollback or forward fix the client differs from the target.
+  // Clearing only on an exact match would leave the note for the tab's lifetime and disarm every later detection.
   const einigMitServer =
     serverVersion !== undefined &&
     !istVersionsabweichung(CLIENT_VERSION, serverVersion)
 
-  // Mit dem Vermerk fällt auch das eingefrorene Flag: In der als App
-  // installierten jotti bleibt ein Tab wochenlang offen, ein zweites
-  // Seitenleben kommt womöglich nie. Eine Schleife kann daraus nicht entstehen
-  // — sie setzt eine Abweichung voraus. Das Anpassen von Zustand während des
-  // Renderns ist dafür vorgesehen und ändert am Ergebnis dieses Renders nichts.
+  // The frozen flag falls with the note: an installed jotti tab stays open for weeks, so a second page life may never come.
+  // No loop can follow, since a loop needs a mismatch; adjusting state during render is the intended React pattern here.
   if (gebremst && einigMitServer) setGebremst(false)
 
   const versionsZustand = bestimmeVersionsZustand(

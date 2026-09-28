@@ -1,11 +1,8 @@
 import { z } from 'zod'
 
-// Die eine Quelle der Namensmeldungen und der Mindestlänge; nur die Obergrenze
-// unterscheidet sich und ist deshalb das Argument (100 für Tisch, Produkt und
-// Variante, 50 für den Namen eines Benutzers). Gespiegelt am zog-Gegenstück des
-// Backends: `.trim()` entspricht dessen `.Trim()`, damit ein Name aus
-// Leerzeichen im Formular auffällt statt als anonymer validation_error.
-// Der Benutzername ist ein anderes Feld (lib/identity.ts).
+// Single source of name messages and minimum length; only the maximum differs (100 for Tisch, Produkt, Variante;
+// 50 for a Benutzer's name, not the username in lib/identity.ts). `.trim()` mirrors the backend zog `.Trim()`,
+// so a blank name fails in the form instead of as an anonymous validation_error.
 export function createNameSchema(maxLength: number) {
   return z
     .string()

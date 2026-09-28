@@ -17,11 +17,8 @@ interface PositionAuswahlListeProps {
   onRemove: (id: string) => void
 }
 
-// Controlled: die Mengenlogik (Grenzen, Voll-Vorauswahl) bleibt im jeweiligen
-// Drawer. Die Liste scrollt nicht selbst — sie liegt im DrawerBody, dem einzigen
-// Scrollbereich des Drawers. Lange Namen brechen um statt zu kürzen: zwei
-// gekürzte Varianten desselben Produkts sehen gleich aus, und beim Stornieren
-// oder Umbuchen ist der Griff zur falschen Position teuer.
+// Controlled: quantity logic stays in each drawer, and the list lives in DrawerBody, the drawer's only scroll area.
+// Long names wrap instead of truncating: two truncated variants look alike, and picking the wrong position is costly.
 export function PositionAuswahlListe({
   positionen,
   mengen,

@@ -20,10 +20,8 @@ export const PositionSchema = z.object({
 })
 export type Position = z.infer<typeof PositionSchema>
 
-// max(999) spiegelt kasse.PositionEingabeSchema im Backend: die Grenze schützt
-// die Preissumme vor dem Überlauf. Sie gilt nur auf dem Eingabeweg — die
-// gelesene PositionSchema bleibt offen, sonst wären bestehende Bestellungen
-// mit größerer Menge nicht mehr darstellbar.
+// max(999) mirrors kasse.PositionEingabeSchema and keeps the price sum from overflowing.
+// It applies only on input: the read PositionSchema stays open so existing larger orders still render.
 export const BestellPositionInputSchema = z.object({
   produktId: z.number().int().min(1),
   varianteId: z.number().int().min(1),

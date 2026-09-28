@@ -51,10 +51,8 @@ export function GeldtransitDialog({
   richtung: GeldtransitRichtung | null
   onSuccess: () => void
 }) {
-  // geldtransitId pro logischem Vorgang, nicht pro Retry: der Öffnen-Effekt
-  // vergibt ihn. Ohne den Wechsel trüge eine Buchung nach einem Fehlversuch den
-  // verbrauchten Schlüssel, und das Backend verwürfe sie als Duplikat.
-  // Gebucht wird nur im offenen Dialog, der Effekt läuft also vorher.
+  // One geldtransitId per logical Vorgang, assigned by the open effect: a retry with the consumed key
+  // would be dropped by the backend as a duplicate. Booking needs the open dialog, so the effect always runs first.
   const geldtransitIdRef = useRef('')
 
   const form = useForm<FormData>({

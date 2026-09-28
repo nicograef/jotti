@@ -1,13 +1,8 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * Meldet `true` genau beim ersten Rendern, in dem `bereit` gilt, danach
- * dauerhaft `false`. So animiert der Listen-Eintritt nur beim ersten Aufbau und
- * nie bei einem späteren Refetch; `bereit === false` überspringt das Skeleton.
- *
- * Das Flag liegt in einem Ref: Ein zusätzliches Rendern risse die frisch
- * gestartete Animation ab. Das Lesen beim Rendern meldet `react-hooks/refs`,
- * ist hier aber gewollt — der Wert steuert nur die Animationsklasse.
+ * `true` exactly on the first render where `bereit` holds, then `false`, so the list entry animates on first build, never on refetch.
+ * The flag lives in a ref because an extra render would cut the fresh animation; reading it during render (`react-hooks/refs`) is intended.
  */
 export function useErstAufbau(bereit: boolean): boolean {
   const aufgebautRef = useRef(false)

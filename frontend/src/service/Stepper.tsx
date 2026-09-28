@@ -9,19 +9,12 @@ interface StepperProps {
   addLabel: string
   removeLabel: string
   addDisabled?: boolean
+  // Hides Minus and quantity at 0, where a disabled Minus in every row would crowd the order list.
+  // The caller must reserve the full Stepper width (ProductList: 8.25 rem), else the first tap shifts the rows.
   minusNurAbEins?: boolean
 }
 
-// Einheitlicher 44-px-Mengen-Wähler des Service-Bereichs. Bei Menge 0 ist Minus
-// regulär deaktiviert; die Menge in der Mitte hat feste Breite, damit der
-// Zustandswechsel keinen Layout-Shift auslöst.
-//
-// minusNurAbEins blendet Minus und Mengenanzeige bei Menge 0 ganz aus: in der
-// Bestellliste trägt jede Zeile eine Variante, ein deaktivierter Minus-Knopf je
-// Zeile füllt die Liste. Überall sonst bleibt der deaktivierte Minus die klarere
-// Anzeige. Der Aufrufort muss dafür die volle Stepper-Breite reservieren
-// (ProductList: 8,25 rem), sonst wächst der Stepper beim ersten Tap und
-// verschiebt Namensumbruch und Folgezeilen.
+// Service-wide 44 px quantity picker; the centre quantity has a fixed width so state changes cause no layout shift.
 export function Stepper({
   menge,
   onAdd,

@@ -31,11 +31,8 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
 
-  // bestellungId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt (ein erfolgreicher Abschluss leert die Auswahl). Ein
-  // Retry desselben Vorgangs behält seinen Schlüssel; mit dem neuen Schlüssel
-  // startet auch der Kommentar leer, damit in der dauerhaften Spalte nichts aus
-  // einem abgebrochenen Vorgang übertragen wird.
+  // One bestellungId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
+  // The new key also resets the Kommentar, so the persistent column carries nothing over from an abandoned Vorgang.
   const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   // Inhalt des letzten Absendeversuchs. Nach einem Fehlversuch mit geändertem

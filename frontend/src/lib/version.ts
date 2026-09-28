@@ -1,9 +1,8 @@
 // Version dieses Clients, zur Bauzeit eingebrannt (siehe src/version.d.ts).
 export const CLIENT_VERSION = __CLIENT_VERSION__
 
-// Muster eines echten Release-Tags. Wortgleich mit der Prüfung im Makefile
-// (Target `prod-up` gegen JOTTI_VERSION), damit es im Repo nur eine Definition
-// von „echtes Release" gibt. Vorabversionen wie `v1.2.3-rc1` zählen mit.
+// A real release tag, matching the Makefile `prod-up` check on JOTTI_VERSION so the repo defines it once.
+// Pre-releases like `v1.2.3-rc1` count.
 const RELEASE_MUSTER = /^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$/
 
 /**

@@ -107,13 +107,8 @@ export function ProductList(props: ProductListComponentProps) {
   )
 }
 
-// Der Variantenname kürzt nie, sondern bricht um: „Schorle weiß, sauer" und
-// „Schorle weiß, süß" kürzen sich auf denselben Text, und die Servicekraft bucht
-// dann die falsche Variante.
-// Die Mengensteuerung sitzt in einem Slot fester Breite (8,25 rem = volle
-// Stepper-Breite), damit die Namensspalte unabhängig von der Menge gleich breit
-// bleibt: der erste Tap bricht weder den Namen neu um noch schiebt er die Zeilen
-// darunter nach unten.
+// Variant names wrap, never truncate: „Schorle weiß, sauer" and „Schorle weiß, süß" would truncate alike.
+// The quantity slot has the full Stepper width (8.25 rem), so the first tap neither rewraps the name nor shifts rows.
 function VariantRow({
   variant,
   menge,

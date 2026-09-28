@@ -137,10 +137,8 @@ describe('VersionsHinweis', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
-  // Der Hinweis erscheint zwangsläufig neben einem offenen Modal; Radix legt
-  // dann die Seite außerhalb des Portals still (`body { pointer-events: none }`).
-  // Die Rollen-Abfrage braucht `hidden`, weil Radix denselben Teilbaum
-  // zusätzlich `aria-hidden` setzt.
+  // The notice always appears next to an open modal, where Radix disables the page outside the portal
+  // (`body { pointer-events: none }`). The role query needs `hidden` because Radix also sets `aria-hidden` there.
   it('bleibt gebremst auch neben einem offenen Modal bedienbar', async () => {
     gebremst()
 

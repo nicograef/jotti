@@ -117,10 +117,8 @@ export function KassensitzungPage() {
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
   const queryClient = useQueryClient()
 
-  // Erkennt den Wechsel von geschlossener zu offener Kasse, um nur nach dem
-  // Eröffnen zu animieren. Ref statt State (ein Rendern risse die Animation ab);
-  // bleibt null, solange die erste Abfrage lädt, sonst gälte der Anfangszustand
-  // als Wechsel.
+  // Detects the switch from closed to open Kasse so only opening animates; a ref, since a render would cut the animation.
+  // Stays null while the first query loads, else the initial state would count as a switch.
   const istOffen = kassensitzung != null
   const zuletztOffenRef = useRef<boolean | null>(null)
   // eslint-disable-next-line react-hooks/refs

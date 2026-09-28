@@ -93,9 +93,8 @@ export function formatRelativeTime(
 }
 
 /**
- * Euro string (comma or dot, at most two decimals) to cents. String-based, no
- * float arithmetic. Invalid or over-precise input parses to 0
- * ("12,505" → 0, "1,2,3" → 0).
+ * Euro string (comma or dot, at most two decimals) to cents without float arithmetic.
+ * Invalid or over-precise input parses to 0 ("12,505" → 0, "1,2,3" → 0).
  */
 export function parseCents(euroInput: string): number {
   const match = /^(-?)(\d*)(?:[,.](\d{0,2}))?$/.exec(euroInput.trim())

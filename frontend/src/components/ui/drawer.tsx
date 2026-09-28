@@ -1,13 +1,5 @@
-// Bottom-Sheet auf Radix Dialog — bewusst ohne vaul, dessen Scroll-Lock das
-// Layout der installierten iOS-PWA bricht (Praxistest 09.07.2026, vaul#505).
-// Der Handy-Layout-Vertrag (85dvh statt vh, Safe-Area-Padding, ein Scrollbereich,
-// kein Drag-Handle) ist unter lg bindend: docs/decisions.md D03
-//
-// Responsive Präsentation (docs/decisions.md D08): unter
-// lg unverändert Bottom-Sheet, ab lg mittig zentrierter Modal-Dialog (analog
-// dialog.tsx). Ein Drawer-System, kein Fork — die Umschaltung ist reines CSS
-// über lg:-Overrides in DrawerContent. Die installierte iOS-PWA läuft nur auf
-// Handy-Breiten und bleibt damit ausschließlich im Bottom-Sheet.
+// Bottom sheet on Radix Dialog without vaul, whose scroll lock breaks the installed iOS PWA; its layout contract
+// binds below lg (docs/decisions.md D03). From lg it renders as a centred modal via lg: overrides (docs/decisions.md D08).
 import * as React from 'react'
 import { Dialog as DrawerPrimitive } from 'radix-ui'
 
@@ -66,11 +58,8 @@ function DrawerContent({
   // DrawerBody wird gedimmt und nimmt keine Eingaben an.
   pending?: boolean
 }) {
-  // Radix ruft die Dismiss-Handler mit der Closure ihrer Registrierung auf:
-  // Ein direkt gelesenes `pending` bleibt im Escape-Handler nach dem Wechsel
-  // auf true noch false (radix-ui 1.6.7; durch den Pending-Unit-Test in
-  // ZahlungDrawer.test.tsx abgesichert). Die Ref liefert dem Handler deshalb
-  // immer den aktuellen Wert.
+  // Radix calls dismiss handlers with the closure of their registration, so a directly read `pending` is stale
+  // in the Escape handler (radix-ui 1.6.7, pinned by ZahlungDrawer.test.tsx). The ref always hands over the current value.
   const pendingRef = React.useRef(pending)
   React.useEffect(() => {
     pendingRef.current = pending
@@ -82,10 +71,8 @@ function DrawerContent({
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         data-pending={pending || undefined}
-        // Kein Auto-Fokus auf ein Eingabefeld beim Öffnen (keine ungefragte
-        // Tastatur auf dem Handy). Der Fokus wandert stattdessen auf den
-        // Drawer-Container (tabIndex -1 via Radix FocusScope), damit Fokus-Trap,
-        // Escape und Fokusrückgabe unverändert greifen.
+        // No autofocus on an input on open, so phones don't raise the keyboard unasked. Focus moves to the container
+        // instead (tabIndex -1 via Radix FocusScope), keeping focus trap, Escape and focus return intact.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           if (event.currentTarget instanceof HTMLElement) {

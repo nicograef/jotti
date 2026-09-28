@@ -13,9 +13,8 @@ export const SummarySchema = z.object({
   direktverkaufUmsatzCents: z.number().int(),
 })
 
-// abzugebenCents = kassiertCents − ruecknahmenCents. anzahlStornierungen zählt
-// beide Tisch-Storno-Arten als Kontroll-Zähler. Direktverkäufe sind nicht
-// enthalten.
+// abzugebenCents = kassiertCents − ruecknahmenCents; Direktverkäufe are not included.
+// anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
 export const AbrechnungServicekraftSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),

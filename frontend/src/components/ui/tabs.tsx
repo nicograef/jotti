@@ -60,11 +60,8 @@ function TabsList({
 // Rundungsreste (subpixel) nicht als verborgene Tabs.
 const SCROLL_EPSILON = 1
 
-// ScrollableTabsList umschließt eine TabsList mit horizontalem Scrollen und
-// zeigt auf schmalen Viewports eine Rand-Affordance (Fade plus Chevron) auf der
-// Seite, auf der noch Tabs verborgen sind. Passen alle Tabs (z. B. am Desktop),
-// erscheint keine Affordance und das Layout bleibt unverändert. Ein Klick auf
-// ein Chevron scrollt in die jeweilige Richtung.
+// Horizontally scrolling TabsList with an edge affordance (fade plus chevron) on each side that still hides tabs.
+// When all tabs fit, no affordance shows; clicking a chevron scrolls that way.
 function ScrollableTabsList({
   className,
   children,

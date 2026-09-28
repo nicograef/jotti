@@ -61,10 +61,8 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        // Kein Auto-Fokus auf ein Eingabefeld beim Öffnen (keine ungefragte
-        // Tastatur auf dem Handy). Der Fokus wandert stattdessen auf den
-        // Dialog-Container (tabIndex -1 via Radix FocusScope), damit Fokus-Trap,
-        // Escape und Fokusrückgabe unverändert greifen.
+        // No autofocus on an input on open, so phones don't raise the keyboard unasked. Focus moves to the container
+        // instead (tabIndex -1 via Radix FocusScope), keeping focus trap, Escape and focus return intact.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           if (event.currentTarget instanceof HTMLElement) {
@@ -109,10 +107,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-// DialogBody ist der einzige Scrollbereich des Dialogs. DialogHeader und
-// DialogFooter sind direkte Flex-Kinder von DialogContent und bleiben dadurch
-// bei beliebig langem Inhalt sichtbar — die Aktionen im Footer bleiben auch bei
-// geöffneter Tastatur erreichbar. Analog zu DrawerBody in drawer.tsx.
+// DialogBody is the dialog's only scroll area; header and footer are direct flex children of DialogContent,
+// so footer actions stay reachable with long content or an open keyboard (as DrawerBody in drawer.tsx).
 function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div

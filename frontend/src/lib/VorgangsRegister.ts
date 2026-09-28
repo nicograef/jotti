@@ -1,11 +1,6 @@
 /**
- * Zählt die gerade offenen Vorgänge und benachrichtigt Interessenten.
- *
- * „Offen" heißt: etwas, dessen Verlust eine Helferin ärgern würde — ein
- * gefüllter Korb, eine getroffene Auswahl, eine laufende Buchung, ein
- * angefangenes Formular. Der erzwungene Reload wartet, solange der Zähler nicht
- * null ist. Angemeldet wird ausschließlich über `useOffenerVorgang`: Ein von
- * Hand gehaltenes Paar leckt, und ein geleckter Zähler blockiert den Reload.
+ * Counts open Vorgänge (anything whose loss would annoy a helper) and notifies subscribers; the forced reload waits while it is non-zero.
+ * Register only via `useOffenerVorgang`: a hand-held pair leaks, and a leaked count blocks the reload (docs/handbuch.md §6.8).
  */
 class VorgangsRegister {
   private offen = 0

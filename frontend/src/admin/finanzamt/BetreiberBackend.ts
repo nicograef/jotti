@@ -40,10 +40,9 @@ export const BetreiberEingabeSchema = z.object({
 })
 export type BetreiberEingabe = z.infer<typeof BetreiberEingabeSchema>
 
-// elsterGemeldetAm ist das Datum der ELSTER-Kassenmeldung (§ 146a Abs. 4 AO),
-// null solange nicht gemeldet. Ohne Längengrenzen: vor der Einrichtung liefert
-// die Query leere Felder, und ein Bestandswert kann die amtliche Maximallänge
-// überschreiten — der DSFinV-K-Export kürzt ihn.
+// elsterGemeldetAm is the date of the ELSTER Kassenmeldung (§ 146a Abs. 4 AO), null until reported.
+// No length caps: before setup the query returns empty fields, and a stored value may exceed the legal
+// maximum length, which the DSFinV-K export truncates.
 export const BetreiberSchema = z.object({
   vereinsname: z.string(),
   strasse: z.string(),

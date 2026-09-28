@@ -183,10 +183,8 @@ export function AdminSidebar() {
 
   const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
     setTheme(isDark ? 'light' : 'dark')
-    // Nach Klick/Tap den Fokus lösen, damit der Umschalter nicht engagiert bleibt
-    // und sein Highlight (bg-sidebar-accent) im Dark Mode wie das
-    // Active-Page-Highlight (data-active) der Navigation wirkt. Tastatur
-    // (event.detail === 0) behält den Fokus zur Orientierung.
+    // Blur after click/tap so the toggle's highlight (bg-sidebar-accent) does not pass for the active-page highlight in dark mode.
+    // Keyboard use (event.detail === 0) keeps focus for orientation.
     if (event.detail !== 0) event.currentTarget.blur()
   }
 

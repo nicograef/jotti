@@ -11,8 +11,7 @@ export interface MengenSteuerung<K extends string | number> {
 }
 
 /**
- * Quantity-selector state keyed by id. `setAll` bypasses `max` — the caller
- * must stay within the cap. Pass `max` to cap a key's quantity on `add`.
+ * Quantity-selector state keyed by id. `max` caps a key's quantity on `add`; `setAll` bypasses it, so its caller must stay within the cap.
  */
 export function useMengen<K extends string | number>(
   max?: (key: K) => number,

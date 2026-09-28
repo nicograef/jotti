@@ -83,10 +83,8 @@ export const TSEEinrichtenSchema = z.object({
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 
-// pin trägt ab Zustand UNINITIALIZED die vom Admin verwahrte Admin-PIN; bei
-// CREATED bleibt es leer (jotti bezieht PUK und PIN selbst). puk ist nur für
-// den PIN-Reset gesetzt: ist die PIN verloren oder gesperrt, setzt jotti damit
-// eine frische PIN und übernimmt weiter.
+// pin carries the stored Admin-PIN from state UNINITIALIZED on and stays empty at CREATED (jotti fetches PUK and PIN itself).
+// puk is set only for the PIN reset: with a lost or locked PIN jotti sets a fresh one and completes the takeover.
 export const TSEUebernehmenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
@@ -121,10 +119,8 @@ export const TSEStatusSchema = z.object({
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
-// Rückstand: offene Aufträge und Alter des ältesten. Leistung über ein
-// gleitendes 15-Minuten-Fenster (Signaturen/Minute, Signierdauer p95).
-// fehlgeschlageneAuftraege und letzterFehler gelten nur für die aktive
-// Kassensitzung; mit dem Kassenabschluss verschwindet die Warnung.
+// Backlog: open Aufträge and the oldest one's age; throughput over a sliding 15-minute window (signatures/minute, p95).
+// fehlgeschlageneAuftraege and letzterFehler cover only the active Kassensitzung, so closing it clears the warning.
 export const TSESignaturQueueSchema = z.object({
   offeneAuftraege: z.number().int(),
   fehlgeschlageneAuftraege: z.number().int(),

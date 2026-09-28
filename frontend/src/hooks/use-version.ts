@@ -6,19 +6,13 @@ import { OHNE_FEHLER_TOAST } from '@/lib/queryClient'
 
 const healthBackend = new HealthBackend(BackendSingleton)
 
-// Gleichauf mit der einzigen anderen Polling-Stelle (src/admin/reporting/hooks.ts).
-// /health pingt bei jedem Aufruf die Datenbank und wird mit dreißig
-// Helfer-Handys der meistgerufene Endpunkt des Systems — dreißig Sekunden sind
-// für Postgres belanglos und für einen Versionswechsel schnell genug.
+// Same interval as the only other polling site (src/admin/reporting/hooks.ts). /health pings the DB and is
+// the most-called endpoint with thirty phones; 30 s is trivial for Postgres and fast enough for a version change.
 export const VERSIONSABFRAGE_INTERVALL_MS = 30_000
 
 /**
- * Laufende Backend-Version (z. B. "v1.0.0"), undefined bis zur ersten Antwort.
- *
- * Kein `staleTime`: Nur daran hängt das Nachholen beim Zurückkehren in den
- * Vordergrund — react-query holt allein eine veraltete Abfrage nach.
- * Ein Fehlschlag bleibt stumm (kein globaler Fehler-Toast): Die Abfrage läuft
- * im Hintergrund, und niemand kann auf sie reagieren.
+ * Running backend version (e.g. "v1.0.0"), undefined until the first response; no `staleTime`, so react-query refetches on return to the foreground.
+ * A failure raises no global error toast, since nobody can act on a background query.
  */
 export function useVersion(): string | undefined {
   const { data } = useQuery({

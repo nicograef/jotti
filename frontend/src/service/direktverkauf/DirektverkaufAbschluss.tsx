@@ -34,11 +34,8 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
 
-  // verkaufId je logischem Vorgang: neu, sobald eine Zusammenstellung aus dem
-  // Leerzustand beginnt (ein erfolgreicher Abschluss leert die Auswahl). Ein
-  // Retry desselben Vorgangs behält seinen Schlüssel; mit dem neuen Schlüssel
-  // starten auch die Eingaben leer, damit in der dauerhaften Spalte nichts aus
-  // einem abgebrochenen Vorgang übertragen wird.
+  // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
+  // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
   const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {

@@ -1,9 +1,7 @@
 import { formatEuro } from '@/lib/utils'
 
-// MUSS in einem Flex-Container stehen: Der Name wächst und kürzt sich
-// (min-w-0 flex-1 truncate), der Preis bleibt inhaltsbreit (shrink-0).
-// Die Bestellliste des Service nutzt das Paar nicht: Dort bricht der
-// Variantenname um, weil zwei gekürzte Namen gleich aussehen können.
+// Must sit in a flex container: the name grows and truncates (min-w-0 flex-1 truncate), the price keeps its width (shrink-0).
+// The Service order list does not use it, since its variant names wrap to stay distinguishable.
 export function VariantNamePreis({
   name,
   preisCents,

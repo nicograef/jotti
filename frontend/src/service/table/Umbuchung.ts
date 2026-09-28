@@ -11,10 +11,8 @@ export const BestellungUmbuchenSchema = z.object({
 })
 export type BestellungUmbuchen = z.infer<typeof BestellungUmbuchenSchema>
 
-// Historien-Eintrag einer geldneutralen Umbuchung. Er erscheint sowohl auf dem
-// Quelltisch (Abgang) als auch auf dem Zieltisch (Zugang); die Richtung folgt aus
-// dem Verhältnis von tischId zu quellTischId/zielTischId. Nur der Zugang trägt
-// stornier-/umbuchbare Positionen (er bringt die Positionen auf den Tisch).
+// History entry of a cash-neutral Umbuchung, shown on the source (Abgang) and target (Zugang) Tisch;
+// tischId vs. quellTischId/zielTischId gives the direction. Only the Zugang carries stornier-/umbuchbare positions.
 export const UmbuchungSchema = z.object({
   art: z.literal('umbuchung'),
   id: z.uuid(),

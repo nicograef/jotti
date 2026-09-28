@@ -1,11 +1,9 @@
 import { createContext, use, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-// Der Aktionsinhalt bleibt in den Drawer-Komponenten (er braucht deren
-// Mengen-State und den Radix-DrawerTrigger-Kontext) und rendert über
-// DockActionSlot per Portal in den Slot des Docks; React-Context bleibt über das
-// Portal hinweg erhalten. Der Kontext umschließt Seiteninhalt und Dock, damit
-// das Portal aus dem Tab-Inhalt heraus funktioniert.
+// The action content stays in the drawer components (quantity state, Radix DrawerTrigger context)
+// and portals into the dock slot via DockActionSlot; React context survives the portal.
+// The context wraps page content and dock so the portal works from inside the tab content.
 
 const DockSlotContext = createContext<HTMLElement | null>(null)
 
