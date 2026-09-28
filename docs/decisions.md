@@ -1,6 +1,6 @@
 # Entscheidungen
 
-Eine Zeile je bindende Architektur- oder Produktentscheidung; Begründung und Messwerte stehen in der Git-Historie (`docs/adrs/`, gelöscht mit diesem Stand). Neue Entscheidungen werden hier angehängt, nie umgeschrieben; eine abgelöste Zeile bekommt den Zusatz „ersetzt durch DNN".
+Eine Zeile je bindende Architektur- oder Produktentscheidung. Neue Entscheidungen werden hier angehängt, nie umgeschrieben; eine abgelöste Zeile bekommt den Zusatz „ersetzt durch DNN".
 
 - **D01 Keine Ausgabe-Bestätigung.** jotti führt keinen Ausgabe-Status: UI, Endpunkt, Event-Typ `ausgabe-bestaetigt:v1` und Projektion sind entfernt. Der Status war rein informativ, keine andere Funktion hing davon ab, und die Ausgabe koordinieren die Teams über Arbeitsbons (K-12). „Offene Arbeit" heißt „noch nicht kassiert"; K-13 (Küchendisplay) und K-15 (Zubereitungsstatus) bleiben gestrichen und brauchen für eine Wiederaufnahme eine neue Entscheidung.
 - **D02 Kein Umsatz pro Tisch.** Das Reporting kennt keinen Umsatz-Breakdown je Tisch; `reporting.Breakdowns` trägt allein `AbrechnungProServicekraft`. Die Kennzahl stützt keine Entscheidung des Kassenwarts, und die offenen Salden deckt „Offene Tische" aus der `tisch_sessions`-Projektion ab. Anforderung R-03 entfällt; die Kennzahl bliebe aus dem Kassenjournal jederzeit neu ableitbar.

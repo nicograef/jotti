@@ -4,7 +4,7 @@
 
 ## 1. Überblick
 
-jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, Docker Compose). Servicekräfte nutzen ihre eigenen Smartphones (BYOD) im Browser. Das Kassenjournal basiert auf Event-Sourcing; Stammdaten sind CRUD. Die bewusst ausgeschlossenen Funktionen mit Begründung: [produktbeschreibung.md §6.2](produktbeschreibung.md#62-was-jotti-bewusst-nicht-ist).
+jotti ist ein self-hosted mPOS-System (Go-Backend, React-Frontend, PostgreSQL, Docker Compose). Servicekräfte nutzen ihre eigenen Smartphones (BYOD) im Browser. Das Kassenjournal basiert auf Event-Sourcing; Stammdaten sind CRUD. Die bewusst ausgeschlossenen Funktionen mit Begründung: [produktbeschreibung.md](produktbeschreibung.md#was-jotti-bewusst-nicht-ist).
 
 > **TSE / KassenSichV:** jotti unterliegt der TSE-Pflicht nach § 146a AO (umgesetzt): siehe [anforderungen.md](anforderungen.md) und [compliance.md](compliance.md).
 

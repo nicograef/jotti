@@ -3,7 +3,7 @@ title: Compliance-Anforderungen
 description: 'Fiskalische Grundlagen für jotti: KassenSichV, TSE, GoBD, DSFinV-K und ELSTER mit Rechtsnormen sowie Entwickler- und Betreiberpflichten.'
 ---
 
-jotti ist ein elektronisches Aufzeichnungssystem (§ 1 KassenSichV) und unterliegt nach § 146a AO der TSE-Pflicht, unabhängig von Rechtsform, Gemeinnützigkeit oder Veranstaltungsdauer. Technische Umsetzung phasenweise: siehe [anforderungen.md](anforderungen.md); Architektur-Entscheidungen: siehe [handbuch.md §3.13](handbuch.md#313-tse-architektur).
+jotti ist ein elektronisches Aufzeichnungssystem (§ 1 KassenSichV) und unterliegt nach § 146a AO der TSE-Pflicht, unabhängig von Rechtsform, Gemeinnützigkeit oder Veranstaltungsdauer. Umgesetzte Funktionen: [anforderungen.md](anforderungen.md); Architektur-Entscheidungen: [handbuch.md §3.13](handbuch.md#313-tse-architektur).
 
 ## 2. Rechtliche Grundlagen
 

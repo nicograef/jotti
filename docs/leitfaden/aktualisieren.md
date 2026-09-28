@@ -71,7 +71,7 @@ geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version auf
 dem Rechner läuft — und zusätzlich immer dann, wenn ein weggelegtes Handy wieder
 hervorgeholt wird. Weicht die Version ab, lädt sich die Seite selbst neu: im
 Browser am Handy, am Rechner und ebenso in der als App auf dem Startbildschirm
-installierten jotti. **Ihr müsst das Neuladen also nicht mehr ansagen**, und
+installierten jotti. **Ihr müsst das Neuladen also nicht ansagen**, und
 niemand muss eine App wegwischen.
 
 > ⚠️ **Beim Update von einer Version vor 0.17.3 noch ein letztes Mal von Hand neu
