@@ -31,7 +31,7 @@ func FuzzSerializeCSV(f *testing.F) {
 		// Der Encoder terminiert jede Zeile mit CRLF. Die letzte Zeile endet daher
 		// mit einem abschließenden CRLF, das keine leere Zeile einleitet.
 		if !strings.HasSuffix(out, csvNewline) {
-			t.Fatalf("Ausgabe endet nicht mit CRLF: %q", out)
+			t.Errorf("Ausgabe endet nicht mit CRLF: %q", out)
 		}
 		lines := splitCSVRows(strings.TrimSuffix(out, csvNewline))
 		if len(lines) != 2 {
@@ -41,7 +41,7 @@ func FuzzSerializeCSV(f *testing.F) {
 		header := parseCSVRow(lines[0])
 		record := parseCSVRow(lines[1])
 		if len(header) != len(cols) {
-			t.Fatalf("Header-Feldanzahl %d != Spaltenanzahl %d: %q", len(header), len(cols), out)
+			t.Errorf("Header-Feldanzahl %d != Spaltenanzahl %d: %q", len(header), len(cols), out)
 		}
 		if len(record) != len(cols) {
 			t.Fatalf("Record-Feldanzahl %d != Spaltenanzahl %d (rohes Trennzeichen zerbrochen?): %q", len(record), len(cols), out)
@@ -50,7 +50,7 @@ func FuzzSerializeCSV(f *testing.F) {
 		want := []string{a, b, c}
 		for i, got := range record {
 			if got != want[i] {
-				t.Fatalf("Feld %d verändert: got %q, want %q\noutput=%q", i, got, want[i], out)
+				t.Errorf("Feld %d verändert: got %q, want %q\noutput=%q", i, got, want[i], out)
 			}
 		}
 	})

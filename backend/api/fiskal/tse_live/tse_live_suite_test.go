@@ -440,7 +440,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	}
 	vollZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
 	if vollZahlungID == teilZahlungID {
-		t.Fatalf("Vollzahlung erzeugte kein neues zahlung-kassiert-Event")
+		t.Errorf("Vollzahlung erzeugte kein neues zahlung-kassiert-Event")
 	}
 	z = warteAufSignatur(t, db, vollZahlungID)
 	pruefeSignatur(t, "Vollzahlung", z, tse.ProcessTypeKassenbelegV1)

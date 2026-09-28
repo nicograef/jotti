@@ -34,7 +34,7 @@ func TestArchivEntsprichtAmtlicherIndexXML(t *testing.T) {
 		t.Fatalf("amtliche index.xml nicht parsebar: %v", err)
 	}
 	if len(amtlich.Media.Tables) != 20 {
-		t.Fatalf("amtliche index.xml deklariert %d Tabellen, erwartet 20", len(amtlich.Media.Tables))
+		t.Errorf("amtliche index.xml deklariert %d Tabellen, erwartet 20", len(amtlich.Media.Tables))
 	}
 
 	archive, err := Map(testSnapshot(), []event.Event{barverkaufEvent(t)}, nil)

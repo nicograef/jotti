@@ -1527,7 +1527,7 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 
 	// Invariante: jeder Bonkopf-Vorgang hat genau eine TSE-Zeile.
 	if len(tse.Records) != len(transactions.Records) {
-		t.Fatalf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
+		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
 	}
 
 	for i := range tse.Records {
@@ -1624,7 +1624,7 @@ func TestMapEmptySessionIsError(t *testing.T) {
 
 	_, err := Map(testSnapshot(), []event.Event{eroeffnet}, nil)
 	if !errors.Is(err, ErrKeineVorgaenge) {
-		t.Fatalf("Map() error = %v, want ErrKeineVorgaenge", err)
+		t.Errorf("Map() error = %v, want ErrKeineVorgaenge", err)
 	}
 }
 

@@ -40,15 +40,13 @@ func performRequest(t *testing.T, handler http.HandlerFunc, w http.ResponseWrite
 }
 
 // deadlineCapturingWriter implementiert das SetWriteDeadline-Interface, das
-// http.ResponseController sucht, und zählt die Aufrufe. deadlineCountBeforeWrite
-// zählt nur bis zum ersten Schreibvorgang: Nur die Aufrufe DAVOR können der
-// Antwort ein Budget geben.
+// http.ResponseController sucht. fristBeimSchreiben hält die Frist fest, die
+// beim ersten Schreibvorgang gilt: Nur sie gibt der Antwort ein Budget.
 type deadlineCapturingWriter struct {
 	*httptest.ResponseRecorder
-	deadline                 time.Time
-	deadlineCount            int
-	deadlineCountBeforeWrite int
-	wroteAnything            bool
+	frist              time.Time
+	fristBeimSchreiben time.Time
+	geschrieben        bool
 }
 
 func newDeadlineCapturingWriter() *deadlineCapturingWriter {
@@ -56,43 +54,59 @@ func newDeadlineCapturingWriter() *deadlineCapturingWriter {
 }
 
 func (w *deadlineCapturingWriter) SetWriteDeadline(t time.Time) error {
-	w.deadline = t
-	w.deadlineCount++
-	if !w.wroteAnything {
-		w.deadlineCountBeforeWrite++
-	}
+	w.frist = t
 	return nil
 }
 
 func (w *deadlineCapturingWriter) WriteHeader(code int) {
-	w.wroteAnything = true
+	w.merkeErstenSchreibvorgang()
 	w.ResponseRecorder.WriteHeader(code)
 }
 
 func (w *deadlineCapturingWriter) Write(b []byte) (int, error) {
-	w.wroteAnything = true
+	w.merkeErstenSchreibvorgang()
 	return w.ResponseRecorder.Write(b)
+}
+
+func (w *deadlineCapturingWriter) merkeErstenSchreibvorgang() {
+	if !w.geschrieben {
+		w.geschrieben = true
+		w.fristBeimSchreiben = w.frist
+	}
+}
+
+// langerArchivbau hält die Frist fest, die während des Archivbaus gilt, und
+// lässt Zeit verstreichen, damit eine danach neu gesetzte Frist später liegt.
+func langerArchivbau(w *deadlineCapturingWriter, fristBeimArchivbau *time.Time) func() {
+	return func() {
+		*fristBeimArchivbau = w.frist
+		time.Sleep(time.Millisecond)
+	}
 }
 
 // Der Export läuft gegen die eigene, verlängerte Schreibfrist statt gegen
 // die globale 10-Sekunden-Frist des Servers: Sonst wird ein länger als zehn
 // Sekunden dauernder Export stillschweigend abgeschnitten.
 func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
-	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
+	w := newDeadlineCapturingWriter()
+	var fristBeimArchivbau time.Time
+	svc := &mockService{
+		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
+		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
+	}
 	h := &Handler{Service: svc}
 
-	w := newDeadlineCapturingWriter()
 	before := time.Now()
 	performRequest(t, h.ExportHandler(), w, 0)
 
-	if w.deadlineCount == 0 {
+	if w.fristBeimSchreiben.IsZero() {
 		t.Fatal("expected SetWriteDeadline to be called")
 	}
-	if w.deadlineCountBeforeWrite != 2 {
-		t.Fatalf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+	if fristBeimArchivbau.IsZero() || !w.fristBeimSchreiben.After(fristBeimArchivbau) {
+		t.Errorf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
-	if min := 5 * time.Minute; w.deadline.Before(before.Add(min)) {
-		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
+	if min := 5 * time.Minute; w.fristBeimSchreiben.Before(before.Add(min)) {
+		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.fristBeimSchreiben.Sub(before))
 	}
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", w.Code)
@@ -109,21 +123,25 @@ func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing
 // 10-Sekunden-Frist wirksam und ein grosses DSFinV-K-Archiv reisst mitten im
 // ZIP ab. Der Test oben trifft den Handler direkt und würde das übersehen.
 func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing.T) {
-	svc := &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}
+	w := newDeadlineCapturingWriter()
+	var fristBeimArchivbau time.Time
+	svc := &mockService{
+		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
+		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
+	}
 	h := &Handler{Service: svc}
 
-	w := newDeadlineCapturingWriter()
 	before := time.Now()
 	performRequest(t, middleware.LoggingMiddleware(h.ExportHandler()).ServeHTTP, w, 0)
 
-	if w.deadlineCount == 0 {
+	if w.fristBeimSchreiben.IsZero() {
 		t.Fatal("expected SetWriteDeadline to reach the real ResponseWriter through the middleware chain")
 	}
-	if w.deadlineCountBeforeWrite != 2 {
-		t.Fatalf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+	if fristBeimArchivbau.IsZero() || !w.fristBeimSchreiben.After(fristBeimArchivbau) {
+		t.Errorf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
-	if min := 5 * time.Minute; w.deadline.Before(before.Add(min)) {
-		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.deadline.Sub(before))
+	if min := 5 * time.Minute; w.fristBeimSchreiben.Before(before.Add(min)) {
+		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.fristBeimSchreiben.Sub(before))
 	}
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", w.Code)
@@ -138,22 +156,22 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 // Archivbau deckt erst die zweite ab, die auch dieser Fehlerzweig durchläuft.
 func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	w := newDeadlineCapturingWriter()
-	fristStandBeimArchivbau := false
+	var fristBeimArchivbau time.Time
 	svc := &mockService{
 		err:          application.ErrKassensitzungNichtGefunden,
-		beiErstellen: func() { fristStandBeimArchivbau = w.deadlineCount > 0 },
+		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
 	}
 	h := &Handler{Service: svc}
 
 	performRequest(t, h.ExportHandler(), w, 5)
 
-	if !fristStandBeimArchivbau {
-		t.Fatal("expected the write deadline to be extended before Erstellen() runs")
+	if fristBeimArchivbau.IsZero() {
+		t.Error("expected the write deadline to be extended before Erstellen() runs")
 	}
 	// Auch die Fehlerantwort geht durch beide Fristen — die zweite gibt ihr ein
 	// eigenes Budget, nachdem der Archivbau lange gelaufen ist.
-	if w.deadlineCountBeforeWrite != 2 {
-		t.Fatalf("expected the write deadline to be set twice before the first write, got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+	if !w.fristBeimSchreiben.After(fristBeimArchivbau) {
+		t.Errorf("expected the write deadline to be set twice before the first write, got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected status 404, got %d", w.Code)
@@ -166,22 +184,22 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 // ein eigenes Budget.
 func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
 	w := newDeadlineCapturingWriter()
-	fristenBeimArchivbau := 0
+	var fristBeimArchivbau time.Time
 	svc := &mockService{
 		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
-		beiErstellen: func() { fristenBeimArchivbau = w.deadlineCount },
+		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
 	}
 	h := &Handler{Service: svc}
 
 	performRequest(t, h.ExportHandler(), w, 0)
 
-	if fristenBeimArchivbau != 1 {
-		t.Fatalf("expected exactly one write deadline before the archive is built, got %d", fristenBeimArchivbau)
+	if fristBeimArchivbau.IsZero() {
+		t.Error("expected a write deadline before the archive is built")
 	}
-	// Gezählt wird bis zum ersten Schreibvorgang: Ein Aufruf hinter dem
-	// Schreiben käme für diese Antwort zu spät und darf nicht mitzählen.
-	if w.deadlineCountBeforeWrite != 2 {
-		t.Fatalf("expected the write deadline to be set again after the archive is built and before writing, got %d of %d calls", w.deadlineCountBeforeWrite, w.deadlineCount)
+	// Maßgeblich ist die Frist beim ersten Schreibvorgang: Eine Setzung hinter
+	// dem Schreiben käme für diese Antwort zu spät.
+	if !w.fristBeimSchreiben.After(fristBeimArchivbau) {
+		t.Errorf("expected the write deadline to be set again after the archive is built and before writing, got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
 	}
 }
 

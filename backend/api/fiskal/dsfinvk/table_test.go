@@ -19,7 +19,7 @@ func TestSerializeCSVFormat(t *testing.T) {
 		"\"line\nbreak\";0.00;ende\r\n"
 
 	if got != want {
-		t.Fatalf("serializeCSV() =\n%q\nwant\n%q", got, want)
+		t.Errorf("serializeCSV() =\n%q\nwant\n%q", got, want)
 	}
 }
 

@@ -372,7 +372,7 @@ func pruefeStoerungsprotokoll(t *testing.T, db *sql.DB) {
 		}
 		return
 	}
-	t.Fatal("Stoerungsprotokoll enthaelt keinen tse_fehler-Zeitraum")
+	t.Error("Stoerungsprotokoll enthaelt keinen tse_fehler-Zeitraum")
 }
 
 // signierDauer liest die reale Ende-zu-Ende-Signierdauer (erledigt_am -

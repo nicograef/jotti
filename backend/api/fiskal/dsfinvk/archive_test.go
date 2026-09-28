@@ -54,7 +54,7 @@ func TestBuildArchiveContents(t *testing.T) {
 			t.Fatalf("read index.xml: %v", err)
 		}
 		if err := rc.Close(); err != nil {
-			t.Fatalf("close index.xml: %v", err)
+			t.Errorf("close index.xml: %v", err)
 		}
 		if !bytes.Equal(buf.Bytes(), amtlicheIndexXML) {
 			t.Error("index.xml im Archiv weicht von der amtlichen Vorlage ab")
@@ -65,6 +65,6 @@ func TestBuildArchiveContents(t *testing.T) {
 func TestBuildArchiveEmptySession(t *testing.T) {
 	_, err := BuildArchive(testSnapshot(), nil, nil)
 	if !errors.Is(err, ErrKeineVorgaenge) {
-		t.Fatalf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
+		t.Errorf("BuildArchive() error = %v, want ErrKeineVorgaenge", err)
 	}
 }
