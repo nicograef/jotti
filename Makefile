@@ -78,7 +78,7 @@ lint-backend-full: ## Backend Linting mit golangci-lint (Integration- und Unit-T
 lint-frontend: ## Frontend Linting (ESLint)
 	cd frontend && pnpm lint
 
-lint: lint-backend lint-frontend ## Backend + Frontend Linting
+lint: lint-backend lint-frontend check-shell ## Backend-, Frontend- und Shell-Linting
 
 # Formatierung
 
@@ -300,11 +300,16 @@ check-e2e-types: ## E2E-Suite typprüfen (tsc, ohne Stack)
 check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
 	shellcheck -x scripts/*.sh
 
-check-repo: ## Alle scripts/check-*.sh-Gates ausführen (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
-	@for script in scripts/check-*.sh; do \
+check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt am Ende (Build-Tags, Sprache, Prosa, Verweise, Zeitzonen, Versions-Pins, UI-Labels, Domain-Enums, E2E-Assertions)
+	@failed=""; \
+	for script in scripts/check-*.sh; do \
 		echo "→ $$script"; \
-		bash "$$script" || exit 1; \
-	done
+		bash "$$script" || failed="$$failed $$script"; \
+	done; \
+	if [ -n "$$failed" ]; then \
+		echo "Fehlgeschlagene Gates:$$failed"; \
+		exit 1; \
+	fi
 
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
