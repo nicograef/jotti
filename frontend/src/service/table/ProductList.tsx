@@ -82,7 +82,7 @@ export function ProductList(props: ProductListComponentProps) {
       <div className="mt-4 space-y-5">
         {sichtbareProdukte.map((product) => (
           <div key={product.id}>
-            <h2 className="mb-1 text-[13px] font-semibold text-muted-foreground">
+            <h2 className="mb-1.5 border-l-2 border-primary pl-2.5 text-[17px] font-semibold text-foreground">
               {product.name}
             </h2>
             <div>
