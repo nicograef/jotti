@@ -94,14 +94,7 @@ func FormatPositionBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	if kommentar != "" {
-		buf.WriteString("\n")
-		buf.WriteString(AlignLeft)
-		buf.WriteString(BoldOn)
-		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
-		buf.WriteByte('\n')
-		buf.WriteString(BoldOff)
-	}
+	buf.WriteString(kommentarBlock(kommentar))
 
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
@@ -150,13 +143,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
-	if kommentar != "" {
-		buf.WriteString("\n")
-		buf.WriteString(BoldOn)
-		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
-		buf.WriteByte('\n')
-		buf.WriteString(BoldOff)
-	}
+	buf.WriteString(kommentarBlock(kommentar))
 
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
@@ -467,4 +454,28 @@ func qrModuleSizeByte(payloadLen int) byte {
 	default:
 		return 3
 	}
+}
+
+// kommentarBlock hebt den Kommentar einer Bestellung auf dem Bon hervor: ein
+// kleines fettes Label, darunter der Text fett und in doppelter Höhe. Die
+// Zeichenbreite bleibt einfach, damit wrapLine weiter mit lineWidth rechnet —
+// doppelte Breite halbierte die Zeile auf 24 Zeichen und schnitte den Text ab.
+// Ohne Kommentar bleibt der Block leer, damit der Bon keine Leerzeile trägt.
+func kommentarBlock(kommentar string) string {
+	if kommentar == "" {
+		return ""
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString("\n")
+	buf.WriteString(AlignLeft)
+	buf.WriteString(BoldOn)
+	buf.WriteString("Hinweis:")
+	buf.WriteByte('\n')
+	buf.WriteString(TextDoubleHigh)
+	buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
+	buf.WriteByte('\n')
+	buf.WriteString(TextNormal)
+	buf.WriteString(BoldOff)
+	return buf.String()
 }

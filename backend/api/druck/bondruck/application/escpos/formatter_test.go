@@ -700,3 +700,22 @@ func TestFormatPositionBon_ZeitpunktInDeutscherOrtszeit(t *testing.T) {
 		t.Errorf("Arbeitsbon zeigt nicht die deutsche Ortszeit 01:30; got:\n%q", got)
 	}
 }
+
+// Der Kommentar wurde im Betrieb übersehen: er stand zwar fett, aber in
+// normaler Größe mitten im Bon. Label und doppelte Höhe heben ihn heraus.
+func TestFormatPositionBon_KommentarHervorgehoben(t *testing.T) {
+	got := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "ohne Senf", false))
+
+	if !strings.Contains(got, "Hinweis:") {
+		t.Errorf("Bon trägt kein Hinweis-Label; got:\n%q", got)
+	}
+	if !strings.Contains(got, escpos.TextDoubleHigh+"ohne Senf") {
+		t.Errorf("Kommentar steht nicht in doppelter Höhe; got:\n%q", got)
+	}
+	// Doppelte Breite würde die Zeile auf 24 Zeichen halbieren, während
+	// wrapLine weiter mit 48 rechnet. Die Tischzeile darf sie tragen, der
+	// Kommentar nicht.
+	if strings.Contains(got, escpos.TextDoubleAll+"ohne Senf") {
+		t.Errorf("Kommentar darf nicht doppelt breit sein; got:\n%q", got)
+	}
+}
