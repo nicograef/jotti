@@ -10,7 +10,11 @@ export function ServiceSplitLayout({
 }) {
   return (
     <div className="grid h-full grid-cols-[minmax(0,1fr)_22rem] gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
-      <div className="min-h-0 overflow-y-auto">{auswahl}</div>
+      {/* pr-8: die Scrollleiste der Spalte liegt sonst auf den Steppern am
+          rechten Rand der Liste — auf Geraeten mit ueberlagernder Leiste
+          (Surface) verdeckt sie die Plus-Taste. 2rem hält sie auch dort frei,
+          wo die Leiste breit ausfaellt. */}
+      <div className="min-h-0 overflow-y-auto pr-8">{auswahl}</div>
       {abschluss}
     </div>
   )
