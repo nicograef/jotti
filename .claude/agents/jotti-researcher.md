@@ -55,8 +55,6 @@ Binding beyond the docs:
 
 Reports: `~/Documents/research-digest/jotti/`
 
-First window from: `2026-06-24`, the retrieval date of `docs/rechtsquellen/`.
-
 Outside the repository, so nothing is committed. A run buys nothing from a provider.
 
 ## One source, ad hoc
