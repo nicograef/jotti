@@ -14,15 +14,5 @@
         ]
       }
     ]
-  },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true
   }
 }
