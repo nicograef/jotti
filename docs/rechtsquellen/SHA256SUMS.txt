@@ -1,8 +1,8 @@
 d3d34f0a3a39cc4806e80668e34c8b9db6ddad70f4766e6fa8d65acadb9f1b45  ./fiskaly/fiskaly-SIGN-DE-API-v2-openapi.json
-a86dd22e02cffbab7fb1b668627f318d22723f7162df0da0bf4da0909746dc1e  ./gesetze/AO.pdf
+30fef229a28ceaee0d72ed7b925c07cf5711696c78d70cf5401a34916218c5fa  ./gesetze/AO.pdf
 27b720c812be1bdf1462ff468ad6410fe94da80b48f6d10fa7e2269b9e5a1597  ./gesetze/DSGVO-VO-EU-2016-679.pdf
 e5351ca28768ece983f25c28376c74d06fc2f22d2ed3f5195c97f9074030c303  ./gesetze/KassenSichV.pdf
-712b2e3832d460a91ada0ac28776dd18754643ebde513fe29560debd0b18930e  ./gesetze/UStG.pdf
+33f6390556be7dcbfd52c2a3fc68ea95e877276b73d69a7c8ced6e59e3f0aac6  ./gesetze/UStG.pdf
 e6f688d63c6318bb2940675b21bb7ce064c6094d469ab8dbc22dfd5c4a8f5373  ./technik-spezifikationen/BSI-TR-03153-1-Anhang-A.pdf
 072af69cd203951a77122c543a0d010c36cdde9264b927eb2666543e1b4ae38e  ./technik-spezifikationen/BSI-TR-03153-1-Anhang-B.pdf
 871ade43f9f3ad5977cd23af0a4406c9df3322adc45845c24b6741395a9031ad  ./technik-spezifikationen/BSI-TR-03153-1.pdf
@@ -33,6 +33,8 @@ af3d4c5a19e991f2d8c53995bc708680bbd7ff9326fde539c55b7e2c63f848a2  ./technik-spez
 f84ba946be42265a50bf1d6cc2b985cbb6897afbe0bc7572baba953729123e1f  ./verwaltung-bmf/AEAO-zu-146-146a-147-Aenderung-2025-09-01.pdf
 de5d247f2c9cbac72cfd15be9f27317cac6d38e332a3a7cd00870a132a6dfc2b  ./verwaltung-bmf/AEAO-zu-146a-2023-06-30.pdf
 d82605c0ef70723071ea700799fa0168eafdce5458436298ebb6c8cde43929a5  ./verwaltung-bmf/AEAO-zu-146a-Aenderung-2024-06-28.pdf
+3c4714dd822359a8cee7b09f22e1d4dfa1a52d0066e3605f29c1d40a4df10ed9  ./verwaltung-bmf/AEAO-zu-146a-Aenderung-2026-03-17.pdf
+edb1930ce4d4d711fac4e7da16e04207d1fbd190d60259dbeee8eb47a06c8c83  ./verwaltung-bmf/AEAO-zu-51-bis-67a-Aenderung-2026-07-02.pdf
 00a0b809d35b094a84afcbc6041ccac8a3d75f79eaf0fc46401fdd675bbf85af  ./verwaltung-bmf/GoBD-Aenderung-2024-03-11.pdf
 142386fb87ac9c090cf6f678b612f7188a3850b410c53947da92fb3295a81e0b  ./verwaltung-bmf/GoBD-Aenderung-2025-07-14.pdf
 7beee42798678eb57498240b4e4b883904d843045895f63a3a04a9f54cee2098  ./verwaltung-bmf/Kassenmeldepflicht-BMF-2024-06-28.pdf

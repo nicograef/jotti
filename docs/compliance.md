@@ -236,8 +236,8 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 
 - Zeitpunkt des Vorgangsbeginns und der Vorgangsbeendigung (TSE-`logTime` aus Start/Finish)
 - Seriennummer des Aufzeichnungssystems (Kassen-ID) und der TSE
-- TSE-Transaktionsnummer, Signaturzähler, kryptografischer Prüfwert (Signatur)
-- Die TSE-Daten dürfen platzsparend als QR-Code aufgedruckt werden; das Format muss der DSFinV-K (Anhang I) entsprechen.
+- TSE-Transaktionsnummer, Signaturzähler, Prüfwert der Vorgangsbeendigung (Signatur aus Finish)
+- Die Angaben müssen im Klartext lesbar, aus einem QR-Code auslesbar oder in einer E-Rechnung enthalten sein (§ 6 Satz 2 KassenSichV). Der QR-Code folgt der DSFinV-K, Anhang I (AEAO zu § 146a, Nr. 2.4.1).
 
 **Beleg-Archivierung:** Die fiskalischen Daten liegen im Kassenjournal (Event samt TSE-Signatur) und im DSFinV-K-Export; der Beleg ist daraus jederzeit reproduzierbar.
 
