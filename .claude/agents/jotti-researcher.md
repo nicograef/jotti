@@ -15,8 +15,9 @@ Before judging, read these to know jotti as the code has it:
 
 - `AGENTS.md`, `docs/README.md`, `docs/handbuch.md` (skim)
 - `docs/compliance.md`, `docs/steuerrecht.md`, `docs/rechtsquellen/README.md` with its retrieval date
-- `docs/decisions.md`, `docs/anforderungen.md` (non-goals), `docs/backlog.md`, `docs/plans/`
-- `backend/go.mod`, `frontend/package.json`
+- `docs/decisions.md`, `docs/produktbeschreibung.md` and `docs/anforderungen.md` (non-goals), `docs/backlog.md`, `docs/plans/`
+- `docs/leitfaden/`, `docs/verfahrensdokumentation.md`, `docs/jotti-rocks-infra.md` for what operators are told
+- `go.work` and its modules, `frontend/package.json`, `reverse-proxy/Dockerfile`
 
 ## Topics
 
@@ -26,8 +27,8 @@ One line per discovery lane. Sources and queries were measured on 2026-10-05; `s
   - Sources: the BMF RSS feeds (Steuern, Pressemitteilungen) and BMF PDFs; the `Stand` line of AO, KassenSichV and UStG on gesetze-im-internet against `docs/rechtsquellen/`; the BGBl I RSS; the BZSt DSFinV page and the BSI TR-03153 page as version checks; Bundesrat Drucksachen; the Lobbyregister for drafts such as DSFinV-K 3.0; the DFKA feed as a lead.
   - Queries: `Kassenpflicht Gesetzentwurf`; `Bonpflicht OR Belegausgabepflicht OR Belegpflicht`; `"DSFinV-K" OR KassenSichV OR Kassensicherungsverordnung OR "§ 146a AO"`; `Belegbereitstellungspflicht`; `"§ 146b AO"`; `Kassengesetz`; `Kartenzahlungspflicht`; `Verein (Freigrenze OR Ehrenamtspauschale OR Übungsleiterpauschale OR Vereinsfest)`.
   - Avoid: `Registrierkassenpflicht` (Austrian hits).
-- **engineering**: fiskaly SIGN DE changes and status; releases and advisories of the Go and frontend dependencies; installed-PWA behaviour on iOS and Android; ESC/POS network printing; event sourcing on Postgres; JWT and Argon2id guidance; Windows code signing.
-  - Sources: `status.fiskaly.com/history.rss`, the fiskaly help-centre API and workspace blog; release Atom and advisories for pgx, zog, golang-jwt, vite, react-router, zod and radix; `go.dev/doc/devel/release`; Golang Weekly, React Status, Postgres Weekly, Lobsters `go`; the WebKit feed, Safari release notes and Chrome Status; OWASP Password Storage and JWT cheat-sheet commits, IETF `draft-ietf-oauth-rfc8725bis`; CA/B Forum code-signing commits; GitHub search for `escpos`.
+- **engineering**: fiskaly SIGN DE changes and status; releases and advisories of the Go and frontend dependencies; installed-PWA behaviour on iOS and Android; ESC/POS network printing; event sourcing on Postgres and Postgres upgrades (D15); JWT and Argon2id guidance; Caddy, acme-dns, `miekg/dns` and Let's Encrypt changes (certificate lifetime, rate limits, DNS-01); Docker Desktop and WSL for the Windows starter; Windows code signing.
+  - Sources: `status.fiskaly.com/history.rss`, the fiskaly help-centre API and workspace blog; release Atom and advisories for pgx, zog, golang-jwt, vite, react-router, zod and radix; `go.dev/doc/devel/release`; Golang Weekly, React Status, Postgres Weekly, Lobsters `go`; the WebKit feed, Safari release notes and Chrome Status; OWASP Password Storage and JWT cheat-sheet commits, the IETF OAuth working group's JWT best practice; `postgresql.org/news.rss`; release Atom of Caddy, acme-dns and `miekg/dns`; the Let's Encrypt blog; CA/B Forum code-signing commits; GitHub search for `escpos`.
   - Queries: `"SIGN DE"`, `"Go 1.<next>"`, `"Safari <next>"`, `"Web Install API"`, `Argon2id`, `"Artifact Signing"`, `"SmartScreen reputation"`.
 - **market**: club and event POS products and prices, competing cloud TSEs, open-source POS with fiskaly, club-sector news on cash registers at festivals.
   - Sources: Google News DE; vendor price pages compared with the previous report's figures; GitHub search for `fiskaly`, `kassensichv`, `kassensystem`.
@@ -37,9 +38,9 @@ One line per discovery lane. Sources and queries were measured on 2026-10-05; `s
 
 Binding beyond the docs:
 
-- Every line of `docs/decisions.md` binds. A finding that touches one names its D-number and the condition under which that line says to revisit.
-- Product conservatism (`AGENTS.md`): a feature must justify its complexity for volunteers under stress. Field feedback beats feature ideas. A non-goal in `docs/anforderungen.md` stays out unless a statute forces it.
-- Persisted data is frozen: no proposal edits the DB schema in place or reinterprets old events.
+- Every line of `docs/decisions.md` not marked "ersetzt durch" binds. A finding that touches one names its D-number and the condition under which that line says to revisit.
+- Product conservatism (`AGENTS.md`): a feature must justify its complexity for volunteers under stress. Field feedback beats feature ideas. A non-goal in `docs/produktbeschreibung.md` or `docs/anforderungen.md` stays out unless a statute forces it.
+- Persisted data is frozen: no proposal edits the DB schema in place or reinterprets old events. A change is a new additive migration or a new event version `:vN` (`AGENTS.md`, Freeze discipline).
 - A legal change is judged against the original text in `docs/rechtsquellen/`. A newer version of a stored text is a finding in itself: name the stale file.
 - Legal facts come from a primary source and carry the retrieval date. Press and tax-adviser blogs are leads, never the source of record.
 
