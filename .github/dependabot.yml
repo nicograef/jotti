@@ -68,11 +68,6 @@ updates:
       frontend-npm:
         patterns:
           - "*"
-    # TypeScript bleibt auf 6.x, bis typescript-eslint TypeScript 7 unterstuetzt
-    # (typescript-eslint#10940). Minor/Patch bleiben erlaubt.
-    ignore:
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/website"
@@ -82,8 +77,8 @@ updates:
       website-npm:
         patterns:
           - "*"
-    # TypeScript bleibt auf 6.x, bis @astrojs/check TypeScript 7 unterstuetzt
-    # (Peer typescript ^5.0.0 || ^6.0.0). Minor/Patch bleiben erlaubt.
+    # TypeScript stays on 6.x until astro check supports TypeScript 7; it refuses
+    # 7.0 (peer typescript ^5.0.0 || ^6.0.0). Minor and patch updates stay allowed.
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
@@ -96,11 +91,6 @@ updates:
       e2e-npm:
         patterns:
           - "*"
-    # Same TypeScript line as frontend and website (check-pins.sh); typed ESLint
-    # needs typescript-eslint, which does not support TypeScript 7 yet.
-    ignore:
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
 
   # scripts/check-pins.sh requires one version per image across Dockerfiles and
   # compose files, so both ecosystems share one multi-ecosystem PR. Postgres is

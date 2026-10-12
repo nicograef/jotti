@@ -9,8 +9,9 @@
 # claiming to be the same deployment. Read are `image:` lines in
 # docker-compose*.yml and .github/workflows/*.yml, `FROM` lines in every
 # Dockerfile, literal references to those image names in scripts/*.sh and
-# windows/**/*.go, and the packageManager and typescript fields of frontend,
-# website and e2e.
+# windows/**/*.go, the packageManager field of frontend, website and e2e, and
+# the typescript field of frontend and e2e. website stays on TypeScript 6:
+# astro check refuses TypeScript 7.
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
 # release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -28,6 +29,7 @@ cd "$PROJECT_ROOT"
 ALLOWLIST="scripts/check-pins.allow"
 OWN_IMAGE_PREFIX="ghcr.io/nicograef/jotti-"
 PACKAGE_JSONS=(frontend/package.json website/package.json e2e/package.json)
+TS7_PACKAGE_JSONS=(frontend/package.json e2e/package.json)
 
 mapfile -t allow_entries < <(
   [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
@@ -223,15 +225,16 @@ if [[ "${#allow_names[@]}" -gt 0 ]]; then
   done
 fi
 
-# compare_package_field requires one literal value for the JSON key $1 in all three
-# package.json. A missing file is a rename that must turn the gate red, not
-# silently shrink its scope.
+# compare_package_field requires one literal value for the JSON key $1 in every
+# package.json that follows it. A missing file is a rename that must turn the
+# gate red, not silently shrink its scope.
 compare_package_field() {
   local key="$1" file value i mismatches
-  local files=() values=()
-  for file in "${PACKAGE_JSONS[@]}"; do
+  shift
+  local targets=("$@") files=() values=()
+  for file in "${targets[@]}"; do
     if [[ ! -f "$file" ]]; then
-      fatal "$file is missing: the $key comparison needs all three package.json."
+      fatal "$file is missing: the $key comparison needs ${targets[*]}."
     fi
     value="$(KEY="$key" awk '
       match($0, "\"" ENVIRON["KEY"] "\"[[:space:]]*:[[:space:]]*\"[^\"]*\"") {
@@ -259,13 +262,13 @@ compare_package_field() {
     fi
   done
   violations=$((violations + mismatches))
-  if [[ "$mismatches" -eq 0 && "${#values[@]}" -eq "${#PACKAGE_JSONS[@]}" ]]; then
-    info "$key: ${values[0]} in all three package.json."
+  if [[ "$mismatches" -eq 0 && "${#values[@]}" -eq "${#targets[@]}" ]]; then
+    info "$key: ${values[0]} in ${targets[*]}."
   fi
 }
 
-compare_package_field packageManager
-compare_package_field typescript
+compare_package_field packageManager "${PACKAGE_JSONS[@]}"
+compare_package_field typescript "${TS7_PACKAGE_JSONS[@]}"
 
 # Local actions (./path) come from the checked-out commit itself.
 while IFS=$'\t' read -r loc ref; do
@@ -290,4 +293,4 @@ if [[ "$violations" -gt 0 ]]; then
   fatal "$violations version pin violation(s) found."
 fi
 
-info "Every third-party image, action and all three packageManager and typescript fields carry one pinned version."
+info "Every third-party image, action, packageManager and typescript field carries one pinned version."
