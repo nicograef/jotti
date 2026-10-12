@@ -15,6 +15,7 @@
     "lint": "oxlint --type-aware --deny-warnings",
     "lint:fix": "oxlint --type-aware --deny-warnings --fix",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
