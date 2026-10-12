@@ -26,11 +26,9 @@ function installBackend(backend: FakeBackend): void {
 }
 
 function queryWrapper(queryClient: QueryClient) {
-  return function QueryWrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    )
-  }
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
 }
 
 export function renderWithBackend(
