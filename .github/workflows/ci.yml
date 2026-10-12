@@ -330,7 +330,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -366,7 +366,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: "pnpm"
           cache-dependency-path: website/pnpm-lock.yaml
 
@@ -418,7 +418,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -640,7 +640,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: "pnpm"
           cache-dependency-path: e2e/pnpm-lock.yaml
 
