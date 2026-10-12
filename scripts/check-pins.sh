@@ -10,8 +10,8 @@
 # docker-compose*.yml and .github/workflows/*.yml, `FROM` lines in every
 # Dockerfile, literal references to those image names in scripts/*.sh and
 # windows/**/*.go, the packageManager field of frontend, website and e2e, and
-# the typescript field of frontend and e2e. website stays on TypeScript 6:
-# astro check refuses TypeScript 7.
+# the typescript and prettier fields of frontend and e2e. website stays on
+# TypeScript 6: astro check refuses TypeScript 7.
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
 # release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -29,7 +29,7 @@ cd "$PROJECT_ROOT"
 ALLOWLIST="scripts/check-pins.allow"
 OWN_IMAGE_PREFIX="ghcr.io/nicograef/jotti-"
 PACKAGE_JSONS=(frontend/package.json website/package.json e2e/package.json)
-TS7_PACKAGE_JSONS=(frontend/package.json e2e/package.json)
+NODE_TOOL_PACKAGE_JSONS=(frontend/package.json e2e/package.json)
 
 mapfile -t allow_entries < <(
   [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
@@ -268,7 +268,8 @@ compare_package_field() {
 }
 
 compare_package_field packageManager "${PACKAGE_JSONS[@]}"
-compare_package_field typescript "${TS7_PACKAGE_JSONS[@]}"
+compare_package_field typescript "${NODE_TOOL_PACKAGE_JSONS[@]}"
+compare_package_field prettier "${NODE_TOOL_PACKAGE_JSONS[@]}"
 
 # Local actions (./path) come from the checked-out commit itself.
 while IFS=$'\t' read -r loc ref; do
@@ -293,4 +294,4 @@ if [[ "$violations" -gt 0 ]]; then
   fatal "$violations version pin violation(s) found."
 fi
 
-info "Every third-party image, action, packageManager and typescript field carries one pinned version."
+info "Every third-party image, action, packageManager, typescript and prettier field carries one pinned version."
