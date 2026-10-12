@@ -302,8 +302,8 @@ check-frontend: ## Frontend komplett prüfen (Format, Typen, Lint, Test, Build)
 	$(MAKE) check-format
 	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
-check-e2e: ## E2E-Suite prüfen (tsc + oxlint, ohne Stack)
-	cd e2e && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint
+check-e2e: ## E2E-Suite prüfen (Format, Typen, Lint, ohne Stack)
+	cd e2e && pnpm install --frozen-lockfile && pnpm format:check && pnpm typecheck && pnpm lint
 
 check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
 	shellcheck -x scripts/*.sh
