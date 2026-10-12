@@ -27,7 +27,7 @@
       },
       "extensions": [
         "golang.Go",
-        "dbaeumer.vscode-eslint",
+        "oxc.oxc-vscode",
         "esbenp.prettier-vscode",
         "editorconfig.editorconfig"
       ]

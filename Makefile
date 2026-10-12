@@ -79,10 +79,10 @@ lint-backend: ## Backend Linting (go vet + goimports)
 lint-backend-full: ## Backend Linting mit golangci-lint (inkl. Integrationstest-Dateien)
 	cd backend && golangci-lint run
 
-lint-frontend: ## Frontend Linting (ESLint)
+lint-frontend: ## Frontend Linting (oxlint, typbewusst)
 	cd frontend && pnpm lint
 
-lint-e2e: ## E2E-Suite Linting (ESLint)
+lint-e2e: ## E2E-Suite Linting (oxlint, typbewusst)
 	cd e2e && pnpm lint
 
 lint: lint-backend lint-frontend lint-e2e check-shell ## Backend-, Frontend-, E2E- und Shell-Linting
@@ -92,7 +92,7 @@ lint: lint-backend lint-frontend lint-e2e check-shell ## Backend-, Frontend-, E2
 fmt-backend: ## Backend Code formatieren (goimports)
 	cd backend && go tool goimports -w .
 
-fmt-frontend: ## Frontend Code formatieren (Prettier + ESLint --fix)
+fmt-frontend: ## Frontend Code formatieren (Prettier + oxlint --fix)
 	cd frontend && pnpm format && pnpm lint:fix
 
 PRETTIER_GLOB := "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
@@ -302,7 +302,7 @@ check-frontend: ## Frontend komplett prüfen (Format, Typen, Lint, Test, Build)
 	$(MAKE) check-format
 	cd frontend && pnpm typecheck && pnpm lint && pnpm test && pnpm build
 
-check-e2e: ## E2E-Suite prüfen (tsc + ESLint, ohne Stack)
+check-e2e: ## E2E-Suite prüfen (tsc + oxlint, ohne Stack)
 	cd e2e && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint
 
 check-shell: ## Shell-Skripte mit shellcheck prüfen (wie CI)
