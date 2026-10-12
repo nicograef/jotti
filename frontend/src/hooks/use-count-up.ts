@@ -17,7 +17,7 @@ export function useCountUp(ziel: number): number {
       // Der Zielwert muss im gerenderten Ergebnis stehen; das synchrone
       // setState ist hier gewollt, daher die Ausnahme von der Lint-Regel.
       angezeigtRef.current = ziel
-      // eslint-disable-next-line react-x/set-state-in-effect
+      // oxlint-disable-next-line react/set-state-in-effect
       setWert(ziel)
       return
     }

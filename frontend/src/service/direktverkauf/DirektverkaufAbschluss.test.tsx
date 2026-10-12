@@ -101,7 +101,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     })
     expect(direktverkaufTaetigen).toHaveBeenCalledWith(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         verkaufId: expect.stringMatching(UUID),
         positionen,
         kommentar: '',

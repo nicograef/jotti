@@ -121,7 +121,7 @@ export function KassensitzungPage() {
   // Stays null while the first query loads, else the initial state would count as a switch.
   const istOffen = kassensitzung != null
   const zuletztOffenRef = useRef<boolean | null>(null)
-  // eslint-disable-next-line react-hooks/refs
+  // oxlint-disable-next-line react/refs
   const geradeEroeffnet = zuletztOffenRef.current === false && istOffen
   useEffect(() => {
     if (!isPending) {

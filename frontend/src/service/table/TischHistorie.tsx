@@ -151,7 +151,7 @@ export function TischHistorie({
       <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {historieLoading
           ? Array.from({ length: 6 }).map((_, index) => (
-              // eslint-disable-next-line react-x/no-array-index-key
+              // oxlint-disable-next-line react/no-array-index-key
               <HistorieRowSkeleton key={index} />
             ))
           : historie.map((item) => (

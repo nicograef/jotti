@@ -70,5 +70,5 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   return <ThemeProviderContext value={value}>{children}</ThemeProviderContext>
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
+// oxlint-disable-next-line react/only-export-components
 export const useTheme = (): ThemeProviderState => use(ThemeProviderContext)

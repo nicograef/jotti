@@ -20,7 +20,7 @@ import {
 import { AuthSingleton } from '@/lib/Auth'
 
 // Die Geräte-Präferenz schreibt der Loader der Zielroute, nicht dieser Eintrag.
-// eslint-disable-next-line react-refresh/only-export-components
+// oxlint-disable-next-line react/only-export-components
 export function moduswechselEintrag(
   pathname: string,
 ): { label: string; ziel: string } | null {

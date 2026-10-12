@@ -28,7 +28,6 @@ describe('UserSchema', () => {
   })
 
   it('requires updatedAt', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { updatedAt: _, ...withoutUpdatedAt } = validUser
     const result = UserSchema.safeParse(withoutUpdatedAt)
     expect(result.success).toBe(false)

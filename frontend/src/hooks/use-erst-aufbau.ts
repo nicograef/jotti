@@ -11,6 +11,6 @@ export function useErstAufbau(bereit: boolean): boolean {
       aufgebautRef.current = true
     }
   }, [bereit])
-  // eslint-disable-next-line react-hooks/refs
+  // oxlint-disable-next-line react/refs
   return bereit && !aufgebautRef.current
 }

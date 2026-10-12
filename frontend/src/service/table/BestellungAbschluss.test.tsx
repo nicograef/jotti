@@ -87,7 +87,7 @@ describe('BestellungAbschluss (Spalte)', () => {
     })
     expect(bestellungAufnehmen).toHaveBeenCalledWith(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
         bestellungId: expect.stringMatching(UUID),
         tischId: 1,
         positionen,
