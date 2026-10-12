@@ -60,12 +60,21 @@ updates:
         patterns:
           - "*"
 
+  # scripts/check-pins.sh requires one prettier and one typescript version across
+  # frontend and e2e, so group-by bumps each of them in both in one PR.
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directories:
+      - "/frontend"
+      - "/e2e"
     schedule:
       interval: "monthly"
     groups:
-      frontend-npm:
+      node-tools:
+        patterns:
+          - "prettier"
+          - "typescript"
+        group-by: dependency-name
+      frontend-e2e-npm:
         patterns:
           - "*"
 
@@ -82,15 +91,6 @@ updates:
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
-
-  - package-ecosystem: "npm"
-    directory: "/e2e"
-    schedule:
-      interval: "monthly"
-    groups:
-      e2e-npm:
-        patterns:
-          - "*"
 
   # scripts/check-pins.sh requires one version per image across Dockerfiles and
   # compose files, so both ecosystems share one multi-ecosystem PR. Postgres is
