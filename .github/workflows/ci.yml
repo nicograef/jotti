@@ -1,8 +1,10 @@
 name: CI
 
+# Every push on any branch, so a feature branch is measured while it is still a branch.
 on:
   push:
-    branches: [main]
+    branches: ['**']
+  # Public repo: a fork's push runs in the fork, so its PR needs this trigger.
   pull_request:
     branches: [main]
 
@@ -10,8 +12,9 @@ on:
 permissions:
   contents: read
 
+# The event name keeps a push run and a pull_request run from cancelling each other.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
