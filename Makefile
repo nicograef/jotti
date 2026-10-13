@@ -7,7 +7,7 @@
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
-       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden \
+       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden prod-release \
        rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup \
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
@@ -195,6 +195,20 @@ prod-backup-verify: ## Backup probeweise in Wegwerf-Postgres einspielen (prüft 
 
 prod-harden: ## Optionale Server-Härtung (ufw, fail2ban, unattended-upgrades, SSH nur per Schlüssel) — opt-in, idempotent
 	./scripts/prod-harden.sh
+
+# The tag goes only on origin/main's tip with a green CI push run: release.yml runs no tests,
+# and a tag push would otherwise publish unpushed commits CI never saw.
+prod-release: ## Release-Tag v$(VERSION) auf grünem origin/main setzen und pushen; release.yml baut und veröffentlicht (VERSION=X.Y.Z)
+	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' \
+	  || { echo "FEHLER: VERSION=X.Y.Z setzen (gefunden: '$(VERSION)')" >&2; exit 1; }
+	@BRANCH=$$(git rev-parse --abbrev-ref HEAD); \
+	if [ "$$BRANCH" != "main" ]; then echo "FEHLER: nur auf main (aktuell: $$BRANCH)" >&2; exit 1; fi
+	@git fetch --quiet origin main
+	@SHA=$$(git rev-parse HEAD); \
+	if [ "$$SHA" != "$$(git rev-parse origin/main)" ]; then echo "FEHLER: main weicht von origin/main ab; erst pushen oder pullen" >&2; exit 1; fi; \
+	CI=$$(gh run list --workflow ci.yml --branch main --event push --commit "$$SHA" --json conclusion --jq '.[0].conclusion'); \
+	if [ "$$CI" != "success" ]; then echo "FEHLER: CI auf $$SHA ist '$$CI', nicht success" >&2; exit 1; fi
+	git tag -a -m "v$(VERSION)" v$(VERSION) && git push origin v$(VERSION)
 
 # jotti.rocks Deployment
 
@@ -405,7 +419,7 @@ CLASS_developer := init up up-attached down restart logs status \
 	check-govulncheck check-audit check-vuln check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
-	prod-backup-verify prod-harden \
+	prod-backup-verify prod-harden prod-release \
 	rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup
 
 # Column the help text wraps at.

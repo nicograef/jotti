@@ -112,8 +112,9 @@ Setup-Wizard-Durchlauf oben.
       `windows-ci`, `backend-integration-tests`, `e2e` und `upgrade-path` decken `make verify` und
       `make lint-backend-full` ab.
 - [ ] Version-Bump auf 1.0.0 (Image-Tags/`JOTTI_VERSION`, `VERSION` für den Windows-Build,
-      ldflags-Version) und Tag `v1.0.0` pushen — `release.yml` baut Images, Windows-ZIP und
-      Release-Notes (git-cliff) und veröffentlicht das GitHub-Release.
+      ldflags-Version), dann `make prod-release VERSION=1.0.0`: setzt und pusht Tag `v1.0.0`;
+      `release.yml` baut Images, Windows-ZIP und Release-Notes (git-cliff) und veröffentlicht
+      das GitHub-Release.
 - [ ] Release-Text (Abschnitt „Release-Text“ unten) vor die git-cliff-Notes stellen; die
       Laufzeit-Versionen (Go, Node, pnpm) müssen darin stehen
 - [ ] Block I: `bash scripts/ops-smoke.sh release v1.0.0` auf frischem Server (nicht der
