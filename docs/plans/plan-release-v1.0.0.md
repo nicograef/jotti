@@ -141,7 +141,7 @@ Alle Funktionen und Änderungen im Detail: Abschnitt `[1.0.0]` in `CHANGELOG.md`
 | Laufzeit   | Version     | Quelle                                                          |
 | ---------- | ----------- | --------------------------------------------------------------- |
 | Go         | 1.27.2      | `backend/go.mod`, `backend/Dockerfile` (`golang:1.27.2-alpine`) |
-| Node       | 24 (Alpine) | `frontend/Dockerfile` (`node:24-alpine`)                        |
+| Node       | 24 (Alpine) | `reverse-proxy/Dockerfile` (`node:24-alpine`)                   |
 | pnpm       | 12.11.2     | `frontend/package.json` (`packageManager`)                      |
 | PostgreSQL | 17.11       | `docker-compose.prod.yml` (`postgres:17.11`)                    |
 | Caddy      | 2.11.4      | `reverse-proxy/Dockerfile` (`caddy:2.11.4`)                     |

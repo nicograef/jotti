@@ -61,7 +61,7 @@ info "Starting the database ..."
 docker compose -f "$COMPOSE_FILE" up -d --wait "$PG_SERVICE"
 
 info "Stopping application services during the restore ..."
-docker compose -f "$COMPOSE_FILE" stop backend frontend reverse-proxy
+docker compose -f "$COMPOSE_FILE" stop backend reverse-proxy
 
 # -1 with ON_ERROR_STOP rolls the whole restore back on the first SQL error;
 # psql ignores -1 without -f, hence `-f -` for stdin. The postgres role comes

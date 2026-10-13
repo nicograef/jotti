@@ -1,0 +1,14 @@
+# The build context is the repository root. Send only what the image builds:
+# the proxy's Go sources and the app. Drop secrets and host build artifacts.
+*
+!reverse-proxy/go.mod
+!reverse-proxy/go.sum
+!reverse-proxy/*.go
+reverse-proxy/*_test.go
+!frontend
+**/.env
+**/.env.*
+**/node_modules
+**/dist
+**/coverage
+**/*.log

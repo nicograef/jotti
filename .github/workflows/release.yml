@@ -30,7 +30,7 @@ jobs:
       contents: write # GitHub-Release anlegen
       packages: write # Images nach GHCR pushen
     env:
-      SERVICES: backend frontend migrate reverse-proxy
+      SERVICES: backend migrate reverse-proxy
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,21 +83,23 @@ jobs:
           set -euo pipefail
           declare -A ctx=(
             [backend]=./backend
-            [frontend]=./frontend
             [migrate]=./database
-            [reverse-proxy]=./reverse-proxy
+            [reverse-proxy]=.
           )
           # migrate backt die Migrationen ins Image (COPY), der Context ist
           # deshalb ./database und das Dockerfile liegt eine Ebene tiefer.
+          # reverse-proxy baut die App mit ins Image, sein Context ist das
+          # Repository.
           declare -A dockerfile=(
             [migrate]=./database/migrate/Dockerfile
+            [reverse-proxy]=./reverse-proxy/Dockerfile
           )
-          # Backend und Frontend brennen die Version zur Bauzeit ein (ldflags
-          # bzw. Vite-define); migrate und reverse-proxy kennen kein
+          # Backend und App brennen die Version zur Bauzeit ein (ldflags bzw.
+          # Vite-define im reverse-proxy-Image); migrate kennt kein
           # VERSION-Build-Arg.
           declare -A buildarg=(
             [backend]="VERSION=$VERSION"
-            [frontend]="VERSION=$VERSION"
+            [reverse-proxy]="VERSION=$VERSION"
           )
           for svc in $SERVICES; do
             docker buildx build --load \

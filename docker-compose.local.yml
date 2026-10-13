@@ -100,33 +100,10 @@ services:
       retries: 5
       start_period: 5s
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: jotti-frontend-local
-    restart: unless-stopped
-    logging: *default-logging
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
-        ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
   reverse-proxy:
     build:
-      context: ./reverse-proxy
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: reverse-proxy/Dockerfile
     container_name: jotti-reverse-proxy-local
     restart: unless-stopped
     logging: *default-logging
@@ -162,8 +139,6 @@ services:
     networks:
       - app-network
     depends_on:
-      frontend:
-        condition: service_started
       backend:
         condition: service_healthy
     healthcheck:

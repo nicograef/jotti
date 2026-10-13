@@ -30,7 +30,7 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		"reverse_proxy frontend:80",
+		appHandler,
 		"https:// {",
 		"on_demand",
 		"skip_install_trust",
@@ -104,7 +104,7 @@ func TestRenderPublicCaddyfile(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		"reverse_proxy frontend:80",
+		appHandler,
 		`Strict-Transport-Security "` + hstsPublic + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -165,7 +165,7 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		"reverse_proxy frontend:80",
+		appHandler,
 		`Strict-Transport-Security "` + hstsLAN + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -193,5 +193,17 @@ func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
 	}
 	if !strings.Contains(string(conf), contentSecurityPolicy) {
 		t.Errorf("Caddyfile.rocks does not carry the CSP verbatim; want:\n%s", contentSecurityPolicy)
+	}
+}
+
+// TestRocksCaddyfileServesSameApp keeps the demo site in Caddyfile.rocks on the same
+// app handler as every generated site.
+func TestRocksCaddyfileServesSameApp(t *testing.T) {
+	conf, err := os.ReadFile("Caddyfile.rocks")
+	if err != nil {
+		t.Fatalf("read Caddyfile.rocks: %v", err)
+	}
+	if !strings.Contains(string(conf), appHandler) {
+		t.Errorf("Caddyfile.rocks does not carry appHandler verbatim; want:\n%s", appHandler)
 	}
 }

@@ -1,8 +1,8 @@
 name: jotti
 
 # Standalone stack for the jotti.rocks project deployment: app (postgres,
-# backend, frontend), the Astro website on jotti.rocks, demo.jotti.rocks on the
-# frontend, plus the DNS infrastructure for trusted local TLS (resolver +
+# backend, reverse-proxy), the Astro website on jotti.rocks, the demo app on
+# demo.jotti.rocks, plus the DNS infrastructure for trusted local TLS (resolver +
 # acme-dns); see docs/jotti-rocks-infra.md. NOT used by self-hosters — they use
 # docker-compose.prod.yml alone. Requires VPS_PUBLIC_IP in .env (public IPv4 of
 # this server) and Docker Compose >= 2.23.1 (inline configs with interpolation).
@@ -102,34 +102,6 @@ services:
           memory: 384M
           cpus: "1.5"
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: jotti-frontend
-    restart: unless-stopped
-    logging: *default-logging
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
-        ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
-
   # Marketing landing + docs (Astro + Starlight). The build context is the repo
   # root because Astro reads the published Markdown straight from docs/.
   website:
@@ -161,8 +133,8 @@ services:
   # Caddyfile.rocks; Caddy obtains and renews the certificates (HTTP-01).
   reverse-proxy:
     build:
-      context: ./reverse-proxy
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: reverse-proxy/Dockerfile
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
@@ -187,8 +159,6 @@ services:
     networks:
       - app-network
     depends_on:
-      frontend:
-        condition: service_healthy
       website:
         condition: service_healthy
       backend:

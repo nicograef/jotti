@@ -93,32 +93,6 @@ services:
           memory: 384M
           cpus: "1.5"
 
-  frontend:
-    image: ghcr.io/nicograef/jotti-frontend:${JOTTI_VERSION}
-    container_name: jotti-frontend
-    restart: unless-stopped
-    logging: *default-logging
-    networks:
-      - app-network
-    depends_on:
-      backend:
-        condition: service_started
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
-        ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
-
   reverse-proxy:
     image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION}
     container_name: jotti-reverse-proxy
@@ -155,8 +129,6 @@ services:
     networks:
       - app-network
     depends_on:
-      frontend:
-        condition: service_started
       backend:
         condition: service_healthy
     healthcheck:

@@ -2,9 +2,11 @@
 # self-hosted production stack (docker-compose.prod.yml). Bundles Caddy — built with
 # the acme-dns DNS provider (DNS-01 wildcard certificates) and caddy-ratelimit (the
 # public /api/ rate limit) — plus jotti-reverse-proxy as the entrypoint, which
-# renders the Caddyfile and runs Caddy as a child.
+# renders the Caddyfile and runs Caddy as a child, plus the app's static build,
+# which Caddy serves itself.
 # The jotti.rocks stack (docker-compose.rocks.yml) runs the bundled Caddy
 # directly on the static Caddyfile.rocks.
+# The build context is the repository root; Dockerfile.dockerignore limits it.
 
 FROM caddy:2.11.7-builder AS caddy-builder
 
@@ -15,14 +17,30 @@ RUN xcaddy build \
 FROM golang:1.27.2-alpine AS proxy-builder
 
 WORKDIR /src
-COPY go.mod go.sum ./
+COPY reverse-proxy/go.mod reverse-proxy/go.sum ./
 RUN go mod download
-COPY *.go ./
+COPY reverse-proxy/*.go ./
 RUN go build -o /go/bin/jotti-reverse-proxy .
+
+FROM node:24-alpine AS app-builder
+
+WORKDIR /app
+
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+RUN corepack enable \
+  && pnpm install --frozen-lockfile
+
+COPY frontend/ ./
+
+# Das VERSION-Argument wird im RUN konsumiert, damit ein Versionswechsel die
+# Build-Schicht invalidiert und nicht das alte Bundle im neuen Image landet.
+ARG VERSION=dev
+RUN VERSION="${VERSION}" pnpm build
 
 FROM caddy:2.11.7
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY --from=proxy-builder /go/bin/jotti-reverse-proxy /usr/local/bin/jotti-reverse-proxy
+COPY --from=app-builder /app/dist /srv/app
 
 ENTRYPOINT [ "jotti-reverse-proxy" ]

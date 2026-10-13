@@ -82,8 +82,45 @@ demo.jotti.rocks {
 		reverse_proxy backend:3000
 	}
 
+	# App: statischer Vite-Build aus dem Image
 	handle {
-		reverse_proxy frontend:80
+		root * /srv/app
+		encode zstd gzip
+
+		# Jeder Dateiname unter /assets/ trägt einen Inhalts-Hash: für immer cachen.
+		handle /assets/* {
+			@asset_file file
+			header @asset_file Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+
+		# Caddy kennt den Medientyp des PWA-Manifests nicht.
+		handle /manifest.webmanifest {
+			@manifest_file file
+			header @manifest_file {
+				Cache-Control "public, max-age=3600"
+				Content-Type application/manifest+json
+			}
+			file_server
+		}
+
+		# Ungehashte Dateien aus public/ (Favicons): kurz cachen.
+		@public_static path_regexp (?i)\.(ico|png|svg|webp|woff2?)$
+		handle @public_static {
+			@public_file file
+			header @public_file Cache-Control "public, max-age=3600"
+			file_server
+		}
+
+		# SPA-Routing: jede andere Route bekommt index.html, nie gecacht, damit
+		# Clients nach einem Update sofort die neuen Bundles laden.
+		handle {
+			header Cache-Control "no-cache"
+			try_files {path} /index.html
+			file_server {
+				disable_canonical_uris
+			}
+		}
 	}
 }
 

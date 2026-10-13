@@ -18,7 +18,7 @@ DOMAIN_DEMO="demo.jotti.rocks"
 DOMAIN_AUTH="auth.jotti.rocks"
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.rocks.yml}"
-CONTAINERS=(jotti-backend jotti-frontend jotti-website jotti-acme-dns jotti-resolver jotti-reverse-proxy)
+CONTAINERS=(jotti-backend jotti-website jotti-acme-dns jotti-resolver jotti-reverse-proxy)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh

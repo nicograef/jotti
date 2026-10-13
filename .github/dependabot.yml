@@ -100,7 +100,6 @@ updates:
     directories:
       - "/backend"
       - "/database/migrate"
-      - "/frontend"
       - "/resolver"
       - "/reverse-proxy"
       - "/website"

@@ -25,6 +25,50 @@ const leStagingCA = "https://acme-staging-v02.api.letsencrypt.org/directory"
 // Encrypt den Record über eigene Resolver sieht.
 const challengeResolvers = "1.1.1.1 8.8.8.8"
 
+// appHandler serves the app's static build from /srv/app, the last handler of every
+// generated site and, verbatim, of the demo site in Caddyfile.rocks; TestRocksCaddyfileServesSameApp
+// keeps both copies equal. Response headers are set only for files that exist, so a 404 carries none.
+const appHandler = `	# App: statischer Vite-Build aus dem Image
+	handle {
+		root * /srv/app
+		encode zstd gzip
+
+		# Jeder Dateiname unter /assets/ trägt einen Inhalts-Hash: für immer cachen.
+		handle /assets/* {
+			@asset_file file
+			header @asset_file Cache-Control "public, max-age=31536000, immutable"
+			file_server
+		}
+
+		# Caddy kennt den Medientyp des PWA-Manifests nicht.
+		handle /manifest.webmanifest {
+			@manifest_file file
+			header @manifest_file {
+				Cache-Control "public, max-age=3600"
+				Content-Type application/manifest+json
+			}
+			file_server
+		}
+
+		# Ungehashte Dateien aus public/ (Favicons): kurz cachen.
+		@public_static path_regexp (?i)\.(ico|png|svg|webp|woff2?)$
+		handle @public_static {
+			@public_file file
+			header @public_file Cache-Control "public, max-age=3600"
+			file_server
+		}
+
+		# SPA-Routing: jede andere Route bekommt index.html, nie gecacht, damit
+		# Clients nach einem Update sofort die neuen Bundles laden.
+		handle {
+			header Cache-Control "no-cache"
+			try_files {path} /index.html
+			file_server {
+				disable_canonical_uris
+			}
+		}
+	}`
+
 type caddyfileInput struct {
 	state      InstallState // acme-dns-Credentials für die Wildcard-Site
 	hasState   bool         // false ⇒ nur die Fallback-Site rendern
@@ -103,11 +147,8 @@ func proxySnippet(hsts string, rateLimited bool) string {
 		reverse_proxy backend:3000
 	}
 
-	# Frontend-SPA
-	handle {
-		reverse_proxy frontend:80
-	}
-}`, hsts, contentSecurityPolicy, rateLimit)
+%s
+}`, hsts, contentSecurityPolicy, rateLimit, appHandler)
 }
 
 type publicInput struct {
