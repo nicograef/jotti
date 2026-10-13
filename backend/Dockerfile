@@ -5,14 +5,15 @@ ENV GOTOOLCHAIN=auto
 
 WORKDIR /src
 
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
-
 COPY . .
 
 # Der Release-Workflow uebergibt den Tag per --build-arg VERSION=<tag>.
 ARG VERSION=dev
-RUN go build -ldflags "-X main.version=${VERSION}" -o /go/bin/jotti ./main.go
+# go build fetches only the modules the binary imports, checked against go.sum; a
+# `go mod download` would also fetch the large module trees of the tool directives.
+RUN --mount=type=cache,target=/go/pkg/mod \
+  --mount=type=cache,target=/root/.cache/go-build \
+  go build -ldflags "-X main.version=${VERSION}" -o /go/bin/jotti ./main.go
 
 FROM alpine:3.24
 
