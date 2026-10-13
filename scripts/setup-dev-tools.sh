@@ -161,16 +161,20 @@ fi
 PNPM_VERSION="$(sed -n 's/.*"packageManager": *"pnpm@\([^+"]*\).*/\1/p' "$PROJECT_ROOT/frontend/package.json")"
 [[ -n "$PNPM_VERSION" ]] || fatal "No pnpm packageManager pin in frontend/package.json."
 info "Ensuring pnpm ($PNPM_VERSION) is available..."
+INSTALLED_PNPM=""
 if command -v pnpm >/dev/null 2>&1; then
-  info "pnpm already installed: $(pnpm --version)"
+  INSTALLED_PNPM="$(pnpm --version 2>/dev/null || true)"
+fi
+if [[ "$INSTALLED_PNPM" = "$PNPM_VERSION" ]]; then
+  info "pnpm already installed: $INSTALLED_PNPM"
 else
-  info "Installing pnpm $PNPM_VERSION with npm"
+  info "Installing pnpm $PNPM_VERSION with npm (installed: ${INSTALLED_PNPM:-none})"
   npm install -g "pnpm@$PNPM_VERSION"
   hash -r
 fi
 
-if ! command -v pnpm >/dev/null 2>&1; then
-  fatal "pnpm is not on PATH after 'npm install -g'. Add '$(npm prefix -g)/bin' to your PATH and rerun."
+if [[ "$(pnpm --version 2>/dev/null || true)" != "$PNPM_VERSION" ]]; then
+  fatal "pnpm $PNPM_VERSION is not first on PATH after 'npm install -g'. Put '$(npm prefix -g)/bin' first on your PATH and rerun."
 fi
 
 for project in frontend website e2e; do
