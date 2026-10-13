@@ -6,7 +6,7 @@
 # The jotti.rocks stack (docker-compose.rocks.yml) runs the bundled Caddy
 # directly on the static Caddyfile.rocks.
 
-FROM caddy:2.11.4-builder AS caddy-builder
+FROM caddy:2.11.7-builder AS caddy-builder
 
 RUN xcaddy build \
   --with github.com/caddy-dns/acmedns@v0.7.0 \
@@ -20,7 +20,7 @@ RUN go mod download
 COPY *.go ./
 RUN go build -o /go/bin/jotti-reverse-proxy .
 
-FROM caddy:2.11.4
+FROM caddy:2.11.7
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY --from=proxy-builder /go/bin/jotti-reverse-proxy /usr/local/bin/jotti-reverse-proxy
