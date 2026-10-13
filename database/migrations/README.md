@@ -41,6 +41,6 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 
 ## Vorversion und Restore-Drill (CI-Job `upgrade-path`)
 
-- Die Vorversion ist das jüngste `v*`-Tag unterhalb des geprüften Commits (`git describe`); die Images kommen von `ghcr.io/nicograef` (`jotti-migrate`, `jotti-backend`). Nach einem Release rückt sie ohne Handgriff nach.
+- Die Vorversion ist das jüngste veröffentlichte GitHub-Release; `release.yml` veröffentlicht es erst, wenn die Images auf `ghcr.io/nicograef` liegen (`jotti-migrate`, `jotti-backend`). Nach einem Release rückt sie ohne Handgriff nach.
 - Danach spielt `scripts/prod-backup-verify.sh` einen Dump der aktualisierten Datenbank in ein Wegwerf-Postgres ein. Der Rückweg einer Vorwärts-Migration ist das Backup.
 - Der Job ist das Pflicht-Gate für Schema-Änderungen: Er beweist, dass eine befüllte Bestandsinstanz das Upgrade übersteht.
