@@ -1,0 +1,5 @@
+# gitleaks fingerprints of reviewed false positives: test fixtures and doc examples, no real secrets.
+d84f5637edb488fb43495ee36ecdbb74e839affa:backend/api/druck/relay/relay_integration_test.go:generic-api-key:22
+d84f5637edb488fb43495ee36ecdbb74e839affa:backend/config/config_test.go:generic-api-key:13
+3c11cc02af974fb56394164cb30adbeb298764dd:docs/bondruck.md:generic-api-key:435
+08b94aad963dcc68bbc3aef543f3e98ae4b50b9e:docs/theory/devops.md:curl-auth-header:224

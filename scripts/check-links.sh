@@ -23,11 +23,12 @@ ALLOWLIST="scripts/check-links.allow"
 LINK_RE='[^]"'"'"'`()<>[*[:space:]]+\.md'
 
 # link_files — every tracked file whose *.md mentions must resolve, AGENTS.md and
-# .claude/** included. Out: history (changelog, plans), frozen, generated and
-# vendored files, lockfiles, and this gate's own files, which quote paths as examples.
+# .claude/** included. Out: history (changelog, plans, gitleaks fingerprints), frozen,
+# generated and vendored files, lockfiles, and this gate's own files, which quote paths as examples.
 link_files() {
   git ls-files \
     ':(exclude)CHANGELOG.md' \
+    ':(exclude).gitleaksignore' \
     ':(glob,exclude)docs/plans/**' \
     ':(glob,exclude)docs/rechtsquellen/**' \
     ':(glob,exclude)database/migrations/**' \
