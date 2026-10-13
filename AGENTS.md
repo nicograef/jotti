@@ -8,7 +8,7 @@ Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen
 
 ## Rules
 
-- Language: code, comments, commits and agent instructions in English; UI strings, `docs/` and `.env.example` in German.
+- Language: code, commits and agent instructions in English; UI strings, `docs/` and `.env.example` in German. Code comments may be German, with real umlauts.
 - Domain terms are German in code too (Bestellung, Zahlung, Ausgabe, Stornierung, Tisch, Position); infrastructure code (auth, config, DB) is English. `docs/language.md` maps each term per layer.
 - Every API endpoint is POST; the only exception is `GET /health`.
 - Money is an `int` in cents, never a float.
