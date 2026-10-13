@@ -47,11 +47,13 @@ services:
     restart: "no"
 
   backend-dev:
-    image: golang:1.27.2-alpine
+    image: golang:1.27-alpine
     container_name: jotti-backend-dev
     working_dir: /src
     logging: *default-logging
     environment:
+      # The image tag names the Go minor; the go directive in go.mod names the patch.
+      GOTOOLCHAIN: auto
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}

@@ -11,7 +11,8 @@
 # Dockerfile, literal references to those image names in scripts/*.sh and
 # windows/**/*.go, the packageManager and prettier fields of frontend, website
 # and e2e, and the typescript field of frontend and e2e. website stays on
-# TypeScript 6: astro check refuses TypeScript 7.
+# TypeScript 6: astro check refuses TypeScript 7. The golang image and every go
+# directive (go.mod, go.work) share one Go minor.
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
 # release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -266,6 +267,51 @@ compare_package_field() {
     info "$key: ${values[0]} in ${targets[*]}."
   fi
 }
+
+# go_minor prints MAJOR.MINOR of a Go version such as 1.27 or 1.27.2.
+go_minor() {
+  local major rest
+  major="${1%%.*}"
+  rest="${1#*.}"
+  printf '%s.%s\n' "$major" "${rest%%.*}"
+}
+
+# The golang image tag names the Go minor; the go directive of every go.mod and
+# of go.work names the patch. All of them share one minor.
+check_go_minor() {
+  local line ref tag file version want="" where="" mismatches=0 seen=()
+  for line in "${pins[@]+"${pins[@]}"}"; do
+    ref="${line%%$'\t'*}"
+    [[ "$(image_name "$ref")" == "golang" ]] || continue
+    tag="${ref##*:}"
+    seen+=("$(go_minor "${tag%%-*}")"$'\t'"${line#*$'\t'}")
+  done
+  while IFS= read -r file; do
+    version="$(awk '$1 == "go" { print $2; exit }' "$file")"
+    if [[ -z "$version" ]]; then
+      error "$file: no go directive."
+      mismatches=$((mismatches + 1))
+      continue
+    fi
+    seen+=("$(go_minor "$version")"$'\t'"$file")
+  done < <(git ls-files ':(glob)**/go.mod' ':(glob)go.work')
+
+  for line in "${seen[@]+"${seen[@]}"}"; do
+    if [[ -z "$want" ]]; then
+      want="${line%%$'\t'*}"
+      where="${line#*$'\t'}"
+    elif [[ "${line%%$'\t'*}" != "$want" ]]; then
+      error "${line#*$'\t'}: Go ${line%%$'\t'*}, $where pins Go $want."
+      mismatches=$((mismatches + 1))
+    fi
+  done
+  violations=$((violations + mismatches))
+  if [[ "$mismatches" -eq 0 && -n "$want" ]]; then
+    info "Go minor: $want in every golang image, go.mod and go.work."
+  fi
+}
+
+check_go_minor
 
 compare_package_field packageManager "${PACKAGE_JSONS[@]}"
 compare_package_field typescript "${TYPESCRIPT_PACKAGE_JSONS[@]}"

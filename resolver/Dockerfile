@@ -1,4 +1,7 @@
-FROM golang:1.27.2-alpine AS builder
+FROM golang:1.27-alpine AS builder
+
+# The image tag names the Go minor; the go directive in go.mod names the patch.
+ENV GOTOOLCHAIN=auto
 
 WORKDIR /src
 
