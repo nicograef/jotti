@@ -12,7 +12,8 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo check-integration check check-full verify \
+       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo \
+       check-govulncheck check-audit check-vuln check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
 
@@ -277,22 +278,22 @@ check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstest
 	fi
 
 check-backend: ## Backend komplett prüfen (Deps, Lint inkl. Integrationstest-Dateien, Format, Vet, Test, Build)
-	cd backend && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd backend && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (sqlc diff)
 	cd backend && sqlc diff
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/relay && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd windows/relay && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-starter: ## Windows-Starter komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/starter && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd windows/starter && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd resolver && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd resolver && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd reverse-proxy && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd reverse-proxy && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
@@ -322,10 +323,29 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt 
 		exit 1; \
 	fi
 
+# The pin of every Go module's govulncheck; .github/workflows/security-scans.yml runs these targets.
+GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@v1.9.0
+GO_MODULES ?= backend resolver reverse-proxy windows/relay windows/starter
+AUDIT_PROJECTS ?= frontend website
+
+check-govulncheck: ## Go-Module auf erreichbare Schwachstellen prüfen (govulncheck, braucht Netz; GO_MODULES=… grenzt ein)
+	@for module in $(GO_MODULES); do \
+		echo "→ $$module"; \
+		(cd "$$module" && $(GOVULNCHECK) ./...) || exit 1; \
+	done
+
+check-audit: ## Produktions-Abhängigkeiten per pnpm audit prüfen, rot ab high (braucht Netz; AUDIT_PROJECTS=… grenzt ein)
+	@for project in $(AUDIT_PROJECTS); do \
+		echo "→ $$project"; \
+		(cd "$$project" && pnpm audit --prod --audit-level high) || exit 1; \
+	done
+
+check-vuln: check-govulncheck check-audit ## Schwachstellen-Scans wie security-scans.yml (braucht Netz)
+
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo check-vuln ## Schnelle Komplettprüfung ohne DB-Integration
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 
@@ -382,7 +402,7 @@ CLASS_developer := init up up-attached down restart logs status \
 	local-up local-down local-logs db-shell seed rebuild-projections clean \
 	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
 	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo \
-	check-integration check check-full verify \
+	check-govulncheck check-audit check-vuln check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
 	prod-backup-verify prod-harden \
