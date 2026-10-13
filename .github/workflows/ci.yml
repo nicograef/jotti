@@ -31,10 +31,18 @@ jobs:
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
       ci: ${{ steps.changes.outputs.ci }}
+      golangci-lint: ${{ steps.lint-version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # scripts/setup-dev-tools.sh holds the pin, so CI and a dev machine run one golangci-lint.
+      - name: Read the golangci-lint version
+        id: lint-version
+        run: |
+          VERSION="$(sed -n 's/^GOLANGCI_LINT_VERSION="\(.*\)"$/\1/p' scripts/setup-dev-tools.sh)"
+          [ -n "$VERSION" ] || { echo "No GOLANGCI_LINT_VERSION in scripts/setup-dev-tools.sh."; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Check for changes
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
@@ -44,6 +52,7 @@ jobs:
               - 'backend/**'
               - 'go.work'
               - 'go.work.sum'
+              - 'scripts/setup-dev-tools.sh'
             frontend:
               - 'frontend/**'
             database:
@@ -53,16 +62,19 @@ jobs:
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
+              - 'scripts/setup-dev-tools.sh'
             proxy:
               - 'reverse-proxy/**'
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
+              - 'scripts/setup-dev-tools.sh'
             windows:
               - 'windows/**'
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
+              - 'scripts/setup-dev-tools.sh'
             website:
               - 'website/**'
               - 'docs/**'
@@ -87,7 +99,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
       - name: Download dependencies
@@ -143,15 +155,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      # Version pinned to the local toolchain (scripts/setup-dev-tools.sh) so a
-      # green CI and a green `make verify` mean the same thing.
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0
+          version: ${{ needs.changes.outputs.golangci-lint }}
           working-directory: ./backend
 
   resolver-ci:
@@ -168,7 +178,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: resolver/go.mod
           cache-dependency-path: resolver/go.sum
 
       - name: Download dependencies
@@ -191,7 +201,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0
+          version: ${{ needs.changes.outputs.golangci-lint }}
           working-directory: ./resolver
 
       - name: Vet
@@ -222,7 +232,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: reverse-proxy/go.mod
           cache-dependency-path: reverse-proxy/go.sum
 
       - name: Download dependencies
@@ -245,7 +255,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0
+          version: ${{ needs.changes.outputs.golangci-lint }}
           working-directory: ./reverse-proxy
 
       - name: Vet
@@ -271,7 +281,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: windows/${{ matrix.module }}/go.mod
           cache: false
 
       - name: Download dependencies
@@ -298,7 +308,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.14.0
+          version: ${{ needs.changes.outputs.golangci-lint }}
           working-directory: ./windows/${{ matrix.module }}
 
       - name: Vet
@@ -411,7 +421,7 @@ jobs:
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -472,7 +482,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
       - name: Download dependencies
@@ -547,7 +557,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: 1.27.2
+          go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
       - name: Apply previous version's migrations

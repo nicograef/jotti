@@ -30,7 +30,7 @@ info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 info "Checking base runtimes..."
-ensure_cmd go "Install Go >= 1.27.2 (CI uses 1.27.2)."
+ensure_cmd go "Install Go; CI and GOTOOLCHAIN=auto use the go directive of backend/go.mod."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
 GO_BIN_PATH="$(go env GOPATH)/bin"
@@ -54,8 +54,8 @@ installed_mod_version() {
   awk -v module="$2" '$1 == "mod" && $2 == module {print $3}' <<<"$buildinfo"
 }
 
-# Matches CI: .github/workflows/ci.yml pins the golangci-lint action to this
-# version so a green CI and a green `make verify` mean the same thing.
+# CI's golangci-lint steps read GOLANGCI_LINT_VERSION from this line, so a green CI
+# and a green `make verify` run one golangci-lint.
 GOLANGCI_LINT_VERSION="v2.14.0"
 info "Ensuring golangci-lint ($GOLANGCI_LINT_VERSION) is available..."
 
