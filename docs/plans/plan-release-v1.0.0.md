@@ -122,8 +122,6 @@ Setup-Wizard-Durchlauf oben.
 
 ## 3. Nach dem Tag (eigener Commit)
 
-- [ ] `PREVIOUS_VERSION` in `.github/workflows/ci.yml` von `v0.18.0` auf `v1.0.0` heben;
-      Job `upgrade-path` grün
 - [ ] Diesen Plan löschen, sobald alle Boxen abgehakt sind
 
 ## Release-Text

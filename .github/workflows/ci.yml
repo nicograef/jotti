@@ -57,6 +57,10 @@ jobs:
               - 'frontend/**'
             database:
               - 'database/**'
+              # the restore drill in upgrade-path
+              - 'docker-compose.prod.yml'
+              - 'scripts/prod-backup-verify.sh'
+              - 'scripts/lib.sh'
             resolver:
               - 'resolver/**'
               - 'backend/go.mod'
@@ -534,18 +538,17 @@ jobs:
         # (e.g. user cleanup races kassenjournal inserts). Matches scripts/test-integration.sh.
         run: go test -tags=integration -count=1 -v -race -p 1 ./...
 
-  # Upgrade-path harness: a database migrated and filled with the PREVIOUS
+  # Upgrade-path harness: a database migrated and filled with the previous
   # release's images must survive the upgrade to the current checkout (migrate
-  # up, boot, rebuild-projections). PREVIOUS_VERSION is raised after every
-  # release; the job is the mandatory gate for schema changes. Details:
-  # database/migrations/README.md.
+  # up, boot, rebuild-projections), and its backup must restore. The previous
+  # release is the newest v* tag below HEAD; the job is the mandatory gate for
+  # schema changes. Details: database/migrations/README.md.
   upgrade-path:
     needs: changes
     if: ${{ (needs.changes.outputs.backend == 'true') || (needs.changes.outputs.database == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      PREVIOUS_VERSION: v0.18.0
       # Throwaway CI-only values (no secrets); long enough to pass the
       # backend's secret validation (config.MinSecretLength).
       POSTGRES_HOST: localhost
@@ -578,10 +581,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0 # the tags mark the releases
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+
+      # HEAD^ skips the tag on a release commit itself.
+      - name: Determine the previous release
+        run: |
+          PREVIOUS_VERSION="$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^)"
+          echo "Previous release: $PREVIOUS_VERSION"
+          echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> "$GITHUB_ENV"
 
       - name: Apply previous version's migrations
         run: |
@@ -636,6 +647,18 @@ jobs:
 
       - name: Rebuild projections on previous version's data
         run: /tmp/jotti rebuild-projections
+
+      # The rollback of a forward-only migration is a backup restore. The dump is taken
+      # like scripts/prod-backup.sh takes it; prod-backup-verify.sh needs a .env.
+      - name: Restore drill on the upgraded data
+        env:
+          SOURCE: ${{ job.services.postgres.id }}
+        run: |
+          set -o pipefail
+          docker exec "$SOURCE" pg_dump --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DBNAME" \
+            | gzip -c > "$RUNNER_TEMP/jotti-drill.sql.gz"
+          make init
+          ./scripts/prod-backup-verify.sh "$RUNNER_TEMP/jotti-drill.sql.gz"
 
   # End-to-end tests (Playwright) against the REAL stack: the prod images are
   # built from the checkout via docker-compose.e2e.yml (HTTP-only, fixed test
