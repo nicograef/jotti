@@ -30,7 +30,7 @@ info "Project root: $PROJECT_ROOT"
 cd "$PROJECT_ROOT"
 
 info "Checking base runtimes..."
-ensure_cmd go "Install Go >= 1.27.1 (CI uses 1.27.1)."
+ensure_cmd go "Install Go >= 1.27.2 (CI uses 1.27.2)."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
 
 GO_BIN_PATH="$(go env GOPATH)/bin"

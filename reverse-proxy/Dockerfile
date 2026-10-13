@@ -12,7 +12,7 @@ RUN xcaddy build \
   --with github.com/caddy-dns/acmedns@v0.7.0 \
   --with github.com/mholt/caddy-ratelimit@v0.1.0
 
-FROM golang:1.27.1-alpine AS proxy-builder
+FROM golang:1.27.2-alpine AS proxy-builder
 
 WORKDIR /src
 COPY go.mod go.sum ./

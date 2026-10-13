@@ -1,3 +1,3 @@
 module github.com/nicograef/jotti/windows/relay
 
-go 1.27.1
+go 1.27.2
