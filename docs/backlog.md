@@ -36,8 +36,8 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       heute. Rückgabe und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein
       darf. Weg wählen (Rückgabe-Vorgang oder
       Negativ-Variante) und die Umsatzsteuer der Rückgabe vorher gegen `docs/rechtsquellen/` prüfen.
-- [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht, dass Tische mit eigenen
-      offenen Bestellungen ohne Stern auf dem Dashboard erscheinen.
+- [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
+      offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
       Konten setzt ein Admin per Einmalpasswort zurück; für den letzten Admin gibt es keinen Weg.
       Wiederherstellung über die Startkonsole bauen oder einen Weg dokumentieren.
@@ -71,6 +71,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Bondrucker hängt still: Im Einsatz druckte ein WLAN-Bondrucker zweimal nach 1–1,5 h nichts
       mehr, bis er neu startete. Relay und Kasse meldeten keinen Fehler, weil das Relay nur die
       TCP-Zustellung prüft. Ursache klären; Kandidat ist die ESC/POS-Statusabfrage vor dem Druck.
-- [ ] WLAN mit mehreren Access Points: Mit drei Routern unter derselben SSID musste jedes Handy nach
-      einem Wechsel die Adresse neu eingeben; mit einem Router lief es. Das WLAN hatte kein Internet,
+- [ ] WLAN mit mehreren Access Points: Ein Verein hatte drei Router unter derselben SSID. Jedes Handy
+      musste nach einem Wechsel die Adresse neu eingeben; mit einem Router lief es. Das WLAN hatte kein Internet,
       mobile Daten waren aus. Ursache klären und in die Fehlersuche des Leitfadens aufnehmen.
