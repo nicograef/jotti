@@ -112,6 +112,8 @@ services:
       target: rocks
     container_name: jotti-reverse-proxy
     restart: unless-stopped
+    # tini as PID 1 reaps the ssl_client that each healthcheck wget orphans; Caddy and the wrapper do not.
+    init: true
     logging: *default-logging
     cap_drop:
       - ALL
@@ -123,9 +125,6 @@ services:
     tmpfs:
       - /tmp
     entrypoint: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
-    # Sized to the 256M limit below; the image default fits the self-hosted 128M.
-    environment:
-      GOMEMLIMIT: 200MiB
     ports:
       - "80:80"
       - "443:443"
@@ -154,7 +153,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
           cpus: "0.5"
 
   # Authoritative DNS for lokal.jotti.rocks — computes A records and

@@ -59,9 +59,6 @@ COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY --from=proxy-builder /go/bin/jotti-reverse-proxy /usr/local/bin/jotti-reverse-proxy
 COPY --from=app-builder /app/dist /srv/app
 
-# The Go GC ignores the cgroup limit; without GOMEMLIMIT the heap thrashes at the 128M cap.
-ENV GOMEMLIMIT=96MiB
-
 ENTRYPOINT [ "jotti-reverse-proxy" ]
 
 FROM app AS rocks

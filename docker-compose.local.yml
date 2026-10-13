@@ -106,6 +106,8 @@ services:
       dockerfile: reverse-proxy/Dockerfile
     container_name: jotti-reverse-proxy-local
     restart: unless-stopped
+    # tini as PID 1 reaps the ssl_client that each healthcheck wget orphans; Caddy and the wrapper do not.
+    init: true
     logging: *default-logging
     cap_drop:
       - ALL
