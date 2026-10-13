@@ -83,7 +83,7 @@ jobs:
               - 'website/**'
               - 'docs/**'
               - 'Makefile'
-              - '.dockerignore'
+              - 'reverse-proxy/Dockerfile*'
             scripts:
               - 'scripts/**'
             ci:
@@ -392,10 +392,10 @@ jobs:
       - name: Website checks
         run: make website-check
 
-      # Like resolver-ci: only the jotti.rocks host builds this image. The
-      # build context is the repository root (website/Dockerfile, .dockerignore).
+      # Like resolver-ci: only the jotti.rocks host builds the rocks target, the
+      # proxy image plus the website.
       - name: Build image
-        run: docker build -f website/Dockerfile .
+        run: docker build -f reverse-proxy/Dockerfile --target rocks .
 
   shellcheck-ci:
     needs: changes

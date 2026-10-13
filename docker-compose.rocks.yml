@@ -102,39 +102,14 @@ services:
           memory: 384M
           cpus: "1.5"
 
-  # Marketing landing + docs (Astro + Starlight). The build context is the repo
-  # root because Astro reads the published Markdown straight from docs/.
-  website:
-    build:
-      context: .
-      dockerfile: website/Dockerfile
-    container_name: jotti-website
-    restart: unless-stopped
-    logging: *default-logging
-    networks:
-      - app-network
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1",
-        ]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: "0.5"
-
-  # The self-hosted image's Caddy build, run directly on the static
-  # Caddyfile.rocks; Caddy obtains and renews the certificates (HTTP-01).
+  # The self-hosted image plus the website build (target rocks), with Caddy run
+  # directly on the static Caddyfile.rocks. Caddy serves the website and the demo
+  # app itself and obtains and renews the certificates (HTTP-01).
   reverse-proxy:
     build:
       context: .
       dockerfile: reverse-proxy/Dockerfile
+      target: rocks
     container_name: jotti-reverse-proxy
     restart: unless-stopped
     logging: *default-logging
@@ -159,8 +134,6 @@ services:
     networks:
       - app-network
     depends_on:
-      website:
-        condition: service_healthy
       backend:
         condition: service_healthy
       acme-dns:

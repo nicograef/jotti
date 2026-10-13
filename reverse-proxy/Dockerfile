@@ -4,8 +4,8 @@
 # public /api/ rate limit) — plus jotti-reverse-proxy as the entrypoint, which
 # renders the Caddyfile and runs Caddy as a child, plus the app's static build,
 # which Caddy serves itself.
-# The jotti.rocks stack (docker-compose.rocks.yml) runs the bundled Caddy
-# directly on the static Caddyfile.rocks.
+# The jotti.rocks stack (docker-compose.rocks.yml) builds the `rocks` target, which
+# adds the website, and runs the bundled Caddy directly on the static Caddyfile.rocks.
 # The build context is the repository root; Dockerfile.dockerignore limits it.
 
 FROM caddy:2.11.7-builder AS caddy-builder
@@ -37,10 +37,30 @@ COPY frontend/ ./
 ARG VERSION=dev
 RUN VERSION="${VERSION}" pnpm build
 
-FROM caddy:2.11.7
+FROM node:24-alpine AS website-builder
+
+WORKDIR /app
+
+COPY website/package.json website/pnpm-lock.yaml website/pnpm-workspace.yaml ./
+RUN corepack enable \
+  && pnpm install --frozen-lockfile
+
+# Astro reads docs/ as ../docs relative to the project root (/app).
+COPY website/ ./
+COPY docs/ /docs/
+RUN pnpm build
+
+FROM caddy:2.11.7 AS app
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY --from=proxy-builder /go/bin/jotti-reverse-proxy /usr/local/bin/jotti-reverse-proxy
 COPY --from=app-builder /app/dist /srv/app
 
 ENTRYPOINT [ "jotti-reverse-proxy" ]
+
+FROM app AS rocks
+
+COPY --from=website-builder /app/dist /srv/website
+
+# The last stage is the default target: the self-hosted image, without the website.
+FROM app

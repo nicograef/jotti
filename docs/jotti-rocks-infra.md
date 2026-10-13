@@ -23,9 +23,11 @@ Volume `acme-dns-data`.
 Seine HTTP-API (`/register`, `/update`, `/health`) läuft hinter Caddy unter
 `https://auth.jotti.rocks`. `/register` ist dort streng rate-limitiert (1 Anfrage/Minute je IP).
 
-Reverse-Proxy ist das Caddy-Image aus `reverse-proxy/Dockerfile`, gestartet direkt mit
-der statischen `reverse-proxy/Caddyfile.rocks`. `make rocks-up` erstellt den Proxy neu und
-übernimmt so Änderungen am Caddyfile.
+Reverse-Proxy ist das Caddy-Image aus `reverse-proxy/Dockerfile` im Ziel `rocks`: das
+Self-Hosting-Image plus Website. Es startet direkt mit der statischen
+`reverse-proxy/Caddyfile.rocks` und liefert Website und Demo-App selbst aus.
+
+`make rocks-up` erstellt den Proxy neu und übernimmt so Änderungen am Caddyfile.
 
 Caddy holt und erneuert die Zertifikate aller vier Hosts selbst per HTTP-01. Sie liegen im
 Volume `caddy-data`.

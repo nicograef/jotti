@@ -102,7 +102,6 @@ updates:
       - "/database/migrate"
       - "/resolver"
       - "/reverse-proxy"
-      - "/website"
     multi-ecosystem-group: "docker"
     patterns: ["*"]
     # Node is only a build tool in the images; stay on the Active LTS (24) until

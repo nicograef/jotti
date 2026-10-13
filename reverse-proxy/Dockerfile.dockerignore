@@ -1,14 +1,21 @@
 # The build context is the repository root. Send only what the image builds:
-# the proxy's Go sources and the app. Drop secrets and host build artifacts.
+# the proxy's Go sources, the app and, for the rocks target, the website and the
+# docs Astro reads. Drop secrets, host build artifacts and the docs the Astro
+# build never reads (legal source texts, plans).
 *
 !reverse-proxy/go.mod
 !reverse-proxy/go.sum
 !reverse-proxy/*.go
 reverse-proxy/*_test.go
 !frontend
+!website
+!docs
 **/.env
 **/.env.*
 **/node_modules
 **/dist
 **/coverage
 **/*.log
+website/.astro
+docs/rechtsquellen
+docs/plans

@@ -60,7 +60,28 @@ jotti.rocks {
 	@docs_moved expression `{docs_redirect} != ""`
 	redir @docs_moved {docs_redirect} permanent
 
-	reverse_proxy website:80
+	# Website: statischer Astro-Build aus dem Image (Landing und Docs im Verzeichnisformat)
+	root * /srv/website
+	encode zstd gzip
+
+	# Inhalts-gehashte Astro-Assets, Pagefind-Index und Schriften: für immer cachen.
+	@immutable_file {
+		path /_astro/* /pagefind/* /fonts/*
+		file
+	}
+	header @immutable_file Cache-Control "public, max-age=31536000, immutable"
+
+	# HTML und die übrigen Dateien nie cachen, damit ein neuer Build sofort sichtbar ist.
+	@fresh not path /_astro/* /pagefind/* /fonts/*
+	header @fresh Cache-Control "no-cache"
+
+	file_server
+
+	# Gebrandete 404-Seite für unbekannte URLs (Astro erzeugt 404.html).
+	handle_errors 404 {
+		rewrite * /404.html
+		file_server
+	}
 }
 
 demo.jotti.rocks {
