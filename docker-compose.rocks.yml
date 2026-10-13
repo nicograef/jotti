@@ -123,6 +123,9 @@ services:
     tmpfs:
       - /tmp
     entrypoint: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    # Sized to the 256M limit below; the image default fits the self-hosted 128M.
+    environment:
+      GOMEMLIMIT: 200MiB
     ports:
       - "80:80"
       - "443:443"
@@ -151,7 +154,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
           cpus: "0.5"
 
   # Authoritative DNS for lokal.jotti.rocks — computes A records and
