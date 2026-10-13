@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,13 +13,12 @@ import (
 	"database/sql"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/bootstrap"
 	"github.com/nicograef/jotti/backend/config"
 	dbpkg "github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/user_repo"
 	"github.com/nicograef/jotti/backend/seed"
@@ -28,7 +28,7 @@ import (
 var version = "dev"
 
 func main() {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	slog.SetDefault(logging.New(os.Stdout))
 
 	cfg := config.Load()
 
@@ -36,7 +36,7 @@ func main() {
 
 	db, err := sql.Open("pgx", psqlconn)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to Postgres")
+		fatal("Failed to connect to Postgres", "error", err)
 	}
 
 	db.SetConnMaxLifetime(5 * time.Minute)
@@ -45,10 +45,10 @@ func main() {
 
 	// Begrenzt auf die Datenbank warten (Boot-Reihenfolge nach Stromausfall), statt sofort zu sterben.
 	if err := dbpkg.PingWithRetry(db.Ping, 30*time.Second, time.Second, time.Sleep); err != nil {
-		log.Fatal().Err(err).Msg("Failed to ping Postgres")
+		fatal("Failed to ping Postgres", "error", err)
 	}
 
-	log.Info().Msg("Connected to database")
+	slog.Info("Connected to database")
 
 	subcommand := ""
 	if len(os.Args) > 1 {
@@ -57,30 +57,30 @@ func main() {
 
 	if subcommand == "rebuild-projections" {
 		if err := rebuildProjections(db); err != nil {
-			log.Fatal().Err(err).Msg("Failed to rebuild projections")
+			fatal("Failed to rebuild projections", "error", err)
 		}
 		return
 	}
 
 	if subcommand == "seed" {
 		if !seed.AllowedByEnv(os.Getenv) {
-			log.Fatal().Msgf("seed refused: set %s=1 to allow demo seeding (never do this in production)", seed.AllowSeedEnv)
+			fatal(fmt.Sprintf("seed refused: set %s=1 to allow demo seeding (never do this in production)", seed.AllowSeedEnv))
 		}
 		if err := seedDemodaten(db); err != nil {
-			log.Fatal().Err(err).Msg("Failed to seed demo data")
+			fatal("Failed to seed demo data", "error", err)
 		}
 		return
 	}
 
 	if err := run(cfg, db); err != nil {
-		log.Fatal().Err(err).Msg("Application error")
+		fatal("Application error", "error", err)
 	}
 }
 
 func run(cfg config.Config, db *sql.DB) error {
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection")
+			slog.Error("Failed to close database connection", "error", err)
 		}
 	}()
 
@@ -90,7 +90,7 @@ func run(cfg config.Config, db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("bootstrap initial admin: %w", err)
 	}
-	res.Log(log.Logger)
+	res.Log(slog.Default())
 
 	a := app.NewApp(cfg, db, version)
 
@@ -110,36 +110,41 @@ func run(cfg config.Config, db *sql.DB) error {
 func rebuildProjections(db *sql.DB) error {
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection")
+			slog.Error("Failed to close database connection", "error", err)
 		}
 	}()
 
 	repo := kassenjournal_repo.NewRepository(db)
 
-	log.Info().Msg("Rebuilding tisch-session projections from kassenjournal...")
+	slog.Info("Rebuilding tisch-session projections from kassenjournal...")
 
 	count, err := repo.RebuildAllProjections(context.Background())
 	if err != nil {
 		return fmt.Errorf("rebuild projections: %w", err)
 	}
 
-	log.Info().Int("subjects", count).Msg("Projections rebuilt successfully")
+	slog.Info("Projections rebuilt successfully", "subjects", count)
 	return nil
 }
 
 func seedDemodaten(db *sql.DB) error {
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection")
+			slog.Error("Failed to close database connection", "error", err)
 		}
 	}()
 
-	log.Info().Msg("Seeding demo data...")
+	slog.Info("Seeding demo data...")
 
 	if err := seed.Run(context.Background(), db); err != nil {
 		return fmt.Errorf("seed demo data: %w", err)
 	}
 
-	log.Info().Msg("Demo data seeded successfully")
+	slog.Info("Demo data seeded successfully")
 	return nil
+}
+
+func fatal(msg string, args ...any) {
+	slog.Error(msg, args...)
+	os.Exit(1)
 }

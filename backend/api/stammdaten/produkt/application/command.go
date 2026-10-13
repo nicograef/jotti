@@ -7,7 +7,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type produktRepo interface {
@@ -30,154 +30,154 @@ type Command struct {
 }
 
 func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkt, err := produkt.NewProdukt(name, kategorie, steuersatz)
 	if err != nil {
-		log.Warn().Err(err).Str("produkt_name", name).Msg("Invalid produkt data")
+		log.Warn("Invalid produkt data", "error", err, "produkt_name", name)
 		return 0, ErrInvalidProduktData
 	}
 
 	produktID, err := c.ProduktRepo.CreateProdukt(ctx, produkt)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
+			log.Warn("Produkt name already exists", "error", err, "name", produkt.Name)
 			return 0, ErrProduktAlreadyExists
 		}
-		log.Error().Err(err).Str("name", produkt.Name).Msg("Failed to create produkt")
+		log.Error("Failed to create produkt", "error", err, "name", produkt.Name)
 		return 0, ErrDatabase
 	}
 
-	log.Info().Int("produkt_id", produktID).Msg("Produkt created")
+	log.Info("Produkt created", "produkt_id", produktID)
 	return produktID, nil
 }
 
 func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for update")
+			log.Warn("Produkt not found for update", "produkt_id", produktID)
 			return ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for update")
+		log.Error("Failed to retrieve produkt for update", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
 	err = produkt.UpdateDetails(name, kategorie, steuersatz)
 	if err != nil {
-		log.Warn().Err(err).Int("produkt_id", produktID).Msg("Invalid produkt data for update")
+		log.Warn("Invalid produkt data for update", "error", err, "produkt_id", produktID)
 		return ErrInvalidProduktData
 	}
 
 	err = c.ProduktRepo.UpdateProdukt(ctx, produkt)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Err(err).Str("name", produkt.Name).Msg("Produkt name already exists")
+			log.Warn("Produkt name already exists", "error", err, "name", produkt.Name)
 			return ErrProduktAlreadyExists
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to update produkt")
+		log.Error("Failed to update produkt", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("produkt_id", produktID).Msg("Produkt updated")
+	log.Info("Produkt updated", "produkt_id", produktID)
 	return nil
 }
 
 // VerschiebeProdukt tauscht das Produkt mit seinem Nachbarn in derselben
 // Kategorie. Am Rand der Kategorie bleibt die Reihenfolge unverändert.
 func (c Command) VerschiebeProdukt(ctx context.Context, produktID int, richtung produkt.Richtung) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	err := c.ProduktRepo.VerschiebeProdukt(ctx, produktID, richtung == produkt.RichtungHoch)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for move")
+			log.Warn("Produkt not found for move", "produkt_id", produktID)
 			return ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to move produkt")
+		log.Error("Failed to move produkt", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("produkt_id", produktID).Str("richtung", string(richtung)).Msg("Produkt moved")
+	log.Info("Produkt moved", "produkt_id", produktID, "richtung", string(richtung))
 	return nil
 }
 
 func (c Command) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	_, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for variante creation")
+			log.Warn("Produkt not found for variante creation", "produkt_id", produktID)
 			return 0, ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante creation")
+		log.Error("Failed to retrieve produkt for variante creation", "error", err, "produkt_id", produktID)
 		return 0, ErrDatabase
 	}
 
 	variante, err := produkt.NewVariante(name, preisCents)
 	if err != nil {
-		log.Warn().Err(err).Str("variante_name", name).Msg("Invalid variante data")
+		log.Warn("Invalid variante data", "error", err, "variante_name", name)
 		return 0, ErrInvalidVarianteData
 	}
 
 	varianteID, err := c.ProduktRepo.CreateVariante(ctx, produktID, variante)
 	if err != nil {
-		log.Error().Err(err).Int("produkt_id", produktID).Str("name", variante.Name).Msg("Failed to create variante")
+		log.Error("Failed to create variante", "error", err, "produkt_id", produktID, "name", variante.Name)
 		return 0, ErrDatabase
 	}
 
-	log.Info().Int("variante_id", varianteID).Int("produkt_id", produktID).Msg("Variante created")
+	log.Info("Variante created", "variante_id", varianteID, "produkt_id", produktID)
 	return varianteID, nil
 }
 
 func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	variante, err := c.ProduktRepo.GetVariante(ctx, varianteID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for update")
+			log.Warn("Variante not found for update", "variante_id", varianteID)
 			return ErrVarianteNotFound
 		}
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for update")
+		log.Error("Failed to retrieve variante for update", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
 	err = variante.UpdateDetails(name, preisCents)
 	if err != nil {
-		log.Warn().Err(err).Int("variante_id", varianteID).Msg("Invalid variante data for update")
+		log.Warn("Invalid variante data for update", "error", err, "variante_id", varianteID)
 		return ErrInvalidVarianteData
 	}
 
 	err = c.ProduktRepo.UpdateVariante(ctx, variante)
 	if err != nil {
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to update variante")
+		log.Error("Failed to update variante", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("variante_id", varianteID).Msg("Variante updated")
+	log.Info("Variante updated", "variante_id", varianteID)
 	return nil
 }
 
 // VerschiebeVariante tauscht die Variante mit ihrem Nachbarn im selben Produkt.
 // Am Rand der Variantenliste bleibt die Reihenfolge unverändert.
 func (c Command) VerschiebeVariante(ctx context.Context, varianteID int, richtung produkt.Richtung) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	err := c.ProduktRepo.VerschiebeVariante(ctx, varianteID, richtung == produkt.RichtungHoch)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for move")
+			log.Warn("Variante not found for move", "variante_id", varianteID)
 			return ErrVarianteNotFound
 		}
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to move variante")
+		log.Error("Failed to move variante", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("variante_id", varianteID).Str("richtung", string(richtung)).Msg("Variante moved")
+	log.Info("Variante moved", "variante_id", varianteID, "richtung", string(richtung))
 	return nil
 }
 
@@ -190,39 +190,39 @@ func (c Command) DeactivateVariante(ctx context.Context, varianteID int) error {
 }
 
 func (c Command) applyVarianteStatusChange(ctx context.Context, varianteID int, successMsg string, action func(*produkt.Variante)) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	variante, err := c.ProduktRepo.GetVariante(ctx, varianteID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for status change")
+			log.Warn("Variante not found for status change", "variante_id", varianteID)
 			return ErrVarianteNotFound
 		}
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for status change")
+		log.Error("Failed to retrieve variante for status change", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
 	action(&variante)
 
 	if err := c.ProduktRepo.UpdateVariante(ctx, variante); err != nil {
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to update variante")
+		log.Error("Failed to update variante", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("variante_id", varianteID).Msg(successMsg)
+	log.Info(successMsg, "variante_id", varianteID)
 	return nil
 }
 
 func (c Command) DeleteProdukt(ctx context.Context, produktID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for deletion")
+			log.Warn("Produkt not found for deletion", "produkt_id", produktID)
 			return ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for deletion")
+		log.Error("Failed to retrieve produkt for deletion", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
@@ -233,34 +233,34 @@ func (c Command) DeleteProdukt(ctx context.Context, produktID int) error {
 
 	err = c.ProduktRepo.DeleteProduktMitVarianten(ctx, produkt)
 	if err != nil {
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to delete produkt")
+		log.Error("Failed to delete produkt", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("produkt_id", produktID).Msg("Produkt deleted")
+	log.Info("Produkt deleted", "produkt_id", produktID)
 	return nil
 }
 
 func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for variante deletion")
+			log.Warn("Produkt not found for variante deletion", "produkt_id", produktID)
 			return ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for variante deletion")
+		log.Error("Failed to retrieve produkt for variante deletion", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
 	variante, err := c.ProduktRepo.GetVariante(ctx, varianteID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("variante_id", varianteID).Msg("Variante not found for deletion")
+			log.Warn("Variante not found for deletion", "variante_id", varianteID)
 			return ErrVarianteNotFound
 		}
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to retrieve variante for deletion")
+		log.Error("Failed to retrieve variante for deletion", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
@@ -274,7 +274,7 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 		}
 	}
 	if !gehoertZumProdukt {
-		log.Warn().Int("produkt_id", produktID).Int("variante_id", varianteID).Msg("Variante does not belong to produkt")
+		log.Warn("Variante does not belong to produkt", "produkt_id", produktID, "variante_id", varianteID)
 		return ErrVarianteNotFound
 	}
 
@@ -282,11 +282,11 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 
 	err = c.ProduktRepo.UpdateVariante(ctx, variante)
 	if err != nil {
-		log.Error().Err(err).Int("variante_id", varianteID).Msg("Failed to delete variante")
+		log.Error("Failed to delete variante", "error", err, "variante_id", varianteID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("variante_id", varianteID).Msg("Variante deleted")
+	log.Info("Variante deleted", "variante_id", varianteID)
 	return nil
 }
 
@@ -294,22 +294,22 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 // alphabetisch. Danach ist es eine gewöhnliche Reihenfolge, die sich mit den
 // Pfeilen weiter anpassen lässt - bewusst kein dauerhafter Sortiermodus.
 func (c Command) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if _, err := c.ProduktRepo.GetProdukt(ctx, produktID); err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("produkt_id", produktID).Msg("Produkt not found for sorting")
+			log.Warn("Produkt not found for sorting", "produkt_id", produktID)
 			return ErrProduktNotFound
 		}
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to retrieve produkt for sorting")
+		log.Error("Failed to retrieve produkt for sorting", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
 	if err := c.ProduktRepo.SortiereVariantenAlphabetisch(ctx, produktID); err != nil {
-		log.Error().Err(err).Int("produkt_id", produktID).Msg("Failed to sort varianten")
+		log.Error("Failed to sort varianten", "error", err, "produkt_id", produktID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("produkt_id", produktID).Msg("Varianten sorted alphabetically")
+	log.Info("Varianten sorted alphabetically", "produkt_id", produktID)
 	return nil
 }

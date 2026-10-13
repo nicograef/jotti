@@ -5,8 +5,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
-
-	"github.com/rs/zerolog"
+	"log/slog"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
@@ -91,12 +90,12 @@ func EnsureInitialAdmin(ctx context.Context, repo Repository) (Result, error) {
 
 // Log schreibt bei create/rotate die maschinen-greifbare Markerzeile als MESSAGE
 // — nur so steht sie unabhängig von der Feldformatierung verbatim in der
-// ConsoleWriter-Ausgabe — plus eine menschenlesbare Bannerzeile.
-func (r Result) Log(logger zerolog.Logger) {
+// JSON-Ausgabe — plus eine menschenlesbare Bannerzeile.
+func (r Result) Log(logger *slog.Logger) {
 	if r.Action == ActionSkip {
 		return
 	}
 
-	logger.Info().Msg(MarkerPrefix + " benutzer=" + AdminUsername + " code=" + r.OnetimePassword)
-	logger.Warn().Msg("Ersteinrichtung: Melde dich als Benutzer »" + AdminUsername + "« mit dem Einmalpasswort " + r.OnetimePassword + " an und lege ein eigenes Passwort fest.")
+	logger.Info(MarkerPrefix + " benutzer=" + AdminUsername + " code=" + r.OnetimePassword)
+	logger.Warn("Ersteinrichtung: Melde dich als Benutzer »" + AdminUsername + "« mit dem Einmalpasswort " + r.OnetimePassword + " an und lege ein eigenes Passwort fest.")
 }

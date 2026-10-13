@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
@@ -17,14 +17,14 @@ type Query struct {
 }
 
 func (q Query) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]druckstation.FehlgeschlagenerDruckauftrag, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	auftraege, err := q.DruckauftragRepo.GetFehlgeschlageneDruckauftraege(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve fehlgeschlagene druckauftraege")
+		log.Error("Failed to retrieve fehlgeschlagene druckauftraege", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(auftraege)).Msg("Retrieved fehlgeschlagene druckauftraege")
+	log.Info("Retrieved fehlgeschlagene druckauftraege", "count", len(auftraege))
 	return auftraege, nil
 }

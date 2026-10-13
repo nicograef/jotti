@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/seed"
-	"github.com/rs/zerolog"
 )
 
 type Zugangsdaten struct {
@@ -45,10 +45,10 @@ func NewHandler(db *sql.DB) Handler {
 
 func (h Handler) ResetAndSeedHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := zerolog.Ctx(r.Context())
+		log := logging.FromContext(r.Context())
 
 		if err := h.Reseter.ResetAndSeed(r.Context()); err != nil {
-			log.Error().Err(err).Msg("reset-and-seed failed")
+			log.Error("reset-and-seed failed", "error", err)
 			helper.SendServerError(w)
 			return
 		}

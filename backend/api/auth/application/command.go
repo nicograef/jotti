@@ -7,7 +7,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type commandUserRepo interface {
@@ -29,10 +29,10 @@ type Command struct {
 }
 
 func (c Command) GenerateJWTToken(ctx context.Context, username, password string) (string, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if !c.Throttle.Allow(username) {
-		log.Warn().Str("username", username).Msg("Login throttled after repeated failures")
+		log.Warn("Login throttled after repeated failures", "username", username)
 		return "", ErrLoginThrottled
 	}
 
@@ -40,10 +40,10 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			c.Throttle.RecordFailure(username)
-			log.Warn().Str("username", username).Msg("User not found during login")
+			log.Warn("User not found during login", "username", username)
 			return "", ErrUserNotFound
 		}
-		log.Error().Err(err).Str("username", username).Msg("Failed to retrieve user ID")
+		log.Error("Failed to retrieve user ID", "error", err, "username", username)
 		return "", ErrDatabase
 	}
 
@@ -51,33 +51,33 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 		c.Throttle.RecordFailure(username)
 		switch {
 		case errors.Is(err, user.ErrNotActive):
-			log.Warn().Str("username", username).Msg("Inactive user attempted to log in")
+			log.Warn("Inactive user attempted to log in", "username", username)
 			return "", ErrNotActive
 		case errors.Is(err, user.ErrNoPassword):
-			log.Warn().Str("username", username).Msg("No password set for user during login")
+			log.Warn("No password set for user during login", "username", username)
 			return "", ErrNoPassword
 		case errors.Is(err, user.ErrInvalidPassword):
-			log.Warn().Err(err).Str("username", username).Msg("Password validation failed")
+			log.Warn("Password validation failed", "error", err, "username", username)
 			return "", ErrInvalidPassword
 		default:
-			log.Error().Err(err).Str("username", username).Msg("Failed to verify password")
+			log.Error("Failed to verify password", "error", err, "username", username)
 			return "", ErrTokenGeneration
 		}
 	}
 
 	token, err := jwt.GenerateJWTTokenForUser(u.ID, string(u.Role), c.JWTSecret)
 	if err != nil {
-		log.Error().Err(err).Str("username", username).Msg("Failed to generate JWT token")
+		log.Error("Failed to generate JWT token", "error", err, "username", username)
 		return "", ErrTokenGeneration
 	}
 
 	c.Throttle.Reset(username)
-	log.Info().Str("username", username).Msg("User logged in successfully")
+	log.Info("User logged in successfully", "username", username)
 	return token, nil
 }
 
 func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	// SetPasswordTx sperrt die User-Zeile (FOR UPDATE) und persistiert das Ergebnis
 	// im selben Commit; sonst könnten nebenläufige Versuche den Fehlversuchszähler
@@ -88,26 +88,26 @@ func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onet
 	if err != nil {
 		switch {
 		case errors.Is(err, db.ErrNotFound):
-			log.Warn().Str("username", username).Msg("User not found during password reset")
+			log.Warn("User not found during password reset", "username", username)
 			return ErrUserNotFound
 		case errors.Is(err, user.ErrNoPassword):
-			log.Warn().Str("username", username).Msg("No one-time password set for user during password reset")
+			log.Warn("No one-time password set for user during password reset", "username", username)
 			return ErrNoOnetimePassword
 		case errors.Is(err, user.ErrPasswordTooWeak):
-			log.Warn().Str("username", username).Msg("Password too weak")
+			log.Warn("Password too weak", "username", username)
 			return ErrPasswordTooWeak
 		case errors.Is(err, user.ErrOnetimePasswordLocked):
-			log.Warn().Str("username", username).Msg("One-time password locked after too many failed attempts")
+			log.Warn("One-time password locked after too many failed attempts", "username", username)
 			return ErrOnetimePasswordLocked
 		case errors.Is(err, user.ErrInvalidPassword):
-			log.Warn().Err(err).Str("username", username).Msg("One-time password validation failed")
+			log.Warn("One-time password validation failed", "error", err, "username", username)
 			return ErrInvalidPassword
 		default:
-			log.Error().Err(err).Str("username", username).Msg("Failed to set new password")
+			log.Error("Failed to set new password", "error", err, "username", username)
 			return ErrDatabase
 		}
 	}
 
-	log.Info().Str("username", username).Msg("New password set successfully")
+	log.Info("New password set successfully", "username", username)
 	return nil
 }

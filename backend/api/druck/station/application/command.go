@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
@@ -27,7 +27,7 @@ type Command struct {
 }
 
 func (c Command) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, bonmodus string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	station, err := druckstation.NewDruckstation(
 		druckstation.Kategorie(kategorie),
@@ -35,16 +35,16 @@ func (c Command) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, b
 		druckstation.Bonmodus(bonmodus),
 	)
 	if err != nil {
-		log.Warn().Err(err).Str("kategorie", kategorie).Msg("Invalid druckstation")
+		log.Warn("Invalid druckstation", "error", err, "kategorie", kategorie)
 		return ErrUngueltigeDruckstation
 	}
 
 	if err := c.DruckstationRepo.UpsertDruckstation(ctx, station); err != nil {
-		log.Error().Err(err).Str("kategorie", kategorie).Msg("Failed to upsert druckstation")
+		log.Error("Failed to upsert druckstation", "error", err, "kategorie", kategorie)
 		return ErrDatabase
 	}
 
-	log.Info().Str("kategorie", kategorie).Str("druckerIP", druckerIP).Msg("Druckstation updated")
+	log.Info("Druckstation updated", "kategorie", kategorie, "druckerIP", druckerIP)
 	return nil
 }
 
@@ -52,19 +52,19 @@ func (c Command) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, b
 // ein. Es gibt keinen Status-Rückkanal: Schlägt der Druck fehl, erscheint der
 // Auftrag wie jeder andere in den fehlgeschlagenen Druckaufträgen.
 func (c Command) TestbonDrucken(ctx context.Context, kategorie string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	kat := druckstation.Kategorie(kategorie)
 
 	stationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Str("kategorie", kategorie).Msg("Failed to load druckstationen for testbon")
+		log.Error("Failed to load druckstationen for testbon", "error", err, "kategorie", kategorie)
 		return ErrDatabase
 	}
 
 	station, ok := stationen[kategorie]
 	if !ok || station.DruckerIP == "" {
-		log.Warn().Str("kategorie", kategorie).Msg("Testbon requested for druckstation without configured IP")
+		log.Warn("Testbon requested for druckstation without configured IP", "kategorie", kategorie)
 		return ErrDruckstationNichtKonfiguriert
 	}
 
@@ -78,10 +78,10 @@ func (c Command) TestbonDrucken(ctx context.Context, kategorie string) error {
 	}
 
 	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
-		log.Error().Err(err).Str("kategorie", kategorie).Msg("Failed to enqueue testbon")
+		log.Error("Failed to enqueue testbon", "error", err, "kategorie", kategorie)
 		return ErrDatabase
 	}
 
-	log.Info().Str("kategorie", kategorie).Str("druckerIP", station.DruckerIP).Msg("Testbon queued")
+	log.Info("Testbon queued", "kategorie", kategorie, "druckerIP", station.DruckerIP)
 	return nil
 }

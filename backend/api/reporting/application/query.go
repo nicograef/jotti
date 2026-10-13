@@ -10,7 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 var ErrDatabase = db.ErrDatabase
@@ -44,11 +44,11 @@ type Query struct {
 }
 
 func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	data, err := q.ReportingRepo.GetReporting(ctx, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get reporting")
+		log.Error("Failed to get reporting", "error", err)
 		return reporting.ReportingData{}, ErrDatabase
 	}
 
@@ -59,12 +59,12 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 
 	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get produkt statistik")
+		log.Error("Failed to get produkt statistik", "error", err)
 		return reporting.ReportingData{}, ErrDatabase
 	}
 	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
-	log.Info().Msg("Retrieved reporting")
+	log.Info("Retrieved reporting")
 	return data, nil
 }
 
@@ -229,43 +229,43 @@ func gruppiereProduktStatistik(zeilen []reporting.ProduktStatistikZeile) []repor
 }
 
 func (q Query) GetAbgeschlosseneKassensitzungen(ctx context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	data, err := q.KassensitzungenRepo.GetAbgeschlosseneKassensitzungen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get abgeschlossene kassensitzungen")
+		log.Error("Failed to get abgeschlossene kassensitzungen", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Msg("Retrieved abgeschlossene kassensitzungen")
+	log.Info("Retrieved abgeschlossene kassensitzungen")
 	return data, nil
 }
 
 func (q Query) GetEigeneUebersicht(ctx context.Context, userID int) (reporting.EigeneUebersicht, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.KassensitzungenRepo.GetOffeneKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get offene kassensitzung nr")
+		log.Error("Failed to get offene kassensitzung nr", "error", err)
 		return reporting.EigeneUebersicht{}, ErrDatabase
 	}
 
 	data, err := q.ReportingRepo.GetEigeneUebersicht(ctx, userID, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get eigene uebersicht")
+		log.Error("Failed to get eigene uebersicht", "error", err)
 		return reporting.EigeneUebersicht{}, ErrDatabase
 	}
 
-	log.Info().Msg("Retrieved eigene uebersicht")
+	log.Info("Retrieved eigene uebersicht")
 	return data, nil
 }
 
 func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingData, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get aktive kassensitzung")
+		log.Error("Failed to get aktive kassensitzung", "error", err)
 		return nil, ErrDatabase
 	}
 	if ks == nil {
@@ -274,7 +274,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	data, err := q.ReportingRepo.GetLiveReporting(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get live reporting")
+		log.Error("Failed to get live reporting", "error", err)
 		return nil, ErrDatabase
 	}
 
@@ -283,13 +283,13 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	sessions, err := q.TischSessionRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get tisch sessions for live reporting")
+		log.Error("Failed to get tisch sessions for live reporting", "error", err)
 		return nil, ErrDatabase
 	}
 
 	tische, err := q.TischRepo.GetAlleTische(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get tische for live reporting")
+		log.Error("Failed to get tische for live reporting", "error", err)
 		return nil, ErrDatabase
 	}
 	nameByTischID := make(map[int]string, len(tische))
@@ -304,12 +304,12 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get produkt statistik for live reporting")
+		log.Error("Failed to get produkt statistik for live reporting", "error", err)
 		return nil, ErrDatabase
 	}
 	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
-	log.Info().Msg("Retrieved live reporting")
+	log.Info("Retrieved live reporting")
 	return &data, nil
 }
 

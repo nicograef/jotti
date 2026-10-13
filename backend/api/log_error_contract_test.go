@@ -1,6 +1,6 @@
 package api
 
-// An error-level log line in an error branch is the operator's only record, so it must carry .Err(err).
+// An error-level log line in an error branch is the operator's only record, so it must carry an "error" attribute.
 // Without it the cause is lost, and nilerr cannot see it because the error is still handled.
 
 import (
@@ -23,13 +23,12 @@ func TestLogErrorCarriesTheError(t *testing.T) {
 				if !ok {
 					return true
 				}
-				chain, isLog := logChain(call)
-				if !isLog || !chain["Error"] {
+				if !isErrorLogCall(call) {
 					return true
 				}
 				checked++
-				if !chain["Err"] {
-					t.Errorf("%s: log.Error() chain in an error branch carries no .Err(err) — the cause is lost", fset.Position(call.Pos()))
+				if !carriesErrorAttr(call) {
+					t.Errorf("%s: Error log call in an error branch carries no \"error\" attribute — the cause is lost", fset.Position(call.Pos()))
 				}
 				return true
 			})
@@ -67,25 +66,34 @@ func isErrorName(name string) bool {
 	return strings.HasSuffix(strings.ToLower(name), "err")
 }
 
-// logChain collects the method names down the receiver chain of a call ending in
-// .Msg/.Msgf: log.Error().Err(err).Msg("…") yields {Msg, Err, Error}.
-func logChain(call *ast.CallExpr) (map[string]bool, bool) {
+// isErrorLogCall matches slog.Error("…", …), log.Error("…", …), logger.Error("…", …) and
+// logging.FromContext(ctx).Error("…", …): the receiver names every logger below backend/api.
+func isErrorLogCall(call *ast.CallExpr) bool {
 	selector, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || (selector.Sel.Name != "Msg" && selector.Sel.Name != "Msgf") {
-		return nil, false
+	if !ok || selector.Sel.Name != "Error" || len(call.Args) == 0 {
+		return false
 	}
+	switch receiver := selector.X.(type) {
+	case *ast.Ident:
+		return receiver.Name == "slog" || receiver.Name == "log" || receiver.Name == "logger"
+	case *ast.CallExpr:
+		fromContext, ok := receiver.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return false
+		}
+		pkg, ok := fromContext.X.(*ast.Ident)
+		return ok && pkg.Name == "logging" && fromContext.Sel.Name == "FromContext"
+	default:
+		return false
+	}
+}
 
-	names := map[string]bool{}
-	for current := ast.Expr(call); ; {
-		inner, ok := current.(*ast.CallExpr)
-		if !ok {
-			return names, true
+// carriesErrorAttr reports whether a key argument after the message is the literal "error".
+func carriesErrorAttr(call *ast.CallExpr) bool {
+	for i := 1; i < len(call.Args); i += 2 {
+		if key, ok := call.Args[i].(*ast.BasicLit); ok && key.Value == `"error"` {
+			return true
 		}
-		step, ok := inner.Fun.(*ast.SelectorExpr)
-		if !ok {
-			return names, true
-		}
-		names[step.Sel.Name] = true
-		current = step.X
 	}
+	return false
 }

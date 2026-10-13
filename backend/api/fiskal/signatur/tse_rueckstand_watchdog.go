@@ -3,11 +3,11 @@ package signatur
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"time"
 
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
-	"github.com/rs/zerolog/log"
 )
 
 const rueckstandFehlertext = "Signaturaufträge im Rückstand: der älteste offene Auftrag wartet länger als die Rückstands-Schwelle auf die TSE-Signatur"
@@ -58,7 +58,7 @@ func (w *tseRueckstandWatchdog) tick(ctx context.Context) {
 	defer recoverPanic("TSE-Rückstands-Watchdog")
 
 	if err := w.checkRueckstand(ctx); err != nil {
-		log.Error().Err(err).Msg("TSE-Rückstands-Watchdog Durchlauf fehlgeschlagen")
+		slog.Error("TSE-Rückstands-Watchdog Durchlauf fehlgeschlagen", "error", err)
 	}
 }
 

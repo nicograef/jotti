@@ -12,8 +12,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/rs/zerolog"
 )
 
 type kassenjournalRepo interface {
@@ -78,7 +78,7 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
 // (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrConflict.
 func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
 	e.Version = expectedVersion + 1
@@ -86,15 +86,15 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	_, err := c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC Kassensitzung conflict")
+			log.Warn("OCC Kassensitzung conflict", "version", e.Version, "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
-			log.Warn().Str("subject", subject).Msg("Deadlock on event write")
+			log.Warn("Deadlock on event write", "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
+			log.Warn("Kassensitzung nicht mehr offen", "subject", subject)
 			return ErrKasseNichtGeoeffnet
 		}
 		return ErrDatabase
@@ -112,19 +112,19 @@ func betriebstag(now time.Time, ort *time.Location) time.Time {
 }
 
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Msg("Kassensitzung blocked: betreiber not configured")
+			log.Warn("Kassensitzung blocked: betreiber not configured")
 			return 0, ErrBetreiberNichtKonfiguriert
 		}
-		log.Error().Err(err).Msg("Failed to check betreiber configuration")
+		log.Error("Failed to check betreiber configuration", "error", err)
 		return 0, ErrDatabase
 	}
 	if err = betreiber.Validate(); err != nil {
-		log.Warn().Err(err).Msg("Kassensitzung blocked: betreiber not configured")
+		log.Warn("Kassensitzung blocked: betreiber not configured", "error", err)
 		return 0, ErrBetreiberNichtKonfiguriert
 	}
 
@@ -135,7 +135,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		if errors.Is(err, db.ErrNotFound) {
 			ohneTSE = true
 		} else {
-			log.Error().Err(err).Msg("Failed to load TSE-Konfiguration")
+			log.Error("Failed to load TSE-Konfiguration", "error", err)
 		}
 	} else if !conf.IstKonfiguriert() {
 		ohneTSE = true
@@ -145,17 +145,17 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	// keine zweite Sitzung eröffnet werden (idx_kassensitzungen_eine_aktiv wäre die letzte Bremse).
 	existing, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check for existing active Kassensitzung")
+		log.Error("Failed to check for existing active Kassensitzung", "error", err)
 		return 0, ErrDatabase
 	}
 	if existing != nil {
-		log.Warn().Int("z_nr", existing.ZNr).Msg("Kassensitzung already active")
+		log.Warn("Kassensitzung already active", "z_nr", existing.ZNr)
 		return 0, ErrKasseAlreadyOpen
 	}
 
 	berliner, err := time.LoadLocation("Europe/Berlin")
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load Europe/Berlin timezone")
+		log.Error("Failed to load Europe/Berlin timezone", "error", err)
 		return 0, ErrDatabase
 	}
 	datum := betriebstag(time.Now(), berliner)
@@ -166,7 +166,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	zNr, err := c.KassenjournalRepo.EroeffneKassensitzung(ctx, datum, bezeichnung, func(zNr int) (event.Event, error) {
 		evt, err := kasse.NewKassensitzungEroeffnetEvent(kasse.KassensitzungSubject(zNr), userID, userName, datum.Format("2006-01-02"), bezeichnung, betragCents)
 		if err != nil {
-			log.Error().Err(err).Int("z_nr", zNr).Msg("Failed to create kassensitzung-eroeffnet event")
+			log.Error("Failed to create kassensitzung-eroeffnet event", "error", err, "z_nr", zNr)
 			return event.Event{}, err
 		}
 		// Frischer Stream (neue z_nr): das Eröffnungs-Event ist version = 1.
@@ -175,15 +175,15 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 	})
 	if err != nil {
 		if errors.Is(err, ErrDatabase) || errors.Is(err, db.ErrDatabase) {
-			log.Error().Err(err).Msg("Failed to open Kassensitzung")
+			log.Error("Failed to open Kassensitzung", "error", err)
 			return 0, ErrDatabase
 		}
 		return 0, err
 	}
 
-	log.Info().Int("z_nr", zNr).Msg("Kassensitzung eroeffnet")
+	log.Info("Kassensitzung eroeffnet", "z_nr", zNr)
 	if ohneTSE {
-		log.Warn().Int("z_nr", zNr).Msg("Kassensitzung ohne TSE-Konfiguration eroeffnet; Vorgaenge werden nicht signiert")
+		log.Warn("Kassensitzung ohne TSE-Konfiguration eroeffnet; Vorgaenge werden nicht signiert", "z_nr", zNr)
 	}
 	return zNr, nil
 }
@@ -192,7 +192,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 // geldtransitId means idempotent success (same ID = same operation, payload not compared), none
 // means a real OCC conflict (409).
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -201,14 +201,14 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 
 	evt, err := kasse.NewGeldtransitGebuchtEvent(kasse.KassensitzungSubject(ks.ZNr), userID, userName, geldtransitID, richtung, betragCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create geldtransit-gebucht event")
+		log.Error("Failed to create geldtransit-gebucht event", "error", err, "z_nr", ks.ZNr)
 		return err
 	}
 
 	// Geldtransit validiert keinen Stream-Zustand (reines Anhängen); die Version kommt erst unmittelbar vor dem Schreiben.
 	maxVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, kasse.KassensitzungSubject(ks.ZNr))
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for geldtransit")
+		log.Error("Failed to load max version for geldtransit", "error", err, "z_nr", ks.ZNr)
 		return ErrDatabase
 	}
 
@@ -216,11 +216,11 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.KassenjournalRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeGeldtransitGebuchtV1), geldtransitID, "geldtransitId")
 			if lookupErr != nil {
-				log.Error().Err(lookupErr).Str("geldtransit_id", geldtransitID).Msg("Failed to lookup geldtransit idempotency")
+				log.Error("Failed to lookup geldtransit idempotency", "error", lookupErr, "geldtransit_id", geldtransitID)
 				return ErrDatabase
 			}
 			if exists {
-				log.Info().Str("geldtransit_id", geldtransitID).Msg("Idempotenter Geldtransit: geldtransitId bereits vorhanden")
+				log.Info("Idempotenter Geldtransit: geldtransitId bereits vorhanden", "geldtransit_id", geldtransitID)
 				return nil
 			}
 			return ErrConflict
@@ -228,7 +228,7 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).Str("richtung", richtung).Int("betrag_cents", betragCents).Msg("Geldtransit gebucht")
+	log.Info("Geldtransit gebucht", "z_nr", ks.ZNr, "richtung", richtung, "betrag_cents", betragCents)
 	return nil
 }
 
@@ -236,12 +236,12 @@ func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName str
 // an enclosing transaction: a retry resumes and skips a written Kassensturz (docs/handbuch.md §3.10).
 // reporting_repo/summen_abschluss_test.go pins kasse.ComputeAbschlussSummen to the SQL reporting sums.
 func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName string, istBestandCents int) (ergebnis KassenabschlussErgebnis, err error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	// Aktive Sitzung akzeptiert 'offen' und 'wird_abgeschlossen' (Wiederanlauf im Zwischenstatus).
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load Kassensitzung for Kassenabschluss")
+		log.Error("Failed to load Kassensitzung for Kassenabschluss", "error", err)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	if ks == nil {
@@ -255,7 +255,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 	if gate.ausstehendAnzahl > 0 {
-		log.Warn().Int("z_nr", ks.ZNr).Int("ausstehend", gate.ausstehendAnzahl).Msg("Kassenabschluss blockiert: Signaturen ausstehend")
+		log.Warn("Kassenabschluss blockiert: Signaturen ausstehend", "z_nr", ks.ZNr, "ausstehend", gate.ausstehendAnzahl)
 		return KassenabschlussErgebnis{}, &SignaturenAusstehendError{
 			Anzahl: gate.ausstehendAnzahl,
 		}
@@ -269,7 +269,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// Status-Guard jedes weitere Buchungs-Event ab. Idempotent für den Wiederholungs-Aufruf.
 	rows, err := c.KassensitzungenRepo.SetKassensitzungWirdAbgeschlossen(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to set Kassensitzung status wird_abgeschlossen")
+		log.Error("Failed to set Kassensitzung status wird_abgeschlossen", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	if rows == 0 {
@@ -282,7 +282,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	defer func() {
 		if err != nil && !errors.Is(err, ErrConflict) {
 			if _, resetErr := c.KassensitzungenRepo.SetKassensitzungOffen(ctx, ks.ZNr); resetErr != nil {
-				log.Error().Err(resetErr).Int("z_nr", ks.ZNr).Msg("Failed to reset Kassensitzung status to offen after Abschluss error")
+				log.Error("Failed to reset Kassensitzung status to offen after Abschluss error", "error", resetErr, "z_nr", ks.ZNr)
 			}
 		}
 	}()
@@ -293,13 +293,13 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// Anker erkennt zusätzlich einen konkurrierenden zweiten Abschluss (Versionskonflikt).
 	expectedVersion, err := c.KassenjournalRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to load max version for Kassenabschluss")
+		log.Error("Failed to load max version for Kassenabschluss", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 
 	kassenbestand, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get Kassenbestand for Kassenabschluss")
+		log.Error("Failed to get Kassenbestand for Kassenabschluss", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	sollBestandCents := kassenbestand.SollBestandCents
@@ -312,7 +312,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 	if buchungenNachSturz {
-		log.Warn().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf abgebrochen: Buchungen nach dem protokollierten Kassensturz")
+		log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Buchungen nach dem protokollierten Kassensturz", "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
 	}
 	if vorhandenerSturz != nil {
@@ -321,13 +321,10 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		// Kassensturz protokolliert seinen Soll-Bestand ebenfalls ohne Differenz.
 		sollOhneDifferenzCents := kassenbestand.SollBestandOhneDifferenzCents()
 		if sollOhneDifferenzCents != vorhandenerSturz.SollBestandCents {
-			log.Warn().Int("z_nr", ks.ZNr).
-				Int("soll_kassensturz_cents", vorhandenerSturz.SollBestandCents).
-				Int("soll_ohne_differenz_cents", sollOhneDifferenzCents).
-				Msg("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert")
+			log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert", "z_nr", ks.ZNr, "soll_kassensturz_cents", vorhandenerSturz.SollBestandCents, "soll_ohne_differenz_cents", sollOhneDifferenzCents)
 			return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
 		}
-		log.Info().Int("z_nr", ks.ZNr).Msg("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen")
+		log.Info("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen", "z_nr", ks.ZNr)
 		istBestandCents = vorhandenerSturz.IstBestandCents
 	}
 	differenzCents := sollBestandCents - istBestandCents
@@ -335,13 +332,12 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
 	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to get tisch sessions for Kassenabschluss")
+		log.Error("Failed to get tisch sessions for Kassenabschluss", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	for _, s := range sessions {
 		if s.SaldoCents != 0 {
-			log.Warn().Int("z_nr", ks.ZNr).Int("tisch_id", s.TischID).Int("saldo_cents", s.SaldoCents).
-				Msg("Kassenabschluss rejected: Tisch has non-zero saldo")
+			log.Warn("Kassenabschluss rejected: Tisch has non-zero saldo", "z_nr", ks.ZNr, "tisch_id", s.TischID, "saldo_cents", s.SaldoCents)
 			return KassenabschlussErgebnis{}, ErrTischeSaldoOffen
 		}
 	}
@@ -350,7 +346,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	if vorhandenerSturz == nil {
 		kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
 		if err != nil {
-			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create kassensturz-durchgefuehrt event")
+			log.Error("Failed to create kassensturz-durchgefuehrt event", "error", err, "z_nr", ks.ZNr)
 			return KassenabschlussErgebnis{}, err
 		}
 		if err := c.writeKassensitzungEvent(ctx, kassensturzEvt, ks.ZNr, expectedVersion); err != nil {
@@ -363,7 +359,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	if differenzCents != 0 {
 		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, differenzCents)
 		if err != nil {
-			log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create differenz-soll-ist-gebucht event")
+			log.Error("Failed to create differenz-soll-ist-gebucht event", "error", err, "z_nr", ks.ZNr)
 			return KassenabschlussErgebnis{}, err
 		}
 		if err := c.writeKassensitzungEvent(ctx, diffEvt, ks.ZNr, expectedVersion); err != nil {
@@ -376,12 +372,12 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// In-Memory-Anhängen nötig; die Differenzbuchung ist summen-neutral).
 	sitzungEvents, err := c.KassenjournalRepo.ReadKassensitzungEvents(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to read events for Tagesabschluss")
+		log.Error("Failed to read events for Tagesabschluss", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 	summen, err := kasse.ComputeAbschlussSummen(sitzungEvents)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Unparsebares Event verhindert Tagesabschluss")
+		log.Error("Unparsebares Event verhindert Tagesabschluss", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, err
 	}
 
@@ -394,7 +390,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		summen.GeldtransitCents,
 	)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", ks.ZNr).Msg("Failed to create tagesabschluss-erstellt event")
+		log.Error("Failed to create tagesabschluss-erstellt event", "error", err, "z_nr", ks.ZNr)
 		return KassenabschlussErgebnis{}, err
 	}
 	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion); err != nil {
@@ -405,19 +401,13 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	// named return err, or a committed Abschluss would report failure; the cleaner is optional.
 	if c.DruckauftragRepo != nil {
 		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
-			log.Error().Err(cleanupErr).Int("z_nr", ks.ZNr).Msg("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)")
+			log.Error("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)", "error", cleanupErr, "z_nr", ks.ZNr)
 		} else if verworfen > 0 {
-			log.Info().Int("z_nr", ks.ZNr).Int64("verworfen", verworfen).Msg("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen")
+			log.Info("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen", "z_nr", ks.ZNr, "verworfen", verworfen)
 		}
 	}
 
-	log.Info().Int("z_nr", ks.ZNr).
-		Int("soll_cents", sollBestandCents).
-		Int("ist_cents", istBestandCents).
-		Int("differenz_cents", differenzCents).
-		Int("ausfall_reste", ergebnis.AusfallResteAnzahl).
-		Int("ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl).
-		Msg("Kasse abgeschlossen")
+	log.Info("Kasse abgeschlossen", "z_nr", ks.ZNr, "soll_cents", sollBestandCents, "ist_cents", istBestandCents, "differenz_cents", differenzCents, "ausfall_reste", ergebnis.AusfallResteAnzahl, "ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl)
 	return ergebnis, nil
 }
 
@@ -425,11 +415,11 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 // whether a non-Abschluss event (kasse.IsAbschlussEventType) follows it. In this stream only
 // geldtransit-gebucht:v1 can be one; Tisch bookings live in their own sub-streams.
 func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string) (sturz *kasse.KassensturzDurchgefuehrtV1Data, buchungenNachSturz bool, err error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	events, err := c.KassenjournalRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Str("subject", subject).Msg("Failed to read events for Kassensturz-Wiederanlauf check")
+		log.Error("Failed to read events for Kassensturz-Wiederanlauf check", "error", err, "subject", subject)
 		return nil, false, ErrDatabase
 	}
 	for _, evt := range events {
@@ -444,7 +434,7 @@ func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string
 		}
 		var data kasse.KassensturzDurchgefuehrtV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			log.Error().Err(err).Int("event_id", evt.ID).Msg("Unparsebares Kassensturz-Event verhindert Kassenabschluss")
+			log.Error("Unparsebares Kassensturz-Event verhindert Kassenabschluss", "error", err, "event_id", evt.ID)
 			return nil, false, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 		}
 		sturz = &data

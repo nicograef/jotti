@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/fiskal/setup/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 // abbruchProbe plays a client that aborts mid-handler and records what the application-layer
@@ -28,7 +29,7 @@ func (p *abbruchProbe) beobachte(ctx context.Context) {
 	p.abbrechen()
 	p.kontextStorniert = ctx.Err() != nil
 	p.korrelation, _ = ctx.Value(middleware.CorrelationIDKey).(string)
-	p.loggerAktiv = zerolog.Ctx(ctx).GetLevel() != zerolog.Disabled
+	p.loggerAktiv = logging.FromContext(ctx).Enabled(ctx, slog.LevelError)
 }
 
 type abbruchCommand struct {
@@ -131,7 +132,7 @@ func TestTSESetupHandler_EntkoppeltNurDieSchreibendenVomClientAbbruch(t *testing
 				t.Errorf("expected the correlation id to survive in the context, got %q", probe.korrelation)
 			}
 			if !probe.loggerAktiv {
-				t.Error("expected the zerolog logger to survive in the context")
+				t.Error("expected the request logger to survive in the context")
 			}
 			if rec.Code != http.StatusOK {
 				t.Errorf("expected status 200, got %d: %s", rec.Code, rec.Body.String())

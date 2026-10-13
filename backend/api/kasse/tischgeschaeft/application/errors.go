@@ -2,9 +2,9 @@ package application
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/rs/zerolog"
 )
 
 var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
@@ -31,12 +31,12 @@ var ErrPositionNichtUmbuchbar = errors.New("position nicht umbuchbar")
 
 var ErrUmbuchungGleicherTisch = errors.New("umbuchung gleicher tisch")
 
-func fromRepositoryError(err error, log *zerolog.Logger, id int) error {
+func fromRepositoryError(err error, log *slog.Logger, id int) error {
 	if errors.Is(err, db.ErrNotFound) {
-		log.Warn().Err(err).Int("tisch_id", id).Msg("Tisch not found")
+		log.Warn("Tisch not found", "error", err, "tisch_id", id)
 		return ErrTischNotFound
 	}
 
-	log.Error().Err(err).Int("tisch_id", id).Msg("Database error")
+	log.Error("Database error", "error", err, "tisch_id", id)
 	return ErrDatabase
 }

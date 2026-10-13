@@ -16,8 +16,8 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/repotest"
-	"github.com/rs/zerolog"
 )
 
 var testOpenKS = &kasse.Kassensitzung{
@@ -686,7 +686,7 @@ func TestBetriebstag_NachMitternachtOrtszeit(t *testing.T) {
 // Eröffnen ohne konfigurierte TSE wird nicht gesperrt, aber im Log vermerkt.
 func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 	var logbuf bytes.Buffer
-	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+	ctx := logging.WithContext(context.Background(), logging.New(&logbuf))
 	cmd := newTestCommand(nil) // settingsMock ohne TSE-Konfiguration
 
 	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
@@ -696,7 +696,7 @@ func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 
 	var warnLine string
 	for line := range strings.SplitSeq(strings.TrimSpace(logbuf.String()), "\n") {
-		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "ohne TSE-Konfiguration") {
+		if strings.Contains(line, `"level":"WARN"`) && strings.Contains(line, "ohne TSE-Konfiguration") {
 			warnLine = line
 		}
 	}
@@ -711,7 +711,7 @@ func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 // Mit konfigurierter TSE bleibt das Eröffnen warnungsfrei.
 func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 	var logbuf bytes.Buffer
-	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+	ctx := logging.WithContext(context.Background(), logging.New(&logbuf))
 
 	tseKonfiguration := tse.Konfiguration{
 		ApiKey:    "api-key",

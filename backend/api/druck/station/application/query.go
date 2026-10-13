@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
@@ -17,14 +17,14 @@ type Query struct {
 }
 
 func (q Query) GetAlleDruckstationen(ctx context.Context) ([]druckstation.Druckstation, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	konfigs, err := q.DruckstationRepo.GetAlleDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve druckstationen")
+		log.Error("Failed to retrieve druckstationen", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(konfigs)).Msg("Retrieved druckstationen")
+	log.Info("Retrieved druckstationen", "count", len(konfigs))
 	return konfigs, nil
 }

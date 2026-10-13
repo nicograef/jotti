@@ -8,8 +8,8 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/repotest"
-	"github.com/rs/zerolog"
 )
 
 func TestGetTischState(t *testing.T) {
@@ -148,7 +148,7 @@ func TestGetMeineTischeState_BatchInFavoriteOrder(t *testing.T) {
 // wegen eines einzigen gelöschten Tisches ihre gesamte Tischübersicht.
 func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
 	var logbuf bytes.Buffer
-	ctx := zerolog.New(&logbuf).WithContext(context.Background())
+	ctx := logging.WithContext(context.Background(), logging.New(&logbuf))
 
 	eventMock := repotest.NewKassenjournalRepo(nil, nil)
 	sitzungMock := repotest.NewKassensitzungenRepo(&kasse.Kassensitzung{ZNr: 1, Status: kasse.KassensitzungOffen}, nil)
@@ -176,7 +176,7 @@ func TestGetMeineTischeState_SkipsUnresolvableFavorit(t *testing.T) {
 
 	var warnLines []string
 	for line := range strings.SplitSeq(strings.TrimSpace(logbuf.String()), "\n") {
-		if strings.Contains(line, `"level":"warn"`) && strings.Contains(line, "Skipped favorit") {
+		if strings.Contains(line, `"level":"WARN"`) && strings.Contains(line, "Skipped favorit") {
 			warnLines = append(warnLines, line)
 		}
 	}

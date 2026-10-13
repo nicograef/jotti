@@ -2,9 +2,9 @@ package application
 
 import (
 	"errors"
+	"log/slog"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/rs/zerolog"
 )
 
 var ErrTischNotFound = errors.New("tisch not found")
@@ -21,17 +21,17 @@ var ErrTischNotActive = errors.New("tisch not active")
 // because it carries an open balance in the currently open Kassensitzung.
 var ErrTischSaldoOffen = errors.New("tisch has open saldo")
 
-func fromRepositoryError(err error, log *zerolog.Logger, id int) error {
+func fromRepositoryError(err error, log *slog.Logger, id int) error {
 	if errors.Is(err, db.ErrNotFound) {
-		log.Warn().Err(err).Int("tisch_id", id).Msg("Tisch not found")
+		log.Warn("Tisch not found", "error", err, "tisch_id", id)
 		return ErrTischNotFound
 	}
 
 	if errors.Is(err, db.ErrAlreadyExists) {
-		log.Warn().Err(err).Msg("Tisch already exists")
+		log.Warn("Tisch already exists", "error", err)
 		return ErrTischAlreadyExists
 	}
 
-	log.Error().Err(err).Int("tisch_id", id).Msg("Database error")
+	log.Error("Database error", "error", err, "tisch_id", id)
 	return ErrDatabase
 }

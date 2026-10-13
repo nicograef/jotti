@@ -11,9 +11,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/rs/zerolog"
 )
 
 type eventRepo interface {
@@ -63,7 +63,7 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // verkaufID is the client's idempotency key: on an OCC conflict a stored event with that verkaufId
 // means idempotent success (same ID = same operation, payload not compared), none means a real 409.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -79,13 +79,13 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 
 	evt, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, userID, userName, positionen, kommentar)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create direktverkauf getaetigt event")
+		log.Error("Failed to create direktverkauf getaetigt event", "error", err)
 		return err
 	}
 
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load druckstationen for direktverkauf")
+		log.Error("Failed to load druckstationen for direktverkauf", "error", err)
 		return ErrDatabase
 	}
 
@@ -98,20 +98,20 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
-				log.Error().Err(lookupErr).Str("verkauf_id", verkaufID).Msg("Failed to lookup direktverkauf idempotency")
+				log.Error("Failed to lookup direktverkauf idempotency", "error", lookupErr, "verkauf_id", verkaufID)
 				return ErrDatabase
 			}
 			if exists {
-				log.Info().Str("verkauf_id", verkaufID).Msg("Idempotenter Direktverkauf: verkaufId bereits vorhanden")
+				log.Info("Idempotenter Direktverkauf: verkaufId bereits vorhanden", "verkauf_id", verkaufID)
 				return nil
 			}
 			return ErrConflict
 		}
-		log.Error().Err(err).Msg("Failed to write direktverkauf getaetigt event")
+		log.Error("Failed to write direktverkauf getaetigt event", "error", err)
 		return ErrDatabase
 	}
 
-	log.Info().Str("verkauf_id", verkaufID).Msg("Direktverkauf getaetigt")
+	log.Info("Direktverkauf getaetigt", "verkauf_id", verkaufID)
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]dr
 // returned cash reduces the Soll-Kassenbestand directly — no separate Auszahlung, because a
 // Direktverkauf has no open Saldo.
 func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -138,7 +138,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events")
+		log.Error("Failed to read direktverkauf events", "error", err, "verkauf_id", verkaufID)
 		return ErrDatabase
 	}
 	if len(events) == 0 {
@@ -147,12 +147,12 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	nichtStorniert, err := kasse.ComputeNichtStornierteVerkaufPositionen(events)
 	if err != nil {
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to compute nicht-stornierte Positionen")
+		log.Error("Failed to compute nicht-stornierte Positionen", "error", err, "verkauf_id", verkaufID)
 		return ErrDatabase
 	}
 
 	if !kasse.ValidatePositionRefs(nichtStorniert, positionen) {
-		log.Warn().Str("verkauf_id", verkaufID).Msg("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar")
+		log.Warn("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar", "verkauf_id", verkaufID)
 		return ErrPositionNichtStornierbar
 	}
 
@@ -160,7 +160,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to create direktverkauf storniert event")
+		log.Error("Failed to create direktverkauf storniert event", "error", err, "verkauf_id", verkaufID)
 		return err
 	}
 
@@ -168,11 +168,11 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to write direktverkauf storniert event")
+		log.Error("Failed to write direktverkauf storniert event", "error", err, "verkauf_id", verkaufID)
 		return ErrDatabase
 	}
 
-	log.Info().Str("verkauf_id", verkaufID).Int("gesamt_stornierung_cents", gesamtStornierungCents).Msg("Direktverkauf storniert")
+	log.Info("Direktverkauf storniert", "verkauf_id", verkaufID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
 }
 
@@ -184,15 +184,15 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 
 	if _, err := write(e); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			zerolog.Ctx(ctx).Warn().Int("version", e.Version).Str("subject", subject).Msg("OCC conflict")
+			logging.FromContext(ctx).Warn("OCC conflict", "version", e.Version, "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
-			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Deadlock on event write")
+			logging.FromContext(ctx).Warn("Deadlock on event write", "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
+			logging.FromContext(ctx).Warn("Kassensitzung nicht mehr offen", "subject", subject)
 			return ErrKasseNichtGeoeffnet
 		}
 		return err

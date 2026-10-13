@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"runtime/debug"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -83,7 +83,7 @@ type Runner interface {
 // recoverPanic, deferred in each tick, logs a panic so the run loop survives to the next tick.
 func recoverPanic(worker string) {
 	if r := recover(); r != nil {
-		log.Error().Interface("panic", r).Bytes("stack", debug.Stack()).Msg(worker + ": Panic im Durchlauf abgefangen; Loop laeuft weiter")
+		slog.Error(worker+": Panic im Durchlauf abgefangen; Loop laeuft weiter", "panic", r, "stack", string(debug.Stack()))
 	}
 }
 
@@ -133,7 +133,7 @@ func (w *tseSignaturWorker) tick(ctx context.Context) {
 		return
 	}
 	if err := w.processOnce(ctx); err != nil {
-		log.Error().Err(err).Msg("TSE-Signatur-Worker Durchlauf fehlgeschlagen")
+		slog.Error("TSE-Signatur-Worker Durchlauf fehlgeschlagen", "error", err)
 	}
 }
 
@@ -157,21 +157,21 @@ func (w *tseSignaturWorker) ensureLock(ctx context.Context) bool {
 	if w.lockConn == nil {
 		conn, err := w.lockDB.Conn(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("TSE-Signatur-Worker: keine Connection fuer den Advisory Lock")
+			slog.Error("TSE-Signatur-Worker: keine Connection fuer den Advisory Lock", "error", err)
 			return false
 		}
 		w.lockConn = conn
 	}
 
 	if err := w.lockConn.QueryRowContext(ctx, "SELECT pg_try_advisory_lock($1)", tseSignaturWorkerLockKey).Scan(&w.lockHeld); err != nil {
-		log.Error().Err(err).Msg("TSE-Signatur-Worker: Advisory Lock nicht pruefbar")
+		slog.Error("TSE-Signatur-Worker: Advisory Lock nicht pruefbar", "error", err)
 		w.lockConn.Close() //nolint:errcheck,gosec // connection is discarded
 		w.lockConn = nil
 		w.lockHeld = false
 		return false
 	}
 	if !w.lockHeld {
-		log.Error().Msg("TSE-Signatur-Worker: Advisory Lock nicht erhalten — laeuft eine zweite Instanz? Neuer Versuch am naechsten Tick")
+		slog.Error("TSE-Signatur-Worker: Advisory Lock nicht erhalten — laeuft eine zweite Instanz? Neuer Versuch am naechsten Tick")
 	}
 	return w.lockHeld
 }
@@ -206,7 +206,7 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 
 	client, err := w.clientFor(conf.Credentials())
 	if err != nil {
-		log.Warn().Err(err).Msg("TSE-Signatur-Worker could not create TSE client")
+		slog.Warn("TSE-Signatur-Worker could not create TSE client", "error", err)
 		return nil
 	}
 
@@ -236,9 +236,9 @@ func (w *tseSignaturWorker) processOnce(ctx context.Context) error {
 
 		if tse.IstAuftragsFehler(err) {
 			// Job-specific error: count the attempt and skip, so a poison job never blocks the queue.
-			log.Warn().Err(err).Str("tx_id", auftrag.TxID).Int("auftrag_id", auftrag.ID).Msg("TSE-Signierung fuer Auftrag abgelehnt")
+			slog.Warn("TSE-Signierung fuer Auftrag abgelehnt", "error", err, "tx_id", auftrag.TxID, "auftrag_id", auftrag.ID)
 			if err := w.store.TSESignaturauftragFehlversuch(ctx, auftrag.ID, err.Error()); err != nil {
-				log.Error().Err(err).Int("auftrag_id", auftrag.ID).Msg("Failed to record TSE-Signatur-Fehlversuch")
+				slog.Error("Failed to record TSE-Signatur-Fehlversuch", "error", err, "auftrag_id", auftrag.ID)
 			}
 			continue
 		}
@@ -263,9 +263,9 @@ func (w *tseSignaturWorker) markiereNichtKonfiguriert(ctx context.Context) error
 		return nil
 	}
 
-	log.Warn().Int64("anzahl", markiert).Msg("TSE-Signatur-Worker: offene Auftraege ohne TSE-Konfiguration endgueltig markiert")
+	slog.Warn("TSE-Signatur-Worker: offene Auftraege ohne TSE-Konfiguration endgueltig markiert", "anzahl", markiert)
 	if err := w.store.OpenTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration, "keine TSE-Konfiguration"); err != nil {
-		log.Error().Err(err).Msg("TSE-Stoerungszeitraum keine_konfiguration nicht geoeffnet")
+		slog.Error("TSE-Stoerungszeitraum keine_konfiguration nicht geoeffnet", "error", err)
 	}
 	return nil
 }
@@ -275,7 +275,7 @@ func (w *tseSignaturWorker) beginneStoerung(ctx context.Context, cause error) {
 	w.stoerungSerie++
 	w.stoerungNaechsterVersuch = w.now().Add(tseStoerungBackoff(w.stoerungSerie))
 	if err := w.store.OpenTSEStoerung(ctx, tse.StoerungGrundTSEFehler, cause.Error()); err != nil {
-		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geoeffnet")
+		slog.Error("TSE-Stoerungszeitraum nicht geoeffnet", "error", err)
 	}
 }
 
@@ -284,7 +284,7 @@ func (w *tseSignaturWorker) beendeStoerung(ctx context.Context) {
 	w.stoerungSerie = 0
 	w.stoerungNaechsterVersuch = time.Time{}
 	if err := w.store.CloseTSEStoerung(ctx, tse.StoerungGrundTSEFehler); err != nil {
-		log.Error().Err(err).Msg("TSE-Stoerungszeitraum nicht geschlossen")
+		slog.Error("TSE-Stoerungszeitraum nicht geschlossen", "error", err)
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type PositionInput struct {
@@ -28,7 +28,7 @@ var ErrProduktNotFound = errors.New("produkt not found")
 var ErrVarianteNichtAktiv = errors.New("variante nicht aktiv")
 
 func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	varianteIDs := make([]int, 0, len(inputs))
 	produktIDs := make([]int, 0, len(inputs))
@@ -47,12 +47,12 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 
 	variantenByID, err := repo.GetVariantenByIDs(ctx, varianteIDs)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch variants for position enrichment")
+		log.Error("Failed to batch-fetch variants for position enrichment", "error", err)
 		return nil, ErrProduktNotFound
 	}
 	produkteByID, err := repo.GetProdukteByIDs(ctx, produktIDs)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to batch-fetch products for position enrichment")
+		log.Error("Failed to batch-fetch products for position enrichment", "error", err)
 		return nil, ErrProduktNotFound
 	}
 
@@ -60,19 +60,19 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 	for _, input := range inputs {
 		varianteMitProdukt, ok := variantenByID[input.VarianteID]
 		if !ok {
-			log.Error().Int("variante_id", input.VarianteID).Msg("Variant not found in batch result")
+			log.Error("Variant not found in batch result", "variante_id", input.VarianteID)
 			return nil, ErrProduktNotFound
 		}
 		prod, ok := produkteByID[input.ProduktID]
 		if !ok {
-			log.Error().Int("produkt_id", input.ProduktID).Msg("Product not found in batch result")
+			log.Error("Product not found in batch result", "produkt_id", input.ProduktID)
 			return nil, ErrProduktNotFound
 		}
 
 		// Die Paarung Produkt/Variante kommt vom Client: ohne diese Prüfung erbte die Position
 		// Kategorie und Steuersatz eines fremden Produkts, den Preis aber von der Variante.
 		if varianteMitProdukt.ProduktID != input.ProduktID {
-			log.Error().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant does not belong to the referenced product")
+			log.Error("Variant does not belong to the referenced product", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
 			return nil, ErrProduktNotFound
 		}
 		variante := varianteMitProdukt.Variante
@@ -80,7 +80,7 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
 		// Menü nicht auf, könnten aber per direktem POST referenziert werden.
 		if variante.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
-			log.Warn().Int("variante_id", input.VarianteID).Int("produkt_id", input.ProduktID).Msg("Variant or product not active")
+			log.Warn("Variant or product not active", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
 			return nil, ErrVarianteNichtAktiv
 		}
 

@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
-	"github.com/rs/zerolog/log"
 )
 
 // https://www.postgresql.org/docs/17/errcodes-appendix.html
@@ -105,12 +105,12 @@ func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func
 	for attempt := 1; attempt <= attempts; attempt++ {
 		if err = ping(); err == nil {
 			if attempt > 1 {
-				log.Info().Int("attempts", attempt).Msg("Connected to database after retry")
+				slog.Info("Connected to database after retry", "attempts", attempt)
 			}
 			return nil
 		}
 
-		log.Warn().Err(err).Int("attempt", attempt).Int("maxAttempts", attempts).Msg("Waiting for database")
+		slog.Warn("Waiting for database", "error", err, "attempt", attempt, "maxAttempts", attempts)
 		if attempt < attempts {
 			sleep(interval)
 		}

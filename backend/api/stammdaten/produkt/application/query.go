@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/produkt"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type produktQueryRepo interface {
@@ -17,27 +17,27 @@ type Query struct {
 }
 
 func (q Query) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkte, err := q.ProduktRepo.GetAllProdukte(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all produkte")
+		log.Error("Failed to retrieve all produkte", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(produkte)).Msg("Retrieved all produkte")
+	log.Info("Retrieved all produkte", "count", len(produkte))
 	return produkte, nil
 }
 
 func (q Query) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	produkte, err := q.ProduktRepo.GetActiveProdukte(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve active produkte")
+		log.Error("Failed to retrieve active produkte", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(produkte)).Msg("Retrieved active produkte")
+	log.Info("Retrieved active produkte", "count", len(produkte))
 	return produkte, nil
 }

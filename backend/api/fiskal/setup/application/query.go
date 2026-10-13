@@ -6,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type tseQueryRepo interface {
@@ -48,25 +48,25 @@ type ClientBefund struct {
 }
 
 func (q Query) GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet")
+		log.Error("Failed to retrieve kassenidentitaet", "error", err)
 		return tse.Kassenidentitaet{}, ErrDatabase
 	}
 	return identitaet, nil
 }
 
 func (q Query) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	c, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return tse.Konfiguration{}, ErrNotFound
 		}
-		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration")
+		log.Error("Failed to retrieve tse_konfiguration", "error", err)
 		return tse.Konfiguration{}, ErrDatabase
 	}
 
@@ -74,10 +74,10 @@ func (q Query) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, erro
 }
 
 func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if q.NewTSEConnectionTester == nil {
-		log.Error().Msg("Missing TSE connection tester factory")
+		log.Error("Missing TSE connection tester factory")
 		return tse.VerbindungStatus{}, ErrDatabase
 	}
 
@@ -86,7 +86,7 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 		if errors.Is(err, db.ErrNotFound) {
 			return tse.VerbindungStatus{}, ErrTSENichtKonfiguriert
 		}
-		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration for test")
+		log.Error("Failed to retrieve tse_konfiguration for test", "error", err)
 		return tse.VerbindungStatus{}, ErrDatabase
 	}
 
@@ -97,19 +97,19 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 
 	tester, err := q.NewTSEConnectionTester(credentials)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create TSE connection tester")
+		log.Error("Failed to create TSE connection tester", "error", err)
 		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
 	status, err := tester.TestConnection(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("TSE connection test failed")
+		log.Warn("TSE connection test failed", "error", err)
 		return tse.VerbindungStatus{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
 	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for connection test")
+		log.Error("Failed to retrieve kassenidentitaet for connection test", "error", err)
 		return tse.VerbindungStatus{}, ErrDatabase
 	}
 	status.SeriennummerKorrekt = status.ClientSerialNumber == identitaet.Seriennummer.String()
@@ -119,10 +119,10 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 
 // CheckTSESetup is side-effect free: it saves nothing and sends only read requests to fiskaly.
 func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if q.NewTSESetupClient == nil {
-		log.Error().Msg("Missing TSE setup client factory")
+		log.Error("Missing TSE setup client factory")
 		return TSESetupBefund{}, ErrDatabase
 	}
 	if err := credentials.Validate(); err != nil {
@@ -131,7 +131,7 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 
 	client, err := q.NewTSESetupClient(credentials)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create TSE setup client")
+		log.Error("Failed to create TSE setup client", "error", err)
 		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
@@ -140,13 +140,13 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
 			return TSESetupBefund{}, ErrTSESetupZugangsdaten
 		}
-		log.Warn().Err(err).Msg("Failed to list TSS during setup check")
+		log.Warn("Failed to list TSS during setup check", "error", err)
 		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
 	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve kassenidentitaet for setup check")
+		log.Error("Failed to retrieve kassenidentitaet for setup check", "error", err)
 		return TSESetupBefund{}, ErrDatabase
 	}
 	seriennummer := identitaet.Seriennummer.String()
@@ -158,7 +158,7 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 	for _, t := range tssList {
 		clients, err := client.ListClients(ctx, t.ID)
 		if err != nil {
-			log.Warn().Err(err).Str("tss_id", t.ID).Msg("Failed to list clients during setup check")
+			log.Warn("Failed to list clients during setup check", "error", err, "tss_id", t.ID)
 			return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
 		}
 
@@ -182,14 +182,14 @@ func passenderClient(clients []tse.ClientInfo, seriennummer string) *ClientBefun
 }
 
 func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	conf, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return TSEStatus{}, nil
 		}
-		log.Error().Err(err).Msg("Failed to retrieve tse_konfiguration for status")
+		log.Error("Failed to retrieve tse_konfiguration for status", "error", err)
 		return TSEStatus{}, ErrDatabase
 	}
 
@@ -205,14 +205,14 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 
 	tester, err := q.NewTSEConnectionTester(conf.Credentials())
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to create TSE connection tester for status")
+		log.Warn("Failed to create TSE connection tester for status", "error", err)
 		return status, nil
 	}
 
 	// The status display needs only the environment from the auth token, not a full connection test.
 	umgebung, err := tester.Umgebung(ctx)
 	if err != nil {
-		log.Warn().Err(err).Msg("Failed to determine TSE environment for status")
+		log.Warn("Failed to determine TSE environment for status", "error", err)
 		return status, nil
 	}
 

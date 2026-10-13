@@ -4,7 +4,7 @@ import (
 	"context"
 
 	t "github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type tischQueryRepo interface {
@@ -25,17 +25,17 @@ type TischMitSaldo struct {
 }
 
 func (q Query) GetAllTische(ctx context.Context) ([]TischMitSaldo, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	tische, err := q.TischRepo.GetAlleTische(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all tische")
+		log.Error("Failed to retrieve all tische", "error", err)
 		return nil, ErrDatabase
 	}
 
 	saldi, err := q.TischRepo.GetTischSaldiOffeneSitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve open tisch saldi")
+		log.Error("Failed to retrieve open tisch saldi", "error", err)
 		return nil, ErrDatabase
 	}
 
@@ -47,6 +47,6 @@ func (q Query) GetAllTische(ctx context.Context) ([]TischMitSaldo, error) {
 		})
 	}
 
-	log.Debug().Int("count", len(result)).Msg("Retrieved all tische")
+	log.Debug("Retrieved all tische", "count", len(result))
 	return result, nil
 }

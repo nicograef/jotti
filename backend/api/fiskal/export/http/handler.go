@@ -9,7 +9,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 // exportWriteTimeout replaces the server's global 10-second write deadline
@@ -35,7 +35,7 @@ type exportRequest struct {
 // already enforces the admin role.
 func (h *Handler) ExportHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := zerolog.Ctx(r.Context())
+		log := logging.FromContext(r.Context())
 
 		// First deadline at handler entry: it covers the early error paths that answer
 		// before Erstellen() (unreadable body, invalid_kassensitzung).
@@ -73,7 +73,7 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 		w.Header().Set("Content-Length", strconv.Itoa(len(archiv.Inhalt)))
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(archiv.Inhalt); err != nil {
-			log.Error().Err(err).Msg("Failed to write dsfinvk archive")
+			log.Error("Failed to write dsfinvk archive", "error", err)
 		}
 	}
 }

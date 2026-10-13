@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"runtime/debug"
@@ -18,8 +19,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"golang.org/x/time/rate"
 )
 
@@ -60,17 +60,13 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now().UTC()
 
 		correlationID, _ := r.Context().Value(CorrelationIDKey).(string)
-		logger := log.With().Str("correlation", correlationID).Logger()
-		r = r.WithContext(logger.WithContext(r.Context()))
+		logger := slog.Default().With("correlation", correlationID)
+		r = r.WithContext(logging.WithContext(r.Context(), logger))
 
 		ww := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(ww, r)
 
-		logger.Info().
-			Str("path", r.URL.Path).
-			Int("status", ww.statusCode).
-			Int64("duration_ms", time.Since(start).Milliseconds()).
-			Msg("Request completed")
+		logger.Info("Request completed", "path", r.URL.Path, "status", ww.statusCode, "duration_ms", time.Since(start).Milliseconds())
 	})
 }
 
@@ -86,11 +82,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 			if err, ok := rec.(error); ok && errors.Is(err, http.ErrAbortHandler) {
 				panic(rec)
 			}
-			zerolog.Ctx(r.Context()).Error().
-				Interface("panic", rec).
-				Bytes("stack", debug.Stack()).
-				Str("path", r.URL.Path).
-				Msg("Panic in HTTP handler")
+			logging.FromContext(r.Context()).Error("Panic in HTTP handler", "panic", rec, "stack", string(debug.Stack()), "path", r.URL.Path)
 			helper.SendServerError(w)
 		}()
 
@@ -112,7 +104,7 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 	cleanup := func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Error().Interface("panic", r).Bytes("stack", debug.Stack()).Msg("Rate-Limiter-Cleanup: Panic abgefangen; Loop laeuft weiter")
+				slog.Error("Rate-Limiter-Cleanup: Panic abgefangen; Loop laeuft weiter", "panic", r, "stack", string(debug.Stack()))
 			}
 		}()
 		mu.Lock()
@@ -146,12 +138,12 @@ func RateLimitMiddleware(requestsPerSecond int) func(http.Handler) http.Handler 
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := zerolog.Ctx(r.Context())
+			logger := logging.FromContext(r.Context())
 
 			ip := clientIP(r)
 			limiter := getLimiter(ip)
 			if !limiter.Allow() {
-				logger.Warn().Str("ip", ip).Msg("Rate limit exceeded")
+				logger.Warn("Rate limit exceeded", "ip", ip)
 				helper.SendTooManyRequests(w, "rate_limited")
 				return
 			}
@@ -177,7 +169,7 @@ func clientIP(r *http.Request) string {
 
 func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := zerolog.Ctx(r.Context())
+		logger := logging.FromContext(r.Context())
 
 		// Ops exception: /health must be probeable via GET for container orchestrators.
 		if r.Method == http.MethodGet && r.URL.Path == "/health" {
@@ -186,7 +178,7 @@ func PostMethodOnlyMiddleware(next http.Handler) http.HandlerFunc {
 		}
 
 		if r.Method != http.MethodPost {
-			logger.Error().Str("method", r.Method).Msg("Invalid method.")
+			logger.Error("Invalid method.", "method", r.Method)
 			helper.SendClientError(w, "method_not_allowed", nil)
 			return
 		}
@@ -220,25 +212,25 @@ type UserGetter interface {
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := zerolog.Ctx(r.Context())
+			logger := logging.FromContext(r.Context())
 
 			token := r.Header.Get("Authorization")
 			if token == "" {
-				logger.Error().Msg("Missing Authorization header")
+				logger.Error("Missing Authorization header")
 				helper.SendUnauthorized(w, "missing_authorization")
 				return
 			}
 
 			const bearerPrefix = "Bearer "
 			if len(token) <= len(bearerPrefix) || token[:len(bearerPrefix)] != bearerPrefix {
-				logger.Error().Msg("Invalid Authorization header format")
+				logger.Error("Invalid Authorization header format")
 				helper.SendUnauthorized(w, "invalid_authorization_format")
 				return
 			}
 			token = token[len(bearerPrefix):]
 			userID, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
-				logger.Error().Err(err).Msg("Invalid JWT token")
+				logger.Error("Invalid JWT token", "error", err)
 				helper.SendUnauthorized(w, "invalid_jwt")
 				return
 			}
@@ -246,22 +238,22 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 			u, err := users.GetUser(r.Context(), userID)
 			if err != nil {
 				if errors.Is(err, db.ErrNotFound) {
-					logger.Warn().Int("user_id", userID).Msg("User from token no longer exists")
+					logger.Warn("User from token no longer exists", "user_id", userID)
 					helper.SendUnauthorized(w, "user_inactive")
 					return
 				}
-				logger.Error().Err(err).Int("user_id", userID).Msg("Failed to load user for active-status check")
+				logger.Error("Failed to load user for active-status check", "error", err, "user_id", userID)
 				helper.SendServerError(w)
 				return
 			}
 			if u.Status != user.ActiveStatus {
-				logger.Warn().Int("user_id", userID).Str("status", string(u.Status)).Msg("User is not active")
+				logger.Warn("User is not active", "user_id", userID, "status", string(u.Status))
 				helper.SendUnauthorized(w, "user_inactive")
 				return
 			}
 
 			if !slices.Contains(allowedRoles, string(u.Role)) {
-				logger.Warn().Str("role", string(u.Role)).Msg("Insufficient permissions")
+				logger.Warn("Insufficient permissions", "role", string(u.Role))
 				helper.SendForbidden(w, "insufficient_permissions", fmt.Sprintf("role %s is not allowed for this endpoint", u.Role))
 				return
 			}

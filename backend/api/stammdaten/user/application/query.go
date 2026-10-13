@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type userQueryRepo interface {
@@ -16,11 +16,11 @@ type Query struct {
 }
 
 func (q Query) GetAllUsers(ctx context.Context) ([]user.User, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	users, err := q.UserRepo.GetAllUsers(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve all users")
+		log.Error("Failed to retrieve all users", "error", err)
 		return nil, ErrDatabase
 	}
 

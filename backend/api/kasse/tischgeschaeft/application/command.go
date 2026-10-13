@@ -13,9 +13,9 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/rs/zerolog"
 )
 
 type tischRepo interface {
@@ -85,18 +85,15 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 
 	if _, err := write(e); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			zerolog.Ctx(ctx).Warn().
-				Int("version", e.Version).
-				Str("subject", subject).
-				Msg("OCC conflict")
+			logging.FromContext(ctx).Warn("OCC conflict", "version", e.Version, "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, db.ErrConflict) {
-			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Deadlock on event write")
+			logging.FromContext(ctx).Warn("Deadlock on event write", "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			zerolog.Ctx(ctx).Warn().Str("subject", subject).Msg("Kassensitzung nicht mehr offen")
+			logging.FromContext(ctx).Warn("Kassensitzung nicht mehr offen", "subject", subject)
 			return ErrKasseNichtGeoeffnet
 		}
 		return err
@@ -107,7 +104,7 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 
 // persistTischEvent writes the tisch-session event with OCC; aktion is the success log message.
 func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if err := writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
 		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeTischSession, kassensitzungNr)
@@ -117,16 +114,16 @@ func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject
 		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
 			return err
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write event to database")
+		log.Error("Failed to write event to database", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
-	log.Info().Int("tisch_id", tischID).Msg(aktion)
+	log.Info(aktion, "tisch_id", tischID)
 	return nil
 }
 
 // loadTischState returns subject, kassensitzungNr, tisch name and the projected TischSession.
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, string, kasse.TischSession, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -139,7 +136,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 	}
 
 	if t.Status != tisch.ActiveStatus {
-		log.Warn().Int("tisch_id", tischID).Str("status", string(t.Status)).Msg("Tisch is not active")
+		log.Warn("Tisch is not active", "tisch_id", tischID, "status", string(t.Status))
 		return "", 0, "", kasse.TischSession{}, ErrTischNotActive
 	}
 
@@ -147,7 +144,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 
 	state, err := c.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read tisch session")
+		log.Error("Failed to read tisch session", "error", err, "tisch_id", tischID)
 		return "", 0, "", kasse.TischSession{}, ErrDatabase
 	}
 
@@ -158,7 +155,7 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 // with that bestellungId means success (same ID = same operation, payload not compared), none means
 // a real conflict (409).
 func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject, kassensitzungNr, tischName, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
@@ -172,13 +169,13 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 
 	evt, err := kasse.NewBestellungAufgenommenEvent(subject, userID, userName, bestellungID, positionen, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create bestellung aufgenommen event")
+		log.Error("Failed to create bestellung aufgenommen event", "error", err, "tisch_id", tischID)
 		return err
 	}
 
 	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load druckstationen for arbeitsbon")
+		log.Error("Failed to load druckstationen for arbeitsbon", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
@@ -191,7 +188,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// validierenden Commands (Zahlung, Storno), läuft dieser korrekt in den OCC-Konflikt.
 	expectedVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to load max version for bestellung")
+		log.Error("Failed to load max version for bestellung", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
@@ -204,11 +201,11 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
 			if lookupErr != nil {
-				log.Error().Err(lookupErr).Str("bestellung_id", bestellungID).Msg("Failed to lookup bestellung idempotency")
+				log.Error("Failed to lookup bestellung idempotency", "error", lookupErr, "bestellung_id", bestellungID)
 				return ErrDatabase
 			}
 			if exists {
-				log.Info().Str("bestellung_id", bestellungID).Msg("Idempotente Bestellung: bestellungId bereits vorhanden")
+				log.Info("Idempotente Bestellung: bestellungId bereits vorhanden", "bestellung_id", bestellungID)
 				return nil
 			}
 			return ErrConflict
@@ -217,11 +214,11 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		if errors.Is(err, ErrKasseNichtGeoeffnet) {
 			return err
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write bestellung aufgenommen event to database")
+		log.Error("Failed to write bestellung aufgenommen event to database", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Msg("Bestellung aufgenommen")
+	log.Info("Bestellung aufgenommen", "tisch_id", tischID)
 	return nil
 }
 
@@ -250,10 +247,10 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 }
 
 func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if quellTischID == zielTischID {
-		log.Warn().Int("tisch_id", quellTischID).Msg("Umbuchung mit gleichem Quell- und Ziel-Tisch")
+		log.Warn("Umbuchung mit gleichem Quell- und Ziel-Tisch", "tisch_id", quellTischID)
 		return ErrUmbuchungGleicherTisch
 	}
 
@@ -267,7 +264,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return fromRepositoryError(err, log, quellTischID)
 	}
 	if quellTisch.Status != tisch.ActiveStatus {
-		log.Warn().Int("tisch_id", quellTischID).Str("status", string(quellTisch.Status)).Msg("Quell-Tisch ist nicht aktiv")
+		log.Warn("Quell-Tisch ist nicht aktiv", "tisch_id", quellTischID, "status", string(quellTisch.Status))
 		return ErrTischNotActive
 	}
 
@@ -276,7 +273,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return fromRepositoryError(err, log, zielTischID)
 	}
 	if zielTisch.Status != tisch.ActiveStatus {
-		log.Warn().Int("tisch_id", zielTischID).Str("status", string(zielTisch.Status)).Msg("Ziel-Tisch ist nicht aktiv")
+		log.Warn("Ziel-Tisch ist nicht aktiv", "tisch_id", zielTischID, "status", string(zielTisch.Status))
 		return ErrTischNotActive
 	}
 
@@ -285,12 +282,12 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	quellState, err := c.EventRepo.ReadTischSession(ctx, quellSubject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", quellTischID).Msg("Failed to read source tisch session")
+		log.Error("Failed to read source tisch session", "error", err, "tisch_id", quellTischID)
 		return ErrDatabase
 	}
 
 	if !kasse.ValidatePositionRefs(quellState.UnbezahltePositionen, positionen) {
-		log.Warn().Int("quell_tisch_id", quellTischID).Msg("Umbuchungsinvariante verletzt: Positionen nicht umbuchbar")
+		log.Warn("Umbuchungsinvariante verletzt: Positionen nicht umbuchbar", "quell_tisch_id", quellTischID)
 		return ErrPositionNichtUmbuchbar
 	}
 
@@ -301,7 +298,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 
 	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar, benutzerKommentar)
 	if err != nil {
-		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Failed to create umbuchung events")
+		log.Error("Failed to create umbuchung events", "error", err, "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
 		return err
 	}
 
@@ -309,7 +306,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	// its version is read right before writing. Both sides get their Signaturauftrag in the same commit.
 	zielMaxVersion, err := c.EventRepo.GetMaxVersion(ctx, zielSubject)
 	if err != nil {
-		log.Error().Err(err).Int("ziel_tisch_id", zielTischID).Msg("Failed to load max version for target subject")
+		log.Error("Failed to load max version for target subject", "error", err, "ziel_tisch_id", zielTischID)
 		return ErrDatabase
 	}
 
@@ -319,29 +316,24 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	err = c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr)
 	if err != nil {
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn().Int("quell_tisch_id", quellTischID).Msg("Kassensitzung nicht mehr offen")
+			log.Warn("Kassensitzung nicht mehr offen", "quell_tisch_id", quellTischID)
 			return ErrKasseNichtGeoeffnet
 		}
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().
-				Int("quell_version", quellEvent.Version).
-				Int("ziel_version", zielEvent.Version).
-				Str("quell_subject", quellSubject).
-				Str("ziel_subject", zielSubject).
-				Msg("OCC conflict bei Bestellung umbuchen")
+			log.Warn("OCC conflict bei Bestellung umbuchen", "quell_version", quellEvent.Version, "ziel_version", zielEvent.Version, "quell_subject", quellSubject, "ziel_subject", zielSubject)
 			return ErrConflict
 		}
 
-		log.Error().Err(err).Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Failed to write umbuchung")
+		log.Error("Failed to write umbuchung", "error", err, "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("quell_tisch_id", quellTischID).Int("ziel_tisch_id", zielTischID).Msg("Bestellung umgebucht")
+	log.Info("Bestellung umgebucht", "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
 	return nil
 }
 
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject, kassensitzungNr, _, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
@@ -349,7 +341,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	}
 
 	if !kasse.ValidatePositionRefs(state.UnbezahltePositionen, positionen) {
-		log.Warn().Int("tisch_id", tischID).Msg("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar")
+		log.Warn("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar", "tisch_id", tischID)
 		return ErrPositionNichtBezahlbar
 	}
 
@@ -357,7 +349,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to create zahlung kassiert event")
+		log.Error("Failed to create zahlung kassiert event", "error", err, "tisch_id", tischID)
 		return err
 	}
 
@@ -368,7 +360,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 // paid ones one stornierung-erteilt per Zahlung (FIFO). Each event gets its own TSE transaction, all
 // are written atomically (docs/handbuch.md §3.7).
 func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject, kassensitzungNr, _, _, err := c.loadTischState(ctx, tischID)
 	if err != nil {
@@ -377,7 +369,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornierung")
+		log.Error("Failed to read events for stornierung", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
@@ -385,7 +377,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 	// stornierbare Menge, oder eine PositionID ist doppelt referenziert.
 	aufteilung, ok := kasse.ComputeStornoAufteilung(events, positionen)
 	if !ok {
-		log.Warn().Int("tisch_id", tischID).Msg("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar")
+		log.Warn("Stornierungsinvariante verletzt: angeforderte Positionen nicht stornierbar", "tisch_id", tischID)
 		return ErrPositionNichtStornierbar
 	}
 
@@ -403,14 +395,14 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 }
 
 func buildStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	var events []event.Event
 
 	if len(aufteilung.Korrektur) > 0 {
 		evt, err := kasse.NewBestellungKorrigiertEvent(subject, userID, userName, aufteilung.Korrektur, aufteilung.KorrekturCents, kommentar)
 		if err != nil {
-			log.Error().Err(err).Str("subject", subject).Msg("Failed to create bestellung korrigiert event")
+			log.Error("Failed to create bestellung korrigiert event", "error", err, "subject", subject)
 			return nil, err
 		}
 		events = append(events, evt)
@@ -419,7 +411,7 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 	for _, wr := range aufteilung.Warenruecknahmen {
 		evt, err := kasse.NewStornierungErteiltEvent(subject, userID, userName, wr.ZahlungID, wr.Positionen, wr.GesamtCents, kommentar)
 		if err != nil {
-			log.Error().Err(err).Str("subject", subject).Msg("Failed to create stornierung erteilt event")
+			log.Error("Failed to create stornierung erteilt event", "error", err, "subject", subject)
 			return nil, err
 		}
 		events = append(events, evt)
@@ -429,7 +421,7 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 }
 
 func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	events := make([]event.Event, 0, len(stornoEvents))
 	for i, evt := range stornoEvents {
@@ -439,17 +431,17 @@ func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.E
 
 	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Int("tisch_id", tischID).Str("subject", subject).Msg("OCC conflict bei Stornierung")
+			log.Warn("OCC conflict bei Stornierung", "tisch_id", tischID, "subject", subject)
 			return ErrConflict
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn().Int("tisch_id", tischID).Msg("Kassensitzung nicht mehr offen")
+			log.Warn("Kassensitzung nicht mehr offen", "tisch_id", tischID)
 			return ErrKasseNichtGeoeffnet
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to write stornierung events")
+		log.Error("Failed to write stornierung events", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Int("anzahl_events", len(events)).Msg("Stornierung erteilt")
+	log.Info("Stornierung erteilt", "tisch_id", tischID, "anzahl_events", len(events))
 	return nil
 }

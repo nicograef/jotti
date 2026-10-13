@@ -3,12 +3,12 @@ package helper
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
 	z "github.com/Oudwins/zog"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 // errorResponse is the uniform error body: Code is a stable snake_case key, Details is structured only for two codes.
@@ -22,7 +22,7 @@ func SendJSONResponse(w http.ResponseWriter, data any, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Error().Err(err).Msg("Failed to encode JSON response")
+		slog.Error("Failed to encode JSON response", "error", err)
 	}
 }
 
@@ -74,7 +74,7 @@ func SendServerError(w http.ResponseWriter) {
 }
 
 func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
-	log := zerolog.Ctx(r.Context())
+	log := logging.FromContext(r.Context())
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
 
@@ -87,7 +87,7 @@ func ReadBody[T any](w http.ResponseWriter, r *http.Request, body *T) bool {
 			SendJSONResponse(w, errorResponse{Code: "request_too_large"}, http.StatusRequestEntityTooLarge)
 			return false
 		}
-		log.Error().Err(err).Msg("Failed to decode JSON request")
+		log.Error("Failed to decode JSON request", "error", err)
 		SendClientError(w, "invalid_json", nil)
 		return false
 	}
@@ -111,7 +111,7 @@ func ReadAndValidateBody[T any](w http.ResponseWriter, r *http.Request, body *T,
 // A long-running handler calls it first and again right before writing the response; see docs/handbuch.md §6.2.
 func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Duration) {
 	if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(timeout)); err != nil {
-		zerolog.Ctx(r.Context()).Warn().Err(err).Dur("timeout", timeout).Msg("Failed to extend write deadline; falling back to server default")
+		logging.FromContext(r.Context()).Warn("Failed to extend write deadline; falling back to server default", "error", err, "timeout", timeout)
 	}
 }
 

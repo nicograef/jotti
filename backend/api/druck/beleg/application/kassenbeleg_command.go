@@ -15,8 +15,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
-	"github.com/rs/zerolog"
 )
 
 func toKassePositionen(positionen []kasse.PositionEventData) []kasse.Position {
@@ -159,7 +159,7 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 		abschnitt.Nachsigniert = true
 		return abschnitt, escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusAusfall:
-		zerolog.Ctx(ctx).Warn().Int("event_id", eventID).Str("ausfall_grund", ergebnis.AusfallGrund).Msg("Kassenbeleg ohne TSE-Signatur: dokumentierter Ausfall")
+		logging.FromContext(ctx).Warn("Kassenbeleg ohne TSE-Signatur: dokumentierter Ausfall", "event_id", eventID, "ausfall_grund", ergebnis.AusfallGrund)
 		return nil, vermerkFuerAusfall(ergebnis.AusfallGrund), false, nil
 	default: // ausstehend
 		return nil, escpos.KeinTSEVermerk, true, nil
@@ -216,7 +216,7 @@ type belegQuelle struct {
 }
 
 func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenCommand) (BelegStatus, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
@@ -230,17 +230,17 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 
 	tseAbschnitt, tseVermerk, ausstehend, err := c.tseAbschnittFuerBeleg(ctx, quelle.Event.ID)
 	if err != nil {
-		log.Error().Err(err).Int("event_id", quelle.Event.ID).Msg("Failed to resolve TSE section for kassenbeleg")
+		log.Error("Failed to resolve TSE section for kassenbeleg", "error", err, "event_id", quelle.Event.ID)
 		return "", ErrDatabase
 	}
 	if ausstehend {
-		log.Info().Int("event_id", quelle.Event.ID).Msg("Kassenbeleg zurückgestellt: TSE-Signatur ausstehend")
+		log.Info("Kassenbeleg zurückgestellt: TSE-Signatur ausstehend", "event_id", quelle.Event.ID)
 		return BelegStatusAusstehend, nil
 	}
 
 	stationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load druckstationen for kassenbeleg")
+		log.Error("Failed to load druckstationen for kassenbeleg", "error", err)
 		return "", ErrDatabase
 	}
 	kassenbelegStation, ok := stationen[string(druckstation.KategorieKassenbeleg)]
@@ -250,13 +250,13 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 
 	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load betreiber for kassenbeleg")
+		log.Error("Failed to load betreiber for kassenbeleg", "error", err)
 		return "", ErrDatabase
 	}
 
 	kassenidentitaet, err := c.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load kassenidentitaet for kassenbeleg")
+		log.Error("Failed to load kassenidentitaet for kassenbeleg", "error", err)
 		return "", ErrDatabase
 	}
 
@@ -294,11 +294,11 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	}
 
 	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
-		log.Error().Err(err).Int("tisch_id", cmd.TischID).Str("zahlung_id", cmd.ZahlungID).Str("verkauf_id", cmd.VerkaufID).Msg("Failed to enqueue kassenbeleg")
+		log.Error("Failed to enqueue kassenbeleg", "error", err, "tisch_id", cmd.TischID, "zahlung_id", cmd.ZahlungID, "verkauf_id", cmd.VerkaufID)
 		return "", ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", cmd.TischID).Str("verkauf_id", cmd.VerkaufID).Int("event_id", quelle.Event.ID).Msg("Kassenbeleg queued")
+	log.Info("Kassenbeleg queued", "tisch_id", cmd.TischID, "verkauf_id", cmd.VerkaufID, "event_id", quelle.Event.ID)
 	return BelegStatusEingereiht, nil
 }
 
@@ -316,32 +316,32 @@ func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung
 }
 
 func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID, stornierungID string) (belegQuelle, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for stornobeleg")
+		log.Error("Failed to read direktverkauf events for stornobeleg", "error", err, "verkauf_id", verkaufID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
 	if err != nil {
 		if errors.Is(err, ErrVerkaufNichtGefunden) {
-			log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for stornobeleg")
+			log.Warn("Direktverkauf not found for stornobeleg", "verkauf_id", verkaufID)
 			return belegQuelle{}, ErrVerkaufNichtGefunden
 		}
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
+		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
 	if err != nil {
 		if errors.Is(err, ErrStornierungNichtGefunden) {
-			log.Warn().Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+			log.Warn("Stornierung not found for stornobeleg", "verkauf_id", verkaufID, "stornierung_id", stornierungID)
 			return belegQuelle{}, ErrStornierungNichtGefunden
 		}
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Str("stornierung_id", stornierungID).Msg("Failed to decode direktverkauf storno event data")
+		log.Error("Failed to decode direktverkauf storno event data", "error", err, "verkauf_id", verkaufID, "stornierung_id", stornierungID)
 		return belegQuelle{}, ErrDatabase
 	}
 
@@ -357,32 +357,32 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 
 // resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf.
 func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (belegQuelle, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for stornobeleg")
+		log.Error("Failed to read events for stornobeleg", "error", err, "tisch_id", tischID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
 	if err != nil {
 		if errors.Is(err, ErrStornierungNichtGefunden) {
-			log.Warn().Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Stornierung not found for stornobeleg")
+			log.Warn("Stornierung not found for stornobeleg", "tisch_id", tischID, "stornierung_id", stornierungID)
 			return belegQuelle{}, ErrStornierungNichtGefunden
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Str("stornierung_id", stornierungID).Msg("Failed to decode stornierung event data")
+		log.Error("Failed to decode stornierung event data", "error", err, "tisch_id", tischID, "stornierung_id", stornierungID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
 	if err != nil {
 		if errors.Is(err, ErrZahlungNichtGefunden) {
-			log.Warn().Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Referenzierte Zahlung not found for stornobeleg")
+			log.Warn("Referenzierte Zahlung not found for stornobeleg", "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
 			return belegQuelle{}, ErrZahlungNichtGefunden
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", stornoData.ZahlungID).Msg("Failed to decode referenzierte zahlung event data")
+		log.Error("Failed to decode referenzierte zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
 		return belegQuelle{}, ErrDatabase
 	}
 
@@ -397,22 +397,22 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 }
 
 func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID string) (belegQuelle, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to read direktverkauf events for kassenbeleg")
+		log.Error("Failed to read direktverkauf events for kassenbeleg", "error", err, "verkauf_id", verkaufID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	verkaufEvent, verkaufData, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
 	if err != nil {
 		if errors.Is(err, ErrVerkaufNichtGefunden) {
-			log.Warn().Str("verkauf_id", verkaufID).Msg("Direktverkauf not found for kassenbeleg")
+			log.Warn("Direktverkauf not found for kassenbeleg", "verkauf_id", verkaufID)
 			return belegQuelle{}, ErrVerkaufNichtGefunden
 		}
-		log.Error().Err(err).Str("verkauf_id", verkaufID).Msg("Failed to decode direktverkauf event data")
+		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
 		return belegQuelle{}, ErrDatabase
 	}
 
@@ -425,28 +425,28 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 }
 
 func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, zahlungID string) (belegQuelle, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
 	state, err := c.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read table projection for kassenbeleg")
+		log.Error("Failed to read table projection for kassenbeleg", "error", err, "tisch_id", tischID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for kassenbeleg")
+		log.Error("Failed to read events for kassenbeleg", "error", err, "tisch_id", tischID)
 		return belegQuelle{}, ErrDatabase
 	}
 
 	zahlungEvent, zahlungData, err := findZahlungEvent(events, zahlungID)
 	if err != nil {
 		if errors.Is(err, ErrZahlungNichtGefunden) {
-			log.Warn().Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Zahlung not found for kassenbeleg")
+			log.Warn("Zahlung not found for kassenbeleg", "tisch_id", tischID, "zahlung_id", zahlungID)
 			return belegQuelle{}, ErrZahlungNichtGefunden
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Str("zahlung_id", zahlungID).Msg("Failed to decode zahlung event data")
+		log.Error("Failed to decode zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", zahlungID)
 		return belegQuelle{}, ErrDatabase
 	}
 

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/domain/betreiber"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/internal/zeit"
-	"github.com/rs/zerolog"
 )
 
 type betreiberCommandRepo interface {
@@ -23,13 +23,13 @@ type Command struct {
 }
 
 func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if err := c.BetreiberRepo.UpsertBetreiber(ctx, b); err != nil {
-		log.Error().Err(err).Msg("Failed to save betreiber")
+		log.Error("Failed to save betreiber", "error", err)
 		return ErrDatabase
 	}
-	log.Info().Str("vereinsname", b.Vereinsname).Msg("Betreiber saved")
+	log.Info("Betreiber saved", "vereinsname", b.Vereinsname)
 	return nil
 }
 
@@ -44,7 +44,7 @@ func meldedatum(zeitpunkt time.Time) time.Time {
 // auf das aktuelle Datum, § 146a Abs. 4 AO). Das Datum ist der Berliner
 // Kalendertag: die Container laufen in UTC und lägen abends einen Tag zurück.
 func (c Command) SetzeElsterMeldung(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	now := c.now
 	if now == nil {
@@ -53,22 +53,22 @@ func (c Command) SetzeElsterMeldung(ctx context.Context) error {
 
 	gemeldetAm := meldedatum(now())
 	if err := c.BetreiberRepo.SetElsterGemeldetAm(ctx, gemeldetAm); err != nil {
-		log.Error().Err(err).Msg("Failed to set elster meldung")
+		log.Error("Failed to set elster meldung", "error", err)
 		return ErrDatabase
 	}
-	log.Info().Str("gemeldet_am", gemeldetAm.Format("2006-01-02")).Msg("Elster meldung marked as done")
+	log.Info("Elster meldung marked as done", "gemeldet_am", gemeldetAm.Format("2006-01-02"))
 	return nil
 }
 
 // NimmElsterMeldungZurueck setzt die ELSTER-Kassenmeldung auf NULL zurück, damit
 // ein Fehlklick korrigierbar bleibt.
 func (c Command) NimmElsterMeldungZurueck(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if err := c.BetreiberRepo.ClearElsterGemeldetAm(ctx); err != nil {
-		log.Error().Err(err).Msg("Failed to clear elster meldung")
+		log.Error("Failed to clear elster meldung", "error", err)
 		return ErrDatabase
 	}
-	log.Info().Msg("Elster meldung reset")
+	log.Info("Elster meldung reset")
 	return nil
 }

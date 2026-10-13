@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/rs/zerolog/log"
 
 	"github.com/nicograef/jotti/backend/api"
 	"github.com/nicograef/jotti/backend/api/fiskal/signatur"
@@ -81,7 +80,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	errChan := make(chan error, 1)
 	go func() {
-		log.Info().Int("port", app.Config.Port).Msg("Starting server")
+		slog.Info("Starting server", "port", app.Config.Port)
 		if err := app.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}
@@ -89,7 +88,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		log.Info().Msg("Shutdown signal received, gracefully stopping...")
+		slog.Info("Shutdown signal received, gracefully stopping...")
 		app.Shutdown()
 		return nil
 	case err := <-errChan:
@@ -102,8 +101,8 @@ func (app *App) Shutdown() {
 	defer cancel()
 
 	if err := app.Server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Error shutting down server")
+		slog.Error("Error shutting down server", "error", err)
 	}
 
-	log.Info().Msg("Shutdown complete")
+	slog.Info("Shutdown complete")
 }

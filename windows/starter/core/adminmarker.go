@@ -16,13 +16,13 @@ const AdminMarkerPrefix = "ADMIN-EINMALPASSWORT"
 // backend/bootstrap.AdminUsername uebereinstimmen).
 const AdminUsername = "admin"
 
-// adminCodePattern extrahiert den 6-stelligen Code. Der zerolog-ConsoleWriter
-// faerbt die Zeile mit ANSI-Escapes ein; die Ziffern bleiben unberuehrt.
+// adminCodePattern extrahiert den 6-stelligen Code aus dem msg-Feld der JSON-Logzeile,
+// das ihn unmaskiert traegt.
 var adminCodePattern = regexp.MustCompile(`code=([0-9]{6})`)
 
 // ParseAdminOTP liefert den Code der JUENGSTEN Markerzeile im Log-Blob. Geprueft
-// wird auf das Vorkommen des Praefix, nicht auf den Zeilenanfang (ANSI-umschlossene
-// Zeilen); ohne Marker oder Code ist found=false.
+// wird auf das Vorkommen des Praefix, nicht auf den Zeilenanfang (die JSON-Zeile
+// beginnt mit Zeit und Level); ohne Marker oder Code ist found=false.
 func ParseAdminOTP(logs string) (code string, found bool) {
 	lines := strings.Split(logs, "\n")
 	for _, line := range slices.Backward(lines) {

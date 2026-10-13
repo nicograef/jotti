@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type database interface {
@@ -26,7 +26,7 @@ type HealthResponse struct {
 
 func (h *HealthCheck) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log := zerolog.Ctx(r.Context())
+		log := logging.FromContext(r.Context())
 
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
@@ -37,7 +37,7 @@ func (h *HealthCheck) Handler() http.HandlerFunc {
 		if err := h.DB.PingContext(ctx); err != nil {
 			status = "degraded"
 			statusCode = http.StatusServiceUnavailable
-			log.Error().Err(err).Msg("Database ping failed")
+			log.Error("Database ping failed", "error", err)
 		}
 
 		response := HealthResponse{

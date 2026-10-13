@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type tischRepo interface {
@@ -27,7 +27,7 @@ type Command struct {
 }
 
 func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	t, err := c.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
@@ -35,37 +35,37 @@ func (c Command) FavoritHinzufuegen(ctx context.Context, userID, tischID int) er
 	}
 
 	if t.Status != tisch.ActiveStatus {
-		log.Warn().Int("tisch_id", tischID).Str("status", string(t.Status)).Msg("Tisch is not active")
+		log.Warn("Tisch is not active", "tisch_id", tischID, "status", string(t.Status))
 		return ErrTischNotActive
 	}
 
 	if err := c.FavoritRepo.Add(ctx, userID, tischID); err != nil {
-		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to add favorit")
+		log.Error("Failed to add favorit", "error", err, "user_id", userID, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit added")
+	log.Info("Favorit added", "user_id", userID, "tisch_id", tischID)
 	return nil
 }
 
 func (c Command) FavoritEntfernen(ctx context.Context, userID, tischID int) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if err := c.FavoritRepo.Remove(ctx, userID, tischID); err != nil {
-		log.Error().Err(err).Int("user_id", userID).Int("tisch_id", tischID).Msg("Failed to remove favorit")
+		log.Error("Failed to remove favorit", "error", err, "user_id", userID, "tisch_id", tischID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Int("tisch_id", tischID).Msg("Favorit removed")
+	log.Info("Favorit removed", "user_id", userID, "tisch_id", tischID)
 	return nil
 }
 
 func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	tisch, err := tisch.NewTisch(name)
 	if err != nil {
-		log.Warn().Err(err).Str("tisch_name", name).Msg("Invalid tisch data")
+		log.Warn("Invalid tisch data", "error", err, "tisch_name", name)
 		return 0, ErrInvalidTischData
 	}
 
@@ -74,12 +74,12 @@ func (c Command) TischErstellen(ctx context.Context, name string) (int, error) {
 		return 0, fromRepositoryError(err, log, 0)
 	}
 
-	log.Info().Int("tisch_id", id).Msg("Tisch created")
+	log.Info("Tisch created", "tisch_id", id)
 	return id, nil
 }
 
 func (c Command) TischAktualisieren(ctx context.Context, id int, name string) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	tisch, err := c.TischRepo.GetTisch(ctx, id)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 
 	err = tisch.Rename(name)
 	if err != nil {
-		log.Warn().Err(err).Int("tisch_id", id).Msg("Invalid tisch data for update")
+		log.Warn("Invalid tisch data for update", "error", err, "tisch_id", id)
 		return ErrInvalidTischData
 	}
 
@@ -97,7 +97,7 @@ func (c Command) TischAktualisieren(ctx context.Context, id int, name string) er
 		return fromRepositoryError(err, log, id)
 	}
 
-	log.Info().Int("tisch_id", id).Msg("Tisch updated")
+	log.Info("Tisch updated", "tisch_id", id)
 	return nil
 }
 
@@ -117,7 +117,7 @@ func (c Command) TischLoeschen(ctx context.Context, id int) error {
 // Tisch mit offenem Saldo in der offenen Kassensitzung ab — das Backend erzwingt
 // den Schutz unabhängig davon, was das Frontend anbietet.
 func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo bool, successMsg string, action func(*tisch.Tisch)) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	t, err := c.TischRepo.GetTisch(ctx, id)
 	if err != nil {
@@ -127,11 +127,11 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 	if guardSaldo {
 		hatSaldo, err := c.TischRepo.TischHatOffenenSaldo(ctx, id)
 		if err != nil {
-			log.Error().Err(err).Int("tisch_id", id).Msg("Failed to check open saldo for status change")
+			log.Error("Failed to check open saldo for status change", "error", err, "tisch_id", id)
 			return ErrDatabase
 		}
 		if hatSaldo {
-			log.Warn().Int("tisch_id", id).Msg("Cannot change status of tisch with open saldo")
+			log.Warn("Cannot change status of tisch with open saldo", "tisch_id", id)
 			return ErrTischSaldoOffen
 		}
 	}
@@ -148,6 +148,6 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 	if err := persist(ctx, t); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
-	log.Info().Int("tisch_id", id).Msg(successMsg)
+	log.Info(successMsg, "tisch_id", id)
 	return nil
 }

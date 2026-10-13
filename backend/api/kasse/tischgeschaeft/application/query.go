@@ -7,7 +7,7 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	t "github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type TischStateView struct {
@@ -39,40 +39,40 @@ func (q Query) aktiveKassensitzungNr(ctx context.Context) (int, error) {
 }
 
 func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get aktive kassensitzung for active tische")
+		log.Error("Failed to get aktive kassensitzung for active tische", "error", err)
 		return nil, ErrDatabase
 	}
 
 	tische, err := q.TischRepo.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to retrieve active tische")
+		log.Error("Failed to retrieve active tische", "error", err)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("count", len(tische)).Msg("Retrieved active tische")
+	log.Info("Retrieved active tische", "count", len(tische))
 	return tische, nil
 }
 
 func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (TischStateView, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	tisch, err := q.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("tisch_id", tischID).Msg("Tisch not found")
+			log.Warn("Tisch not found", "tisch_id", tischID)
 			return TischStateView{}, ErrTischNotFound
 		}
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to retrieve tisch")
+		log.Error("Failed to retrieve tisch", "error", err, "tisch_id", tischID)
 		return TischStateView{}, ErrDatabase
 	}
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get aktive kassensitzung")
+		log.Error("Failed to get aktive kassensitzung", "error", err, "tisch_id", tischID)
 		return TischStateView{}, ErrDatabase
 	}
 
@@ -80,11 +80,11 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 
 	state, err := q.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read tisch session")
+		log.Error("Failed to read tisch session", "error", err, "tisch_id", tischID)
 		return TischStateView{}, ErrDatabase
 	}
 
-	log.Info().Int("tisch_id", tischID).Int("saldo_cents", state.SaldoCents).Msg("Retrieved tisch state")
+	log.Info("Retrieved tisch state", "tisch_id", tischID, "saldo_cents", state.SaldoCents)
 	return TischStateView{
 		TischID:              tisch.ID,
 		TischName:            tisch.Name,
@@ -96,48 +96,48 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 }
 
 func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get aktive kassensitzung")
+		log.Error("Failed to get aktive kassensitzung", "error", err, "user_id", userID)
 		return nil, ErrDatabase
 	}
 
 	tische, err := q.TischRepo.GetAktiveTischeMitFavoriten(ctx, userID, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve active tische mit favoriten")
+		log.Error("Failed to retrieve active tische mit favoriten", "error", err, "user_id", userID)
 		return nil, ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Int("count", len(tische)).Msg("Retrieved active tische mit favoriten")
+	log.Info("Retrieved active tische mit favoriten", "user_id", userID, "count", len(tische))
 	return tische, nil
 }
 
 func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStateView, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	favoritIDs, err := q.FavoritRepo.GetByUser(ctx, userID)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve favorit IDs")
+		log.Error("Failed to retrieve favorit IDs", "error", err, "user_id", userID)
 		return nil, ErrDatabase
 	}
 
 	if len(favoritIDs) == 0 {
-		log.Debug().Int("user_id", userID).Msg("No favoriten for user")
+		log.Debug("No favoriten for user", "user_id", userID)
 		return []TischStateView{}, nil
 	}
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to get aktive kassensitzung")
+		log.Error("Failed to get aktive kassensitzung", "error", err, "user_id", userID)
 		return nil, ErrDatabase
 	}
 
 	// Ein Batch statt N+1: Name + projizierte Session aller Favoriten in einer Query.
 	states, err := q.EventRepo.ReadFavoritenTischStates(ctx, favoritIDs, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to batch-read favoriten tisch states")
+		log.Error("Failed to batch-read favoriten tisch states", "error", err, "user_id", userID)
 		return nil, ErrDatabase
 	}
 
@@ -147,7 +147,7 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 		if !ok {
 			// Kein Tisch (gelöscht/unbekannt): verwaisten Favoriten überspringen. Ein Abbruch nähme
 			// der Servicekraft wegen eines einzigen gelöschten Tisches die gesamte Tischübersicht.
-			log.Warn().Int("tisch_id", tischID).Int("user_id", userID).Msg("Skipped favorit with unresolvable tisch")
+			log.Warn("Skipped favorit with unresolvable tisch", "tisch_id", tischID, "user_id", userID)
 			continue
 		}
 
@@ -162,32 +162,32 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 		})
 	}
 
-	log.Info().Int("user_id", userID).Int("count", len(views)).Msg("Retrieved meine tische state")
+	log.Info("Retrieved meine tische state", "user_id", userID, "count", len(views))
 	return views, nil
 }
 
 func (q Query) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to get aktive kassensitzung for historie")
+		log.Error("Failed to get aktive kassensitzung for historie", "error", err, "tisch_id", tischID)
 		return nil, ErrDatabase
 	}
 
 	subject := kasse.TischSessionSubject(kassensitzungNr, tischID)
 	events, err := q.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
-		log.Error().Err(err).Int("tisch_id", tischID).Msg("Failed to read events for tisch")
+		log.Error("Failed to read events for tisch", "error", err, "tisch_id", tischID)
 		return nil, ErrDatabase
 	}
 
 	historie, err := kasse.GetHistorieFromEvents(events)
 	if err != nil {
-		log.Error().Int("tisch_id", tischID).Err(err).Msg("Failed to build historie from events")
+		log.Error("Failed to build historie from events", "tisch_id", tischID, "error", err)
 		return nil, err
 	}
 
-	log.Info().Int("tisch_id", tischID).Int("historie_count", len(historie)).Msg("Retrieved historie for tisch")
+	log.Info("Retrieved historie for tisch", "tisch_id", tischID, "historie_count", len(historie))
 	return historie, nil
 }

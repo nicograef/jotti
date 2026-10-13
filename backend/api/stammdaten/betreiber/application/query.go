@@ -6,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type betreiberRepo interface {
@@ -18,14 +18,14 @@ type Query struct {
 }
 
 func (q Query) GetBetreiber(ctx context.Context) (betreiber.Betreiber, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	b, err := q.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			return betreiber.Betreiber{}, ErrNotFound
 		}
-		log.Error().Err(err).Msg("Failed to retrieve betreiber")
+		log.Error("Failed to retrieve betreiber", "error", err)
 		return betreiber.Betreiber{}, ErrDatabase
 	}
 	return b, nil

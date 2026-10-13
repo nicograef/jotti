@@ -14,8 +14,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/internal/zeit"
-	"github.com/rs/zerolog"
 )
 
 var (
@@ -69,7 +69,7 @@ type Archiv struct {
 // Erstellen builds the DSFinV-K archive for the chosen Kassensitzung. nr == 0 selects
 // the default session: the open one, else the latest closed.
 func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := e.resolveKassensitzung(ctx, nr)
 	if err != nil {
@@ -78,7 +78,7 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 
 	events, signaturen, err := e.KassenjournalRepo.ReadEventsByKassensitzung(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to read events for dsfinvk export")
+		log.Error("Failed to read events for dsfinvk export", "error", err)
 		return Archiv{}, ErrDatabase
 	}
 
@@ -90,10 +90,7 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 	}
 
 	if dsfinvk.ZertifikatZuLang(snapshot.TSEStammdaten.Zertifikat) {
-		log.Warn().
-			Int("kassensitzung", ks.ZNr).
-			Int("laenge", len(snapshot.TSEStammdaten.Zertifikat)).
-			Msg("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export")
+		log.Warn("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export", "kassensitzung", ks.ZNr, "laenge", len(snapshot.TSEStammdaten.Zertifikat))
 	}
 
 	inhalt, err := dsfinvk.BuildArchive(snapshot, events, signaturen)
@@ -101,11 +98,11 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 		if errors.Is(err, dsfinvk.ErrKeineVorgaenge) {
 			return Archiv{}, ErrLeereKassensitzung
 		}
-		log.Error().Err(err).Msg("Failed to build dsfinvk archive")
+		log.Error("Failed to build dsfinvk archive", "error", err)
 		return Archiv{}, err
 	}
 
-	log.Info().Int("kassensitzung", ks.ZNr).Msg("Created DSFinV-K export")
+	log.Info("Created DSFinV-K export", "kassensitzung", ks.ZNr)
 	return Archiv{
 		Dateiname: dateiname(snapshot.KasseSeriennummer, ks.ZNr, snapshot.Erstellung),
 		Inhalt:    inhalt,
@@ -113,12 +110,12 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 }
 
 func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassensitzung, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	if nr > 0 {
 		alle, err := e.KassensitzungenRepo.GetAllKassensitzungen(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to list kassensitzungen")
+			log.Error("Failed to list kassensitzungen", "error", err)
 			return kasse.Kassensitzung{}, ErrDatabase
 		}
 		for _, ks := range alle {
@@ -133,7 +130,7 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 	// the same export via the latest-session branch below.
 	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get offene kassensitzung")
+		log.Error("Failed to get offene kassensitzung", "error", err)
 		return kasse.Kassensitzung{}, ErrDatabase
 	}
 	if offen != nil {
@@ -142,7 +139,7 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 
 	alle, err := e.KassensitzungenRepo.GetAllKassensitzungen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to list kassensitzungen")
+		log.Error("Failed to list kassensitzungen", "error", err)
 		return kasse.Kassensitzung{}, ErrDatabase
 	}
 	if len(alle) == 0 {
@@ -153,26 +150,26 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 }
 
 func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung time.Time) (dsfinvk.Snapshot, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ident, err := e.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get kassenidentitaet")
+		log.Error("Failed to get kassenidentitaet", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
 	betreiber, err := e.BetreiberRepo.GetBetreiber(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get betreiber")
+		log.Error("Failed to get betreiber", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
 	stammdaten, err := e.TSERepo.GetTSEStammdaten(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get tse stammdaten")
+		log.Error("Failed to get tse stammdaten", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
 	tischnamen, err := e.TischRepo.GetAlleTischNamen(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to get tischnamen")
+		log.Error("Failed to get tischnamen", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
 

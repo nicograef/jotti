@@ -12,12 +12,12 @@ func TestParseAdminOTPPlainLine(t *testing.T) {
 	}
 }
 
-func TestParseAdminOTPANSIWrapped(t *testing.T) {
-	// So faerbt der zerolog-ConsoleWriter die Zeile im echten `docker logs` ein.
-	logs := "\x1b[90m10:22AM\x1b[0m \x1b[32mINF\x1b[0m \x1b[1mADMIN-EINMALPASSWORT benutzer=admin code=654321\x1b[0m\n"
+func TestParseAdminOTPJSONLine(t *testing.T) {
+	// So schreibt der JSON-Handler des Backends die Zeile in `docker logs`.
+	logs := `{"time":"2026-10-13T10:22:00.000000000Z","level":"INFO","msg":"ADMIN-EINMALPASSWORT benutzer=admin code=654321"}` + "\n"
 	code, found := ParseAdminOTP(logs)
 	if !found || code != "654321" {
-		t.Fatalf("ParseAdminOTP (ANSI) = (%q, %v), want (\"654321\", true)", code, found)
+		t.Fatalf("ParseAdminOTP (JSON) = (%q, %v), want (\"654321\", true)", code, found)
 	}
 }
 

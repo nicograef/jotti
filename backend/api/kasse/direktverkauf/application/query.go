@@ -6,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type historieEventRepo interface {
@@ -21,11 +21,11 @@ type Query struct {
 // GetDirektverkaufHistorie returns one entry per Verkauf of the active Kassensitzung, most recent
 // first; an empty slice when no Kassensitzung is active.
 func (q Query) GetDirektverkaufHistorie(ctx context.Context) ([]kasse.DirektverkaufHistorieEintrag, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	ks, err := q.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to load aktive Kassensitzung for direktverkauf historie")
+		log.Error("Failed to load aktive Kassensitzung for direktverkauf historie", "error", err)
 		return nil, ErrDatabase
 	}
 	if ks == nil {
@@ -34,17 +34,17 @@ func (q Query) GetDirektverkaufHistorie(ctx context.Context) ([]kasse.Direktverk
 
 	events, err := q.EventRepo.ReadDirektverkaufEvents(ctx, ks.ZNr)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to read direktverkauf events")
+		log.Error("Failed to read direktverkauf events", "error", err)
 		return nil, ErrDatabase
 	}
 
 	historie, err := buildHistorie(events)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to build direktverkauf historie")
+		log.Error("Failed to build direktverkauf historie", "error", err)
 		return nil, err
 	}
 
-	log.Info().Int("historie_count", len(historie)).Msg("Retrieved direktverkauf historie")
+	log.Info("Retrieved direktverkauf historie", "historie_count", len(historie))
 	return historie, nil
 }
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type tseCommandRepo interface {
@@ -29,11 +29,11 @@ type Command struct {
 // (docs/handbuch.md §3.13). wird_abgeschlossen counts too: a closing that still signs belongs to
 // the old TSS.
 func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	aktive, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to check for aktive Kassensitzung before TSE config change")
+		log.Error("Failed to check for aktive Kassensitzung before TSE config change", "error", err)
 		return ErrDatabase
 	}
 	if aktive != nil {
@@ -45,7 +45,7 @@ func (c Command) ensureKeineAktiveKassensitzung(ctx context.Context) error {
 // UpdateTSEKonfiguration saves a hand-entered configuration under the setup lock (einrichtungLaeuft).
 // Without it the last writer would win and the instance would sign against a TSS it was not set up with.
 func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfiguration) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	freigeben, err := acquireEinrichtung()
 	if err != nil {
@@ -60,13 +60,11 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 	// SaveEinrichtung, because this path can also make the transition to configured;
 	// otherwise the keine_konfiguration outage would stay open forever.
 	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
-		log.Error().Err(err).Msg("Failed to save tse_konfiguration")
+		log.Error("Failed to save tse_konfiguration", "error", err)
 		return ErrDatabase
 	}
 
-	log.Info().
-		Bool("ist_konfiguriert", conf.IstKonfiguriert()).
-		Msg("TSE-Konfiguration saved")
+	log.Info("TSE-Konfiguration saved", "ist_konfiguriert", conf.IstKonfiguriert())
 
 	return nil
 }

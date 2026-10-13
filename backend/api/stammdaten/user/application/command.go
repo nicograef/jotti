@@ -6,7 +6,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type userRepo interface {
@@ -21,58 +21,58 @@ type Command struct {
 }
 
 func (c Command) CreateUser(ctx context.Context, name, username string, role user.Role) (int, string, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	user, onetimePassword, err := user.NewUser(name, username, role)
 	if err != nil {
-		log.Warn().Err(err).Str("username", username).Msg("Invalid user data")
+		log.Warn("Invalid user data", "error", err, "username", username)
 		return 0, "", ErrInvalidUserData
 	}
 
 	userID, err := c.UserRepo.CreateUser(ctx, user)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
+			log.Warn("Username already exists", "error", err, "username", user.Username)
 			return 0, "", ErrUsernameAlreadyExists
 		}
-		log.Error().Err(err).Str("username", user.Username).Msg("Failed to create user")
+		log.Error("Failed to create user", "error", err, "username", user.Username)
 		return 0, "", ErrDatabase
 	}
 
-	log.Info().Str("username", user.Username).Msg("User created successfully")
+	log.Info("User created successfully", "username", user.Username)
 	return userID, onetimePassword, nil
 }
 
 func (c Command) UpdateUser(ctx context.Context, userID int, name, username string, role user.Role) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("user_id", userID).Msg("User not found for update")
+			log.Warn("User not found for update", "user_id", userID)
 			return ErrUserNotFound
 		}
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for update")
+		log.Error("Failed to retrieve user for update", "error", err, "user_id", userID)
 		return ErrDatabase
 	}
 
 	err = user.UpdateDetails(name, username, role)
 	if err != nil {
-		log.Warn().Err(err).Int("user_id", userID).Msg("Invalid user data for update")
+		log.Warn("Invalid user data for update", "error", err, "user_id", userID)
 		return ErrInvalidUserData
 	}
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn().Err(err).Str("username", user.Username).Msg("Username already exists")
+			log.Warn("Username already exists", "error", err, "username", user.Username)
 			return ErrUsernameAlreadyExists
 		}
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
+		log.Error("Failed to update user", "error", err, "user_id", userID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Msg("User updated successfully")
+	log.Info("User updated successfully", "user_id", userID)
 	return nil
 }
 
@@ -89,15 +89,15 @@ func (c Command) DeleteUser(ctx context.Context, userID int) error {
 }
 
 func (c Command) applyUserStatusChange(ctx context.Context, userID int, successMsg string, action func(*user.User)) error {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("user_id", userID).Msg("User not found for status change")
+			log.Warn("User not found for status change", "user_id", userID)
 			return ErrUserNotFound
 		}
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for status change")
+		log.Error("Failed to retrieve user for status change", "error", err, "user_id", userID)
 		return ErrDatabase
 	}
 
@@ -105,39 +105,39 @@ func (c Command) applyUserStatusChange(ctx context.Context, userID int, successM
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user")
+		log.Error("Failed to update user", "error", err, "user_id", userID)
 		return ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Msg(successMsg)
+	log.Info(successMsg, "user_id", userID)
 	return nil
 }
 
 func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
-			log.Warn().Int("user_id", userID).Msg("User not found for password reset")
+			log.Warn("User not found for password reset", "user_id", userID)
 			return "", ErrUserNotFound
 		}
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to retrieve user for password reset")
+		log.Error("Failed to retrieve user for password reset", "error", err, "user_id", userID)
 		return "", ErrDatabase
 	}
 
 	onetimePassword, err := user.ResetPassword()
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to reset password")
+		log.Error("Failed to reset password", "error", err, "user_id", userID)
 		return "", err
 	}
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		log.Error().Err(err).Int("user_id", userID).Msg("Failed to update user in persistence")
+		log.Error("Failed to update user in persistence", "error", err, "user_id", userID)
 		return "", ErrDatabase
 	}
 
-	log.Info().Int("user_id", userID).Msg("Password reset successfully")
+	log.Info("Password reset successfully", "user_id", userID)
 	return onetimePassword, nil
 }

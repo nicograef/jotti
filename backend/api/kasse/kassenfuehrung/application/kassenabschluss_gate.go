@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/rs/zerolog"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 // SignaturenAusstehendError blockiert den Kassenabschluss: mindestens ein Signaturauftrag ist offen
@@ -38,17 +38,17 @@ type signaturGate struct {
 // Signaturstatus-Funktion wie der Beleg-Abruf — kein zweiter Zurechnungspfad. Ausstehend blockiert,
 // Ausfall lässt durch und wird in der Abschlussmeldung ausgewiesen.
 func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (signaturGate, error) {
-	log := zerolog.Ctx(ctx)
+	log := logging.FromContext(ctx)
 
 	staende, err := c.TSERepo.GetOffeneSignaturauftragStaendeFuerKassensitzung(ctx, kassensitzungNr)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", kassensitzungNr).Msg("Failed to load Signaturauftrag-Staende for Kassenabschluss-Gate")
+		log.Error("Failed to load Signaturauftrag-Staende for Kassenabschluss-Gate", "error", err, "z_nr", kassensitzungNr)
 		return signaturGate{}, ErrDatabase
 	}
 
 	aktiveStoerung, err := c.TSERepo.GetAktiveTSEStoerung(ctx)
 	if err != nil {
-		log.Error().Err(err).Int("z_nr", kassensitzungNr).Msg("Failed to load aktive TSE-Stoerung for Kassenabschluss-Gate")
+		log.Error("Failed to load aktive TSE-Stoerung for Kassenabschluss-Gate", "error", err, "z_nr", kassensitzungNr)
 		return signaturGate{}, ErrDatabase
 	}
 

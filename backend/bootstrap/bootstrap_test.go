@@ -7,11 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rs/zerolog"
-
 	"github.com/nicograef/jotti/backend/bootstrap"
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 var sixDigits = regexp.MustCompile(`^\d{6}$`)
@@ -228,9 +227,9 @@ func TestEnsureInitialAdmin(t *testing.T) {
 	}
 }
 
-func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
+func TestResultLog_MarkerSurvivesJSONHandler(t *testing.T) {
 	var buf bytes.Buffer
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: &buf, NoColor: true})
+	logger := logging.New(&buf)
 
 	bootstrap.Result{Action: bootstrap.ActionCreate, OnetimePassword: "123456"}.Log(logger)
 
@@ -245,7 +244,7 @@ func TestResultLog_MarkerSurvivesConsoleWriter(t *testing.T) {
 
 func TestResultLog_SkipWritesNothing(t *testing.T) {
 	var buf bytes.Buffer
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: &buf, NoColor: true})
+	logger := logging.New(&buf)
 
 	bootstrap.Result{Action: bootstrap.ActionSkip}.Log(logger)
 
