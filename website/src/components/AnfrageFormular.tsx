@@ -42,11 +42,11 @@ export default function AnfrageFormular() {
   ) {
     setFelder((current) => ({ ...current, [key]: value }))
     if (key in fehler) {
-      setFehler((current) => {
-        const next = { ...current }
-        delete next[key as keyof AnfrageFehler]
-        return next
-      })
+      setFehler((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(([feld]) => feld !== key),
+        ),
+      )
     }
   }
 
@@ -85,7 +85,9 @@ export default function AnfrageFormular() {
       try {
         await navigator.clipboard.writeText(mail.text)
         setKopieren('kopiert')
-        window.setTimeout(() => setKopieren('idle'), 2000)
+        window.setTimeout(() => {
+          setKopieren('idle')
+        }, 2000)
       } catch {
         setKopieren('fehler')
       }
@@ -157,7 +159,9 @@ export default function AnfrageFormular() {
             </label>
             <button
               type="button"
-              onClick={kopiereText}
+              onClick={() => {
+                void kopiereText()
+              }}
               className="btn btn-ghost mt-2.5"
             >
               {kopieren === 'kopiert' ? (
@@ -230,7 +234,9 @@ export default function AnfrageFormular() {
             name="verein"
             type="text"
             value={felder.verein}
-            onChange={(event) => setFeld('verein', event.target.value)}
+            onChange={(event) => {
+              setFeld('verein', event.target.value)
+            }}
             placeholder="TSV Musterhausen e.V."
             required
             aria-invalid={fehler.verein ? true : undefined}
@@ -253,7 +259,9 @@ export default function AnfrageFormular() {
             name="sitz"
             type="text"
             value={felder.sitz}
-            onChange={(event) => setFeld('sitz', event.target.value)}
+            onChange={(event) => {
+              setFeld('sitz', event.target.value)
+            }}
             placeholder="Musterhausen"
             required
             aria-invalid={fehler.sitz ? true : undefined}
@@ -278,7 +286,9 @@ export default function AnfrageFormular() {
             name="name"
             type="text"
             value={felder.name}
-            onChange={(event) => setFeld('name', event.target.value)}
+            onChange={(event) => {
+              setFeld('name', event.target.value)
+            }}
             placeholder="Vor- und Nachname"
             required
             aria-invalid={fehler.name ? true : undefined}
@@ -301,7 +311,9 @@ export default function AnfrageFormular() {
             name="email"
             type="email"
             value={felder.email}
-            onChange={(event) => setFeld('email', event.target.value)}
+            onChange={(event) => {
+              setFeld('email', event.target.value)
+            }}
             placeholder="vorstand@musterhausen.de"
             required
             aria-invalid={fehler.email ? true : undefined}
@@ -325,7 +337,9 @@ export default function AnfrageFormular() {
           <select
             name="art"
             value={felder.art}
-            onChange={(event) => setFeld('art', event.target.value)}
+            onChange={(event) => {
+              setFeld('art', event.target.value)
+            }}
             className={`${feldKlassen} h-[46px]`}
           >
             {artOptionen.map((option) => (
@@ -344,7 +358,9 @@ export default function AnfrageFormular() {
             name="message"
             rows={3}
             value={felder.message}
-            onChange={(event) => setFeld('message', event.target.value)}
+            onChange={(event) => {
+              setFeld('message', event.target.value)
+            }}
             placeholder="Für welche Veranstaltung möchtet ihr jotti nutzen?"
             className={`${feldKlassen} resize-y py-[11px]`}
           />

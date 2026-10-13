@@ -1,0 +1,11 @@
+# Ignore artifacts:
+node_modules
+dist
+.astro
+
+# Ignore lock files
+pnpm-lock.yaml
+
+# Astro components: prettier-plugin-astro would be a new dependency;
+# `astro check` covers these instead.
+*.astro

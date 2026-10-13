@@ -58,10 +58,10 @@ export function addVariant(cart: Cart, id: number): Cart {
 export function removeVariant(cart: Cart, id: number): Cart {
   const current = cart[id] ?? 0
   if (current <= 0) return cart
-  const next: Record<number, number> = { ...cart }
-  if (current === 1) delete next[id]
-  else next[id] = current - 1
-  return next
+  if (current > 1) return { ...cart, [id]: current - 1 }
+  return Object.fromEntries(
+    Object.entries(cart).filter(([key]) => Number(key) !== id),
+  )
 }
 
 export function cartTotalCents(cart: Cart): number {
@@ -96,7 +96,7 @@ export const demoScript: readonly DemoStep[] = [
 
 // Wartezeit vor dem Ausführen des Schritts mit diesem Index.
 export function stepDelayMs(index: number): number {
-  const step = demoScript[index]
+  const step = demoScript.at(index)
   if (!step) return 0
   if (step.action === 'pay') return 1300
   if (step.action === 'reset') return 1900
@@ -146,7 +146,7 @@ export function startAuto(state: DemoState): DemoState {
 // einem manuellen Stopp keinen Schaden an.
 export function runNextStep(state: DemoState): DemoState {
   if (state.autoStatus !== 'running') return state
-  const step = demoScript[state.step]
+  const step = demoScript.at(state.step)
   if (!step) return { ...state, autoStatus: 'done' }
   const nextStep = state.step + 1
   return {

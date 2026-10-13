@@ -54,8 +54,8 @@ export default function FaqAccordion() {
     <div className="mt-10 flex flex-col gap-3">
       {faqs.map((item, index) => {
         const isOpen = index === open
-        const buttonId = `faq-button-${index}`
-        const panelId = `faq-panel-${index}`
+        const buttonId = `faq-button-${String(index)}`
+        const panelId = `faq-panel-${String(index)}`
         return (
           <div
             key={item.q}
@@ -73,7 +73,9 @@ export default function FaqAccordion() {
                 id={buttonId}
                 aria-expanded={isOpen}
                 aria-controls={panelId}
-                onClick={() => setOpen(isOpen ? -1 : index)}
+                onClick={() => {
+                  setOpen(isOpen ? -1 : index)
+                }}
                 className="flex w-full items-center justify-between gap-4 px-[22px] py-[19px] text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
               >
                 <span className="font-brand text-[17px] font-semibold">

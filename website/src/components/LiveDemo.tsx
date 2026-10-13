@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Check, Euro, Minus, Plus, RotateCcw } from 'lucide-react'
 
 import jottiSymbol from '../assets/jotti-symbol.png'
@@ -36,16 +36,22 @@ const explainSteps: { accent: string; title: string; text: string }[] = [
   },
 ]
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+
+function subscribeReducedMotion(onChange: () => void): () => void {
+  const query = window.matchMedia(REDUCED_MOTION_QUERY)
+  query.addEventListener('change', onChange)
+  return () => {
+    query.removeEventListener('change', onChange)
+  }
+}
+
 function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false)
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setReduced(query.matches)
-    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches)
-    query.addEventListener('change', onChange)
-    return () => query.removeEventListener('change', onChange)
-  }, [])
-  return reduced
+  return useSyncExternalStore(
+    subscribeReducedMotion,
+    () => window.matchMedia(REDUCED_MOTION_QUERY).matches,
+    () => false,
+  )
 }
 
 export default function LiveDemo() {
@@ -72,7 +78,9 @@ export default function LiveDemo() {
       { threshold: 0.25 },
     )
     observer.observe(element)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+    }
   }, [reducedMotion])
 
   // Pro (autoStatus, step) genau ein Timer; runNextStep ist no-op, falls
@@ -82,7 +90,9 @@ export default function LiveDemo() {
     const timer = setTimeout(() => {
       setState((current) => runNextStep(current))
     }, stepDelayMs(state.step))
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [state.autoStatus, state.step, reducedMotion])
 
   function onReplay() {
@@ -221,11 +231,11 @@ export default function LiveDemo() {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
                                 setState((current) =>
                                   manualRemove(current, variant.id),
                                 )
-                              }
+                              }}
                               disabled={!active}
                               aria-label={`${product.name} ${variant.name} entfernen`}
                               className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-card-border text-foreground transition-opacity disabled:opacity-40"
@@ -237,11 +247,11 @@ export default function LiveDemo() {
                             </span>
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={() => {
                                 setState((current) =>
                                   manualAdd(current, variant.id),
                                 )
-                              }
+                              }}
                               aria-label={`${product.name} ${variant.name} hinzufügen`}
                               className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-brand-solid text-white"
                             >
@@ -259,7 +269,9 @@ export default function LiveDemo() {
             <div className="shrink-0 border-t border-card-border bg-background px-4 pt-3 pb-4">
               <button
                 type="button"
-                onClick={() => setState((current) => manualPay(current))}
+                onClick={() => {
+                  setState((current) => manualPay(current))
+                }}
                 disabled={!hasCart}
                 className="flex h-[50px] w-full items-center justify-between rounded-[13px] bg-brand-solid px-[18px] text-[15.5px] font-bold text-white transition-opacity disabled:opacity-45"
               >

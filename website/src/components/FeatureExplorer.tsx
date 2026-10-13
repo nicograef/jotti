@@ -143,12 +143,16 @@ export default function FeatureExplorer() {
               }}
               type="button"
               role="tab"
-              id={`feature-tab-${index}`}
+              id={`feature-tab-${String(index)}`}
               aria-selected={isActive}
               aria-controls="feature-panel"
               tabIndex={isActive ? 0 : -1}
-              onClick={() => setActive(index)}
-              onKeyDown={(event) => onKeyDown(event, index)}
+              onClick={() => {
+                setActive(index)
+              }}
+              onKeyDown={(event) => {
+                onKeyDown(event, index)
+              }}
               className="flex flex-col rounded-2xl border p-[18px] text-left transition-[transform,box-shadow,border-color] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               style={
                 isActive
@@ -184,7 +188,7 @@ export default function FeatureExplorer() {
       <div
         id="feature-panel"
         role="tabpanel"
-        aria-labelledby={`feature-tab-${active}`}
+        aria-labelledby={`feature-tab-${String(active)}`}
         tabIndex={0}
         className="relative overflow-hidden rounded-[20px] border border-card-border bg-card p-[30px] shadow-[var(--shadow)] nav:sticky nav:top-[92px]"
       >

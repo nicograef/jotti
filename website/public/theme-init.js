@@ -6,8 +6,9 @@
 // defines `window.StarlightThemeProvider`, which the docs theme picker expects.
 window.StarlightThemeProvider = (() => {
   const storedTheme =
-    typeof localStorage !== 'undefined' &&
-    localStorage.getItem('starlight-theme')
+    typeof localStorage === 'undefined'
+      ? ''
+      : (localStorage.getItem('starlight-theme') ?? '')
   const theme =
     storedTheme ||
     (window.matchMedia('(prefers-color-scheme: light)').matches
@@ -19,8 +20,9 @@ window.StarlightThemeProvider = (() => {
       document.querySelectorAll('starlight-theme-select').forEach((picker) => {
         const select = picker.querySelector('select')
         if (select) select.value = theme
+        /** @type {HTMLTemplateElement | null} */
         const tmpl = document.querySelector('#theme-icons')
-        const newIcon = tmpl && tmpl.content.querySelector('.' + theme)
+        const newIcon = tmpl?.content.querySelector('.' + theme)
         if (newIcon) {
           const oldIcon = picker.querySelector('svg.label-icon')
           if (oldIcon) {

@@ -2,7 +2,7 @@
 
 .PHONY: init up up-attached down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
-       lint-backend lint-backend-full lint-frontend lint-e2e lint \
+       lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint \
        fmt-backend fmt-frontend fmt-repo fmt \
        build-backend build-relay build-resolver build-local-proxy build-frontend build \
        build-starter-windows build-relay-windows starter-syso release-windows \
@@ -86,7 +86,10 @@ lint-frontend: ## Frontend Linting (oxlint, typbewusst)
 lint-e2e: ## E2E-Suite Linting (oxlint, typbewusst)
 	cd e2e && pnpm lint
 
-lint: lint-backend lint-frontend lint-e2e check-shell ## Backend-, Frontend-, E2E- und Shell-Linting
+lint-website: ## Website Linting (oxlint, typbewusst)
+	cd website && pnpm lint
+
+lint: lint-backend lint-frontend lint-e2e lint-website check-shell ## Backend-, Frontend-, E2E-, Website- und Shell-Linting
 
 # Formatierung
 
@@ -377,8 +380,8 @@ website-build: ## Website bauen (Astro Build → website/dist)
 website-test: ## Website Unit-Tests (Vitest)
 	cd website && pnpm test
 
-website-check: ## Website prüfen (Vitest + astro check + Build)
-	cd website && pnpm test && pnpm check
+website-check: ## Website prüfen (Format, Lint, Vitest, astro check, Build)
+	cd website && pnpm format:check && pnpm lint && pnpm test && pnpm check
 
 # Port des selbst gestarteten Screenshot-Stacks (parametrierbar für parallele Läufe).
 E2E_SCREENSHOT_PORT ?= 8080
@@ -410,7 +413,7 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 # lists as its sections. A target in none prints under UNCLASSIFIED.
 CLASS_developer := init up up-attached down restart logs status \
 	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
-	lint-backend lint-backend-full lint-frontend lint-e2e lint fmt-backend fmt-frontend fmt-repo fmt \
+	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
 	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
 	starter-syso release-windows build-frontend build sqlc \
 	local-up local-down local-logs db-shell seed rebuild-projections clean \

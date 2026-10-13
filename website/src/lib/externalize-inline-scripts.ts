@@ -36,7 +36,9 @@ const EXECUTABLE_TYPES = new Set([
 function isExecutableScript(attrs: string): boolean {
   const match = /\btype\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs)
   if (!match) return true
-  const type = (match[1] ?? match[2] ?? match[3] ?? '').trim().toLowerCase()
+  // Unbeteiligte Alternativen-Gruppen sind zur Laufzeit undefined.
+  const groups: readonly (string | undefined)[] = match
+  const type = (groups[1] ?? groups[2] ?? groups[3] ?? '').trim().toLowerCase()
   return type === '' || EXECUTABLE_TYPES.has(type)
 }
 
@@ -66,8 +68,6 @@ export function externalizeInlineScripts(): AstroIntegration {
 
         for (const file of await htmlFiles(distDir)) {
           const html = await readFile(file, 'utf8')
-          let changed = false
-
           const rewritten = html.replace(
             COMMENT_OR_SCRIPT_RE,
             (match, attrs?: string, body?: string) => {
@@ -82,13 +82,12 @@ export function externalizeInlineScripts(): AstroIntegration {
                 .digest('hex')
                 .slice(0, 16)
               scripts.set(hash, body)
-              changed = true
               externalized++
               return `<script${attrs} src="/_astro/inline-${hash}.js"></script>`
             },
           )
 
-          if (changed) await writeFile(file, rewritten)
+          if (rewritten !== html) await writeFile(file, rewritten)
         }
 
         await Promise.all(
@@ -98,7 +97,7 @@ export function externalizeInlineScripts(): AstroIntegration {
         )
 
         logger.info(
-          `${externalized} Inline-Skript(e) externalisiert (CSP: kein inline script).`,
+          `${String(externalized)} Inline-Skript(e) externalisiert (CSP: kein inline script).`,
         )
       },
     },

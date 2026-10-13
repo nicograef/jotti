@@ -13,6 +13,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check && astro build",
+    "lint": "astro sync && oxlint --type-aware --deny-warnings",
+    "lint:fix": "astro sync && oxlint --type-aware --deny-warnings --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "astro": "astro"
   },
@@ -32,6 +36,9 @@
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "vitest": "^5.0.4"

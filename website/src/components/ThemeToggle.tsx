@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { Moon, Sun } from 'lucide-react'
 
 // Schreibt in denselben Speicher wie der Doku-Schalter (localStorage
@@ -7,9 +7,15 @@ import { Moon, Sun } from 'lucide-react'
 
 type Theme = 'light' | 'dark'
 
-declare global {
-  interface Window {
-    StarlightThemeProvider?: { updatePickers?: (theme: string) => void }
+// Folgt `data-theme` auf <html>, egal welcher Schalter es setzt.
+function subscribeTheme(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  })
+  return () => {
+    observer.disconnect()
   }
 }
 
@@ -20,11 +26,11 @@ function readTheme(): Theme {
 export default function ThemeToggle() {
   // Vor der Hydration ist das Theme unbekannt; `null` rendert einen Platzhalter
   // gleicher Größe — kein Hydration-Mismatch, kein Layout-Sprung.
-  const [theme, setTheme] = useState<Theme | null>(null)
-
-  useEffect(() => {
-    setTheme(readTheme())
-  }, [])
+  const theme = useSyncExternalStore<Theme | null>(
+    subscribeTheme,
+    readTheme,
+    () => null,
+  )
 
   function toggle() {
     const next: Theme = (theme ?? readTheme()) === 'dark' ? 'light' : 'dark'
@@ -35,8 +41,7 @@ export default function ThemeToggle() {
       // localStorage kann blockiert sein (Privatmodus) — Umschaltung wirkt
       // trotzdem für die aktuelle Sitzung.
     }
-    window.StarlightThemeProvider?.updatePickers?.(next)
-    setTheme(next)
+    window.StarlightThemeProvider.updatePickers(next)
   }
 
   const label =
