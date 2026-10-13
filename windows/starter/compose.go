@@ -12,14 +12,16 @@ import (
 // Grosszuegig fuer die Erst-Migrationen auf Altgeraeten.
 const healthTimeout = 120 * time.Second
 
-// composeUp faehrt den Stack hoch und reicht die Ausgabe live durch. Der Proxy wird
-// danach neu erzeugt, weil das Caddyfile nur im Entrypoint aus LAN_IP gerendert wird.
+// composeUp faehrt den Stack hoch und reicht die Ausgabe live durch; --remove-orphans
+// entfernt Container von Diensten, die die Compose-Datei des neuen Release nicht mehr
+// kennt. Der Proxy wird danach neu erzeugt, weil das Caddyfile nur im Entrypoint aus
+// LAN_IP gerendert wird.
 func composeUp(composePath, envPath, lanIP string) error {
 	env := os.Environ()
 	if lanIP != "" {
 		env = append(env, "LAN_IP="+lanIP)
 	}
-	if err := runCompose(env, composePath, envPath, "up", "-d", "--build"); err != nil {
+	if err := runCompose(env, composePath, envPath, "up", "-d", "--build", "--remove-orphans"); err != nil {
 		return err
 	}
 	return runCompose(env, composePath, envPath, "up", "-d", "--no-deps", "--force-recreate", "reverse-proxy")

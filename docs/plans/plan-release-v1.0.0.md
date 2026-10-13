@@ -151,6 +151,8 @@ Alle Funktionen und Änderungen im Detail: Abschnitt `[1.0.0]` in `CHANGELOG.md`
 - **Windows-Rechner (Standardweg):** `jotti-stop.cmd`, neues Release-ZIP entpacken,
   `jotti-start.exe` starten. Der Starter sichert die Datenbank automatisch, bevor er
   aktualisiert. Ablauf, Rauchtest und der Weg zurück: `docs/leitfaden/aktualisieren.md`.
-- **Eigener Server (Self-Hosting):** `JOTTI_VERSION=v1.0.0` in `.env` setzen und `make prod-update`
-  ausführen. Das Skript zieht vor der Aktualisierung ein Backup. Ablauf und Backup-Strategie:
-  `docs/leitfaden/aktualisieren-backups.md`.
+- **Eigener Server (Self-Hosting):** die Projektdateien von v1.0.0 holen (`git checkout v1.0.0`
+  oder das Quellcode-Archiv), `JOTTI_VERSION=v1.0.0` in `.env` setzen und `make prod-update`
+  ausführen. Die Compose-Datei muss die von v1.0.0 sein: Ältere verlangen das Image
+  `jotti-frontend`, das v1.0.0 nicht veröffentlicht. Das Skript zieht vor der Aktualisierung ein
+  Backup. Ablauf und Backup-Strategie: `docs/leitfaden/aktualisieren-backups.md`.

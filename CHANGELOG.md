@@ -60,3 +60,4 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 
 - Windows: `jotti-restore.cmd` und `jotti-repair.cmd` enden nach der Datenbankarbeit; gestartet wird jotti danach mit `jotti-start.exe`.
 - Server-Stack unter eigener Domain: `JOTTI_DOMAIN` ist Pflicht, ohne die Variable bricht jeder Befehl des Stacks ab.
+- Der Reverse-Proxy liefert die App selbst aus, den eigenen Frontend-Container gibt es nicht mehr. Server-Stack: vor `make prod-update` einmal die Projektdateien der neuen Version holen, denn die alte Compose-Datei verlangt das nicht mehr veröffentlichte Image `jotti-frontend`.

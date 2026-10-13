@@ -87,9 +87,10 @@ rollback_guidance() {
   warn "A pre-update backup was taken before any migration ran:"
   warn "  $PRE_UPDATE_DUMP"
   echo "" >&2
-  warn "Roll back to the previous version ($RUNNING_VERSION) in two steps:"
-  warn "  1. Set JOTTI_VERSION=$RUNNING_VERSION in .env"
-  warn "  2. ./scripts/prod-restore.sh $PRE_UPDATE_DUMP"
+  warn "Roll back to the previous version ($RUNNING_VERSION) in three steps:"
+  warn "  1. Switch to the $RUNNING_VERSION project files (git checkout $RUNNING_VERSION)"
+  warn "  2. Set JOTTI_VERSION=$RUNNING_VERSION in .env"
+  warn "  3. ./scripts/prod-restore.sh $PRE_UPDATE_DUMP"
   warn "     (restores the pre-update database and restarts the previous version)"
   echo "" >&2
   warn "No data created before the update is lost — it is in the backup above."
@@ -97,11 +98,13 @@ rollback_guidance() {
 
 info "Pulling pinned images for $TARGET_VERSION..."
 if ! docker compose -f "$COMPOSE_FILE" pull; then
-  fatal "docker compose pull failed. Nothing was changed; the previous version is still running."
+  error "docker compose pull failed. Nothing was changed; the previous version is still running."
+  fatal "Check that $COMPOSE_FILE comes from the $TARGET_VERSION project files: each release ships its own."
 fi
 
+# --remove-orphans stops the containers of services the new compose file dropped.
 info "Applying the update (this runs database migrations)..."
-if ! docker compose -f "$COMPOSE_FILE" up -d; then
+if ! docker compose -f "$COMPOSE_FILE" up -d --remove-orphans; then
   rollback_guidance
   exit 1
 fi

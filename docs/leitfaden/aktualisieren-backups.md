@@ -8,17 +8,28 @@ description: 'Den selbst gehosteten jotti-Server (Experten-Weg) sicher aktualisi
 > ℹ️ **Dieser Weg gilt für den eigenen Server.** Betreibt ihr jotti per
 > Windows-Doppelklick, folgt stattdessen [Aktualisieren (Standardweg)](aktualisieren.md).
 
-Tragt in der `.env` unter `JOTTI_VERSION` die gewünschte Release-Version ein und
-führt `make prod-update` aus. Die aktuelle Nummer steht auf der
+Die aktuelle Versionsnummer steht auf der
 [GitHub-Releases-Seite](https://github.com/nicograef/jotti/releases).
 
+1. **Projektdateien der neuen Version holen.** Compose-Datei, `Makefile` und
+   Skripte gehören zur Version. Im geklonten Repository: `git fetch --tags` und
+   `git checkout <version>`. Mit dem Quellcode-Archiv entpackt ihr das neue Archiv
+   und kopiert `.env` und `backups/` aus dem alten Ordner hinüber.
+2. **Version eintragen.** In der `.env` unter `JOTTI_VERSION` dieselbe Version
+   eintragen.
+3. **`make prod-update` ausführen.**
+
 Das Skript sichert die Datenbank automatisch, bevor es die neuen Images zieht und
-die Migrationen ausführt. Danach prüft es die Gesundheit. Bleibt der Stack
-ungesund, bricht es ab und zeigt, wie ihr mit dem eben erstellten Backup zurückkehrt.
+die Migrationen ausführt. Container von Diensten, die die neue Compose-Datei nicht
+mehr kennt, entfernt es.
+
+Danach prüft es die Gesundheit. Bleibt der Stack ungesund, bricht es ab und zeigt,
+wie ihr mit dem eben erstellten Backup zurückkehrt.
 
 > 🔁 **Nur vorwärts, kein Downgrade.** Updates verändern die Datenbank und lassen
 > sich nicht zurücknehmen; eine ältere Version kann mit den neuen Daten nicht mehr
-> starten. Wollt ihr zurück, spielt ein Backup ein (`make prod-restore`).
+> starten. Wollt ihr zurück, holt ihr die Projektdateien der alten Version und
+> spielt ein Backup ein (`make prod-restore`).
 
 ## Backups
 

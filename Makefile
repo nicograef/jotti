@@ -176,7 +176,7 @@ prod-up: ## Stack starten/neustarten mit gepinnter Version (kein Update; fuer Up
 	  echo "Setze JOTTI_VERSION=vX.Y.Z in .env. Zum Aktualisieren: make prod-update."; \
 	  exit 1; \
 	fi
-	docker compose -f docker-compose.prod.yml up -d
+	docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 prod-update: ## Sicheres Update (Pre-Update-Backup, Images ziehen, Migrationen, Health-Check, Rollback-Anleitung)
 	./scripts/prod-update.sh
@@ -244,7 +244,7 @@ rocks-backup: ## acme-dns-Datenbank vom VPS sichern, vom Laptop aus (DEST=<Verze
 local-up: ## Lokalen LAN-Stack starten/aktualisieren (HTTPS via lokal.jotti.rocks + interner CA-Fallback) — siehe docs/leitfaden/installation.md
 	@LAN_IP="$$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($$i == "src") { print $$(i + 1); exit }}')"; \
 	echo "Host-LAN-IP: $${LAN_IP:-<nicht erkannt>}"; \
-	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build; \
+	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --build --remove-orphans; \
 	LAN_IP="$$LAN_IP" docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate reverse-proxy; \
 	echo "Status & Zugangsadresse: http://localhost:8484"
 
