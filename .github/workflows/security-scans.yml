@@ -62,7 +62,7 @@ jobs:
           cache-dependency-path: ${{ matrix.module }}/go.sum
 
       # Fails only on vulnerabilities reachable from this module's code; the
-      # Makefile holds the govulncheck pin.
+      # backend/go.mod holds the govulncheck pin.
       - name: govulncheck
         run: make check-govulncheck GO_MODULES=${{ matrix.module }}
 
@@ -88,7 +88,7 @@ jobs:
           cache: false
 
       # Fails only on vulnerabilities reachable from this module's code; the
-      # Makefile holds the govulncheck pin.
+      # backend/go.mod holds the govulncheck pin.
       - name: govulncheck
         run: make check-govulncheck GO_MODULES=${{ matrix.module }}
 

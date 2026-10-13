@@ -162,7 +162,7 @@ build: build-backend build-frontend ## Backend + Frontend kompilieren
 # Code-Generierung
 
 sqlc: ## sqlc Code generieren (aus SQL-Queries)
-	cd backend && sqlc generate
+	cd backend && go tool sqlc generate
 
 # Produktion
 
@@ -274,7 +274,7 @@ clean: ## Dev-Stack stoppen und Volumes entfernen
 # Qualitätsprüfung (CI-nah)
 
 check-tools: ## Prüfen, ob lokale Verify-Tools installiert sind
-	@for tool in golangci-lint sqlc shellcheck actionlint pnpm; do \
+	@for tool in golangci-lint shellcheck actionlint pnpm; do \
 		if ! command -v $$tool >/dev/null 2>&1; then \
 			echo "Fehlendes Tool: $$tool"; \
 			echo "Installiere es mit scripts/setup-dev-tools.sh."; \
@@ -298,7 +298,7 @@ check-backend: ## Backend komplett prüfen (Deps, Lint inkl. Integrationstest-Da
 	cd backend && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
 
 check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (sqlc diff)
-	cd backend && sqlc diff
+	cd backend && go tool sqlc diff
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd windows/relay && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
@@ -340,15 +340,17 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt 
 		exit 1; \
 	fi
 
-# The pin of every Go module's govulncheck; .github/workflows/security-scans.yml runs these targets.
-GOVULNCHECK := go run golang.org/x/vuln/cmd/govulncheck@v1.9.0
+# govulncheck is a tool of backend/go.mod; .github/workflows/security-scans.yml runs these targets.
+# GOWORK=off scans each module at its own go.mod versions, as its Docker image builds it:
+# the workspace would raise them to the highest any module requires.
+GOVULNCHECK := GOWORK=off go -C backend tool govulncheck
 GO_MODULES ?= backend resolver reverse-proxy windows/relay windows/starter
 AUDIT_PROJECTS ?= frontend website
 
 check-govulncheck: ## Go-Module auf erreichbare Schwachstellen prüfen (govulncheck, braucht Netz; GO_MODULES=… grenzt ein)
 	@for module in $(GO_MODULES); do \
 		echo "→ $$module"; \
-		(cd "$$module" && $(GOVULNCHECK) ./...) || exit 1; \
+		$(GOVULNCHECK) -C "$(CURDIR)/$$module" ./... || exit 1; \
 	done
 
 check-audit: ## Produktions-Abhängigkeiten per pnpm audit prüfen, rot ab high (braucht Netz; AUDIT_PROJECTS=… grenzt ein)

@@ -6,8 +6,9 @@
 #
 # What it does:
 #   1. Requires Go and Node.
-#   2. Installs golangci-lint, sqlc, golang-migrate and actionlint at their pins via
-#      `go install`, and shellcheck via apt-get.
+#   2. Installs golangci-lint, golang-migrate and actionlint at their pins via
+#      `go install`, and shellcheck via apt-get. sqlc, govulncheck and goimports
+#      are tool directives of backend/go.mod and run via `go tool`.
 #   3. Installs pnpm at the packageManager pin via npm, then every package's
 #      dependencies.
 set -euo pipefail
@@ -87,24 +88,6 @@ fi
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
   fatal "golangci-lint installation failed. Ensure '$GO_BIN_PATH' is on PATH (before any system golangci-lint) and rerun."
-fi
-
-# Pinned to the version that generated the checked-in backend/sqlc/dbgen/ (see
-# the "versions:" header in those files) and to the sqlc diff step in
-# .github/workflows/ci.yml; a different sqlc can reformat the generated code
-# and make `make sqlc` or `make check-sqlc` fail.
-SQLC_VERSION="v1.31.1"
-info "Ensuring sqlc ($SQLC_VERSION) is available..."
-INSTALLED_SQLC="$(installed_mod_version sqlc github.com/sqlc-dev/sqlc)"
-if [[ "$INSTALLED_SQLC" = "$SQLC_VERSION" ]]; then
-  info "sqlc already installed: $INSTALLED_SQLC"
-else
-  info "Installing sqlc $SQLC_VERSION into $GO_BIN_PATH (installed: ${INSTALLED_SQLC:-none})"
-  GOBIN="$GO_BIN_PATH" go install "github.com/sqlc-dev/sqlc/cmd/sqlc@$SQLC_VERSION"
-fi
-
-if ! command -v sqlc >/dev/null 2>&1; then
-  fatal "sqlc installation failed. Ensure '$GO_BIN_PATH' is on PATH and rerun."
 fi
 
 # Matches MIGRATE_VERSION in database/migrate/Dockerfile, which CI runs. The
@@ -187,7 +170,6 @@ echo "  go:             $(go version)"
 echo "  node:           $(node --version)"
 echo "  pnpm:           $(pnpm --version)"
 echo "  golangci-lint:  $(golangci-lint --version | head -n 1)"
-echo "  sqlc:           $(sqlc version)"
 echo "  migrate:        $(installed_mod_version migrate github.com/golang-migrate/migrate/v4)"
 echo "  shellcheck:     $(shellcheck --version | awk '/^version:/ {print $2}')"
 echo "  actionlint:     $(installed_mod_version actionlint github.com/rhysd/actionlint)"

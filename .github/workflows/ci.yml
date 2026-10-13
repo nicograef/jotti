@@ -124,11 +124,9 @@ jobs:
           fi
 
       # sqlc reads the queries and database/migrations, so database/** changes
-      # run this job too. Same version as scripts/setup-dev-tools.sh.
+      # run this job too.
       - name: Check generated sqlc code
-        run: |
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
-          sqlc diff
+        run: go tool sqlc diff
 
       - name: Vet
         run: go vet ./...
