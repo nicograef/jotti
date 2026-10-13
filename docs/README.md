@@ -6,6 +6,7 @@ Welches Dokument welche Frage beantwortet. Große Dokumente gezielt abschnittswe
 - [backlog.md](backlog.md): Welche Produktentscheidungen und Folgekandidaten sind offen?
 - [compliance.md](compliance.md): Was verlangen KassenSichV, GoBD, DSFinV-K und ELSTER von Entwickler und Betreiber?
 - [decisions.md](decisions.md): Welche Architektur- und Produktentscheidungen sind bindend?
+- [feldfeedback.md](feldfeedback.md): Was wünschen die Vereine, wie oft, und was ist umgesetzt, abgelehnt oder offen?
 - [handbuch.md](handbuch.md): Wie ist jotti gebaut: Bounded Contexts, Invarianten, Event Sourcing, Schichten, Bereiche und Rollen?
 - [jotti-rocks-infra.md](jotti-rocks-infra.md): Wie betreibt der Maintainer die zentrale jotti.rocks-Infrastruktur?
 - [language.md](language.md): Wie heißt ein Fachbegriff in Go, TypeScript, JSON und Datenbank?

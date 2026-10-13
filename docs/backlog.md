@@ -29,10 +29,21 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Laufende Bewirtung im Vereinsheim: Ein Verein setzt jotti auch dafür ein. Das ist nicht die
       Zielgruppe (2–3 Feste pro Jahr), wird aber nicht verhindert. Ob das ein Nicht-Ziel wird, ist
       offen.
-- [ ] Kontingent-Funktion für den Bondruck: Ein Verein mit Lehrgängen und einem Turnier wünscht sie
-      an der Kasse. Teilnehmer erhalten dort ein festes Kontingent. Anforderung noch unklar, Rückfrage
-      läuft. Warenwirtschaft ist Nicht-Ziel; ein Tisch pro Teilnehmer oder Abholbons könnten
-      reichen.
+- [ ] Höchstmenge je Produkt: Ein Verein verkauft Abholbons und will je Produkt eine Höchstmenge
+      hinterlegen; ist sie erreicht, sperrt der Verkauf. So gehen nicht mehr Bons raus, als Ware da
+      ist. Warenwirtschaft ist Nicht-Ziel; offen ist, ob ein Verkaufsstopp je Variante darunter fällt.
+- [ ] Gläserpfand: Zwei Vereine fragen nach Pfandrückgabe. Ein Pfand-Produkt mit positivem Preis geht
+      heute. Rückgabe und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein
+      darf. Weg wählen (Rückgabe-Vorgang oder
+      Negativ-Variante) und die Umsatzsteuer der Rückgabe vorher gegen `docs/rechtsquellen/` prüfen.
+- [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht, dass Tische mit eigenen
+      offenen Bestellungen ohne Stern auf dem Dashboard erscheinen.
+- [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
+      Konten setzt ein Admin per Einmalpasswort zurück; für den letzten Admin gibt es keinen Weg.
+      Wiederherstellung über die Startkonsole bauen oder einen Weg dokumentieren.
+- [ ] Installation ohne Docker: Docker Desktop und Netzwerk-Know-how sind die größte Hürde der
+      Vereine. Vorschläge: ein Binary mit SQLite und eingebettetem Frontend oder ein gehosteter Betrieb
+      mit Freischaltung je Verein. Beides berührt D13, D15 und die Freeze-Regeln.
 
 ## Folgekandidaten
 
@@ -57,3 +68,9 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       lässt den Proxy nur mit der internen CA weiterlaufen. Die Status-Seite rät dann zu einem
       Neustart, der nichts ändert. Der Fall ist theoretisch, weil acme-dns Kleinbuchstaben-UUIDs
       vergibt.
+- [ ] Bondrucker hängt still: Im Einsatz druckte ein WLAN-Bondrucker zweimal nach 1–1,5 h nichts
+      mehr, bis er neu startete. Relay und Kasse meldeten keinen Fehler, weil das Relay nur die
+      TCP-Zustellung prüft. Ursache klären; Kandidat ist die ESC/POS-Statusabfrage vor dem Druck.
+- [ ] WLAN mit mehreren Access Points: Mit drei Routern unter derselben SSID musste jedes Handy nach
+      einem Wechsel die Adresse neu eingeben; mit einem Router lief es. Das WLAN hatte kein Internet,
+      mobile Daten waren aus. Ursache klären und in die Fehlersuche des Leitfadens aufnehmen.
