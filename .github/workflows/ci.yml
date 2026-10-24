@@ -425,7 +425,7 @@ jobs:
         run: shellcheck -x scripts/*.sh
 
   # Repo-wide gates that belong to no single component: the check-*.sh scripts,
-  # actionlint and the repo-wide Prettier check. Unconditional: every gate reads the whole
+  # actionlint, zizmor and the repo-wide Prettier check. Unconditional: every gate reads the whole
   # tree, so no path filter narrows it correctly.
   repo-checks:
     runs-on: ubuntu-latest
@@ -462,6 +462,13 @@ jobs:
         run: |
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           make check-workflows
+
+      # Public repo with fork PRs: audit the workflows for injection and token risks.
+      # The online audits read action refs and advisories with the job token.
+      - name: Audit workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run zizmor==1.31.1 .github/workflows
 
       - name: Check formatting
         run: make check-format

@@ -64,7 +64,9 @@ jobs:
       # Fails only on vulnerabilities reachable from this module's code; the
       # backend/go.mod holds the govulncheck pin.
       - name: govulncheck
-        run: make check-govulncheck GO_MODULES=${{ matrix.module }}
+        env:
+          MODULE: ${{ matrix.module }}
+        run: make check-govulncheck GO_MODULES="$MODULE"
 
   # windows/relay and windows/starter have zero dependencies (no go.sum), so
   # module caching (cache-dependency-path) would fail to resolve a glob and
@@ -90,7 +92,9 @@ jobs:
       # Fails only on vulnerabilities reachable from this module's code; the
       # backend/go.mod holds the govulncheck pin.
       - name: govulncheck
-        run: make check-govulncheck GO_MODULES=${{ matrix.module }}
+        env:
+          MODULE: ${{ matrix.module }}
+        run: make check-govulncheck GO_MODULES="$MODULE"
 
   vuln-scan-npm:
     runs-on: ubuntu-latest
@@ -128,7 +132,9 @@ jobs:
       # the build chain of the static jotti.rocks site.
       - name: pnpm audit (prod, high and above)
         working-directory: .
-        run: make check-audit AUDIT_PROJECTS=${{ matrix.project }}
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: make check-audit AUDIT_PROJECTS="$PROJECT"
 
       # Informational only: the full audit including dev dependencies never
       # fails the job, but keeps new advisories visible in the log.

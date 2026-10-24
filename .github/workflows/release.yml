@@ -187,10 +187,12 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: make release-windows VERSION="$VERSION"
 
+      # The runner's gh publishes the release; the title defaults to the tag.
       - name: GitHub-Release veröffentlichen
         if: steps.version.outputs.publish == 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: dist/jotti-windows-${{ steps.version.outputs.version }}.zip
-          body: ${{ steps.changelog.outputs.content }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          NOTES_FILE: ${{ steps.changelog.outputs.changelog }}
+        run: gh release create "$VERSION" "dist/jotti-windows-$VERSION.zip" --verify-tag --notes-file "$NOTES_FILE"
