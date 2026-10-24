@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io/fs"
 	"strings"
 	"testing"
@@ -77,10 +76,7 @@ func TestEnsureStateRegistersOnceAndPersists(t *testing.T) {
 func TestEnsureStateNeverOverwritesExisting(t *testing.T) {
 	const path = "/state/install.json"
 	existing := InstallState{Username: "keep-u", Password: "keep-p", Subdomain: "keep-id"}
-	data, err := json.MarshalIndent(existing, "", "  ") //nolint:gosec // test fixture with a placeholder password
-	if err != nil {
-		t.Fatalf("Setup: %v", err)
-	}
+	data := []byte(`{"username":"keep-u","password":"keep-p","subdomain":"keep-id"}`)
 	fsys := &fakeFS{files: map[string][]byte{path: data}}
 
 	got, err := ensureState(stateDeps{
