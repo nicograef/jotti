@@ -21,27 +21,27 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "^7.3.2",
-    "@astrojs/react": "^7.0.1",
+    "@astrojs/markdown-remark": "^7.3.3",
+    "@astrojs/react": "^7.1.0",
     "@astrojs/starlight": "^0.42.6",
-    "@lucide/astro": "1.55.0",
-    "astro": "^7.3.8",
-    "lucide-react": "1.55.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "@lucide/astro": "1.61.0",
+    "astro": "^7.4.1",
+    "lucide-react": "1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.11",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "oxlint": "^1.87.0",
+    "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2004",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "packageManager": "pnpm@12.11.2+sha512.25a51652a196785af5f28bda6dfe8dc582ebefa4ac1d180221ce1390231c5fb76637822ea4b6e4633ce74acdcb0a77f725af11bad38177fdeddaee818a955cb9"
 }
