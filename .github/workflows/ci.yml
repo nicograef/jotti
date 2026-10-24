@@ -30,6 +30,7 @@ jobs:
       windows: ${{ steps.changes.outputs.windows }}
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
+      e2e: ${{ steps.changes.outputs.e2e }}
       ci: ${{ steps.changes.outputs.ci }}
       golangci-lint: ${{ steps.lint-version.outputs.version }}
     steps:
@@ -90,6 +91,15 @@ jobs:
               - 'reverse-proxy/Dockerfile*'
             scripts:
               - 'scripts/**'
+            # Everything the E2E stack builds from, plus the suite itself.
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose.e2e.yml'
+              - 'backend/**'
+              - 'frontend/**'
+              - 'database/**'
+              - 'reverse-proxy/**'
+              - '.node-version'
             ci:
               - '.github/workflows/ci.yml'
 
@@ -667,6 +677,8 @@ jobs:
   # built from the checkout via docker-compose.e2e.yml (HTTP-only, fixed test
   # secrets, JOTTI_ENABLE_TEST_API=1).
   e2e:
+    needs: changes
+    if: ${{ (needs.changes.outputs.e2e == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
