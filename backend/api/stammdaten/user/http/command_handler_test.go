@@ -11,39 +11,28 @@ import (
 	"github.com/nicograef/jotti/backend/domain/user"
 )
 
+// mockCommand records the guarded calls; the nil embedded interface panics on any
+// other, so a rejected body that still reaches the command fails the test.
 type mockCommand struct {
-	err             error
-	deletedID       int
-	deactivatedID   int
-	updatedID       int
-	onetimePassword string
+	command
+	deletedID     int
+	deactivatedID int
+	updatedID     int
 }
 
-func (m *mockCommand) CreateUser(ctx context.Context, name, username string, role user.Role) (int, string, error) {
-	return 1, m.onetimePassword, m.err
-}
-
-func (m *mockCommand) UpdateUser(ctx context.Context, id int, name, username string, role user.Role) error {
+func (m *mockCommand) UpdateUser(_ context.Context, id int, _, _ string, _ user.Role) error {
 	m.updatedID = id
-	return m.err
+	return nil
 }
 
-func (m *mockCommand) ActivateUser(ctx context.Context, id int) error {
-	return m.err
-}
-
-func (m *mockCommand) DeactivateUser(ctx context.Context, id int) error {
+func (m *mockCommand) DeactivateUser(_ context.Context, id int) error {
 	m.deactivatedID = id
-	return m.err
+	return nil
 }
 
-func (m *mockCommand) DeleteUser(ctx context.Context, id int) error {
+func (m *mockCommand) DeleteUser(_ context.Context, id int) error {
 	m.deletedID = id
-	return m.err
-}
-
-func (m *mockCommand) ResetPassword(ctx context.Context, userID int) (string, error) {
-	return m.onetimePassword, m.err
+	return nil
 }
 
 func TestDeleteUserHandler_CannotDeleteSelf(t *testing.T) {

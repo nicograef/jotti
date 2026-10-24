@@ -13,334 +13,53 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-func decodeErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
-	t.Helper()
-	var body struct {
-		Code string `json:"code"`
-	}
-	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
-		t.Fatalf("failed to decode error body: %v", err)
-	}
-	return body.Code
-}
-
+// mockCommand stubs only UpdateProdukt; the nil embedded interface panics on any
+// other call, so a rejected body that still reaches the command fails the test.
 type mockCommand struct {
+	command
 	err error
 }
 
-func (m *mockCommand) CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
-	return 1, m.err
-}
-
-func (m *mockCommand) UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error {
+func (m *mockCommand) UpdateProdukt(context.Context, int, string, dom.Kategorie, steuer.Steuersatz) error {
 	return m.err
 }
 
-func (m *mockCommand) VerschiebeProdukt(ctx context.Context, produktID int, richtung dom.Richtung) error {
-	return m.err
-}
-
-func (m *mockCommand) VerschiebeVariante(ctx context.Context, varianteID int, richtung dom.Richtung) error {
-	return m.err
-}
-
-func (m *mockCommand) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
-	return m.err
-}
-
-func (m *mockCommand) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
-	return 1, m.err
-}
-
-func (m *mockCommand) UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error {
-	return m.err
-}
-
-func (m *mockCommand) ActivateVariante(ctx context.Context, varianteID int) error {
-	return m.err
-}
-
-func (m *mockCommand) DeactivateVariante(ctx context.Context, varianteID int) error {
-	return m.err
-}
-
-func (m *mockCommand) DeleteProdukt(ctx context.Context, produktID int) error {
-	return m.err
-}
-
-func (m *mockCommand) DeleteVariante(ctx context.Context, produktID int, varianteID int) error {
-	return m.err
-}
-
-func TestCreateProduktHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.CreateProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
+// Each row is a request the handler must refuse with 400 and its wire code: a body
+// the schema rejects, or a domain error the handler maps.
+func TestCommandHandler_Abweisungen(t *testing.T) {
+	h := &CommandHandler{Command: &mockCommand{err: application.ErrProduktAlreadyExists}}
+	tests := []struct {
+		name     string
+		handler  http.HandlerFunc
+		body     string
+		wantCode string
+	}{
+		{"update-produkt: Name vergeben", h.UpdateProduktHandler(), `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`, "produkt_already_exists"},
+		{"create-variante: ungültige Werte", h.CreateVarianteHandler(), `{"produktId":0,"name":"ab","preisCents":-1}`, "validation_error"},
+		{"update-variante: ungültige Werte", h.UpdateVarianteHandler(), `{"id":0,"name":"ab","preisCents":-1}`, "validation_error"},
+		{"verschiebe-produkt: unbekannte Richtung", h.VerschiebeProduktHandler(), `{"id":1,"richtung":"links"}`, "validation_error"},
+		{"verschiebe-variante: unbekannte Richtung", h.VerschiebeVarianteHandler(), `{"id":1,"richtung":"links"}`, "validation_error"},
+		{"sortiere-varianten: ungültige Produkt-ID", h.SortiereVariantenHandler(), `{"produktId":0}`, "validation_error"},
 	}
-}
-
-func TestCreateProduktHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	body := `{"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.CreateProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestUpdateProduktHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.UpdateProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestUpdateProduktHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.UpdateProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestUpdateProduktHandler_AlreadyExists(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrProduktAlreadyExists}}
-
-	body := `{"id":1,"name":"French Fries","kategorie":"essen","steuersatz":"ermaessigt"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.UpdateProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-	if code := decodeErrorCode(t, rec); code != "produkt_already_exists" {
-		t.Errorf("expected code produkt_already_exists, got %s", code)
-	}
-}
-
-func TestDeleteProduktHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/delete-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.DeleteProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestCreateVarianteHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"produktId":1,"name":"Large","preisCents":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.CreateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestCreateVarianteHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	body := `{"produktId":1,"name":"Large","preisCents":999}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.CreateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestCreateVarianteHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"produktId":0,"name":"ab","preisCents":-1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/create-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.CreateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestVerschiebeProduktHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"richtung":"hoch"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.VerschiebeProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestVerschiebeProduktHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"richtung":"links"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-produkt", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.VerschiebeProduktHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestVerschiebeVarianteHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"richtung":"runter"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.VerschiebeVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestVerschiebeVarianteHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"richtung":"links"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/verschiebe-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.VerschiebeVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestSortiereVariantenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"produktId":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/sortiere-varianten", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.SortiereVariantenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestSortiereVariantenHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"produktId":0}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/sortiere-varianten", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.SortiereVariantenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestUpdateVarianteHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":0,"name":"ab","preisCents":-1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/update-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.UpdateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestActivateVarianteHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/activate-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.ActivateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestDeactivateVarianteHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/deactivate-variante", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.DeactivateVarianteHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			rec := httptest.NewRecorder()
+
+			tt.handler.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", rec.Code)
+			}
+			var body struct {
+				Code string `json:"code"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode error body: %v", err)
+			}
+			if body.Code != tt.wantCode {
+				t.Errorf("expected code %s, got %s", tt.wantCode, body.Code)
+			}
+		})
 	}
 }

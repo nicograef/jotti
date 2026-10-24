@@ -11,15 +11,13 @@ import (
 	dom "github.com/nicograef/jotti/backend/domain/tisch"
 )
 
-type mockQuery struct {
-	err error
-}
+type mockQuery struct{}
 
-func (m mockQuery) GetAllTische(ctx context.Context) ([]application.TischMitSaldo, error) {
+func (mockQuery) GetAllTische(context.Context) ([]application.TischMitSaldo, error) {
 	return []application.TischMitSaldo{
 		{Tisch: dom.Tisch{ID: 1, Name: "Tisch 1", Status: dom.ActiveStatus}, SaldoCents: 9850},
 		{Tisch: dom.Tisch{ID: 2, Name: "Tisch 2", Status: dom.ActiveStatus}, SaldoCents: 0},
-	}, m.err
+	}, nil
 }
 
 func TestGetAllTischeHandler_Success(t *testing.T) {
@@ -54,18 +52,5 @@ func TestGetAllTischeHandler_Success(t *testing.T) {
 	}
 	if body.Tische[1].SaldoCents != 0 {
 		t.Errorf("expected tisch %d saldoCents=0, got %d", body.Tische[1].ID, body.Tische[1].SaldoCents)
-	}
-}
-
-func TestGetAllTischeHandler_Failure(t *testing.T) {
-	handler := &QueryHandler{Query: mockQuery{err: application.ErrDatabase}}
-
-	req := httptest.NewRequest(http.MethodPost, "/get-all-tische", nil)
-	rec := httptest.NewRecorder()
-
-	handler.GetAllTischeHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }

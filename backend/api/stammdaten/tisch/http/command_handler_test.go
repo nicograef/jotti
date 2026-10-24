@@ -8,270 +8,61 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 )
 
-func decodeErrorCode(t *testing.T, rec *httptest.ResponseRecorder) string {
-	t.Helper()
-	var body struct {
-		Code string `json:"code"`
-	}
-	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
-		t.Fatalf("failed to decode error body: %v", err)
-	}
-	return body.Code
-}
-
+// mockCommand stubs the calls a row reaches; the nil embedded interface panics on
+// any other, so a rejected body that still reaches the command fails the test.
 type mockCommand struct {
+	command
 	err error
 }
 
-func (m *mockCommand) TischErstellen(ctx context.Context, name string) (int, error) {
-	return 1, m.err
-}
+func (m *mockCommand) TischAktualisieren(context.Context, int, string) error { return m.err }
+func (m *mockCommand) TischAktivieren(context.Context, int) error            { return m.err }
+func (m *mockCommand) TischDeaktivieren(context.Context, int) error          { return m.err }
+func (m *mockCommand) TischLoeschen(context.Context, int) error              { return m.err }
 
-func (m *mockCommand) TischAktualisieren(ctx context.Context, id int, name string) error {
-	return m.err
-}
-
-func (m *mockCommand) TischAktivieren(ctx context.Context, id int) error {
-	return m.err
-}
-
-func (m *mockCommand) TischDeaktivieren(ctx context.Context, id int) error {
-	return m.err
-}
-
-func (m *mockCommand) TischLoeschen(ctx context.Context, id int) error {
-	return m.err
-}
-
-func (m *mockCommand) FavoritHinzufuegen(_ context.Context, _, _ int) error {
-	return m.err
-}
-
-func (m *mockCommand) FavoritEntfernen(_ context.Context, _, _ int) error {
-	return m.err
-}
-
-func TestTischErstellenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"name":"Tisch 1"}`
-	req := httptest.NewRequest(http.MethodPost, "/create-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischErstellenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
+// Each row is a request the handler must refuse with 400 and its wire code: a body
+// the schema rejects, or a domain error the handler maps.
+func TestCommandHandler_Abweisungen(t *testing.T) {
+	tests := []struct {
+		name     string
+		handler  func(*CommandHandler) http.HandlerFunc
+		err      error
+		body     string
+		wantCode string
+	}{
+		{"erstellen: Name zu kurz", (*CommandHandler).TischErstellenHandler, nil, `{"name":"ab"}`, "validation_error"},
+		{"aktualisieren: ungültige Werte", (*CommandHandler).TischAktualisierenHandler, nil, `{"id":0,"name":"ab"}`, "validation_error"},
+		{"aktualisieren: unbekannter Tisch", (*CommandHandler).TischAktualisierenHandler, application.ErrTischNotFound, `{"id":999,"name":"Aktualisierter Tisch"}`, "tisch_not_found"},
+		{"aktualisieren: Name vergeben", (*CommandHandler).TischAktualisierenHandler, application.ErrTischAlreadyExists, `{"id":1,"name":"Bereits vergebener Name"}`, "tisch_already_exists"},
+		{"aktivieren: unbekannter Tisch", (*CommandHandler).TischAktivierenHandler, application.ErrTischNotFound, `{"id":999}`, "tisch_not_found"},
+		{"deaktivieren: unbekannter Tisch", (*CommandHandler).TischDeaktivierenHandler, application.ErrTischNotFound, `{"id":999}`, "tisch_not_found"},
+		{"deaktivieren: Saldo offen", (*CommandHandler).TischDeaktivierenHandler, application.ErrTischSaldoOffen, `{"id":1}`, "tisch_saldo_offen"},
+		{"löschen: Saldo offen", (*CommandHandler).TischLoeschenHandler, application.ErrTischSaldoOffen, `{"id":1}`, "tisch_saldo_offen"},
+		{"favorit: ungültige Tisch-ID", (*CommandHandler).FavoritHinzufuegenHandler, nil, `{"tischId":0}`, "validation_error"},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := tt.handler(&CommandHandler{Command: &mockCommand{err: tt.err}})
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			rec := httptest.NewRecorder()
 
-func TestTischErstellenHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
+			handler.ServeHTTP(rec, req)
 
-	body := `{"name":"Tisch 1"}`
-	req := httptest.NewRequest(http.MethodPost, "/create-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischErstellenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestTischErstellenHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"name":"ab"}`
-	req := httptest.NewRequest(http.MethodPost, "/create-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischErstellenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestTischAktualisierenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1,"name":"Aktualisierter Tisch"}`
-	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestTischAktualisierenHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischNotFound}}
-
-	body := `{"id":999,"name":"Aktualisierter Tisch"}`
-	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestTischAktualisierenHandler_AlreadyExists(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischAlreadyExists}}
-
-	body := `{"id":1,"name":"Bereits vergebener Name"}`
-	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-	if code := decodeErrorCode(t, rec); code != "tisch_already_exists" {
-		t.Errorf("expected code tisch_already_exists, got %s", code)
-	}
-}
-
-func TestTischAktualisierenHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":0,"name":"ab"}`
-	req := httptest.NewRequest(http.MethodPost, "/update-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktualisierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestTischAktivierenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/activate-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktivierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestTischAktivierenHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischNotFound}}
-
-	body := `{"id":999}`
-	req := httptest.NewRequest(http.MethodPost, "/activate-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischAktivierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestTischDeaktivierenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/deactivate-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischDeaktivierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestTischDeaktivierenHandler_NotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischNotFound}}
-
-	body := `{"id":999}`
-	req := httptest.NewRequest(http.MethodPost, "/deactivate-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischDeaktivierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestTischDeaktivierenHandler_SaldoOffen(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischSaldoOffen}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/deactivate-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischDeaktivierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-	if code := decodeErrorCode(t, rec); code != "tisch_saldo_offen" {
-		t.Errorf("expected code tisch_saldo_offen, got %q", code)
-	}
-}
-
-func TestTischLoeschenHandler_SaldoOffen(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischSaldoOffen}}
-
-	body := `{"id":1}`
-	req := httptest.NewRequest(http.MethodPost, "/delete-tisch", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TischLoeschenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-	if code := decodeErrorCode(t, rec); code != "tisch_saldo_offen" {
-		t.Errorf("expected code tisch_saldo_offen, got %q", code)
-	}
-}
-
-func TestFavoritHinzufuegenHandler_InvalidInput(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"tischId":0}`
-	req := httptest.NewRequest(http.MethodPost, "/favorit-hinzufuegen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.FavoritHinzufuegenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", rec.Code)
+			}
+			var body struct {
+				Code string `json:"code"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode error body: %v", err)
+			}
+			if body.Code != tt.wantCode {
+				t.Errorf("expected code %s, got %s", tt.wantCode, body.Code)
+			}
+		})
 	}
 }

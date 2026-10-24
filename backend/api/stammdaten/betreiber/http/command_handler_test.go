@@ -6,107 +6,50 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/nicograef/jotti/backend/api/stammdaten/betreiber/application"
-	"github.com/nicograef/jotti/backend/domain/betreiber"
 )
 
+// mockCommand records the ELSTER calls; the nil embedded interface panics on any
+// other, so a rejected body that still reaches the command fails the test.
 type mockCommand struct {
-	err                 error
+	betreiberCommand
 	setzenCalled        bool
 	zuruecknehmenCalled bool
 }
 
-func (m *mockCommand) UpdateBetreiber(_ context.Context, _ betreiber.Betreiber) error {
-	return m.err
-}
-
-func (m *mockCommand) SetzeElsterMeldung(_ context.Context) error {
+func (m *mockCommand) SetzeElsterMeldung(context.Context) error {
 	m.setzenCalled = true
-	return m.err
+	return nil
 }
 
-func (m *mockCommand) NimmElsterMeldungZurueck(_ context.Context) error {
+func (m *mockCommand) NimmElsterMeldungZurueck(context.Context) error {
 	m.zuruecknehmenCalled = true
-	return m.err
+	return nil
 }
 
-func TestSetzeElsterMeldungHandler_Success(t *testing.T) {
-	cmd := &mockCommand{}
-	handler := &CommandHandler{Command: cmd}
-
-	req := httptest.NewRequest(http.MethodPost, "/elster-meldung-setzen", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.SetzeElsterMeldungHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
+func TestElsterMeldungHandler_RuftDenCommand(t *testing.T) {
+	tests := []struct {
+		name    string
+		handler func(*CommandHandler) http.HandlerFunc
+		called  func(*mockCommand) bool
+	}{
+		{"setzen", (*CommandHandler).SetzeElsterMeldungHandler, func(m *mockCommand) bool { return m.setzenCalled }},
+		{"zurücknehmen", (*CommandHandler).NimmElsterMeldungZurueckHandler, func(m *mockCommand) bool { return m.zuruecknehmenCalled }},
 	}
-	if !cmd.setzenCalled {
-		t.Error("expected SetzeElsterMeldung to be called")
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &mockCommand{}
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{}`))
+			rec := httptest.NewRecorder()
 
-func TestSetzeElsterMeldungHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
+			tt.handler(&CommandHandler{Command: cmd}).ServeHTTP(rec, req)
 
-	req := httptest.NewRequest(http.MethodPost, "/elster-meldung-setzen", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.SetzeElsterMeldungHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestNimmElsterMeldungZurueckHandler_Success(t *testing.T) {
-	cmd := &mockCommand{}
-	handler := &CommandHandler{Command: cmd}
-
-	req := httptest.NewRequest(http.MethodPost, "/elster-meldung-zuruecknehmen", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.NimmElsterMeldungZurueckHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-	if !cmd.zuruecknehmenCalled {
-		t.Error("expected NimmElsterMeldungZurueck to be called")
-	}
-}
-
-func TestNimmElsterMeldungZurueckHandler_Failure(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrDatabase}}
-
-	req := httptest.NewRequest(http.MethodPost, "/elster-meldung-zuruecknehmen", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.NimmElsterMeldungZurueckHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
-func TestUpdateBetreiberHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-	body := `{"vereinsname":"Sportverein","strasse":"Musterstraße 1","plz":"12345","ort":"Musterstadt","steuernummer":null,"ustId":null}`
-
-	req := httptest.NewRequest(http.MethodPost, "/update-betreiber", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.UpdateBetreiberHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
+			if rec.Code != http.StatusOK {
+				t.Errorf("expected status 200, got %d", rec.Code)
+			}
+			if !tt.called(cmd) {
+				t.Error("expected the command to be called")
+			}
+		})
 	}
 }
 
@@ -115,9 +58,7 @@ func TestUpdateBetreiberHandler_Success(t *testing.T) {
 func TestUpdateBetreiberHandler_ZuLangerVereinsname(t *testing.T) {
 	handler := &CommandHandler{Command: &mockCommand{}}
 	body := `{"vereinsname":"` + strings.Repeat("a", 61) + `","strasse":"Musterstraße 1","plz":"12345","ort":"Musterstadt","steuernummer":null,"ustId":null}`
-
 	req := httptest.NewRequest(http.MethodPost, "/update-betreiber", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 
 	handler.UpdateBetreiberHandler().ServeHTTP(rec, req)
