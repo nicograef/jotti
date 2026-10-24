@@ -1,0 +1,3 @@
+#!/bin/sh
+# The repo-wide gates CI's repo-checks job runs on every push; `make hooks` installs this.
+exec make --no-print-directory check-repo check-format

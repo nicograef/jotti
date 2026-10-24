@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: init up up-attached down restart logs status \
+.PHONY: init hooks up up-attached down restart logs status \
        test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
        lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint \
        fmt-backend fmt-frontend fmt-repo fmt \
@@ -21,6 +21,9 @@
 
 init: ## .env erzeugen (idempotent, sichere Secrets)
 	./scripts/init-env.sh
+
+hooks: ## Git-Hooks aus .githooks aktivieren (pre-push: check-repo und check-format)
+	git config core.hooksPath .githooks
 
 up: ## Dev-Stack starten (docker compose, detached)
 	docker compose up --build -d
@@ -413,7 +416,7 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 
 # Every documented target stands in exactly one CLASS_* list, and `make help` prints the
 # lists as its sections. A target in none prints under UNCLASSIFIED.
-CLASS_developer := init up up-attached down restart logs status \
+CLASS_developer := init hooks up up-attached down restart logs status \
 	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
 	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
 	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
