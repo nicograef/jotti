@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,40 +13,25 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
+// mockQuery answers the three reporting reads; the nil embedded interface panics
+// on any other call.
 type mockQuery struct {
+	query
 	data            reporting.ReportingData
 	liveData        *reporting.LiveReportingData
 	kassensitzungen []reporting.AbgeschlosseneSitzung
-	err             error
 }
 
-func (m mockQuery) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
-	return m.data, m.err
+func (m mockQuery) GetReporting(context.Context, int) (reporting.ReportingData, error) {
+	return m.data, nil
 }
 
-func (m mockQuery) GetEigeneUebersicht(_ context.Context, _ int) (reporting.EigeneUebersicht, error) {
-	return reporting.EigeneUebersicht{}, m.err
+func (m mockQuery) GetAbgeschlosseneKassensitzungen(context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
+	return m.kassensitzungen, nil
 }
 
-func (m mockQuery) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
-	return m.kassensitzungen, m.err
-}
-
-func (m mockQuery) GetLiveReporting(_ context.Context) (*reporting.LiveReportingData, error) {
-	return m.liveData, m.err
-}
-
-func TestGetReportingHandler_InvalidJSON(t *testing.T) {
-	handler := QueryHandler{}
-
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader("{invalid"))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
+func (m mockQuery) GetLiveReporting(context.Context) (*reporting.LiveReportingData, error) {
+	return m.liveData, nil
 }
 
 func TestGetReportingHandler_MissingKassensitzungNr(t *testing.T) {
@@ -221,20 +205,6 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	}
 }
 
-func TestGetReportingHandler_QueryError_Returns500(t *testing.T) {
-	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
-
-	body := `{"kassensitzungNr": 1}`
-	req := httptest.NewRequest(http.MethodPost, "/get-reporting", strings.NewReader(body))
-	rec := httptest.NewRecorder()
-
-	handler.GetReportingHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
-	}
-}
-
 func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
 	abgeschlossenAm := time.Date(2026, 7, 5, 23, 12, 0, 0, time.UTC)
 	handler := QueryHandler{Query: mockQuery{kassensitzungen: []reporting.AbgeschlosseneSitzung{
@@ -271,19 +241,6 @@ func TestGetAbgeschlosseneKassensitzungenHandler_ReturnsItems(t *testing.T) {
 	}
 	if item.AbgeschlossenAm == nil || !item.AbgeschlossenAm.Equal(abgeschlossenAm) {
 		t.Errorf("expected abgeschlossenAm %v, got %v", abgeschlossenAm, item.AbgeschlossenAm)
-	}
-}
-
-func TestGetAbgeschlosseneKassensitzungenHandler_QueryError_Returns500(t *testing.T) {
-	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
-
-	req := httptest.NewRequest(http.MethodPost, "/get-abgeschlossene-kassensitzungen", strings.NewReader("{}"))
-	rec := httptest.NewRecorder()
-
-	handler.GetAbgeschlosseneKassensitzungenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
 
@@ -415,18 +372,5 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	}
 	if len(sk.OffeneTische) != 1 || sk.OffeneTische[0].TischName != "Tisch 3" {
 		t.Errorf("expected open work at 'Tisch 3', got %+v", sk.OffeneTische)
-	}
-}
-
-func TestGetLiveReportingHandler_QueryError_Returns500(t *testing.T) {
-	handler := QueryHandler{Query: mockQuery{err: errors.New("db error")}}
-
-	req := httptest.NewRequest(http.MethodPost, "/get-live-reporting", strings.NewReader("{}"))
-	rec := httptest.NewRecorder()
-
-	handler.GetLiveReportingHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }

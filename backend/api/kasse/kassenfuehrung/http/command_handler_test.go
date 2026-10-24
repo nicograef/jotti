@@ -12,20 +12,23 @@ import (
 )
 
 type mockCommand struct {
-	zNr      int
 	err      error
 	ergebnis application.KassenabschlussErgebnis
+	aufrufe  int
 }
 
-func (m *mockCommand) KassensitzungEroeffnen(_ context.Context, _ int, _ string, _ string, _ int) (int, error) {
-	return m.zNr, m.err
+func (m *mockCommand) KassensitzungEroeffnen(context.Context, int, string, string, int) (int, error) {
+	m.aufrufe++
+	return 1, m.err
 }
 
-func (m *mockCommand) GeldtransitBuchen(_ context.Context, _ int, _ string, _ string, _ string, _ int, _ string) error {
+func (m *mockCommand) GeldtransitBuchen(context.Context, int, string, string, string, int, string) error {
+	m.aufrufe++
 	return m.err
 }
 
-func (m *mockCommand) KasseAbschliessen(_ context.Context, _ int, _ string, _ int) (application.KassenabschlussErgebnis, error) {
+func (m *mockCommand) KasseAbschliessen(context.Context, int, string, int) (application.KassenabschlussErgebnis, error) {
+	m.aufrufe++
 	return m.ergebnis, m.err
 }
 
@@ -37,308 +40,59 @@ func requestWithUser(body string) *http.Request {
 	return req.WithContext(ctx)
 }
 
-// KassensitzungEroeffnen
+const geldtransitID = `"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff"`
 
-func TestKassensitzungEroeffnenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
+// Each row pins one decision of a handler: a boundary the schema accepts or
+// rejects, or a domain error and the status and wire code it maps to. An accepted
+// row must also reach the command.
+func TestCommandHandler_Entscheidungen(t *testing.T) {
+	eroeffnen := (*CommandHandler).KassensitzungEroeffnenHandler
+	geldtransit := (*CommandHandler).GeldtransitBuchenHandler
+	abschliessen := (*CommandHandler).KasseAbschliessenHandler
+	tests := []struct {
+		name       string
+		handler    func(*CommandHandler) http.HandlerFunc
+		cmd        mockCommand
+		body       string
+		wantStatus int
+		wantInBody []string
+	}{
+		{"eröffnen: Anfangsbestand 0", eroeffnen, mockCommand{}, `{"bezeichnung":"Maihock","betragCents":0}`, http.StatusOK, nil},
+		{"eröffnen: Anfangsbestand fehlt", eroeffnen, mockCommand{}, `{"bezeichnung":"Maihock"}`, http.StatusBadRequest, []string{"Anfangsbestand ist erforderlich"}},
+		{"eröffnen: Anfangsbestand negativ", eroeffnen, mockCommand{}, `{"bezeichnung":"Maihock","betragCents":-1}`, http.StatusBadRequest, []string{"Anfangsbestand darf nicht negativ sein"}},
+		{"eröffnen: Kasse schon offen", eroeffnen, mockCommand{err: application.ErrKasseAlreadyOpen}, `{"bezeichnung":"Maihock","betragCents":10000}`, http.StatusBadRequest, []string{"kasse_bereits_geoeffnet"}},
+		{"eröffnen: Betreiber fehlt", eroeffnen, mockCommand{err: application.ErrBetreiberNichtKonfiguriert}, `{"bezeichnung":"Maihock","betragCents":10000}`, http.StatusBadRequest, []string{"betreiber_nicht_konfiguriert"}},
+		{"geldtransit: Richtung fehlt", geldtransit, mockCommand{}, `{` + geldtransitID + `,"richtung":"","betragCents":500,"kommentar":"Initialbestand"}`, http.StatusBadRequest, []string{"validation_error"}},
+		{"geldtransit: Kommentar zu kurz", geldtransit, mockCommand{}, `{` + geldtransitID + `,"richtung":"einlage","betragCents":500,"kommentar":"ab"}`, http.StatusBadRequest, []string{"validation_error"}},
+		{"geldtransit: Betrag 0", geldtransit, mockCommand{}, `{` + geldtransitID + `,"richtung":"einlage","betragCents":0,"kommentar":"Initialbestand"}`, http.StatusBadRequest, []string{"validation_error"}},
+		{"geldtransit: ID keine UUID", geldtransit, mockCommand{}, `{"geldtransitId":"nicht-eine-uuid","richtung":"einlage","betragCents":500,"kommentar":"Test"}`, http.StatusBadRequest, []string{"validation_error"}},
+		{"abschließen: Ist-Bestand 0", abschliessen, mockCommand{}, `{"istBestandCents":0}`, http.StatusOK, nil},
+		{"abschließen: Ist-Bestand fehlt", abschliessen, mockCommand{}, `{}`, http.StatusBadRequest, []string{"Ist-Bestand ist erforderlich"}},
+		{"abschließen: Ist-Bestand negativ", abschliessen, mockCommand{}, `{"istBestandCents":-1}`, http.StatusBadRequest, []string{"Ist-Bestand darf nicht negativ sein"}},
+		{"abschließen: Kasse nicht geöffnet", abschliessen, mockCommand{err: application.ErrKasseNichtGeoeffnet}, `{"istBestandCents":10000}`, http.StatusConflict, []string{"kasse_nicht_geoeffnet"}},
+		{"abschließen: Signaturen ausstehend", abschliessen, mockCommand{err: &application.SignaturenAusstehendError{Anzahl: 2}}, `{"istBestandCents":10000}`, http.StatusConflict, []string{"signaturen_ausstehend", `"anzahl":2`}},
+		{"abschließen: Tische mit Saldo", abschliessen, mockCommand{err: application.ErrTischeSaldoOffen}, `{"istBestandCents":10000}`, http.StatusBadRequest, []string{"tische_saldo_offen"}},
+		{"abschließen: Buchungen nach Kassensturz", abschliessen, mockCommand{err: application.ErrBuchungenNachKassensturz}, `{"istBestandCents":10000}`, http.StatusBadRequest, []string{"buchungen_nach_kassensturz"}},
+		{"abschließen: Ausfall-Reste im Body", abschliessen, mockCommand{ergebnis: application.KassenabschlussErgebnis{AusfallResteAnzahl: 3, OhneKonfigurationAnzahl: 1}}, `{"istBestandCents":10000}`, http.StatusOK, []string{`"ausfallResteAnzahl":3`, `"ohneKonfigurationAnzahl":1`}},
 	}
-}
-
-func TestKassensitzungEroeffnenHandler_KasseAlreadyOpen(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKasseAlreadyOpen}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-}
-
-func TestKassensitzungEroeffnenHandler_BetreiberNichtKonfiguriert(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrBetreiberNichtKonfiguriert}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "betreiber_nicht_konfiguriert") {
-		t.Errorf("expected code betreiber_nicht_konfiguriert in body, got %s", rec.Body.String())
-	}
-}
-
-func TestKassensitzungEroeffnenHandler_NullBetrag(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":0}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestKassensitzungEroeffnenHandler_MissingBetrag(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock"}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "Anfangsbestand ist erforderlich") {
-		t.Errorf("expected field error message in body, got %s", rec.Body.String())
-	}
-}
-
-func TestKassensitzungEroeffnenHandler_NegativerBetrag(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{zNr: 1}}
-
-	req := requestWithUser(`{"bezeichnung":"Maihock","betragCents":-1}`)
-	rec := httptest.NewRecorder()
-
-	handler.KassensitzungEroeffnenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "Anfangsbestand darf nicht negativ sein") {
-		t.Errorf("expected field error message in body, got %s", rec.Body.String())
-	}
-}
-
-// GeldtransitBuchen
-
-func TestGeldtransitBuchenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":500,"kommentar":"Initialbestand"}`)
-	rec := httptest.NewRecorder()
-
-	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestGeldtransitBuchenHandler_MissingRichtung(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"","betragCents":500,"kommentar":"Initialbestand"}`)
-	rec := httptest.NewRecorder()
-
-	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-}
-
-func TestGeldtransitBuchenHandler_InvalidKommentar(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":500,"kommentar":"ab"}`)
-	rec := httptest.NewRecorder()
-
-	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-}
-
-func TestGeldtransitBuchenHandler_NullBetrag(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"geldtransitId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","richtung":"einlage","betragCents":0,"kommentar":"Initialbestand"}`)
-	rec := httptest.NewRecorder()
-
-	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-}
-
-func TestGeldtransitBuchenHandler_UngueltigeGeldtransitId_ValidationError(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"geldtransitId":"nicht-eine-uuid","richtung":"einlage","betragCents":500,"kommentar":"Test"}`)
-	rec := httptest.NewRecorder()
-
-	handler.GeldtransitBuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 for non-UUID geldtransitId, got %d", rec.Code)
-	}
-}
-
-// KasseAbschliessen
-
-func TestKasseAbschliessenHandler_Success(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestKasseAbschliessenHandler_NullBestand(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"istBestandCents":0}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-}
-
-func TestKasseAbschliessenHandler_MissingBestand(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "Ist-Bestand ist erforderlich") {
-		t.Errorf("expected field error message in body, got %s", rec.Body.String())
-	}
-}
-
-func TestKasseAbschliessenHandler_NegativerBestand(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	req := requestWithUser(`{"istBestandCents":-1}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "Ist-Bestand darf nicht negativ sein") {
-		t.Errorf("expected field error message in body, got %s", rec.Body.String())
-	}
-}
-
-func TestKasseAbschliessenHandler_KasseNichtGeoeffnet(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrKasseNichtGeoeffnet}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected 409, got %d", rec.Code)
-	}
-}
-
-func TestKasseAbschliessenHandler_SignaturenAusstehend(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: &application.SignaturenAusstehendError{
-		Anzahl: 2,
-	}}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected 409, got %d", rec.Code)
-	}
-	body := rec.Body.String()
-	if !strings.Contains(body, "signaturen_ausstehend") {
-		t.Errorf("expected code signaturen_ausstehend in body, got %s", body)
-	}
-	if !strings.Contains(body, `"anzahl":2`) {
-		t.Errorf("expected anzahl detail in body, got %s", body)
-	}
-}
-
-func TestKasseAbschliessenHandler_AusfallResteImBody(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{ergebnis: application.KassenabschlussErgebnis{
-		AusfallResteAnzahl:      3,
-		OhneKonfigurationAnzahl: 1,
-	}}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
-	}
-	body := rec.Body.String()
-	if !strings.Contains(body, `"ausfallResteAnzahl":3`) {
-		t.Errorf("expected ausfallResteAnzahl in body, got %s", body)
-	}
-	if !strings.Contains(body, `"ohneKonfigurationAnzahl":1`) {
-		t.Errorf("expected ohneKonfigurationAnzahl in body, got %s", body)
-	}
-}
-
-func TestKasseAbschliessenHandler_TischeSaldoOffen(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrTischeSaldoOffen}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "tische_saldo_offen") {
-		t.Errorf("expected code tische_saldo_offen in body, got %s", rec.Body.String())
-	}
-}
-
-func TestKasseAbschliessenHandler_BuchungenNachKassensturz(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrBuchungenNachKassensturz}}
-
-	req := requestWithUser(`{"istBestandCents":10000}`)
-	rec := httptest.NewRecorder()
-
-	handler.KasseAbschliessenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected 400, got %d", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "buchungen_nach_kassensturz") {
-		t.Errorf("expected code buchungen_nach_kassensturz in body, got %s", rec.Body.String())
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := tt.cmd
+			rec := httptest.NewRecorder()
+
+			tt.handler(&CommandHandler{Command: &cmd}).ServeHTTP(rec, requestWithUser(tt.body))
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected %d, got %d: %s", tt.wantStatus, rec.Code, rec.Body.String())
+			}
+			for _, want := range tt.wantInBody {
+				if !strings.Contains(rec.Body.String(), want) {
+					t.Errorf("expected %s in body, got %s", want, rec.Body.String())
+				}
+			}
+			if tt.wantStatus == http.StatusOK && cmd.aufrufe != 1 {
+				t.Errorf("expected one command call, got %d", cmd.aufrufe)
+			}
+		})
 	}
 }

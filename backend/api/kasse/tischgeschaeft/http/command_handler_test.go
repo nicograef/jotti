@@ -17,156 +17,63 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error {
+func (m *mockCommand) BestellungAufnehmen(context.Context, int, string, string, int, []enrichment.PositionInput, string) error {
 	return m.err
 }
 
-func (m *mockCommand) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
+func (m *mockCommand) BestellungUmbuchen(context.Context, int, string, int, int, []kasse.PositionRef, string) error {
 	return m.err
 }
 
-func (m *mockCommand) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+func (m *mockCommand) ZahlungKassieren(context.Context, int, string, int, []kasse.PositionRef, string) error {
 	return m.err
 }
 
-func (m *mockCommand) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+func (m *mockCommand) StornierungErteilen(context.Context, int, string, int, []kasse.PositionRef, string) error {
 	return m.err
 }
 
-func TestBestellungAufnehmenHandler_Conflict(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
+const (
+	bestellungBody = `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
+	positionRef    = `"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}]`
+)
 
-	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected status 409, got %d", rec.Code)
+// Each row is a request the handler must refuse: a body the schema rejects, or a
+// domain error and the status and wire code it maps to.
+func TestCommandHandler_Abweisungen(t *testing.T) {
+	aufnehmen := (*CommandHandler).BestellungAufnehmenHandler
+	umbuchen := (*CommandHandler).BestellungUmbuchenHandler
+	tests := []struct {
+		name       string
+		handler    func(*CommandHandler) http.HandlerFunc
+		err        error
+		body       string
+		wantStatus int
+		wantCode   string
+	}{
+		{"aufnehmen: Konflikt", aufnehmen, application.ErrConflict, bestellungBody, http.StatusConflict, "conflict"},
+		{"aufnehmen: Produkt unbekannt", aufnehmen, enrichment.ErrProduktNotFound, bestellungBody, http.StatusBadRequest, "produkt_not_found"},
+		{"aufnehmen: Bestell-ID keine UUID", aufnehmen, nil, `{"bestellungId":"nicht-eine-uuid","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
+		{"aufnehmen: Menge über 999", aufnehmen, nil, `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
+		{"kassieren: Konflikt", (*CommandHandler).ZahlungKassierenHandler, application.ErrConflict, `{"tischId":1,` + positionRef + `,"kommentar":""}`, http.StatusConflict, "conflict"},
+		{"stornieren: Konflikt", (*CommandHandler).StornierungErteilenHandler, application.ErrConflict, `{"tischId":1,` + positionRef + `,"kommentar":"Reklamation"}`, http.StatusConflict, "conflict"},
+		{"umbuchen: Konflikt", umbuchen, application.ErrConflict, `{"quellTischId":1,"zielTischId":2,` + positionRef + `}`, http.StatusConflict, "conflict"},
+		{"umbuchen: gleicher Tisch", umbuchen, application.ErrUmbuchungGleicherTisch, `{"quellTischId":1,"zielTischId":1,` + positionRef + `}`, http.StatusBadRequest, "umbuchung_gleicher_tisch"},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, 1))
+			rec := httptest.NewRecorder()
 
-func TestBestellungAufnehmenHandler_ProduktNotFound(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: enrichment.ErrProduktNotFound}}
+			tt.handler(&CommandHandler{Command: &mockCommand{err: tt.err}}).ServeHTTP(rec, req)
 
-	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestZahlungKassierenHandler_Conflict(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
-
-	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/zahlung-kassieren", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.ZahlungKassierenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected status 409, got %d", rec.Code)
-	}
-}
-
-func TestStornierungErteilenHandler_Conflict(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
-
-	body := `{"tischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}],"kommentar":"Reklamation"}`
-	req := httptest.NewRequest(http.MethodPost, "/stornierung-erteilen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.StornierungErteilenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected status 409, got %d", rec.Code)
-	}
-}
-
-func TestBestellungUmbuchenHandler_Conflict(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrConflict}}
-
-	body := `{"quellTischId":1,"zielTischId":2,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}]}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-umbuchen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungUmbuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusConflict {
-		t.Errorf("expected status 409, got %d", rec.Code)
-	}
-}
-
-func TestBestellungUmbuchenHandler_UmbuchungGleicherTisch(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrUmbuchungGleicherTisch}}
-
-	body := `{"quellTischId":1,"zielTischId":1,"positionen":[{"positionId":"a87f1b2c-3d4e-5f6a-7b8c-9d0e1f2a3b4c","menge":1}]}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-umbuchen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungUmbuchenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
-	}
-}
-
-func TestBestellungAufnehmenHandler_UngueltigeBestellungId_ValidationError(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"bestellungId":"nicht-eine-uuid","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400 for non-UUID bestellungId, got %d", rec.Code)
-	}
-}
-
-// Die Mengen-Obergrenze schützt die Preissumme vor dem int-Überlauf und gilt
-// auf dem Eingabeweg (kasse.PositionEingabeSchema).
-func TestBestellungAufnehmenHandler_MengeUeber999_ValidationError(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{}}
-
-	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`
-	req := httptest.NewRequest(http.MethodPost, "/bestellung-aufnehmen", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
-	req = req.WithContext(ctx)
-	rec := httptest.NewRecorder()
-
-	handler.BestellungAufnehmenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400 for menge 1000, got %d", rec.Code)
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d: %s", tt.wantStatus, rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"`+tt.wantCode+`"`) {
+				t.Errorf("expected code %s, got %s", tt.wantCode, rec.Body.String())
+			}
+		})
 	}
 }

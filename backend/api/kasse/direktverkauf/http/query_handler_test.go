@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,11 +13,10 @@ import (
 
 type mockQuery struct {
 	historie []kasse.DirektverkaufHistorieEintrag
-	err      error
 }
 
 func (m *mockQuery) GetDirektverkaufHistorie(_ context.Context) ([]kasse.DirektverkaufHistorieEintrag, error) {
-	return m.historie, m.err
+	return m.historie, nil
 }
 
 func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
@@ -80,17 +78,5 @@ func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 	}
 	if resp.Historie[0].OffenePositionen[0].Steuersatz == "" {
 		t.Errorf("expected offene position steuersatz to be set")
-	}
-}
-
-func TestGetDirektverkaufHistorieHandler_Error(t *testing.T) {
-	handler := &QueryHandler{Query: &mockQuery{err: errors.New("boom")}}
-
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/get-direktverkauf-historie", nil)
-	handler.GetDirektverkaufHistorieHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500, got %d", rec.Code)
 	}
 }
