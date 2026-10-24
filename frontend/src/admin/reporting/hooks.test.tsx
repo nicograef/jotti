@@ -112,7 +112,7 @@ describe('useDsfinvkExport im Vorgangs-Register', () => {
 // sonst aus wie „keine Kassensitzung offen". Die Live-Abfrage läuft im
 // Intervall wie use-version, darf deren Toast-Unterdrückung aber nicht erben.
 describe('Reporting-Abfragen bei Ladefehler', () => {
-  it.each([
+  it.each<[string, () => unknown]>([
     ['admin/get-live-reporting', useLiveReporting],
     [
       'admin/get-abgeschlossene-kassensitzungen',
