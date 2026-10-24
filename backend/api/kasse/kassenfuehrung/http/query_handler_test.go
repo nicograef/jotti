@@ -10,15 +10,36 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-// mockQuery answers the Geldtransit list; the nil embedded interface panics on
-// any other call, so a rejected body that still reaches the query fails the test.
+// mockQuery answers the Geldtransit list and the active session; the nil embedded
+// interface panics on any other call, so a rejected body that still reaches the query fails the test.
 type mockQuery struct {
 	query
 	geldtransit []kasse.Geldtransit
+	aktive      *kasse.Kassensitzung
+}
+
+func (m *mockQuery) GetAktiveKassensitzung(context.Context) (*kasse.Kassensitzung, error) {
+	return m.aktive, nil
 }
 
 func (m *mockQuery) GetGeldtransitListe(context.Context, int) ([]kasse.Geldtransit, error) {
 	return m.geldtransit, nil
+}
+
+func TestGetAktiveKassensitzungHandler_KeineOffeneSitzung_ReturnsNull(t *testing.T) {
+	handler := &QueryHandler{Query: &mockQuery{}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-aktive-kassensitzung", nil)
+	rec := httptest.NewRecorder()
+
+	handler.GetAktiveKassensitzungHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != "null" {
+		t.Errorf("expected null, got %s", got)
+	}
 }
 
 func TestGetKassenbestandHandler_InvalidNr(t *testing.T) {
