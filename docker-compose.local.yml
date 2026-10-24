@@ -12,8 +12,8 @@ name: jotti-local
 x-logging: &default-logging
   driver: json-file
   options:
-    max-size: "5m"
-    max-file: "3"
+    max-size: '5m'
+    max-file: '3'
 
 services:
   postgres:
@@ -41,7 +41,7 @@ services:
     networks:
       - db-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d jotti']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -61,7 +61,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   backend:
     build:
@@ -80,7 +80,7 @@ services:
       RELAY_AUTH_TOKEN: ${RELAY_AUTH_TOKEN}
       # Demo/Staging: schaltet nur das CLI-Subkommando `jotti seed` frei (genutzt von
       # reset-and-seed.sh), nicht den HTTP-Endpoint. In Prod/Release nie gesetzt.
-      JOTTI_ALLOW_SEED: "1"
+      JOTTI_ALLOW_SEED: '1'
     networks:
       - app-network
       - db-network
@@ -91,10 +91,7 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://localhost:3000/health >/dev/null 2>&1",
-        ]
+        ['CMD-SHELL', 'wget -qO- http://localhost:3000/health >/dev/null 2>&1']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -129,12 +126,12 @@ services:
       # Set to 1 in development to issue via the Let's Encrypt staging CA.
       PROXY_LE_STAGING: ${PROXY_LE_STAGING:-}
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
       # Status page: bound to host loopback only — visible on the till PC, never
       # on the WLAN.
-      - "127.0.0.1:8484:8484"
+      - '127.0.0.1:8484:8484'
     volumes:
       - caddy-data:/data
       - proxy-state:/state
@@ -146,7 +143,7 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
+          'CMD-SHELL',
           "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
         ]
       interval: 10s

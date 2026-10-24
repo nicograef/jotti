@@ -4,8 +4,8 @@ name: jotti-dev
 x-logging: &default-logging
   driver: json-file
   options:
-    max-size: "5m"
-    max-file: "3"
+    max-size: '5m'
+    max-file: '3'
 
 services:
   postgres:
@@ -22,9 +22,9 @@ services:
     networks:
       - app-network
     ports:
-      - "127.0.0.1:5432:5432"
+      - '127.0.0.1:5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d jotti']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -44,7 +44,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   backend-dev:
     image: golang:1.27-alpine
@@ -63,7 +63,7 @@ services:
       RELAY_AUTH_TOKEN: ${RELAY_AUTH_TOKEN}
       # Dev/demo only: unlocks the CLI subcommand `jotti seed` (`make seed`), not the HTTP endpoint.
       # Never set in prod or release.
-      JOTTI_ALLOW_SEED: "1"
+      JOTTI_ALLOW_SEED: '1'
     command: sh -c "go mod download && go run ./main.go"
     volumes:
       - ./backend:/src
@@ -82,12 +82,12 @@ services:
     logging: *default-logging
     environment:
       NODE_ENV: development
-      CI: "true"
+      CI: 'true'
       BACKEND_HOST: backend-dev
     command: sh -c "corepack enable && pnpm install && pnpm run dev --host"
     # Bound to every interface on purpose: phones on the LAN test the dev app.
     ports:
-      - "80:5173"
+      - '80:5173'
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -98,11 +98,7 @@ services:
       backend-dev:
         condition: service_started
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://127.0.0.1:5173/ >/dev/null 2>&1",
-        ]
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:5173/ >/dev/null 2>&1']
       interval: 10s
       timeout: 3s
       retries: 10

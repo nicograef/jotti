@@ -360,7 +360,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-          cache: "pnpm"
+          cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -396,7 +396,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-          cache: "pnpm"
+          cache: 'pnpm'
           cache-dependency-path: website/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -448,7 +448,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-          cache: "pnpm"
+          cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -539,7 +539,7 @@ jobs:
       - name: Run integration tests
         env:
           POSTGRES_HOST: localhost
-          POSTGRES_PORT: "5432"
+          POSTGRES_PORT: '5432'
           POSTGRES_USER: admin
           POSTGRES_PASSWORD: admin
           POSTGRES_DBNAME: jotti
@@ -564,7 +564,7 @@ jobs:
       # Throwaway CI-only values (no secrets); long enough to pass the
       # backend's secret validation (config.MinSecretLength).
       POSTGRES_HOST: localhost
-      POSTGRES_PORT: "5432"
+      POSTGRES_PORT: '5432'
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: upgrade-harness-postgres-password
       POSTGRES_DBNAME: jotti
@@ -688,7 +688,7 @@ jobs:
 
       - name: Build and start the E2E stack
         env:
-          E2E_HTTP_PORT: "8080"
+          E2E_HTTP_PORT: '8080'
         run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml up -d --build
 
       - name: Wait for the stack to become healthy
@@ -715,7 +715,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-          cache: "pnpm"
+          cache: 'pnpm'
           cache-dependency-path: e2e/pnpm-lock.yaml
 
       - name: Install dependencies

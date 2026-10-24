@@ -7,32 +7,32 @@ on:
   push:
     branches: [main]
     paths:
-      - "backend/**"
-      - "resolver/**"
-      - "reverse-proxy/**"
-      - "windows/**"
-      - "frontend/**"
-      - "website/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/security-scans.yml"
+      - 'backend/**'
+      - 'resolver/**'
+      - 'reverse-proxy/**'
+      - 'windows/**'
+      - 'frontend/**'
+      - 'website/**'
+      - 'go.work'
+      - 'go.work.sum'
+      - 'Makefile'
+      - '.github/workflows/security-scans.yml'
   pull_request:
     branches: [main]
     paths:
-      - "backend/**"
-      - "resolver/**"
-      - "reverse-proxy/**"
-      - "windows/**"
-      - "frontend/**"
-      - "website/**"
-      - "go.work"
-      - "go.work.sum"
-      - "Makefile"
-      - ".github/workflows/security-scans.yml"
+      - 'backend/**'
+      - 'resolver/**'
+      - 'reverse-proxy/**'
+      - 'windows/**'
+      - 'frontend/**'
+      - 'website/**'
+      - 'go.work'
+      - 'go.work.sum'
+      - 'Makefile'
+      - '.github/workflows/security-scans.yml'
   schedule:
     # Mondays 04:00 UTC.
-    - cron: "0 4 * * 1"
+    - cron: '0 4 * * 1'
 
 # Least-privilege token; a job that needs more requests its scopes at job level.
 permissions:
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-          cache: "pnpm"
+          cache: 'pnpm'
           cache-dependency-path: ${{ matrix.project }}/pnpm-lock.yaml
 
       - name: Install dependencies

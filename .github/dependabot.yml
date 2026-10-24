@@ -3,120 +3,120 @@ version: 2
 multi-ecosystem-groups:
   docker:
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
 
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       github-actions:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "gomod"
-    directory: "/backend"
+  - package-ecosystem: 'gomod'
+    directory: '/backend'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       backend-gomod:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "gomod"
-    directory: "/resolver"
+  - package-ecosystem: 'gomod'
+    directory: '/resolver'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       resolver-gomod:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "gomod"
-    directory: "/reverse-proxy"
+  - package-ecosystem: 'gomod'
+    directory: '/reverse-proxy'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       reverse-proxy-gomod:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "gomod"
-    directory: "/windows/relay"
+  - package-ecosystem: 'gomod'
+    directory: '/windows/relay'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       relay-gomod:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "gomod"
-    directory: "/windows/starter"
+  - package-ecosystem: 'gomod'
+    directory: '/windows/starter'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       starter-gomod:
         patterns:
-          - "*"
+          - '*'
 
   # scripts/check-pins.sh requires one prettier and one typescript version across
   # frontend and e2e, so group-by bumps each of them in both in one PR.
-  - package-ecosystem: "npm"
+  - package-ecosystem: 'npm'
     directories:
-      - "/frontend"
-      - "/e2e"
+      - '/frontend'
+      - '/e2e'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       node-tools:
         patterns:
-          - "prettier"
-          - "typescript"
+          - 'prettier'
+          - 'typescript'
         group-by: dependency-name
       frontend-e2e-npm:
         patterns:
-          - "*"
+          - '*'
 
-  - package-ecosystem: "npm"
-    directory: "/website"
+  - package-ecosystem: 'npm'
+    directory: '/website'
     schedule:
-      interval: "monthly"
+      interval: 'monthly'
     groups:
       website-npm:
         patterns:
-          - "*"
+          - '*'
     # TypeScript stays on 6.x until astro check supports TypeScript 7; it refuses
     # 7.0 (peer typescript ^5.0.0 || ^6.0.0). Minor and patch updates stay allowed.
     ignore:
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   # scripts/check-pins.sh requires one version per image across Dockerfiles and
   # compose files, so both ecosystems share one multi-ecosystem PR. Postgres is
   # ignored in both: its pins are bumped by hand across every place check-pins.sh
   # reads (compose files, workflows, scripts, the Windows starter), see D15.
-  - package-ecosystem: "docker"
+  - package-ecosystem: 'docker'
     directories:
-      - "/backend"
-      - "/database/migrate"
-      - "/resolver"
-      - "/reverse-proxy"
-    multi-ecosystem-group: "docker"
-    patterns: ["*"]
+      - '/backend'
+      - '/database/migrate'
+      - '/resolver'
+      - '/reverse-proxy'
+    multi-ecosystem-group: 'docker'
+    patterns: ['*']
     # Node is only a build tool in the images; stay on the Active LTS (24) until
     # the next LTS line is out. Minor and patch stay allowed.
     ignore:
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "postgres"
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'postgres'
 
-  - package-ecosystem: "docker-compose"
-    directory: "/"
-    multi-ecosystem-group: "docker"
-    patterns: ["*"]
+  - package-ecosystem: 'docker-compose'
+    directory: '/'
+    multi-ecosystem-group: 'docker'
+    patterns: ['*']
     # Node and Postgres as above.
     ignore:
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "postgres"
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'postgres'

@@ -1,4 +1,4 @@
-version: "2"
+version: '2'
 
 # One pass covers every file: unit tests are untagged, integration tests carry
 # the integration tag.

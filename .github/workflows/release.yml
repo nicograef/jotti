@@ -9,7 +9,7 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
   workflow_dispatch:
 
 # Least-privilege default; the release job requests the write scopes it

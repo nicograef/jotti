@@ -11,8 +11,8 @@ name: jotti
 x-logging: &default-logging
   driver: json-file
   options:
-    max-size: "5m"
-    max-file: "3"
+    max-size: '5m'
+    max-file: '3'
 
 services:
   postgres:
@@ -31,7 +31,7 @@ services:
     networks:
       - db-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d jotti"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d jotti']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -39,7 +39,7 @@ services:
       resources:
         limits:
           memory: 1536M
-          cpus: "2.0"
+          cpus: '2.0'
 
   migrate:
     image: ghcr.io/nicograef/jotti-migrate:${JOTTI_VERSION}
@@ -54,7 +54,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   backend:
     image: ghcr.io/nicograef/jotti-backend:${JOTTI_VERSION}
@@ -79,10 +79,7 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://localhost:3000/health >/dev/null 2>&1",
-        ]
+        ['CMD-SHELL', 'wget -qO- http://localhost:3000/health >/dev/null 2>&1']
       interval: 10s
       timeout: 3s
       retries: 5
@@ -91,7 +88,7 @@ services:
       resources:
         limits:
           memory: 384M
-          cpus: "1.5"
+          cpus: '1.5'
 
   reverse-proxy:
     image: ghcr.io/nicograef/jotti-reverse-proxy:${JOTTI_VERSION}
@@ -123,9 +120,9 @@ services:
       # Set to 1 to issue via the Let's Encrypt staging CA while testing.
       PROXY_LE_STAGING: ${PROXY_LE_STAGING:-}
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
     volumes:
       - caddy-data:/data
     networks:
@@ -136,7 +133,7 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
+          'CMD-SHELL',
           "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
         ]
       interval: 10s
@@ -147,7 +144,7 @@ services:
       resources:
         limits:
           memory: 128M
-          cpus: "0.5"
+          cpus: '0.5'
 
 networks:
   app-network:

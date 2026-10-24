@@ -99,7 +99,7 @@ fmt-backend: ## Backend Code formatieren (goimports)
 fmt-frontend: ## Frontend Code formatieren (Prettier + oxlint --fix)
 	cd frontend && pnpm format && pnpm lint:fix
 
-PRETTIER_GLOB := "**/*.{ts,tsx,js,mjs,cjs,json,css,md}"
+PRETTIER_GLOB := "**/*.{ts,tsx,js,mjs,cjs,json,css,md,yml,yaml}"
 
 fmt-repo: ## Repo-weite Prettier-Formatierung schreiben (Gegenstück zu check-format)
 	frontend/node_modules/.bin/prettier --write $(PRETTIER_GLOB)
@@ -312,7 +312,7 @@ check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test,
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd reverse-proxy && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
-check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md)
+check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md, yml, yaml)
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)
 
 check-frontend: ## Frontend komplett prüfen (Format, Typen, Lint, Test, Build)

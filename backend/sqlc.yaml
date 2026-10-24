@@ -1,32 +1,32 @@
-version: "2"
+version: '2'
 sql:
-  - engine: "postgresql"
-    queries: "sqlc/queries"
-    schema: "../database/migrations"
+  - engine: 'postgresql'
+    queries: 'sqlc/queries'
+    schema: '../database/migrations'
     gen:
       go:
-        package: "dbgen"
-        out: "sqlc/dbgen"
-        sql_package: "database/sql"
+        package: 'dbgen'
+        out: 'sqlc/dbgen'
+        sql_package: 'database/sql'
         emit_json_tags: false
         emit_empty_slices: true
         overrides:
-          - db_type: "pg_catalog.int4"
-            go_type: "int"
-          - db_type: "pg_catalog.int8"
-            go_type: "int64"
-          - db_type: "pg_catalog.timestamptz"
-            go_type: "time.Time"
-          - db_type: "json"
-            go_type: "encoding/json.RawMessage"
-          - db_type: "jsonb"
-            go_type: "encoding/json.RawMessage"
+          - db_type: 'pg_catalog.int4'
+            go_type: 'int'
+          - db_type: 'pg_catalog.int8'
+            go_type: 'int64'
+          - db_type: 'pg_catalog.timestamptz'
+            go_type: 'time.Time'
+          - db_type: 'json'
+            go_type: 'encoding/json.RawMessage'
+          - db_type: 'jsonb'
+            go_type: 'encoding/json.RawMessage'
           # Sitzungs-Metadaten und Abschlusszeitpunkt sind reine Event-Projektionen
           # über LEFT JOIN LATERAL; sqlc kann deren NULL-Barkeit nicht ableiten.
           # Explizit nullable, damit fehlende Events (offene Sitzung) sauber scannen.
-          - column: "*.eroeffnet_am"
-            go_type: "database/sql.NullTime"
-          - column: "*.abgeschlossen_am"
-            go_type: "database/sql.NullTime"
-          - column: "*.abgeschlossen_von"
-            go_type: "database/sql.NullString"
+          - column: '*.eroeffnet_am'
+            go_type: 'database/sql.NullTime'
+          - column: '*.abgeschlossen_am'
+            go_type: 'database/sql.NullTime'
+          - column: '*.abgeschlossen_von'
+            go_type: 'database/sql.NullString'

@@ -11,8 +11,8 @@ name: jotti-e2e
 x-logging: &default-logging
   driver: json-file
   options:
-    max-size: "5m"
-    max-file: "3"
+    max-size: '5m'
+    max-file: '3'
 
 services:
   postgres:
@@ -28,7 +28,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jotti -d jotti"]
+      test: ['CMD-SHELL', 'pg_isready -U jotti -d jotti']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -45,7 +45,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: 'no'
 
   backend:
     build:
@@ -62,7 +62,7 @@ services:
       JWT_SECRET: e2e-jwt-secret-do-not-use-in-production
       RELAY_AUTH_TOKEN: e2e-relay-token-do-not-use-in-production
       # Schaltet den HTTP-Test-Reset-Endpoint (POST /test/reset-and-seed) frei.
-      JOTTI_ENABLE_TEST_API: "1"
+      JOTTI_ENABLE_TEST_API: '1'
     networks:
       - app-network
     depends_on:
@@ -72,10 +72,7 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://localhost:3000/health >/dev/null 2>&1",
-        ]
+        ['CMD-SHELL', 'wget -qO- http://localhost:3000/health >/dev/null 2>&1']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -104,9 +101,9 @@ services:
     environment:
       # Klartext-HTTP-Mode: eine :80-Site ohne TLS/ACME, gleiches API-Routing
       # und dieselbe CSP wie die anderen Modi (nur fuer die Testumgebung).
-      PROXY_HTTP_ONLY: "1"
+      PROXY_HTTP_ONLY: '1'
     ports:
-      - "127.0.0.1:${E2E_HTTP_PORT:-8080}:80"
+      - '127.0.0.1:${E2E_HTTP_PORT:-8080}:80'
     networks:
       - app-network
     depends_on:
@@ -115,7 +112,7 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
+          'CMD-SHELL',
           "wget -S -O /dev/null http://127.0.0.1:80/ 2>&1 | grep -qE 'HTTP/1.[01] (2|3)[0-9][0-9]'",
         ]
       interval: 5s
