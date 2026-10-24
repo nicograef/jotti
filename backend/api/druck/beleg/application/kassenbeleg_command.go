@@ -161,7 +161,9 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 	case tse.SignaturstatusAusfall:
 		logging.FromContext(ctx).Warn("Kassenbeleg ohne TSE-Signatur: dokumentierter Ausfall", "event_id", eventID, "ausfall_grund", ergebnis.AusfallGrund)
 		return nil, vermerkFuerAusfall(ergebnis.AusfallGrund), false, nil
-	default: // ausstehend
+	case tse.SignaturstatusAusstehend:
+		fallthrough
+	default:
 		return nil, escpos.KeinTSEVermerk, true, nil
 	}
 }

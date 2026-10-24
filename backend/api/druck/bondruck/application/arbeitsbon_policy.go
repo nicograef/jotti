@@ -92,7 +92,9 @@ func createAbholbonAuftraege(
 		}
 		return auftraege
 
-	default: // BonmodusProPosition, zugleich Rückfall für unbekannte Werte
+	case druckstation.BonmodusProPosition:
+		fallthrough
+	default: // Rückfall für unbekannte Werte
 		auftraege := make([]druckauftrag_repo.NeuerDruckauftrag, 0, len(data.Positionen))
 		for _, pos := range data.Positionen {
 			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))

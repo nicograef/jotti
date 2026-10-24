@@ -105,7 +105,7 @@ func ensureConfigVolume() error {
 		"--label", "com.docker.compose.volume=jotti-config",
 		configVolume).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("jotti-config-Volume anlegen fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("jotti-config-Volume anlegen fehlgeschlagen: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func writeConfigVolume(content string) error {
 		"-v", configVolume+":/config", configHelperImage, "-c", "cat > "+configVolumePath)
 	cmd.Stdin = strings.NewReader(content)
 	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("schreiben in den Datentresor fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("schreiben in den Datentresor fehlgeschlagen: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }

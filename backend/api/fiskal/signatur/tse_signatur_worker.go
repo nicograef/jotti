@@ -364,6 +364,8 @@ func (w *tseSignaturWorker) beschaffeSignatur(ctx context.Context, client tseWor
 			return tse.FinishResult{}, time.Time{}, err
 		}
 		return finishResult, vorhanden.LogTimeStart, nil
+	case tse.TransactionStateCancelled:
+		fallthrough
 	default:
 		// An unexpected state such as CANCELLED concerns this one transaction only.
 		return tse.FinishResult{}, time.Time{}, tse.AuftragsFehler{Err: fmt.Errorf("transaktion %s hat unerwarteten Zustand %q bei fiskaly", auftrag.TxID, vorhanden.State)}

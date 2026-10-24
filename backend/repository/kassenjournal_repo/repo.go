@@ -176,7 +176,9 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 		if !kasse.IsAbschlussEventType(e.Type) {
 			return event.Event{}, false, ErrKassensitzungNichtOffen
 		}
-	default: // abgeschlossen
+	case kasse.KassensitzungAbgeschlossen:
+		fallthrough
+	default:
 		return event.Event{}, false, ErrKassensitzungNichtOffen
 	}
 
@@ -327,7 +329,7 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 
 	ids32 := make([]int32, len(tischIDs))
 	for i, id := range tischIDs {
-		ids32[i] = int32(id) //nolint:gosec // Tisch-IDs sind positive Entity-IDs
+		ids32[i] = int32(id)
 	}
 
 	const query = `SELECT t.id, t.name,

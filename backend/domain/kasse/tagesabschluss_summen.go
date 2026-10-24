@@ -62,6 +62,12 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 			} else {
 				s.GeldtransitCents -= data.BetragCents
 			}
+		case EventTypeKassensitzungEroeffnetV1,
+			EventTypeKassensturzDurchgefuehrtV1,
+			EventTypeDifferenzSollIstGebuchtV1,
+			EventTypeTagesabschlussErstelltV1,
+			EventTypeBestellungAufgenommenV1,
+			EventTypeBestellungUmgebuchtV1:
 		}
 	}
 	return s, nil

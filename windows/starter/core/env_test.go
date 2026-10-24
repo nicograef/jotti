@@ -117,8 +117,9 @@ func TestResolveEnvGeneratesFreshOnFirstInstall(t *testing.T) {
 }
 
 func TestStateDirWindowsUsesProgramData(t *testing.T) {
-	got := StateDir("windows", `C:\ProgramData`, `D:\jotti-entpackt`)
-	want := filepath.Join(`C:\ProgramData`, "jotti")
+	programData := `C:\ProgramData`
+	got := StateDir("windows", programData, `D:\jotti-entpackt`)
+	want := filepath.Join(programData, "jotti")
 	if got != want {
 		t.Fatalf("Windows-Zustandsverzeichnis: got %q, want %q", got, want)
 	}

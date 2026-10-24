@@ -53,6 +53,7 @@ jobs:
               - 'go.work'
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
+              - '.golangci.yml'
             frontend:
               - 'frontend/**'
             database:
@@ -67,18 +68,21 @@ jobs:
               - 'go.work'
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
+              - '.golangci.yml'
             proxy:
               - 'reverse-proxy/**'
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
+              - '.golangci.yml'
             windows:
               - 'windows/**'
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
+              - '.golangci.yml'
             website:
               - 'website/**'
               - 'docs/**'

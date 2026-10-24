@@ -67,7 +67,7 @@ func ensureState(deps stateDeps) (InstallState, error) {
 		return InstallState{}, fmt.Errorf("acme-dns lieferte einen unbrauchbaren State: %w", err)
 	}
 
-	encoded, err := json.MarshalIndent(state, "", "  ")
+	encoded, err := json.MarshalIndent(state, "", "  ") //nolint:gosec // the state file holds the acme-dns credentials by design
 	if err != nil {
 		return InstallState{}, fmt.Errorf("state serialisieren: %w", err)
 	}

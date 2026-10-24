@@ -115,7 +115,7 @@ func dumpDatabase(name string) error {
 		"pg_dump", "--clean", "--if-exists", "-U", core.PostgresUser, "-d", "jotti",
 		"-f", backupDir+"/"+name).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("pg_dump fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("pg_dump fehlgeschlagen: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -145,7 +145,7 @@ func rotateBackups(keep int) error {
 // mirrorBackupToHost kopiert den frischen Dump per `docker cp` nach hostDir und
 // rotiert dort auf keptBackups Dateien.
 func mirrorBackupToHost(name, hostDir string) error {
-	if err := os.MkdirAll(hostDir, 0o755); err != nil {
+	if err := os.MkdirAll(hostDir, 0o750); err != nil {
 		return fmt.Errorf("Backup-Ordner %s anlegen fehlgeschlagen: %w", hostDir, err)
 	}
 	existing, err := listHostBackups(hostDir)
@@ -158,7 +158,7 @@ func mirrorBackupToHost(name, hostDir string) error {
 		out, err := exec.Command("docker", "cp",
 			postgresContainer+":"+backupDir+"/"+plan.Copy, filepath.Join(hostDir, plan.Copy)).CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("docker cp des Backups auf den Host fehlgeschlagen: %v: %s", err, strings.TrimSpace(string(out)))
+			return fmt.Errorf("docker cp des Backups auf den Host fehlgeschlagen: %w: %s", err, strings.TrimSpace(string(out)))
 		}
 	}
 	for _, del := range plan.Delete {

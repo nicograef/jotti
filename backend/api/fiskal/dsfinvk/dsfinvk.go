@@ -87,6 +87,8 @@ func ustSchluessel(satz steuer.Steuersatz) int {
 		return 2
 	case steuer.BefreitSteuersatz:
 		return 6
+	case steuer.KombiSteuersatz:
+		fallthrough
 	default:
 		return 0
 	}

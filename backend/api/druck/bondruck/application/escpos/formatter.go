@@ -305,6 +305,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
 			buf.WriteString(toWPC1252("  Fuer diesen Vorgang war keine TSE konfiguriert.\n"))
+		case KeinTSEVermerk:
 		}
 	}
 
@@ -427,6 +428,8 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 		return "B (7 %)"
 	case steuer.BefreitSteuersatz:
 		return "C (umsatzsteuerfrei)"
+	case steuer.KombiSteuersatz:
+		fallthrough
 	default:
 		return "?"
 	}

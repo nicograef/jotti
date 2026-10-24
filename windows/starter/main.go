@@ -127,14 +127,14 @@ const lastVersionFile = "last-version"
 
 func resolveStateDir(fallback string) (string, error) {
 	dir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), fallback)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // PROGRAMDATA is the operator's own environment
 		return "", err
 	}
 	return dir, nil
 }
 
 func writeLastVersion(stateDir string) error {
-	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o644)
+	return os.WriteFile(filepath.Join(stateDir, lastVersionFile), []byte(version+"\n"), 0o600)
 }
 
 // envCandidateDirs liefert die .env-Suchverzeichnisse: Zustandsverzeichnis, Ordner

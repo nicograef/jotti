@@ -19,7 +19,16 @@ linters:
     - gocritic
     - nilerr
     - forbidigo
+    - exhaustive
+    - nolintlint
   settings:
+    # An ignored member stands as an explicit empty case: a default would also
+    # swallow every member added later.
+    exhaustive:
+      default-signifies-exhaustive: false
+    nolintlint:
+      require-explanation: true
+      require-specific: true
     gosec:
       excludes:
         - G115 # false positives on safe casts
@@ -41,6 +50,22 @@ linters:
       disabled-checks:
         - hugeParam
         - rangeValCopy # ranging over slices of large structs (e.g. Position, 128 bytes) by value is acceptable here
+
+  exclusions:
+    rules:
+      # Running a subprocess is these tools' job: the starter drives the docker CLI,
+      # the proxy launches Caddy; the arguments come from their own configuration.
+      - path: ^(windows/starter|reverse-proxy)/
+        linters: [gosec]
+        text: G204
+      # The Windows tools read their .env and state files from directories they compute.
+      - path: ^windows/
+        linters: [gosec]
+        text: G304
+      # Tests read the fixture files they wrote to their own temporary directory.
+      - path: _test\.go$
+        linters: [gosec]
+        text: G304
 
 formatters:
   enable:

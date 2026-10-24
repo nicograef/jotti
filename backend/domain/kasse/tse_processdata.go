@@ -37,6 +37,8 @@ func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, fak
 				betragErmaessigtCents += brutto
 			case steuer.BefreitSteuersatz:
 				betragBefreitCents += brutto
+			case steuer.KombiSteuersatz:
+				fallthrough
 			default:
 				return "", fmt.Errorf("unsupported steuersatz in aufteilung %q", aufteilung.Satz)
 			}

@@ -195,6 +195,16 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 			if referenzen["arbeitsbon/direktverkauf-getaetigt:"+strconv.Itoa(evt.ID)] != 1 {
 				t.Errorf("Direktverkauf %d ohne Sammel-Abholbon", evt.ID)
 			}
+		case kasse.EventTypeDirektverkaufStorniertV1,
+			kasse.EventTypeKassensitzungEroeffnetV1,
+			kasse.EventTypeGeldtransitGebuchtV1,
+			kasse.EventTypeKassensturzDurchgefuehrtV1,
+			kasse.EventTypeDifferenzSollIstGebuchtV1,
+			kasse.EventTypeTagesabschlussErstelltV1,
+			kasse.EventTypeZahlungKassiertV1,
+			kasse.EventTypeStornierungErteiltV1,
+			kasse.EventTypeBestellungKorrigiertV1,
+			kasse.EventTypeBestellungUmgebuchtV1:
 		}
 
 		beleg, ok := findKassenbeleg(auftraege, evt)

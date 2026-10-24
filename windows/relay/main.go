@@ -134,7 +134,7 @@ func main() {
 	client := &http.Client{Timeout: 10 * time.Second}
 	if config.TLSSkipVerify {
 		client.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // opt-in RELAY_TLS_SKIP_VERIFY for a self-signed backend
 		}
 		log.Printf("TLS-Zertifikatspruefung deaktiviert (selbstsigniert)")
 	}
@@ -146,14 +146,15 @@ func main() {
 
 	for {
 		auftraege, err := poll(client, config)
-		if err != nil {
+		switch {
+		case err != nil:
 			log.Printf("Fehler beim Poll: %v", err)
-		} else if len(auftraege) == 0 {
+		case len(auftraege) == 0:
 			if time.Since(lastStatusLog) > 5*time.Minute {
 				log.Printf("Relay aktiv, keine offenen Auftraege")
 				lastStatusLog = time.Now()
 			}
-		} else {
+		default:
 			melde := func(ergebnis zyklusErgebnis) error {
 				return meldeErgebnis(client, ergebnis, config)
 			}

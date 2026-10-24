@@ -39,7 +39,7 @@ func (m UserRepo) GetUserByUsername(ctx context.Context, username string) (user.
 	if m.err != nil {
 		return user.User{}, m.err
 	}
-	for _, u := range m.user { //nolint:gocritic // iterating small map for lookup
+	for _, u := range m.user {
 		if u.Username == username {
 			return u, nil
 		}
@@ -49,7 +49,7 @@ func (m UserRepo) GetUserByUsername(ctx context.Context, username string) (user.
 
 func (m UserRepo) GetAllUsers(ctx context.Context) ([]user.User, error) {
 	users := []user.User{}
-	for _, u := range m.user { //nolint:gocritic // collecting all values
+	for _, u := range m.user {
 		users = append(users, u)
 	}
 	return users, m.err
@@ -78,7 +78,7 @@ func (m UserRepo) SetPasswordTx(ctx context.Context, username string, apply func
 	if m.err != nil {
 		return m.err
 	}
-	for id, u := range m.user { //nolint:gocritic // iterating small map for lookup
+	for id, u := range m.user {
 		if u.Username == username {
 			applyErr := apply(&u)
 			m.user[id] = u

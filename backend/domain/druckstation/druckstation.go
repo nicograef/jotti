@@ -33,6 +33,8 @@ func (k Kategorie) HatBonmodus() bool {
 	switch k {
 	case KategorieEssen, KategorieGetraenk, KategorieSonstiges, KategorieAbholbon:
 		return true
+	case KategorieKassenbeleg:
+		fallthrough
 	default:
 		return false
 	}

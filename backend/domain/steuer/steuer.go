@@ -36,6 +36,8 @@ func (s Steuersatz) Prozent() int {
 		return 7
 	case BefreitSteuersatz:
 		return 0
+	case KombiSteuersatz:
+		fallthrough
 	default:
 		return -1
 	}

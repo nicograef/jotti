@@ -85,8 +85,9 @@ func TestEnvWithFileFallbackPrefersProcessEnv(t *testing.T) {
 }
 
 func TestEnvSearchDirsWindowsPrefersProgramData(t *testing.T) {
-	got := envSearchDirs("windows", `C:\ProgramData`, `D:\relay`, `D:\wd`)
-	want := []string{filepath.Join(`C:\ProgramData`, "jotti"), `D:\relay`, `D:\wd`}
+	programData := `C:\ProgramData`
+	got := envSearchDirs("windows", programData, `D:\relay`, `D:\wd`)
+	want := []string{filepath.Join(programData, "jotti"), `D:\relay`, `D:\wd`}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Windows-Suchreihenfolge: got %v, want %v", got, want)
 	}

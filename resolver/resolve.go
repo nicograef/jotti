@@ -149,6 +149,8 @@ func buildResponse(cfg zoneConfig, req *dns.Msg, ans answer) *dns.Msg {
 	case kindRefused:
 		msg.Rcode = dns.RcodeRefused
 		msg.Authoritative = false
+	case kindForward:
+		fallthrough
 	default:
 		// kindForward behandelt der Server vor buildResponse; jeder andere
 		// unbehandelte Fall ist ein Programmierfehler.

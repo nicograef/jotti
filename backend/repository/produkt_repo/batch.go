@@ -117,7 +117,7 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 func toInt32Slice(ids []int) []int32 {
 	out := make([]int32, len(ids))
 	for i, id := range ids {
-		out[i] = int32(id) //nolint:gosec // IDs are positive entity IDs, not user-supplied bit-width-sensitive values
+		out[i] = int32(id)
 	}
 	return out
 }

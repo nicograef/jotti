@@ -144,7 +144,9 @@ func noticeText(n notice) (headline, body string) {
 	case noticeRebind:
 		return "DNS-Rebind-Schutz erkannt",
 			"Der Router beantwortet den Namen nicht mit der lokalen IP, deshalb ist die vertrauenswürdige Adresse im WLAN nicht erreichbar. Trage lokal.jotti.rocks als Ausnahme im Rebind-Schutz des Routers ein oder nutze die Fallback-Adresse:"
-	default: // noticeNoGreen
+	case noticeNoGreen:
+		fallthrough
+	default:
 		return "Vertrauenswürdige Adresse noch nicht verfügbar",
 			"Die einmalige Registrierung oder die LAN-IP fehlt; beide ermittelt jotti nur beim Start. Mit Internet und im Vereins-WLAN jotti neu starten; bis dahin die Fallback-Adresse nutzen."
 	}
@@ -157,7 +159,7 @@ func qrDataURI(text string) template.URL {
 	if err != nil {
 		return ""
 	}
-	return template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(code.PNG()))
+	return template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(code.PNG())) //nolint:gosec // base64 of a PNG the code encoded itself
 }
 
 var statusTemplate = template.Must(template.New("status").Parse(statusHTML))

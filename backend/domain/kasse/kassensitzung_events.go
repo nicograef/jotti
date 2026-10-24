@@ -29,6 +29,16 @@ func IsAbschlussEventType(eventType string) bool {
 	switch EventType(eventType) {
 	case EventTypeKassensturzDurchgefuehrtV1, EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1:
 		return true
+	case EventTypeDirektverkaufGetaetigtV1,
+		EventTypeDirektverkaufStorniertV1,
+		EventTypeKassensitzungEroeffnetV1,
+		EventTypeGeldtransitGebuchtV1,
+		EventTypeBestellungAufgenommenV1,
+		EventTypeZahlungKassiertV1,
+		EventTypeStornierungErteiltV1,
+		EventTypeBestellungKorrigiertV1,
+		EventTypeBestellungUmgebuchtV1:
+		fallthrough
 	default:
 		return false
 	}

@@ -252,6 +252,7 @@ func ausfallGateStand(t *testing.T, u *liveTestUmgebung, ksNr int) gateStand {
 			stand.ausstehend++
 		case tse.SignaturstatusAusfall:
 			stand.ausfallReste++
+		case tse.SignaturstatusVorhanden, tse.SignaturstatusNachsigniert:
 		}
 	}
 	return stand

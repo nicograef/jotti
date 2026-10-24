@@ -82,7 +82,7 @@ func TestWriteCaddyfileIsOwnerOnly(t *testing.T) {
 		{
 			name: "vorhandene Datei mit weiterem Modus",
 			prepare: func(t *testing.T, path string) {
-				if err := os.WriteFile(path, []byte("# alt"), 0o644); err != nil {
+				if err := os.WriteFile(path, []byte("# alt"), 0o600); err != nil {
 					t.Fatalf("Vorbereitung: %v", err)
 				}
 			},

@@ -108,6 +108,7 @@ func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 					umgebucht[pos.PositionID] += pos.Menge
 				}
 			}
+		case HistorieEintragBestellung:
 		}
 	}
 
@@ -135,6 +136,7 @@ func positionsquelle(eintrag HistorieEintrag) ([]Position, bool) {
 		if eintrag.Umbuchung != nil && eintrag.Umbuchung.IstZugang() {
 			return eintrag.Umbuchung.Positionen, true
 		}
+	case HistorieEintragZahlung, HistorieEintragStornierung:
 	}
 	return nil, false
 }

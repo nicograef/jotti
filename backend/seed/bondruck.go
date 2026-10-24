@@ -126,6 +126,15 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 				continue
 			}
 			zeilen = append(zeilen, zeile)
+		case kasse.EventTypeDirektverkaufStorniertV1,
+			kasse.EventTypeKassensitzungEroeffnetV1,
+			kasse.EventTypeGeldtransitGebuchtV1,
+			kasse.EventTypeKassensturzDurchgefuehrtV1,
+			kasse.EventTypeDifferenzSollIstGebuchtV1,
+			kasse.EventTypeTagesabschlussErstelltV1,
+			kasse.EventTypeStornierungErteiltV1,
+			kasse.EventTypeBestellungKorrigiertV1,
+			kasse.EventTypeBestellungUmgebuchtV1:
 		}
 	}
 
@@ -224,6 +233,17 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		gesamtbetragCents = data.GesamtbetragCents
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
+	case kasse.EventTypeDirektverkaufStorniertV1,
+		kasse.EventTypeKassensitzungEroeffnetV1,
+		kasse.EventTypeGeldtransitGebuchtV1,
+		kasse.EventTypeKassensturzDurchgefuehrtV1,
+		kasse.EventTypeDifferenzSollIstGebuchtV1,
+		kasse.EventTypeTagesabschlussErstelltV1,
+		kasse.EventTypeBestellungAufgenommenV1,
+		kasse.EventTypeStornierungErteiltV1,
+		kasse.EventTypeBestellungKorrigiertV1,
+		kasse.EventTypeBestellungUmgebuchtV1:
+		fallthrough
 	default:
 		return druckauftragZeile{}, false, fmt.Errorf("kein belegfähiger Event-Typ %q", evt.Type)
 	}

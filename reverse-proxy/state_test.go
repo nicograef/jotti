@@ -77,7 +77,7 @@ func TestEnsureStateRegistersOnceAndPersists(t *testing.T) {
 func TestEnsureStateNeverOverwritesExisting(t *testing.T) {
 	const path = "/state/install.json"
 	existing := InstallState{Username: "keep-u", Password: "keep-p", Subdomain: "keep-id"}
-	data, err := json.MarshalIndent(existing, "", "  ")
+	data, err := json.MarshalIndent(existing, "", "  ") //nolint:gosec // test fixture with a placeholder password
 	if err != nil {
 		t.Fatalf("Setup: %v", err)
 	}

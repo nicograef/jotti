@@ -128,7 +128,7 @@ func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassens
 
 	// The export wants exactly the open session; a session in barrier status reaches
 	// the same export via the latest-session branch below.
-	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo
+	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo // deliberately the open session only, see above
 	if err != nil {
 		log.Error("Failed to get offene kassensitzung", "error", err)
 		return kasse.Kassensitzung{}, ErrDatabase

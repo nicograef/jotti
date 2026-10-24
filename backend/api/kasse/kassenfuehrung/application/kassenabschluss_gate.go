@@ -64,6 +64,7 @@ func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (si
 			} else {
 				gate.ausfallResteAnzahl++
 			}
+		case tse.SignaturstatusVorhanden, tse.SignaturstatusNachsigniert:
 		}
 	}
 	return gate, nil
