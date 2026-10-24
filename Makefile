@@ -364,7 +364,7 @@ check-vuln: check-govulncheck check-audit ## Schwachstellen-Scans wie security-s
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo check-vuln ## Schnelle Komplettprüfung ohne DB-Integration
+check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo check-vuln ## Komplettprüfung ohne DB-Integration (Schwachstellen-Scans brauchen Netz)
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 

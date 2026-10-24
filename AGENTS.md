@@ -57,6 +57,6 @@ make up                           # dev stack via docker compose, frontend on ht
 
 ## Gate
 
-- `make check`: the fast gate, without integration tests.
+- `make check`: the gate without integration tests; its vulnerability scans need the network.
 - `make verify`: the full gate; it starts its own Postgres on port 5432.
 - `make lint` after a code change.
