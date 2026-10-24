@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
+import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
@@ -50,10 +51,12 @@ describe('useActionSubmit im Vorgangs-Register', () => {
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 
-  it('gibt die Buchung auch nach einem Fehlschlag frei', async () => {
+  // Ein Fehlschlag meldet sich sichtbar und täuscht keinen Erfolg vor.
+  it('meldet einen Fehlschlag, gibt die Buchung frei und ruft onSuccess nicht', async () => {
     const buchung = steuerbareBuchung()
+    const onSuccess = vi.fn()
     const { result } = renderHook(() =>
-      useActionSubmit({ actionLabel: 'Bestellung aufnehmen' }),
+      useActionSubmit({ actionLabel: 'Zahlung kassieren', onSuccess }),
     )
 
     let lauf!: Promise<void>
@@ -67,6 +70,10 @@ describe('useActionSubmit im Vorgangs-Register', () => {
       await lauf
     })
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+    expect(toast.error).toHaveBeenCalledWith(
+      'Zahlung kassieren fehlgeschlagen. Bitte erneut versuchen.',
+    )
+    expect(onSuccess).not.toHaveBeenCalled()
   })
 
   it('gibt eine noch laufende Buchung beim Aushängen frei', async () => {

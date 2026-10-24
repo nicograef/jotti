@@ -1,4 +1,5 @@
 import { act, waitFor } from '@testing-library/react'
+import { toast } from 'sonner'
 import {
   afterEach,
   beforeEach,
@@ -14,7 +15,11 @@ import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderHookWithBackend } from '@/test/render'
 
-import { useDsfinvkExport } from './hooks'
+import {
+  useAbgeschlosseneKassensitzungen,
+  useDsfinvkExport,
+  useLiveReporting,
+} from './hooks'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -33,6 +38,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.clearAllMocks()
   vi.restoreAllMocks()
 })
 
@@ -98,6 +104,29 @@ describe('useDsfinvkExport im Vorgangs-Register', () => {
     })
     await waitFor(() => {
       expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+    })
+  })
+})
+
+// Ohne eigenen Fehlerzustand ist der Toast das einzige Signal: Die Seite sähe
+// sonst aus wie „keine Kassensitzung offen". Die Live-Abfrage läuft im
+// Intervall wie use-version, darf deren Toast-Unterdrückung aber nicht erben.
+describe('Reporting-Abfragen bei Ladefehler', () => {
+  it.each([
+    ['admin/get-live-reporting', useLiveReporting],
+    [
+      'admin/get-abgeschlossene-kassensitzungen',
+      useAbgeschlosseneKassensitzungen,
+    ],
+  ])('%s meldet den Fehler per Toast', async (endpoint, hook) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    renderHookWithBackend(hook, new FakeBackend().fail(endpoint))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        'Daten konnten nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen.',
+        { id: 'query-fehler' },
+      )
     })
   })
 })

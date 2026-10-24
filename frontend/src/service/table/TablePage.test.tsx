@@ -106,20 +106,25 @@ function renderPage(fake: FakeBackend = backend()) {
 }
 
 describe('TablePage', () => {
-  it('zeigt bei Query-Fehler einen Fehlerzustand statt der Leer-Defaults', async () => {
-    renderPage(
-      backend()
-        .fail('service/get-tisch-state')
-        .fail('service/get-tisch-historie'),
-    )
+  // Schon eine der beiden Abfragen reicht für den Fehlerzustand.
+  it.each(['service/get-tisch-state', 'service/get-tisch-historie'])(
+    'zeigt bei Fehler von %s einen Fehlerzustand statt der Leer-Defaults',
+    async (endpoint) => {
+      getTischState.mockReturnValue(stammtisch)
+      getTischHistorie.mockReturnValue([])
+      renderPage(backend().fail(endpoint))
 
-    expect(
-      await screen.findByText('Tischdaten konnten nicht geladen werden'),
-    ).toBeInTheDocument()
-    // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
-    // der Tisch wirkt sonst fälschlich abgerechnet.
-    expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
-  })
+      expect(
+        await screen.findByText('Tischdaten konnten nicht geladen werden'),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Erneut versuchen' }),
+      ).toBeInTheDocument()
+      // Der Leer-Default (Saldo 0,00 €) darf bei einem Fehler nicht erscheinen —
+      // der Tisch wirkt sonst fälschlich abgerechnet.
+      expect(screen.queryByText('0,00 €')).not.toBeInTheDocument()
+    },
+  )
 
   it('zeigt bei Produkt-Fehler den Bestellen-Tab als Fehlerzustand statt leerer Liste', async () => {
     getTischState.mockReturnValue(stammtisch)
