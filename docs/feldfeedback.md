@@ -78,7 +78,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 | Läuft jotti bei schwachem Netz stabil?                       |       1 | Leitfaden „Häufige Fragen"                                            |
 | Was passiert bei Stromausfall?                               |       1 | Leitfaden „Häufige Fragen"                                            |
 | Welche Bondrucker passen?                                    |       1 | Leitfaden „Installation"                                              |
-| Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?    |       1 | neue TERMS-Fassung in Prüfung, [backlog.md](backlog.md)               |
+| Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?    |       1 | [TERMS.md § 2](../TERMS.md)                                           |
 | Wie aktualisieren wir jotti?                                 |       1 | Leitfaden „Aktualisieren"                                             |
 | Wie läuft ein mehrtägiges Fest?                              |       1 | Leitfaden „Der Veranstaltungstag"                                     |
 | Wie verhält sich jotti unter hoher Last?                     |       1 | Leitfaden „Häufige Fragen"; Messung offen in [backlog.md](backlog.md) |

@@ -45,11 +45,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Stationsmodell (#146): Der Piepton ist entfernt, und der Direktverkauf kennt den Bonmodus
       „Kein Bon". Druckstationen hängen weiter an Produktkategorien. Offen: ob das Modell aus
       `docs/prds/prd-stationsmodell.md` gebaut wird.
-- [ ] Berechtigung in Grenzfällen: Eine neue TERMS-Fassung im Branch `docs/terms-grenzfaelle` lässt
-      Untergliederungen ohne eigene Eintragung und ausländische Vereine ohne Registerpflicht zu. Sie
-      wartet auf Nicos Prüfung. Offen dort: LICENSE §3 angleichen und klären, ob Kirchengemeinden als
-      Körperschaften des öffentlichen Rechts berechtigt sind. Ebenso, wie nicht rechtsfähige
-      Untergliederungen abschließen. Dazu die Länge von § 2 und „gemeinnützig" in Website-Texten.
 - [ ] Probelauf auf dem späteren Kassenrechner: Das Kassenjournal ist append-only, Kassensitzungs-
       und Z-Nummern zählen fortlaufend (K-16). Eine Probe-Kassensitzung auf dem Rechner, der danach
       live kassiert, bleibt vermutlich im Export. Für Windows gibt es keinen dokumentierten Weg zum
@@ -94,11 +89,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       `buildMailtoUrl` in `website/src/lib/anfrage-mailto.ts` trennt die Zeilen mit `\n`, kodiert als
       `%0A`. RFC 6068 verlangt `%0D%0A` für Zeilenumbrüche im Body. Für die URL mit `\r\n` verbinden;
       die Anzeige zum Kopieren behält `\n`.
-- [ ] Fassungsdatum der Nutzungsbedingungen von Hand an drei Stellen: Ein Test vergleicht das Datum in
-      `TERMS.md` mit dem Annahmesatz des Formulars. Er liegt im Branch `docs/terms-grenzfaelle` und
-      landet mit der neuen TERMS-Fassung.
-- [ ] Rechtsform-Auswahl im Anfrage-Formular: `artOptionen` folgt im Branch `docs/terms-grenzfaelle`
-      dem neuen § 2 und landet mit der neuen TERMS-Fassung.
 - [ ] Lasttest fehlt: Die FAQ legt jotti auf Teams bis 30 Helfer aus, der Self-Hosting-Leitfaden
       nennt einen kleinen VPS. Keine Messung stützt beides, das Repo hat keinen Lasttest. Ein Verein
       fragt nach der Grenze unter hoher Last. Einmal messen: 30 Servicekräfte buchen und kassieren
