@@ -555,7 +555,7 @@ func TestFormatPositionBon_KommentarAlsCP437(t *testing.T) {
 	}
 }
 
-// Steuerbytes im Kommentar führte der Drucker als ESC/POS-Befehle ausführen.
+// Steuerbytes im Kommentar führte der Drucker als ESC/POS-Befehle aus.
 func TestFormatPositionBon_KommentarOhneSteuerbytes(t *testing.T) {
 	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "Ohne\x1b\x64\x05Zwiebeln\x1d\x56\x00!")
 
