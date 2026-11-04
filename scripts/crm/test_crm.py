@@ -289,7 +289,9 @@ class CheckPrivateDataTest(unittest.TestCase):
         )
 
     def test_clean_repo_passes(self):
-        self.assertEqual(self.run_gate().returncode, 0)
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("No tracked file contains any of the 4 private terms.", result.stderr)
 
     def test_leaked_contact_email_fails_without_printing_it(self):
         (self.repo / "notes.txt").write_text("Kontakt: Vorstand@Example.org\n", encoding="utf-8")
@@ -297,6 +299,32 @@ class CheckPrivateDataTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("notes.txt:1", result.stderr)
         self.assertNotIn("example.org", (result.stdout + result.stderr).lower())
+
+    def test_term_in_an_unpushed_commit_fails_after_its_removal(self):
+        git = ["git", "-C", str(self.repo), "-c", "user.name=Test", "-c", "user.email=test@example.com",
+               "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+        remote = self.tmp / "remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+
+        def commit(message):
+            subprocess.run(git + ["add", "-A"], check=True)
+            subprocess.run(git + ["commit", "-q", "-m", message], check=True)
+            return subprocess.run(git + ["rev-parse", "HEAD"], check=True, capture_output=True,
+                                  text=True).stdout.strip()
+
+        subprocess.run(git + ["init", "-q"], check=True)
+        commit("base")
+        subprocess.run(git + ["remote", "add", "origin", str(remote)], check=True)
+        subprocess.run(git + ["push", "-q", "-u", "origin", "HEAD"], check=True, capture_output=True)
+        (self.repo / "notes.txt").write_text("Erika Mustermann\n", encoding="utf-8")
+        leaked = commit("add notes")
+        (self.repo / "notes.txt").unlink()
+        commit("remove notes")
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(f"commit {leaked}: adds a name or e-mail", result.stderr)
+        self.assertEqual(result.stderr.count("commit "), 1)
+        self.assertNotIn("mustermann", (result.stdout + result.stderr).lower())
 
     def test_missing_register_passes_with_notice(self):
         self.env["CRM_DIR"] = str(self.tmp / "nonexistent")
