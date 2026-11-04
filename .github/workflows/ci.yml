@@ -87,6 +87,7 @@ jobs:
             website:
               - 'website/**'
               - 'docs/**'
+              - 'TERMS.md'
               - 'Makefile'
               - 'reverse-proxy/Dockerfile*'
             scripts:
