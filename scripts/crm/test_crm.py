@@ -226,11 +226,18 @@ class ValidateTest(unittest.TestCase):
 
 
 class ReportTest(unittest.TestCase):
-    def test_open_lists_only_unanswered_mentions(self):
+    def test_open_lists_only_unanswered_mentions_oldest_first(self):
         _, topics = fixture()
+        topics["topic"][1]["mention"].append(
+            {"org": "offener-verein", "source": "gmail:0000000000000003",
+             "on": dt.date(2026, 1, 3), "answered": False}
+        )
         self.assertEqual(
             crm.open_mentions(topics),
-            [(dt.date(2026, 1, 20), "beispielverein", "gmail:0000000000000002", "pfand")],
+            [
+                (dt.date(2026, 1, 3), "offener-verein", "gmail:0000000000000003", "vereinbarung-beispiel"),
+                (dt.date(2026, 1, 20), "beispielverein", "gmail:0000000000000002", "pfand"),
+            ],
         )
 
     def test_retention_follows_the_status(self):
