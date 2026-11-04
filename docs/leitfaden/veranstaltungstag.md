@@ -51,3 +51,18 @@ Fehler, sondern wird als Kassendifferenz festgehalten.
 Danach sichert ihr die Daten des Tages. Nach jedem Veranstaltungstag erzeugt ihr
 den DSFinV-K-Export der abgeschlossenen Kassensitzung. Den legt ihr an zwei
 getrennten Orten ab. Die Details stehen unter [Datenaufbewahrung](datenaufbewahrung.md).
+
+## Mehrtägiges Fest
+
+Jeder Festtag bekommt eine eigene Kassensitzung. Am Abend schließt ihr die Kasse
+wie oben ab, am nächsten Morgen eröffnet ihr eine neue.
+
+Vor dem Abschluss müssen alle Tische kassiert oder storniert sein. Offene Beträge
+lassen sich nicht in den nächsten Tag mitnehmen.
+
+Habt ihr jotti über Nacht mit `jotti-stop.cmd` beendet, startet ihr am Morgen
+`jotti-start.exe` und für Bons `jotti-relay.exe`. Zählt das Wechselgeld neu und
+tragt es beim Eröffnen als Anfangsbestand ein.
+
+Eine Anmeldung gilt 12 Stunden. Die Helfer melden sich deshalb jeden Morgen neu an.
+Produkte, Tische und Benutzer bleiben über alle Tage erhalten.
