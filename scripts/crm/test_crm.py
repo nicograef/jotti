@@ -133,6 +133,47 @@ class ValidateTest(unittest.TestCase):
         self.assertIn("topic[0] pfand mention[1]: source must be gmail:<16 hex> or gh:<number>", errors)
 
 
+EXPECTED_RENDER = """# Feldfeedback
+
+Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine, anonymisiert und gezählt. Keine Namen, Orte, Termine oder Zitate: Die Zuordnung zu Vereinen liegt nur im gitignorierten Register `.crm/`.
+
+`make crm` erzeugt diese Datei aus dem Register; Änderungen von Hand gehen beim nächsten Lauf verloren. „Vereine" zählt die Vereine und Einzelpersonen, die einen Punkt unabhängig voneinander genannt haben.
+
+## Lage
+
+- 2 Organisationen haben die Nutzungsvereinbarung geschlossen, 1 davon zurückgezogen; 1 Vereinbarung gilt.
+- Die geltenden Annahmesätze nennen die TERMS-Fassungen vom 7. September 2026 (1).
+- 1 weitere Organisation und 0 Einzelpersonen haben angefragt, ohne eine Vereinbarung zu schließen.
+- Ein Satz zur Lage.
+
+## Umgesetzt
+
+Keine Einträge.
+
+## Abgelehnt
+
+Keine Einträge.
+
+## Offen
+
+| Wunsch oder Fehler | Vereine | Stand |
+| ------------------ | ------: | ----- |
+| Gläserpfand        |       2 | K-99  |
+
+## Wiederkehrende Fragen
+
+Keine Einträge.
+"""
+
+
+class RenderTest(unittest.TestCase):
+    def test_render_counts_without_names_or_admin_topics(self):
+        text = crm.render(*fixture())
+        self.assertEqual(text, EXPECTED_RENDER)
+        self.assertNotIn("Mustermann", text)
+        self.assertNotIn("Nutzungsvereinbarung |", text)
+
+
 SCRIPTS = Path(__file__).resolve().parent.parent
 
 REGISTER_TOML = """
