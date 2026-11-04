@@ -61,7 +61,8 @@ Für gedruckte Bons braucht ihr einen ESC/POS-Bondrucker:
 USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich über das Netzwerk.
 
 Im Feld bestätigt sind der **Epson TM-T20IV** per Ethernet und der
-**Sam4s Hcube** per WLAN.
+**Sam4s Hcube** per WLAN. Am Epson druckt jotti Umlaute und ß unlesbar, bis
+[#144](https://github.com/nicograef/jotti/issues/144) behoben ist.
 
 Kaufempfehlung (Stand der Recherche: 07.09.2026):
 
