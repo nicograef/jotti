@@ -419,8 +419,8 @@ def open_mentions(topics: dict) -> list[tuple[dt.date, str, str, str]]:
 def retention(register: dict, topics: dict) -> list[tuple[str, str, list[str]]]:
     """(org id, last date or '-', sources) of every org whose correspondence is to be deleted.
 
-    Mirrors the website privacy policy: withdrawn, disowned and finished contacts go
-    now; agreements stay for their term and inquiries until Nico marks them erledigt.
+    Covers register entries only, per the privacy policy's "Internes Verzeichnis":
+    agreements stay for their term, inquiries until Nico marks them erledigt.
     """
     rows = []
     for org in register.get("org", []):
