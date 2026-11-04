@@ -66,5 +66,5 @@ temp/
 *.bak
 *.tmp
 
-# Club e-mails with personal data; docs/feldfeedback.md is the anonymised counterpart
-.mails/
+# Private club register with personal data; docs/feldfeedback.md is the anonymised counterpart
+.crm/

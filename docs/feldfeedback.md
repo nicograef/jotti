@@ -1,6 +1,6 @@
 # Feldfeedback
 
-Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine, anonymisiert und gezählt. Keine Namen, Orte, Termine oder Zitate: Die Zuordnung zu Vereinen und die Original-Mails liegen nur im gitignorierten Ordner `.mails/`.
+Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine, anonymisiert und gezählt. Keine Namen, Orte, Termine oder Zitate: Die Zuordnung zu Vereinen und die Original-Mails liegen nur im gitignorierten Ordner `.crm/`.
 
 „Vereine" zählt die Vereine und Einzelpersonen, die einen Punkt unabhängig voneinander genannt haben.
 
