@@ -16,5 +16,6 @@ Welches Dokument welche Frage beantwortet. Große Dokumente gezielt abschnittswe
 - [verfahrensdokumentation.md](verfahrensdokumentation.md): Welche Muster-Verfahrensdokumentation passt der Betreiber für die GoBD an?
 - [leitfaden/](leitfaden/was-ist-jotti.md): Wie richtet ein Verein jotti ein und betreibt es am Veranstaltungstag?
 - [plans/](plans/): Welche Umsetzungspläne sind offen?
+- [prds/](prds/): Welche Funktionen sind als Anforderung beschrieben und warten auf eine Entscheidung?
 - [rechtsquellen/](rechtsquellen/README.md): Wo steht der Originaltext einer Norm oder Spezifikation?
 - [../assets/README.md](../assets/README.md): Welche Logo-Masterdateien gibt es, und wo liegen ihre Kopien?
