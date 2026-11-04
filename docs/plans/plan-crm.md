@@ -258,10 +258,10 @@ ref = "[backlog.md](backlog.md)"
 
 ### Acceptance criteria
 
-- [ ] `bash scripts/check-private-data.sh` endet mit 0 auf dem aktuellen Stand und meldet die Zahl der geprüften Begriffe größer 0.
-- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive des Falls mit eingeschleuster Kontakt-E-Mail.
-- [ ] `CRM_DIR=/nonexistent bash scripts/check-private-data.sh` endet mit 0 und dem Hinweis.
-- [ ] `make check-repo` grün.
+- [x] `bash scripts/check-private-data.sh` endet mit 0 auf dem aktuellen Stand und meldet die Zahl der geprüften Begriffe größer 0.
+- [x] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive des Falls mit eingeschleuster Kontakt-E-Mail.
+- [x] `CRM_DIR=/nonexistent bash scripts/check-private-data.sh` endet mit 0 und dem Hinweis.
+- [x] `make check-repo` grün.
 
 ## Phase 3: `docs/feldfeedback.md` aus dem Register
 
