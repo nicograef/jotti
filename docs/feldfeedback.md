@@ -11,7 +11,9 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 - 7 weitere Organisationen und 2 Einzelpersonen haben angefragt, ohne eine Vereinbarung zu schließen. 1 Absender hat seine Mail bestritten.
 - Vereine aus dem Ausland: 3 aus Österreich und 2 aus der Schweiz.
 - 3 Vereine berichten vom Einsatz am Fest.
+- Alle Einsatzberichte sind positiv.
 - Einer der berichtenden Vereine lief zwei Festtage mit über 1600 Tischbestellungen stabil.
+- Über GitHub kamen 2 Anfragen: ein Verein aus der Schweiz und ein Nutzer ohne Vereinsangabe.
 - Ein weiterer Verein richtete jotti samt Bondrucker in 2 Stunden ein.
 - Gemeldete Störungen: ein still hängender Bondrucker, WLAN mit mehreren Access Points und unlesbare Umlaute auf einem Epson-Drucker.
 - Als Wechselgrund nennen 2 Vereine teure Miet-Kassensysteme und 1 Verein eine defekte alte Kasse.
