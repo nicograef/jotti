@@ -144,9 +144,14 @@ def validate(register: dict, topics: dict) -> list[str]:
     _unknown("topics", topics, TOPICS_KEYS, errors)
     lage = topics.get("lage", {})
     _unknown("[lage]", lage, LAGE_KEYS, errors)
-    for status, count in lage.get("deleted", {}).items():
+    deleted = lage.get("deleted", {})
+    if not isinstance(deleted, dict):
+        errors.append("[lage].deleted: must be a table of org status to count")
+        deleted = {}
+    for status, count in deleted.items():
         if status not in ORG_STATUSES or not isinstance(count, int) or count < 0:
             errors.append(f"[lage].deleted.{status}: must be an org status with a count >= 0")
+    waiting: set[str] = set()
     topic_ids: set[str] = set()
     for i, topic in enumerate(topics.get("topic", [])):
         where = f"topic[{i}] {topic.get('id', '?')}"
@@ -169,7 +174,7 @@ def validate(register: dict, topics: dict) -> list[str]:
         mentions = topic.get("mention", [])
         if not mentions:
             errors.append(f"{where}: needs at least one mention")
-        seen: set[tuple[str, str]] = set()
+        seen: set[str] = set()
         for j, mention in enumerate(mentions):
             mwhere = f"{where} mention[{j}]"
             _unknown(mwhere, mention, MENTION_KEYS, errors)
@@ -178,14 +183,18 @@ def validate(register: dict, topics: dict) -> list[str]:
             source = str(mention.get("source", ""))
             if not SOURCE_RE.match(source):
                 errors.append(f"{mwhere}: source must be gmail:<16 hex> or gh:<number>")
-            key = (str(mention.get("org")), source)
-            if key in seen:
-                errors.append(f"{mwhere}: duplicate source for this org")
-            seen.add(key)
+            if source in seen:
+                errors.append(f"{mwhere}: duplicate source in this topic")
+            seen.add(source)
             if not _is_date(mention.get("on")):
                 errors.append(f"{mwhere}: on must be a date")
             if not isinstance(mention.get("answered"), bool):
                 errors.append(f"{mwhere}: answered must be a boolean")
+            elif not mention["answered"]:
+                waiting.add(str(mention.get("org")))
+    for i, org in enumerate(register.get("org", [])):
+        if org.get("status") == "erledigt" and org.get("id") in waiting:
+            errors.append(f"org[{i}] {org['id']}: erledigt while a mention still waits for a reply")
     return errors
 
 
