@@ -55,6 +55,23 @@ REGISTER = {
             "status": "erledigt",
             "contact": [{"name": "Support Team", "emails": ["support@example.com"]}],
         },
+        {
+            "id": "zweiter-verein",
+            "kind": "verein",
+            "name": "Zweiter Verein Alpenland",
+            "country": "AT",
+            "status": "vereinbart",
+            "agreed_on": dt.date(2026, 1, 10),
+            "terms_version": dt.date(2026, 7, 14),
+            "agreement_source": "gmail:0000000000000004",
+            "public_name_ok": True,
+        },
+        {
+            "id": "bestrittener-verein",
+            "kind": "verein",
+            "name": "Bestrittener Verein",
+            "status": "bestritten",
+        },
     ],
 }
 
@@ -82,6 +99,68 @@ TOPICS = {
             "mention": [
                 {"org": "beispielverein", "source": "gmail:0000000000000001",
                  "on": dt.date(2026, 1, 15), "answered": True},
+            ],
+        },
+        {
+            "id": "bestelluebersicht",
+            "title": "Bestellübersicht",
+            "kind": "wunsch",
+            "status": "umgesetzt",
+            "ref": "K-13",
+            "mention": [
+                {"org": "zweiter-verein", "source": "gh:33", "on": dt.date(2026, 1, 11), "answered": True},
+            ],
+        },
+        {
+            "id": "preise-aendern",
+            "title": "Ändern der Preise",
+            "kind": "wunsch",
+            "status": "umgesetzt",
+            "ref": "K-12",
+            "mention": [
+                {"org": "beispielverein", "source": "gmail:0000000000000005",
+                 "on": dt.date(2026, 1, 5), "answered": True},
+            ],
+        },
+        {
+            "id": "kartenzahlung",
+            "title": "Kartenzahlung",
+            "kind": "wunsch",
+            "status": "abgelehnt",
+            "ref": "D03",
+            "mention": [
+                {"org": "zweiter-verein", "source": "gh:30", "on": dt.date(2026, 1, 12), "answered": True},
+            ],
+        },
+        {
+            "id": "bondruck",
+            "title": "Bondruck bricht ab",
+            "kind": "fehler",
+            "status": "offen",
+            "ref": "#77",
+            "mention": [
+                {"org": "zweiter-verein", "source": "gh:32", "on": dt.date(2026, 1, 13), "answered": True},
+            ],
+        },
+        {
+            "id": "drucker",
+            "title": "Welcher Drucker passt?",
+            "kind": "frage",
+            "status": "beantwortet",
+            "ref": "Leitfaden",
+            "mention": [
+                {"org": "offener-verein", "source": "gh:31", "on": dt.date(2026, 1, 14), "answered": True},
+            ],
+        },
+        {
+            "id": "sommerfest",
+            "title": "Bericht vom Sommerfest",
+            "kind": "einsatzbericht",
+            "status": "beantwortet",
+            "ref": "Feldtest",
+            "mention": [
+                {"org": "zweiter-verein", "source": "gmail:0000000000000006",
+                 "on": dt.date(2026, 1, 16), "answered": True},
             ],
         },
     ],
@@ -167,6 +246,7 @@ class ReportTest(unittest.TestCase):
             crm.retention(register, topics),
             [
                 ("ticketdienst", "-", []),
+                ("bestrittener-verein", "-", []),
                 ("org-zurueckgetreten", "-", []),
                 ("org-bestritten", "2026-02-01", ["gh:7"]),
                 ("org-erledigt", "-", []),
@@ -182,28 +262,38 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 
 ## Lage
 
-- 2 Organisationen haben die Nutzungsvereinbarung geschlossen, 1 davon zurückgezogen; 1 Vereinbarung gilt.
-- Der geltende Annahmesatz nennt die TERMS-Fassung vom 7. September 2026 (1).
-- 1 weitere Organisation hat angefragt, ohne eine Vereinbarung zu schließen.
+- 3 Organisationen haben die Nutzungsvereinbarung geschlossen, 1 davon zurückgezogen; 2 Vereinbarungen gelten.
+- Die geltenden Annahmesätze nennen die TERMS-Fassungen vom 14. Juli 2026 (1) und 7. September 2026 (1).
+- 1 weitere Organisation hat angefragt, ohne eine Vereinbarung zu schließen. 1 Absender hat seine Mail bestritten.
+- Vereine aus dem Ausland: 1 aus Österreich.
+- 1 Verein berichtet vom Einsatz am Fest.
 - Ein Satz zur Lage.
 
 ## Umgesetzt
 
-Keine Einträge.
+| Wunsch            | Vereine | Umsetzung |
+| ----------------- | ------: | --------- |
+| Ändern der Preise |       1 | K-12      |
+| Bestellübersicht  |       1 | K-13      |
 
 ## Abgelehnt
 
-Keine Einträge.
+| Wunsch        | Vereine | Entscheidung |
+| ------------- | ------: | ------------ |
+| Kartenzahlung |       1 | D03          |
 
 ## Offen
 
 | Wunsch oder Fehler | Vereine | Stand |
 | ------------------ | ------: | ----- |
 | Gläserpfand        |       2 | K-99  |
+| Bondruck bricht ab |       1 | #77   |
 
 ## Wiederkehrende Fragen
 
-Keine Einträge.
+| Frage                  | Vereine | Antwort steht in |
+| ---------------------- | ------: | ---------------- |
+| Welcher Drucker passt? |       1 | Leitfaden        |
 """
 
 
@@ -211,8 +301,6 @@ class RenderTest(unittest.TestCase):
     def test_render_counts_without_names_or_admin_topics(self):
         text = crm.render(*fixture())
         self.assertEqual(text, EXPECTED_RENDER)
-        self.assertNotIn("Mustermann", text)
-        self.assertNotIn("Nutzungsvereinbarung |", text)
 
 
 SCRIPTS = Path(__file__).resolve().parent.parent
@@ -240,6 +328,8 @@ class PiiTermsTest(unittest.TestCase):
             [
                 "Beispielverein Musterstadt",
                 "Beispielverein Musterstadt e.V.",
+                "Bestrittener",
+                "Bestrittener Verein",
                 "Erika Mustermann",
                 "Max Beispiel",
                 "ida@example.net",
