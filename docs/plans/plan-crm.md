@@ -225,10 +225,10 @@ ref = "[backlog.md](backlog.md)"
 
 ### Acceptance criteria
 
-- [ ] `python3 scripts/crm/crm.py validate` endet mit 0 und meldet die Zahl der Organisationen und Themen.
-- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive Abweisung eines `phone`-Felds, einer unbekannten `mention.org` und einer unbekannten `terms_version`.
-- [ ] `git check-ignore -q .crm/register.toml && test ! -e .mails` endet mit 0.
-- [ ] `make check-repo` grün.
+- [x] `python3 scripts/crm/crm.py validate` endet mit 0 und meldet die Zahl der Organisationen und Themen.
+- [x] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive Abweisung eines `phone`-Felds, einer unbekannten `mention.org` und einer unbekannten `terms_version`.
+- [x] `git check-ignore -q .crm/register.toml && test ! -e .mails` endet mit 0.
+- [x] `make check-repo` grün.
 
 ## Phase 2: PII-Gate
 
