@@ -6,7 +6,7 @@ ORDER BY kategorie;
 -- name: GetKonfigurierteDruckstationen :many
 SELECT kategorie, drucker_ip, bonmodus
 FROM druckstationen
-WHERE drucker_ip != ''
+WHERE drucker_ip != '' OR bonmodus = 'kein_bon'
 ORDER BY kategorie;
 
 -- name: UpsertDruckstation :exec

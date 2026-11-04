@@ -279,7 +279,7 @@ type Druckstationen struct {
 	Kategorie Druckstationkategorie
 	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
 	DruckerIp string
-	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon, zusätzlich pro_stueck (1 Bon je Einheit) nur für abholbon; NULL für kassenbeleg.
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon) für essen/getraenk/sonstiges/abholbon; nur für abholbon zusätzlich pro_stueck (1 Bon je Einheit) und kein_bon (Direktverkauf druckt keinen Bon); NULL für kassenbeleg.
 	Bonmodus  sql.NullString
 	UpdatedAt time.Time
 }

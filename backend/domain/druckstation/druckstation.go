@@ -40,9 +40,8 @@ func (k Kategorie) HatBonmodus() bool {
 	}
 }
 
-// ErlaubtBonmodus ist die eine Quelle dieser Regel: der Abholbon darf zusätzlich
-// pro Stück drucken (je Einheit ein Bon), weil Gäste im Direktverkauf mehrere
-// Einheiten auf einmal kaufen und einzeln einlösen.
+// ErlaubtBonmodus ist die eine Quelle dieser Regel. Nur der Abholbon darf pro Stück
+// drucken (Gäste lösen Einheiten einzeln ein) und mit kein_bon den Direktverkauf stummschalten.
 func (k Kategorie) ErlaubtBonmodus(bonmodus Bonmodus) bool {
 	if !k.HatBonmodus() {
 		return bonmodus == ""
@@ -51,7 +50,7 @@ func (k Kategorie) ErlaubtBonmodus(bonmodus Bonmodus) bool {
 	switch bonmodus {
 	case BonmodusProPosition, BonmodusProBestellung:
 		return true
-	case BonmodusProStueck:
+	case BonmodusProStueck, BonmodusKeinBon:
 		return k == KategorieAbholbon
 	default:
 		return false
@@ -85,7 +84,20 @@ const (
 	BonmodusProPosition   Bonmodus = "pro_position"
 	BonmodusProBestellung Bonmodus = "pro_bestellung"
 	BonmodusProStueck     Bonmodus = "pro_stueck"
+	// BonmodusKeinBon: ein Direktverkauf druckt keinen Bon, auch nicht an den Produktstationen.
+	BonmodusKeinBon Bonmodus = "kein_bon"
 )
+
+// AlleBonmodi ist die einzige Quelle der Wertemenge; die OneOf-Validierung in
+// api/druck/station/http/handler.go liest von hier.
+func AlleBonmodi() []string {
+	return []string{
+		string(BonmodusProPosition),
+		string(BonmodusProBestellung),
+		string(BonmodusProStueck),
+		string(BonmodusKeinBon),
+	}
+}
 
 type Druckstation struct {
 	Kategorie Kategorie

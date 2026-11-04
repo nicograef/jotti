@@ -338,7 +338,43 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	}
 }
 
-// Kein Arbeitsbon piept: jeder Payload beginnt mit ESC @ (Init), an keiner Station
+// Bonmodus kein_bon am Abholbon schaltet den Direktverkauf stumm, mit und ohne
+// Abholbon-IP und trotz konfigurierter Produktstationen. Tischbestellungen drucken weiter.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAus(t *testing.T) {
+	positionen := []kasse.Position{
+		position("Pommes", "gross", "essen", 1),
+		position("Bier", "0,5l", "getraenk", 2),
+	}
+	produktstationen := func(abholbonIP string) map[string]druckstation.Druckstation {
+		return map[string]druckstation.Druckstation{
+			"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
+			"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
+			"abholbon": {DruckerIP: abholbonIP, Bonmodus: "kein_bon"},
+		}
+	}
+
+	cases := []struct {
+		name      string
+		evt       event.Event
+		stationen map[string]druckstation.Druckstation
+		want      int
+	}{
+		{"direktverkauf, abholbon ohne IP", makeDirektverkaufEvent(t, 40, positionen, ""), produktstationen(""), 0},
+		{"direktverkauf, abholbon mit IP", makeDirektverkaufEvent(t, 41, positionen, ""), produktstationen("192.168.1.77"), 0},
+		{"tischbestellung druckt weiter", makeBestellungEvent(t, 42, "kassensitzung-1/tisch-1", positionen, ""), produktstationen(""), 2},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			auftraege := CreateArbeitsbonAuftraegeFromEvent(tc.evt, tc.stationen, "Tisch 1")
+			if len(auftraege) != tc.want {
+				t.Errorf("expected %d auftraege, got %d", tc.want, len(auftraege))
+			}
+		})
+	}
+}
+
+// Kein Arbeitsbon piept:jeder Payload beginnt mit ESC @ (Init), an keiner Station
 // steht ein Steuerbefehl davor.
 func TestCreateArbeitsbonAuftraege_KeinPiepton(t *testing.T) {
 	cases := []struct {

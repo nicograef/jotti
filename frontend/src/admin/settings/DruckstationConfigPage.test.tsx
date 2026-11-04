@@ -269,38 +269,61 @@ describe('DruckstationConfigPage — Stationskarten', () => {
     expect(screen.queryByText('Gespeichert')).not.toBeInTheDocument()
   })
 
-  it('bietet den Bonmodus „Pro Stück" nur an der Abholbon-Station an und speichert ihn', async () => {
-    const user = userEvent.setup()
-    const fake = backend({
-      druckstationen: [
-        makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
-        makeStation({
-          kategorie: 'abholbon',
-          druckerIp: '192.168.1.77',
-          bonmodus: 'pro_bestellung',
-        }),
-      ],
-    })
-    await renderPage(fake)
+  it.each([
+    { titel: /Pro Stück/, bonmodus: 'pro_stueck' },
+    { titel: /Kein Bon/, bonmodus: 'kein_bon' },
+  ])(
+    'bietet den Bonmodus $bonmodus nur an der Abholbon-Station an und speichert ihn',
+    async ({ titel, bonmodus }) => {
+      const user = userEvent.setup()
+      const fake = backend({
+        druckstationen: [
+          makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+          makeStation({
+            kategorie: 'abholbon',
+            druckerIp: '192.168.1.77',
+            bonmodus: 'pro_bestellung',
+          }),
+        ],
+      })
+      await renderPage(fake)
 
-    // Beide Karten zeigen die zwei Standard-Kacheln, „Pro Stück" nur der Abholbon.
-    expect(
-      screen.getAllByRole('button', { name: /Pro Position/ }),
-    ).toHaveLength(2)
-    const proStueck = screen.getAllByRole('button', { name: /Pro Stück/ })
-    expect(proStueck).toHaveLength(1)
+      // Beide Karten zeigen die zwei Standard-Kacheln, die Abholbon-Modi nur der Abholbon.
+      expect(
+        screen.getAllByRole('button', { name: /Pro Position/ }),
+      ).toHaveLength(2)
+      const kachel = screen.getAllByRole('button', { name: titel })
+      expect(kachel).toHaveLength(1)
 
-    await user.click(proStueck[0])
+      await user.click(kachel[0])
 
-    await waitFor(() => {
-      expect(fake.bodies('admin/update-druckstationen')).toEqual([
-        {
-          kategorie: 'abholbon',
-          druckerIp: '192.168.1.77',
-          bonmodus: 'pro_stueck',
-        },
-      ])
-    })
+      await waitFor(() => {
+        expect(fake.bodies('admin/update-druckstationen')).toEqual([
+          { kategorie: 'abholbon', druckerIp: '192.168.1.77', bonmodus },
+        ])
+      })
+    },
+  )
+
+  it('zeigt den Abholbon mit „Kein Bon" ohne Drucker-IP als eigene Karte statt als unkonfiguriert', async () => {
+    await renderPage(
+      backend({
+        druckstationen: [
+          makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+          makeStation({
+            kategorie: 'abholbon',
+            druckerIp: '',
+            bonmodus: 'kein_bon',
+          }),
+        ],
+      }),
+    )
+
+    expect(screen.queryByText(/kein Drucker/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Kein Bon/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it('fasst nicht konfigurierte Stationen als gestrichelte Karte mit "Drucker zuweisen" zusammen', async () => {

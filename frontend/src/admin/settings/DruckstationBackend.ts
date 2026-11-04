@@ -12,17 +12,24 @@ const KategorieSchema = z.enum([
 ])
 export type Kategorie = z.infer<typeof KategorieSchema>
 
-const BonmodusSchema = z.enum(['pro_position', 'pro_bestellung', 'pro_stueck'])
+const BonmodusSchema = z.enum([
+  'pro_position',
+  'pro_bestellung',
+  'pro_stueck',
+  'kein_bon',
+])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-// Pro Stück (je Einheit ein Bon) nur am Abholbon — spiegelt
-// Kategorie.ErlaubtBonmodus im Backend. Ob eine Station überhaupt einen
-// Bonmodus trägt, sagt hatBonmodus.
+// Pro Stück und Kein Bon nur am Abholbon — spiegelt Kategorie.ErlaubtBonmodus
+// im Backend. Ob eine Station überhaupt einen Bonmodus trägt, sagt hatBonmodus.
 export function erlaubtBonmodus(
   kategorie: Kategorie,
   bonmodus: Bonmodus,
 ): boolean {
-  return bonmodus !== 'pro_stueck' || kategorie === 'abholbon'
+  if (bonmodus === 'pro_stueck' || bonmodus === 'kein_bon') {
+    return kategorie === 'abholbon'
+  }
+  return true
 }
 
 export const DruckstationConfigSchema = z
@@ -42,7 +49,7 @@ export const DruckstationConfigSchema = z
     ctx.addIssue({
       code: 'custom',
       path: ['bonmodus'],
-      message: 'Pro Stück ist nur für den Abholbon zulässig',
+      message: 'Dieser Bonmodus ist nur für den Abholbon zulässig',
     })
   })
 export type DruckstationConfig = z.infer<typeof DruckstationConfigSchema>

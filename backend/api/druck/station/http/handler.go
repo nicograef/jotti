@@ -71,7 +71,7 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 	).Required(),
 	"DruckerIP": z.String().IPv4(z.Message("Ungültige IPv4-Adresse")).Optional(),
 	"Bonmodus": z.String().OneOf(
-		[]string{"pro_position", "pro_bestellung", "pro_stueck"},
+		druckstation.AlleBonmodi(),
 		z.Message("Ungültiger Bonmodus"),
 	).Optional(),
 }).TestFunc(func(val any, ctx z.Ctx) bool {
@@ -80,7 +80,7 @@ var updateDruckstationenSchema = z.Struct(z.Shape{
 		return false
 	}
 	// Welcher Bonmodus zu welcher Station passt, entscheidet die Domain:
-	// pro_stueck nur am Abholbon, gar kein Bonmodus am Kassenbeleg.
+	// pro_stueck und kein_bon nur am Abholbon, gar kein Bonmodus am Kassenbeleg.
 	return druckstation.Kategorie(body.Kategorie).ErlaubtBonmodus(druckstation.Bonmodus(body.Bonmodus))
 }, z.Message("Bonmodus passt nicht zu dieser Druckstation"))
 

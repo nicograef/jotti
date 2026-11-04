@@ -174,18 +174,21 @@ describe('DruckstationConfigSchema', () => {
     })
     expect(ergebnis.success).toBe(false)
     expect(ergebnis.error?.issues[0].message).toBe(
-      'Pro Stück ist nur für den Abholbon zulässig',
+      'Dieser Bonmodus ist nur für den Abholbon zulässig',
     )
   })
 })
 
 describe('erlaubtBonmodus', () => {
-  it('erlaubt pro_stueck nur am Abholbon', () => {
-    expect(erlaubtBonmodus('abholbon', 'pro_stueck')).toBe(true)
-    expect(erlaubtBonmodus('essen', 'pro_stueck')).toBe(false)
-    expect(erlaubtBonmodus('getraenk', 'pro_stueck')).toBe(false)
-    expect(erlaubtBonmodus('sonstiges', 'pro_stueck')).toBe(false)
-  })
+  it.each(['pro_stueck', 'kein_bon'] as const)(
+    'erlaubt %s nur am Abholbon',
+    (bonmodus) => {
+      expect(erlaubtBonmodus('abholbon', bonmodus)).toBe(true)
+      expect(erlaubtBonmodus('essen', bonmodus)).toBe(false)
+      expect(erlaubtBonmodus('getraenk', bonmodus)).toBe(false)
+      expect(erlaubtBonmodus('sonstiges', bonmodus)).toBe(false)
+    },
+  )
 
   it('erlaubt die zwei Standard-Modi an den Stationen mit Bonmodus', () => {
     expect(erlaubtBonmodus('essen', 'pro_position')).toBe(true)

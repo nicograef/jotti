@@ -314,6 +314,7 @@ Ein Stornobeleg trägt einen negativen Betrag und verweist auf die Belegnummer d
 
 **Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet:
 
+- Trägt die Abholbon-Station den Bonmodus `kein_bon`, entsteht kein Auftrag, auch nicht an den Produktstationen. Ihre IP spielt dann keine Rolle.
 - Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit.
 - Sonst entstehen Arbeitsbons an die Produktstationen.
 - Ohne konfigurierte Stationen entsteht kein Auftrag.

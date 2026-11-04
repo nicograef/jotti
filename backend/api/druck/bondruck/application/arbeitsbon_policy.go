@@ -54,7 +54,11 @@ func createDirektverkaufAuftraege(
 
 	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
-	if abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]; ok && abholbon.DruckerIP != "" {
+	abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]
+	if ok && abholbon.Bonmodus == druckstation.BonmodusKeinBon {
+		return nil
+	}
+	if ok && abholbon.DruckerIP != "" {
 		return createAbholbonAuftraege(evt, data, abholbon, referenz)
 	}
 
@@ -91,6 +95,9 @@ func createAbholbonAuftraege(
 			}
 		}
 		return auftraege
+
+	case druckstation.BonmodusKeinBon:
+		return nil
 
 	case druckstation.BonmodusProPosition:
 		fallthrough

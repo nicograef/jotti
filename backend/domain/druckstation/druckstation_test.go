@@ -19,6 +19,8 @@ func TestNewDruckstation(t *testing.T) {
 		{"abholbon pro_position", KategorieAbholbon, "", BonmodusProPosition, false},
 		{"abholbon pro_stueck", KategorieAbholbon, "192.168.1.70", BonmodusProStueck, false},
 		{"produktkategorie pro_stueck abgelehnt", KategorieEssen, "", BonmodusProStueck, true},
+		{"abholbon kein_bon ohne IP", KategorieAbholbon, "", BonmodusKeinBon, false},
+		{"produktkategorie kein_bon abgelehnt", KategorieGetraenk, "192.168.1.52", BonmodusKeinBon, true},
 		{"abholbon ohne bonmodus abgelehnt", KategorieAbholbon, "", "", true},
 		{"kassenbeleg mit bonmodus abgelehnt", KategorieKassenbeleg, "", BonmodusProPosition, true},
 		{"ungültige kategorie", Kategorie("foo"), "", "", true},

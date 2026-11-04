@@ -62,7 +62,7 @@ const KATEGORIE_INFO: Record<
   },
 }
 
-// „Pro Stück" erscheint nur am Abholbon (siehe erlaubtBonmodus).
+// „Pro Stück" und „Kein Bon" erscheinen nur am Abholbon (siehe erlaubtBonmodus).
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
   [
     {
@@ -79,6 +79,11 @@ const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
       wert: 'pro_stueck',
       titel: 'Pro Stück',
       hinweis: 'je Einheit ein Bon',
+    },
+    {
+      wert: 'kein_bon',
+      titel: 'Kein Bon',
+      hinweis: 'Direktverkauf druckt nichts',
     },
   ]
 
@@ -114,7 +119,6 @@ function BonmodusOptionen({
               }}
               className={cn(
                 'rounded-lg border p-3 text-left transition-colors disabled:opacity-60',
-                option.wert === 'pro_stueck' && 'col-span-2',
                 gewaehlt ? 'border-primary bg-primary/5' : 'hover:bg-accent/50',
               )}
             >
@@ -294,6 +298,7 @@ function NichtKonfigurierteKarte({
   const namen = stationen
     .map((s) => KATEGORIE_INFO[s.kategorie].label)
     .join(' & ')
+  const abholbonDabei = stationen.some((s) => s.kategorie === 'abholbon')
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-dashed bg-muted/30 p-5">
@@ -301,9 +306,9 @@ function NichtKonfigurierteKarte({
         {namen} — kein Drucker
       </span>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Diese Stationen drucken nichts. Abholbon aktivieren, wenn Gäste am
-        Direktverkauf eine Abholnummer bekommen sollen — sonst gehen
-        Direktverkäufe an die Produktstationen.
+        Diese Stationen drucken nichts.
+        {abholbonDabei &&
+          ' Abholbon aktivieren, wenn Gäste am Direktverkauf eine Abholnummer bekommen sollen — sonst gehen Direktverkäufe an die Produktstationen. Mit Bonmodus „Kein Bon“ druckt der Direktverkauf gar nichts.'}
       </p>
       <Button
         variant="outline"
@@ -491,6 +496,11 @@ function AlarmKarte() {
   )
 }
 
+// „Kein Bon" am Abholbon ist eine bewusste Einstellung, auch ohne Drucker-IP.
+function istKonfiguriert(config: DruckstationConfig): boolean {
+  return config.druckerIp !== '' || config.bonmodus === 'kein_bon'
+}
+
 export function DruckstationConfigPage() {
   const {
     druckstationen,
@@ -508,8 +518,8 @@ export function DruckstationConfigPage() {
       <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
     )
   } else {
-    const konfiguriert = druckstationen.filter((s) => s.druckerIp !== '')
-    const nichtKonfiguriert = druckstationen.filter((s) => s.druckerIp === '')
+    const konfiguriert = druckstationen.filter(istKonfiguriert)
+    const nichtKonfiguriert = druckstationen.filter((s) => !istKonfiguriert(s))
 
     inhalt = (
       <>

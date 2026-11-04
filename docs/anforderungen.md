@@ -24,28 +24,28 @@ Bewusst nicht geplant.
 
 ### Kasse (Core Domain)
 
-| ID   | Titel                   | Beschreibung                                                                                                                            |
-| ---- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| K-01 | Bestellung aufnehmen    | Tisch wählen, aus dem Produktkatalog eine Bestellung zusammenstellen und abgeben.                                                       |
-| K-02 | Zahlung registrieren    | Barzahlung mit Positionsauswahl (Teilzahlung), reduziert den Tischsaldo.                                                                |
-| K-04 | Stornierung erteilen    | Serviceleitung/Admin storniert Positionen; Aufteilung nach Bezahlstatus → [handbuch.md §3.7](handbuch.md#37-invarianten).               |
-| K-06 | Tischübersicht          | Dashboard mit Favoriten, Alle-Tische-Drawer und Tisch-Detail.                                                                           |
-| K-07 | Kassenjournal           | Append-only Event-Tabelle als Single Source of Truth.                                                                                   |
-| K-09 | Bestellungen umbuchen   | Unbezahlte Bestellungen atomar zwischen Tischen umbuchen.                                                                               |
-| K-10 | Rückgeldberechnung      | Rückgeld und Trinkgeld clientseitig beim Kassieren.                                                                                     |
-| K-11 | Tisch-Schnellsuche      | Echtzeit-Filterung nach Tischname auf der Tischübersicht.                                                                               |
-| K-12 | Arbeitsbon              | Automatischer Bon ohne Preise an Druckstationen (nicht-fiskalisch).                                                                     |
-| K-14 | Tisch-Favoriten         | Serverseitige Favoriten pro Benutzer, Stern-Toggle.                                                                                     |
-| K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag; Sperre ohne offene Sitzung.                                                                            |
-| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis; wird beim Eröffnen (K-16) gesetzt, kein eigener Schritt.                                                         |
-| K-18 | Kassenbestand einsehen  | Soll-Bestand als Aggregation über das Kassenjournal.                                                                                    |
-| K-19 | Geldtransit buchen      | Einlage oder Entnahme als Journal-Event.                                                                                                |
-| K-20 | Betreiber-Stammdaten    | Vereinsdaten für Beleg (F-03) und DSFinV-K-Export (F-04).                                                                               |
-| K-21 | Kassensturz durchführen | Gezählter Ist- gegen Soll-Bestand, Differenz wird gebucht; Teil von K-22.                                                               |
-| K-22 | Kassenabschluss / Z-Bon | Kassensturz (K-21) und Tagesabschluss in einem Schritt; alle Tische auf Saldo 0.                                                        |
-| K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch; mit Historie/Storno.                                                       |
-| K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien; Bonmodus pro Position, pro Bestellung, am Abholbon auch pro Stück. |
-| K-26 | Druckauftrag-Verwaltung | Druckaufträge per Relay abrufen; fehlgeschlagene erneut versuchen/verwerfen.                                                            |
+| ID   | Titel                   | Beschreibung                                                                                                                                          |
+| ---- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| K-01 | Bestellung aufnehmen    | Tisch wählen, aus dem Produktkatalog eine Bestellung zusammenstellen und abgeben.                                                                     |
+| K-02 | Zahlung registrieren    | Barzahlung mit Positionsauswahl (Teilzahlung), reduziert den Tischsaldo.                                                                              |
+| K-04 | Stornierung erteilen    | Serviceleitung/Admin storniert Positionen; Aufteilung nach Bezahlstatus → [handbuch.md §3.7](handbuch.md#37-invarianten).                             |
+| K-06 | Tischübersicht          | Dashboard mit Favoriten, Alle-Tische-Drawer und Tisch-Detail.                                                                                         |
+| K-07 | Kassenjournal           | Append-only Event-Tabelle als Single Source of Truth.                                                                                                 |
+| K-09 | Bestellungen umbuchen   | Unbezahlte Bestellungen atomar zwischen Tischen umbuchen.                                                                                             |
+| K-10 | Rückgeldberechnung      | Rückgeld und Trinkgeld clientseitig beim Kassieren.                                                                                                   |
+| K-11 | Tisch-Schnellsuche      | Echtzeit-Filterung nach Tischname auf der Tischübersicht.                                                                                             |
+| K-12 | Arbeitsbon              | Automatischer Bon ohne Preise an Druckstationen (nicht-fiskalisch).                                                                                   |
+| K-14 | Tisch-Favoriten         | Serverseitige Favoriten pro Benutzer, Stern-Toggle.                                                                                                   |
+| K-16 | Kassensitzung eröffnen  | Global nummerierter Betriebstag; Sperre ohne offene Sitzung.                                                                                          |
+| K-17 | Anfangsbestand setzen   | Wechselgeld als Basis; wird beim Eröffnen (K-16) gesetzt, kein eigener Schritt.                                                                       |
+| K-18 | Kassenbestand einsehen  | Soll-Bestand als Aggregation über das Kassenjournal.                                                                                                  |
+| K-19 | Geldtransit buchen      | Einlage oder Entnahme als Journal-Event.                                                                                                              |
+| K-20 | Betreiber-Stammdaten    | Vereinsdaten für Beleg (F-03) und DSFinV-K-Export (F-04).                                                                                             |
+| K-21 | Kassensturz durchführen | Gezählter Ist- gegen Soll-Bestand, Differenz wird gebucht; Teil von K-22.                                                                             |
+| K-22 | Kassenabschluss / Z-Bon | Kassensturz (K-21) und Tagesabschluss in einem Schritt; alle Tische auf Saldo 0.                                                                      |
+| K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch; mit Historie/Storno.                                                                     |
+| K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien; Bonmodus pro Position, pro Bestellung, am Abholbon auch pro Stück oder kein Bon. |
+| K-26 | Druckauftrag-Verwaltung | Druckaufträge per Relay abrufen; fehlgeschlagene erneut versuchen/verwerfen.                                                                          |
 
 ### Stammdaten (Supporting Domain)
 

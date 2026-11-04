@@ -277,4 +277,32 @@ func TestUpsertDruckstation_Abholbon(t *testing.T) {
 	if result["abholbon"].Bonmodus != druckstation.BonmodusProStueck {
 		t.Errorf("Expected Bonmodus 'pro_stueck' for abholbon, got %q", result["abholbon"].Bonmodus)
 	}
+
+	// kein_bon (CHECK aus Migration 10) gilt ohne IP als konfiguriert, sonst fiele
+	// der Direktverkauf auf die Produktstationen zurück.
+	err = repo.UpsertDruckstation(ctx, druckstation.Druckstation{
+		Kategorie: druckstation.KategorieAbholbon,
+		DruckerIP: "",
+		Bonmodus:  druckstation.BonmodusKeinBon,
+	})
+	if err != nil {
+		t.Fatalf("Expected no error on abholbon kein_bon upsert, got %v", err)
+	}
+
+	result, err = repo.GetKonfigurierteDruckstationen(ctx)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if result["abholbon"].Bonmodus != druckstation.BonmodusKeinBon {
+		t.Errorf("Expected abholbon with Bonmodus 'kein_bon' among configured stations, got %+v", result)
+	}
+
+	err = repo.UpsertDruckstation(ctx, druckstation.Druckstation{
+		Kategorie: druckstation.KategorieEssen,
+		DruckerIP: "",
+		Bonmodus:  druckstation.BonmodusKeinBon,
+	})
+	if err == nil {
+		t.Error("Expected the CHECK constraint to reject kein_bon for essen")
+	}
 }
