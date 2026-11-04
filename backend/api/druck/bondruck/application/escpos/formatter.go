@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/internal/zeit"
-	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/unicode/norm"
 )
 
 const lineWidth = 48 // Font A, 12x24 Dots bei 576 dots/line -> 48 Zeichen
@@ -74,19 +75,19 @@ func FormatPositionBon(
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageWPC1252)
+	buf.WriteString(SetCodepagePC437)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toWPC1252(fmt.Sprintf("== %s ==\n", tischName)))
+	buf.WriteString(toCP437(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toWPC1252(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
+	buf.WriteString(toCP437(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
@@ -94,7 +95,7 @@ func FormatPositionBon(
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
 		buf.WriteString(BoldOn)
-		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
+		buf.WriteString(wrapCP437(kommentar, lineWidth))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
@@ -102,7 +103,7 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24))))
+	buf.WriteString(toCP437(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24))))
 
 	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -121,12 +122,12 @@ func FormatSammelBon(
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageWPC1252)
+	buf.WriteString(SetCodepagePC437)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toWPC1252(fmt.Sprintf("== %s ==\n", tischName)))
+	buf.WriteString(toCP437(fmt.Sprintf("== %s ==\n", tischName)))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -136,7 +137,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOn)
 	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
-		buf.WriteString(toWPC1252(artikel))
+		buf.WriteString(toCP437(artikel))
 		buf.WriteByte('\n')
 	}
 	buf.WriteString(BoldOff)
@@ -145,14 +146,14 @@ func FormatSammelBon(
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(BoldOn)
-		buf.WriteString(toWPC1252(wrapLine(kommentar, lineWidth)))
+		buf.WriteString(wrapCP437(kommentar, lineWidth))
 		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
 
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(fmt.Sprintf("  %s  Bedienung: %s\n",
+	buf.WriteString(toCP437(fmt.Sprintf("  %s  Bedienung: %s\n",
 		zeitpunkt.In(zeit.Berlin).Format("15:04"),
 		truncate(userName, 24),
 	)))
@@ -174,26 +175,27 @@ func FormatDirektverkaufAbholbon(
 	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar)
 }
 
-// FormatTestbon trägt nur Stationsname und Zeitstempel — kein fiskalischer
-// Inhalt, keine TSE-Daten.
+// FormatTestbon trägt Stationsname, Zeitstempel und eine Umlautzeile, an der
+// der Admin die Codepage prüft — kein fiskalischer Inhalt, keine TSE-Daten.
 func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageWPC1252)
+	buf.WriteString(SetCodepagePC437)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toWPC1252("TESTBON\n"))
+	buf.WriteString(toCP437("TESTBON\n"))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	buf.WriteString(toWPC1252(fmt.Sprintf("Station: %s\n", stationsName)))
-	buf.WriteString(toWPC1252(fmt.Sprintf("%s\n", zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
+	buf.WriteString(toCP437(fmt.Sprintf("Station: %s\n", stationsName)))
+	buf.WriteString(toCP437(fmt.Sprintf("%s\n", zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
 	buf.WriteString("\n")
-	buf.WriteString(toWPC1252("Drucker und Netzwerk funktionieren.\n"))
+	buf.WriteString(toCP437("Drucker und Netzwerk funktionieren.\n"))
+	buf.WriteString(toCP437("Umlaute: äöü ÄÖÜ ß\n"))
 
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -206,7 +208,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
 	buf.WriteString(Init)
-	buf.WriteString(SetCodepageWPC1252)
+	buf.WriteString(SetCodepagePC437)
 
 	buf.WriteString(AlignCenter)
 	buf.WriteString(BoldOn)
@@ -218,11 +220,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOff)
 	buf.WriteString("\n")
 
-	buf.WriteString(toWPC1252(wrapLine(data.Vereinsname, lineWidth)))
+	buf.WriteString(wrapCP437(data.Vereinsname, lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(wrapLine(data.Strasse, lineWidth)))
+	buf.WriteString(wrapCP437(data.Strasse, lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toWPC1252(wrapLine(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth)))
+	buf.WriteString(wrapCP437(strings.TrimSpace(data.Plz+" "+data.Ort), lineWidth))
 	buf.WriteByte('\n')
 	buf.WriteString("\n")
 
@@ -241,7 +243,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 
 	for _, pos := range data.Positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
-		buf.WriteString(toWPC1252(wrapLine(artikel, lineWidth)))
+		buf.WriteString(wrapCP437(artikel, lineWidth))
 		buf.WriteByte('\n')
 		kennzeichen := steuerKennzeichenAusSatz(steuer.Steuersatz(pos.Steuersatz))
 		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), kennzeichen)
@@ -252,7 +254,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOn)
 	fmt.Fprintf(&buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
 	buf.WriteString(BoldOff)
-	buf.WriteString(toWPC1252(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
+	buf.WriteString(toCP437(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
 
 	if len(data.Steuermatrix) > 0 {
 		buf.WriteByte('\n')
@@ -277,12 +279,12 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
 		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
-		buf.WriteString(toWPC1252("  Signatur: "))
-		buf.WriteString(toWPC1252(wrapLine(data.TSE.Signatur, lineWidth-2)))
+		buf.WriteString(toCP437("  Signatur: "))
+		buf.WriteString(wrapCP437(data.TSE.Signatur, lineWidth-2))
 		buf.WriteByte('\n')
 		if data.TSE.Nachsigniert {
-			buf.WriteString(toWPC1252(fmt.Sprintf("  Nachsigniert am %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
-			buf.WriteString(toWPC1252("  (TSE war bei der Erfassung nicht erreichbar)\n"))
+			buf.WriteString(toCP437(fmt.Sprintf("  Nachsigniert am %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
+			buf.WriteString(toCP437("  (TSE war bei der Erfassung nicht erreichbar)\n"))
 		}
 
 		appendNativeQRCode(&buf, data.TSE.QRCodeData)
@@ -291,12 +293,12 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		case TSEVermerkVoruebergehend:
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
-			buf.WriteString(toWPC1252("  TSE voruebergehend nicht erreichbar.\n"))
-			buf.WriteString(toWPC1252("  Dieser Vorgang wird automatisch nachsigniert.\n"))
+			buf.WriteString(toCP437("  TSE voruebergehend nicht erreichbar.\n"))
+			buf.WriteString(toCP437("  Dieser Vorgang wird automatisch nachsigniert.\n"))
 		case TSEVermerkKeineKonfiguration:
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
-			buf.WriteString(toWPC1252("  Fuer diesen Vorgang war keine TSE konfiguriert.\n"))
+			buf.WriteString(toCP437("  Fuer diesen Vorgang war keine TSE konfiguriert.\n"))
 		case KeinTSEVermerk:
 		}
 	}
@@ -339,15 +341,63 @@ func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
 	buf.WriteString(AlignLeft)
 }
 
-// toWPC1252 transkodiert sichtbaren Text von UTF-8 in die Drucker-Codepage
-// WPC1252 (passend zu SetCodepageWPC1252); nicht abbildbare Zeichen werden
-// ersetzt, statt den ganzen Bon zu verwerfen. ESC/POS-Steuerbytes laufen nie hier durch.
-func toWPC1252(s string) string {
-	encoded, err := encoding.ReplaceUnsupported(charmap.Windows1252.NewEncoder()).String(s)
-	if err != nil {
-		return s
+// asciiErsatz bildet Zeichen, die CP437 fehlen und die Handy-Tastaturen oder
+// truncate erzeugen, auf lesbares ASCII ab.
+var asciiErsatz = map[rune]string{
+	'„': `"`, '“': `"`, '”': `"`, '″': `"`,
+	'‚': "'", '‘': "'", '’': "'", '′': "'",
+	'‐': "-", '‑': "-", '‒': "-", '–': "-", '—': "-", '−': "-",
+	'…': "...",
+	'€': "EUR",
+	'×': "x",
+	'•': "*",
+	'→': "->",
+	'§': "Par.",
+	'³': "3",
+	'©': "(c)", '®': "(R)", '™': "TM",
+	'\u2007': " ", '\u2009': " ", '\u202F': " ",
+}
+
+// printable reduces UTF-8 text to runes CP437 can encode, so callers count print columns
+// in runes. Accented letters lose only their accent; "?" marks a rune with no readable form.
+func printable(s string) string {
+	var out strings.Builder
+	for _, r := range norm.NFC.String(s) {
+		if _, ok := charmap.CodePage437.EncodeRune(r); ok {
+			out.WriteRune(r)
+			continue
+		}
+		if ersatz, ok := asciiErsatz[r]; ok {
+			out.WriteString(ersatz)
+			continue
+		}
+		if unicode.In(r, unicode.Mn, unicode.Cf) {
+			continue
+		}
+		basis, _ := utf8.DecodeRuneInString(norm.NFD.String(string(r)))
+		if _, ok := charmap.CodePage437.EncodeRune(basis); ok {
+			out.WriteRune(basis)
+			continue
+		}
+		out.WriteByte('?')
 	}
-	return encoded
+	return out.String()
+}
+
+// toCP437 encodes visible text for the printer codepage set by SetCodepagePC437.
+// ESC/POS control sequences never pass through here.
+func toCP437(s string) string {
+	var out strings.Builder
+	for _, r := range printable(s) {
+		b, _ := charmap.CodePage437.EncodeRune(r)
+		out.WriteByte(b)
+	}
+	return out.String()
+}
+
+// wrapCP437 wraps after the transliteration, which can lengthen a line ("…" → "...").
+func wrapCP437(s string, width int) string {
+	return toCP437(wrapLine(printable(s), width))
 }
 
 // truncate kürzt einen String auf maxLen Runen (inkl. Auslassungszeichen)

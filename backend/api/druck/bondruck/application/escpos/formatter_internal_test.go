@@ -46,6 +46,24 @@ func TestWrapLine_BreaksOnWordBoundary(t *testing.T) {
 	}
 }
 
+func TestPrintable_ErsetztZeichenOhneCP437(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"Crêpes à la Müller", "Crêpes à la Müller"},
+		{"K\u00e4se a\u0308", "Käse ä"},
+		{"Dvořák Łukasz", "Dvorák ?ukasz"},
+		{"Bier 🍺\u200d, bitte", "Bier ?, bitte"},
+		{"Ma\u00adria", "Maria"},
+	}
+	for _, tc := range cases {
+		if got := printable(tc.in); got != tc.want {
+			t.Errorf("printable(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
 func TestQRVersionForLengthM_KnownCapacities(t *testing.T) {
 	cases := []struct {
 		payloadLen  int

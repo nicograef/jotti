@@ -61,8 +61,8 @@ Für gedruckte Bons braucht ihr einen ESC/POS-Bondrucker:
 USB-Drucker werden nicht unterstützt — jotti druckt ausschließlich über das Netzwerk.
 
 Im Feld bestätigt sind der **Epson TM-T20IV** per Ethernet und der
-**Sam4s Hcube** per WLAN. Am Epson druckt jotti Umlaute und ß unlesbar, bis
-[#144](https://github.com/nicograef/jotti/issues/144) behoben ist.
+**Sam4s Hcube** per WLAN. jotti druckt im Zeichensatz PC437, den fast alle
+ESC/POS-Drucker kennen.
 
 Kaufempfehlung (Stand der Recherche: 07.09.2026):
 
@@ -78,6 +78,9 @@ Die Einrichtung hat zwei Teile:
 2. **Drucker-Programm starten.** Auf dem Kassenrechner zusätzlich `jotti-relay.exe`
    doppelklicken. Es läuft ohne Administratorrechte und nimmt seine Zugangsdaten aus
    der `.env`, die `jotti-start.exe` angelegt hat.
+
+Danach je Station den „Testbon" senden. Seine letzte Zeile zeigt Umlaute und ß.
+Sind sie unlesbar, kennt der Drucker PC437 nicht; dann taugt er nicht für jotti.
 
 ## Aktualisieren
 

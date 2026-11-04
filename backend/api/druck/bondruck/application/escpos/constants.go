@@ -2,9 +2,9 @@ package escpos
 
 const Init = "\x1B\x40"
 
-// Codepage 6 is WPC1252 on the MUNBYN ITPP047P, unlike Epson's 16 (list on the printer's self-test page).
-// ESC @ (Init) resets the codepage, so send this after Init.
-const SetCodepageWPC1252 = "\x1B\x74\x06" // ESC t 6
+// Codepage 0 is PC437 on Epson, MUNBYN and most clones; higher indices differ per brand.
+// ESC @ (Init) resets the codepage to the printer's default, so send this after Init.
+const SetCodepagePC437 = "\x1B\x74\x00" // ESC t 0
 
 const AlignLeft = "\x1B\x61\x00"
 const AlignCenter = "\x1B\x61\x01"

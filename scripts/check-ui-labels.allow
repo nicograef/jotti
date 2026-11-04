@@ -14,7 +14,7 @@ Mitteilung über elektronische Aufzeichnungssysteme  # Formularname im ELSTER-Po
 Verkauf an eine Vielzahl nicht bekannter Personen  # UStAE-Wortlaut zu § 146a Abs. 2 Satz 2 AO, docs/rechtsquellen/verwaltung-bmf/UStAE-konsolidiert-2026-06-02.pdf
 öffentlicher Name zeigt auf eine private IP  # eigene Umschreibung der DNS-Rebind-Bedingung, kein zitiertes Bedienelement
 auf Handy A geht, auf Handy B aber nicht  # eigene Umschreibung eines Symptoms, kein zitiertes Bedienelement
-Nachsigniert am …  # Text auf dem gedruckten Kassenbeleg, backend/api/druck/bondruck/application/escpos/formatter.go:292
+Nachsigniert am …  # Text auf dem gedruckten Kassenbeleg, backend/api/druck/bondruck/application/escpos/formatter.go:286
 Neue Version verfügbar  # Starter-Konsolenausgabe (paraphrasiert; ASCII-Original "verfuegbar"), windows/starter/update.go:33
 jotti laeuft  # Starter-Konsolenausgabe, windows/starter/main.go:198
 Wiederherstellung abgeschlossen.  # Konsolenausgabe von packaging/windows/jotti-restore.cmd:39

@@ -529,36 +529,39 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 	}
 }
 
-func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
+// ESC t 6 is Hiragana on Epson (#144); ESC t 0 is PC437 on Epson, MUNBYN and most clones.
+func TestFormatPositionBon_SetsPC437CodepageAfterInit(t *testing.T) {
 	payload := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, ""))
 
-	cpIdx := strings.Index(payload, escpos.SetCodepageWPC1252)
+	cpIdx := strings.Index(payload, "\x1b\x74\x00")
 	if cpIdx < 0 {
-		t.Fatal("Bon setzt nicht die WPC1252-Codepage (ESC t 6)")
+		t.Fatal("Bon setzt nicht die PC437-Codepage (ESC t 0)")
 	}
 
 	// ESC @ (Init) setzt die Codepage zurück; sie muss danach gesetzt werden.
 	initIdx := strings.Index(payload, escpos.Init)
 	if initIdx < 0 || cpIdx < initIdx {
-		t.Errorf("WPC1252-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
+		t.Errorf("PC437-Codepage muss nach Init gesetzt werden; initIdx=%d cpIdx=%d", initIdx, cpIdx)
 	}
 }
 
-func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
-	// Umlaute und Euro stehen im Kommentar und müssen als WPC1252-Einzelbytes erscheinen.
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€")
+// Handy-Tastaturen setzen typografische Zeichen, die CP437 fehlt; sie werden lesbares ASCII.
+func TestFormatPositionBon_KommentarAlsCP437(t *testing.T) {
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "„Weißwein“ für Jörg – ÄÖÜ, 2 € zurück…")
 
-	// WPC1252 (Windows-1252): ä=0xE4 ö=0xF6 ü=0xFC Ä=0xC4 Ö=0xD6 Ü=0xDC ß=0xDF €=0x80
-	wantBytes := []byte{0xE4, 0xF6, 0xFC, 0xC4, 0xD6, 0xDC, 0xDF, 0x80}
-	for _, b := range wantBytes {
-		if !bytes.Contains(payload, []byte{b}) {
-			t.Errorf("Bon enthaelt nicht das erwartete WPC1252-Byte 0x%02X", b)
-		}
+	want := []byte("\"Wei\xe1wein\" f\x81r J\x94rg - \x8e\x99\x9a, 2 EUR zur\x81ck...")
+	if !bytes.Contains(payload, want) {
+		t.Errorf("Bon enthaelt nicht den CP437-Kommentar %q; got:\n%q", want, payload)
 	}
+}
 
-	// Die UTF-8-Sequenz für ä (0xC3 0xA4) darf nach Transkodierung nicht mehr vorkommen.
-	if bytes.Contains(payload, []byte{0xC3, 0xA4}) {
-		t.Error("Bon enthaelt rohe UTF-8-Bytes statt WPC1252 (Transkodierung fehlt)")
+func TestFormatTestbon_DrucktUmlautzeileInCP437(t *testing.T) {
+	payload := escpos.FormatTestbon("Getränke", testTime)
+
+	for _, want := range []string{"Station: Getr\x84nke\n", "Umlaute: \x84\x94\x81 \x8e\x99\x9a \xe1\n"} {
+		if !bytes.Contains(payload, []byte(want)) {
+			t.Errorf("Testbon enthaelt %q nicht; got:\n%q", want, payload)
+		}
 	}
 }
 
