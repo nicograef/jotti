@@ -144,7 +144,7 @@ Alle Funktionen und Änderungen im Detail: Abschnitt `[1.0.0]` in `CHANGELOG.md`
 | Node       | 24 (Alpine) | `reverse-proxy/Dockerfile` (`node:24-alpine`)                   |
 | pnpm       | 12.11.2     | `frontend/package.json` (`packageManager`)                      |
 | PostgreSQL | 17.11       | `docker-compose.prod.yml` (`postgres:17.11`)                    |
-| Caddy      | 2.11.4      | `reverse-proxy/Dockerfile` (`caddy:2.11.4`)                     |
+| Caddy      | 2.11.7      | `reverse-proxy/Dockerfile` (`caddy:2.11.7`)                     |
 
 ### Aktualisieren
 
