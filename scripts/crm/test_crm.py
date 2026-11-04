@@ -1,7 +1,9 @@
 """Tests for crm.py on invented fixtures; run with python3 -m unittest scripts/crm/test_crm.py."""
 
+import contextlib
 import copy
 import datetime as dt
+import io
 import os
 import shutil
 import subprocess
@@ -9,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import crm  # noqa: E402
@@ -243,6 +246,19 @@ class PiiTermsTest(unittest.TestCase):
                 "vorstand@example.org",
             ],
         )
+
+    def test_invalid_register_yields_no_terms(self):
+        crm_dir = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, crm_dir)
+        broken = REGISTER_TOML.replace('["vorstand@example.org"]', '"vorstand@example.org"')
+        (crm_dir / "register.toml").write_text(broken, encoding="utf-8")
+        (crm_dir / "topics.toml").write_text("", encoding="utf-8")
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.dict(os.environ, {"CRM_DIR": str(crm_dir)}), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(crm.main(["pii-terms"]), 1)
+        self.assertEqual(out.getvalue(), "")
+        self.assertEqual(err.getvalue(), "register invalid; run crm.py validate\n")
 
 
 class CheckPrivateDataTest(unittest.TestCase):
