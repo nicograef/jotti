@@ -26,19 +26,13 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] `JOTTI_DOMAIN` bei jedem Compose-Befehl des Public-Stacks: Folge der Entscheidung Option A —
       jeder Compose-Befehl mit `docker-compose.prod.yml` (auch `make prod-down`, `make prod-logs`)
       verlangt die Variable. Option A (hinnehmen) laut statt still bestätigen.
-- [ ] Laufende Bewirtung im Vereinsheim: Ein Verein setzt jotti auch dafür ein. Das ist nicht die
-      Zielgruppe (2–3 Feste pro Jahr), wird aber nicht verhindert. Ob das ein Nicht-Ziel wird, ist
-      offen.
-- [ ] Höchstmenge je Produkt: Ein Verein verkauft Abholbons und will je Produkt eine Höchstmenge
-      hinterlegen; ist sie erreicht, sperrt der Verkauf. So gehen nicht mehr Bons raus, als Ware da
-      ist. Heute schaltet der Admin eine Variante von Hand ausverkauft; eine automatische Grenze
-      fehlt. Warenwirtschaft ist Nicht-Ziel; offen ist, ob ein Verkaufsstopp je Variante darunter fällt.
 - [ ] Gläserpfand, Rabatt und Gutschrift: Drei Vereine fragen nach Pfandrückgabe, einer davon auch
       nach Rabatt und Gutschrift am Tisch. Ein Pfand-Produkt mit positivem Preis geht heute. Rückgabe,
       Rabatt und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein darf. Der
       DSFinV-K-Export schreibt Preisfindung (`itemamounts.csv`) und Zusatzinfo (`subitems.csv`) nur
       als Kopfzeile. Weg wählen (Rückgabe-Vorgang, Negativ-Variante oder Preisfindung je Position).
       Die Umsatzsteuer von Rückgabe und Rabatt vorher gegen `docs/rechtsquellen/` prüfen.
+      Entschieden: Ein PRD wählt den Weg, bevor Code entsteht.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
@@ -55,24 +49,29 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       Replikations-Backup mit einer Woche Aufbewahrung ersetzt nicht die zehn Jahre nach § 147 AO.
       Ein Binary mit eigenem TLS ersetzt Caddy (D18). HTTP-01 scheitert im LAN, deshalb holt jotti
       Zertifikate per DNS-01 über acme-dns. Der gehostete Betrieb widerspricht TERMS § 1 (2) und
-      § 3 (2): kein SaaS, kein Betrieb für Dritte.
+      § 3 (2): kein SaaS, kein Betrieb für Dritte. Entschieden: Ein PRD beschreibt jotti als eine
+      Windows-Datei mit SQLite und allem eingebaut, ohne Docker Desktop und mit einfacher Installation.
 - [ ] Bestellkommentar an fremden Stationen (#145): Der Kommentar hängt an der Bestellung, nicht
       an der Position. Die Arbeitsbon-Policy druckt ihn deshalb an jede Station, bei
       `pro_position` auf jeden Einzelbon. Bei einem Verein landeten so 44 % der Kommentare auf
-      mindestens zwei Druckern. Wege: auf dem Bon als Hinweis zur ganzen Bestellung kennzeichnen,
-      ohne Datenänderung. Oder ein Kommentar je Position als neue Event-Version.
+      mindestens zwei Druckern. Entschieden: Der Kommentar zur Bestellung bleibt der Normalfall, dazu
+      kommt ein optionaler Kommentar je Position. Weil das alle Schichten berührt, kommt zuerst ein PRD
+      mit einer möglichst einfachen Lösung.
 - [ ] Ausgabestationen unabhängig von Kategorien (#146): `druckstationen` hat eine Zeile je
       Kategorie, also höchstens drei Produktstationen. Ein Verein legte deshalb ein Gericht unter
       Getränke ab, was die Produktstatistik verfälscht. Ein Direktverkauf ohne Bon lässt sich
-      nicht einstellen, und nur „Essen" piept. Vorschlag: Station als eigener Datensatz, Produkt
-      schlägt Kategorie. Kleinster Teil: Aus-Schalter für den Direktverkauf.
+      nicht einstellen, und nur „Essen" piept. Entschieden: Der Piepton entfällt für alle Stationen
+      ohne Einstellung, der Direktverkauf bekommt einen Aus-Schalter für Bons. Ein PRD skizziert ein
+      einfaches Stationsmodell; ob es gebaut wird, ist offen.
 - [ ] Berechtigung in Grenzfällen: TERMS § 2 (1) verlangt eine eingetragene, nicht-gewinnorientierte
       Organisation. Eine Untergliederung eines Verbands ohne eigene Eintragung kannte ihre Rechtsform
       nicht. Schweizer Vereine sind auch ohne Eintrag rechtsfähig (Annahme, gegen das ZGB prüfen). Ein
       Verein fragt, ob ein Partnerverein seine Installation mitnutzen darf. § 3 erlaubt nur eigene
       Veranstaltungen und schließt den Betrieb für Dritte aus. Technisch trägt eine Installation genau
-      einen Betreiber mit einer Steuernummer auf allen Belegen. Klarstellung in TERMS oder FAQ
-      entscheiden; eine TERMS-Änderung ist eine neue Fassung.
+      einen Betreiber mit einer Steuernummer auf allen Belegen. Entschieden: Eine neue TERMS-Fassung
+      lässt Untergliederungen ohne eigene Eintragung und ausländische Vereine ohne Registerpflicht
+      zu, mit einfacherem § 2. Ein Partnerverein schließt eine eigene Vereinbarung und betreibt eine
+      eigene Installation.
 - [ ] Probelauf auf dem späteren Kassenrechner: Das Kassenjournal ist append-only, Kassensitzungs-
       und Z-Nummern zählen fortlaufend (K-16). Eine Probe-Kassensitzung auf dem Rechner, der danach
       live kassiert, bleibt vermutlich im Export. Für Windows gibt es keinen dokumentierten Weg zum
@@ -108,8 +107,8 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Umlaute auf Epson-Bondruckern (#144): `SetCodepageWPC1252` sendet `ESC t 6`. Am MUNBYN ist
       das WPC1252, am Epson TM-T20IV Hiragana; Umlaute und ß werden dort Zeichensalat. Das trifft
       Arbeitsbon, Testbon und Kassenbeleg. Kandidat ohne Einstellung: PC437 per `ESC t 0`, denn
-      die Bons drucken „EUR" statt €. Auf beiden Druckern prüfen; der Testbon druckt eine
-      Umlautzeile mit.
+      die Bons drucken „EUR" statt €. Entschieden: PC437 umsetzen, auf beiden Druckern prüfen; der
+      Testbon druckt eine Umlautzeile mit.
 - [ ] Migration vorab gegen eine Kopie prüfen: `make prod-update` sichert vor der Migration und nennt
       bei einem Fehlschlag den Restore-Weg. Eine Migration, die an Bestandsdaten scheitert, fällt aber
       erst im Live-Stack auf. Dort bleibt `schema_migrations` auf `dirty = true`, und der Stack fährt

@@ -16,6 +16,9 @@ Bewusst nicht geplant.
 | —          | Elektronischer Beleg per E-Mail oder Link  | Das Gast-Handy ist nicht im Vereins-WLAN; Mailversand vom Vereins-Server und Adress-Erfassung am Tisch kämen hinzu, während der Kassenbeleg-Drucker den Bedarf bereits deckt. |
 | —          | Helferdeckel                               | Ein Tisch pro Helfer deckt den Bedarf bereits ab.                                                                                                                             |
 | —          | Autostart / Windows-Dienst für den Starter | Eintägige Feste mit langen Pausen zwischen den Einsätzen; der tägliche manuelle Start ist gewollt.                                                                            |
+| —          | Höchstmenge je Produkt                     | Grenzt an Warenwirtschaft. Ist die Ware aus, schaltet der Admin die Variante von Hand ausverkauft.                                                                            |
+| —          | Laufende Bewirtung im Vereinsheim          | jotti ist für 2–3 Feste im Jahr gebaut. Ein Dauerbetrieb wird geduldet, aber nicht unterstützt.                                                                               |
+| —          | Mehrtägiger Betrieb ganz ohne Internet     | Die TSE braucht Internet. F-14 deckt Ausfälle, keinen Dauerzustand.                                                                                                           |
 
 ## Funktionsumfang
 

@@ -45,7 +45,9 @@ Die zweispaltige Theken-Ansicht ab Tablet ([D08](decisions.md)) stammt aus dem e
 | Hardware-TSE gegen die laufenden TSE-Kosten |       1 | [D09](decisions.md)                                                                |
 | Produktebene über der Variantenliste        |       1 | [D10](decisions.md)                                                                |
 | Nutzung in Österreich                       |       2 | [D16](decisions.md): erlaubt, aber nur mit deutschem Fiskalrecht und deutscher TSE |
-| Mehrtägiger Betrieb ganz ohne Internet      |       2 | TSE braucht Internet; F-14 deckt Ausfälle, keinen Dauerzustand                     |
+| Mehrtägiger Betrieb ganz ohne Internet      |       2 | Nicht-Ziel in [anforderungen.md](anforderungen.md)                                 |
+| Höchstmenge je Produkt mit Verkaufsstopp    |       1 | Nicht-Ziel in [anforderungen.md](anforderungen.md)                                 |
+| Laufende Bewirtung im Vereinsheim           |       1 | Nicht-Ziel in [anforderungen.md](anforderungen.md)                                 |
 
 ## Offen
 
@@ -53,8 +55,6 @@ Die zweispaltige Theken-Ansicht ab Tablet ([D08](decisions.md)) stammt aus dem e
 | ---------------------------------------------------------- | ------: | ------------------------------------------------------------------------------- |
 | Gläserpfand: Rückgabe und Verrechnung                      |       3 | [backlog.md](backlog.md)                                                        |
 | Rabatte und Gutschriften                                   |       1 | [backlog.md](backlog.md)                                                        |
-| Höchstmenge je Produkt mit Verkaufsstopp                   |       1 | [backlog.md](backlog.md)                                                        |
-| Laufende Bewirtung im Vereinsheim                          |       1 | [backlog.md](backlog.md)                                                        |
 | Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md)                                                        |
 | Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                        |
 | Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                        |
@@ -80,4 +80,4 @@ Die zweispaltige Theken-Ansicht ab Tablet ([D08](decisions.md)) stammt aus dem e
 | Wie aktualisieren wir jotti?                                 |       1 | Leitfaden „Aktualisieren"                                             |
 | Wie läuft ein mehrtägiges Fest?                              |       1 | Leitfaden „Der Veranstaltungstag"                                     |
 | Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?    |       1 | offen in [backlog.md](backlog.md)                                     |
-| Darf ein Partnerverein unsere Installation mitnutzen?        |       1 | offen in [backlog.md](backlog.md)                                     |
+| Darf ein Partnerverein unsere Installation mitnutzen?        |       1 | Leitfaden „Häufige Fragen"                                            |

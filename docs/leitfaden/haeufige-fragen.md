@@ -114,6 +114,12 @@ Daten bleiben erhalten.
 Aktualisiert zuhause vor dem Fest, nicht am Veranstaltungstag (siehe
 [Aktualisieren](aktualisieren.md)).
 
+**Darf ein Partnerverein unsere Installation mitnutzen?** Nein. Jeder Verein schließt
+seine eigene Nutzungsvereinbarung und betreibt eine eigene Installation.
+
+Jeder Beleg, der Z-Bon und der Export für das Finanzamt tragen Namen und Steuernummer
+genau eines Betreibers. Verkäufe eines anderen Vereins stünden sonst unter eurem Namen.
+
 **Wie läuft ein mehrtägiges Fest?** Jeder Festtag bekommt eine eigene
 Kassensitzung. Den Ablauf beschreibt [Mehrtägiges Fest](veranstaltungstag.md#mehrtägiges-fest).
 
