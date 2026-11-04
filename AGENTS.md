@@ -1,6 +1,6 @@
 # AGENTS.md
 
-jotti: a free mobile point-of-sale system (mPOS) for German non-profits (e.V., gGmbH, gUG, foundations, church bodies) at temporary catering events. Typical use: club festivals, Christmas markets, concerts; 2–3 times a year, 5–50 tables, 5–30 volunteer helpers. Service staff take orders, collect payment and cancel per table in the browser of their own smartphones (BYOD). Admins manage products, tables and users. Self-hosted via Docker Compose, mobile-first, under a proprietary source-available licence (non-commercial, usage agreement required).
+jotti: a free mobile point-of-sale system (mPOS) for non-profits at temporary catering events. It serves German e.V., gGmbH, gUG, foundations and their branches, and foreign non-profit associations. Typical use: club festivals, Christmas markets, concerts; 2–3 times a year, 5–50 tables, 5–30 volunteer helpers. Service staff take orders, collect payment and cancel per table in the browser of their own smartphones (BYOD). Admins manage products, tables and users. Self-hosted via Docker Compose, mobile-first, under a proprietary source-available licence (non-commercial, usage agreement required).
 
 Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen.md` (excluded features, each with its reason).
 
