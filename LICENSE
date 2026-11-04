@@ -1,6 +1,6 @@
              JOTTI — PROPRIETARY SOURCE-AVAILABLE LICENSE
 
-                    Version 1.1, 14 July 2026
+                   Version 1.2, 4 November 2026
 
 Copyright (c) 2025-2026 Nico Gräf, Freiburg im Breisgau, Germany.
 All rights reserved.
@@ -54,14 +54,16 @@ license agreement in text form (Textform, § 126b BGB).
    ready-to-use email template.
 
    The Author offers free-of-charge license agreements for non-commercial
-   use by qualifying non-profit organizations, in particular:
-   - Registered associations (eingetragene Vereine, e.V.) under
-     German civil law (§§ 21 ff. BGB);
-   - Registered charitable foundations (gemeinnützige Stiftungen);
-   - Charitable limited liability companies (gGmbH) and charitable
-     entrepreneurial companies (gUG);
-   - Other registered non-profit organizations (NGOs/NPOs) without
-     profit motive and with verifiable charitable status.
+   use by organizations without profit motive that are entered in a
+   public register, in particular registered associations (eingetragene
+   Vereine, e.V.), charitable foundations (gemeinnützige Stiftungen),
+   gGmbH and gUG. The following qualify without their own registration:
+   - Branches of such an organization (e.g. the local group of a
+     registered regional association), which conclude the license
+     agreement in their own name;
+   - Associations without profit motive under foreign law that does not
+     require their registration (e.g. associations under Swiss law).
+   Section 2 of TERMS.md governs eligibility.
 
    Contact: graef.nico@gmail.com — https://github.com/nicograef/jotti
 
