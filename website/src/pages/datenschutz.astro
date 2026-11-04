@@ -1,6 +1,6 @@
 ---
 import Landing from '../layouts/Landing.astro'
-import { betreiberEmail } from '../lib/links'
+import { betreiberEmail, githubUrl } from '../lib/links'
 
 // Jede Tatsachenaussage hier ist gegen die Implementierung verifiziert und muss
 // mit ihr synchron bleiben: keine Cookies, keine externen Einbindungen, selbst
@@ -9,7 +9,8 @@ import { betreiberEmail } from '../lib/links'
 // `sl-sidebar-state`); das Anfrage-Formular öffnet nur einen mailto-Entwurf ohne
 // Serverkontakt (src/lib/anfrage-mailto.ts); Server-Logs mit gekürzter IP und
 // größenbegrenzter Rotation (reverse-proxy/Caddyfile.rocks,
-// docker-compose.rocks.yml); Hosting auf einem netcup-VPS in Nürnberg.
+// docker-compose.rocks.yml); Hosting auf einem netcup-VPS in Nürnberg; das
+// interne Verzeichnis ist das gitignorierte .crm/ mit dem Schema aus scripts/crm/crm.py.
 
 const title = 'Datenschutzerklärung – jotti'
 const description =
@@ -120,12 +121,27 @@ const description =
       Wer per E-Mail Kontakt aufnimmt (<a
         href={`mailto:${betreiberEmail}`}
         class="font-semibold text-brand hover:underline">{betreiberEmail}</a
-      >), dessen Angaben — E-Mail-Adresse, Name, Vereins- bzw.
-      Organisationsname, Sitz, Art der Organisation und Nachrichteninhalt —
+      >), dessen Angaben — E-Mail-Adresse, Name, Rolle im Verein, Vereins- bzw.
+      Organisationsname, Sitz, Land, Art der Organisation und Nachrichteninhalt —
       werden zur Bearbeitung der Anfrage verarbeitet. Rechtsgrundlage ist Art. 6
       Abs. 1 lit. b DSGVO (Anbahnung und Durchführung der
       Nutzungsvereinbarung), im Übrigen Art. 6 Abs. 1 lit. f DSGVO (Interesse
       an der Beantwortung von Anfragen).
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Diese Angaben führt der Verantwortliche zusätzlich in einem internen
+      Verzeichnis auf dem eigenen Rechner, als Kurzfassung der Nachricht und mit
+      der Angabe, ob ein Verein auf dieser Website genannt werden darf.
+      Telefonnummern, Postanschriften und Anhänge übernimmt es nicht.
+    </p>
+    <p class="mt-3 text-[0.9375rem] leading-relaxed">
+      Wer über ein Issue im <a
+        href={githubUrl}
+        class="font-semibold text-brand hover:underline">GitHub-Repository</a
+      > Kontakt aufnimmt, veröffentlicht den Beitrag selbst bei GitHub (GitHub,
+      Inc., USA). Der Verantwortliche verarbeitet dazu den GitHub-Nutzernamen und
+      den Inhalt des Issues, auf denselben Rechtsgrundlagen wie bei
+      E-Mail-Anfragen.
     </p>
     <p class="mt-3 text-[0.9375rem] leading-relaxed">
       Das E-Mail-Postfach wird bei Google Ireland Limited, Gordon House, Barrow
@@ -150,6 +166,9 @@ const description =
         zu einer geschlossenen Nutzungsvereinbarung für deren Laufzeit. Danach
         wird sie gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten
         entgegenstehen.
+      </li>
+      <li>
+        Internes Verzeichnis: wie die E-Mail-Korrespondenz.
       </li>
       <li>
         Browser-Speicherung: verbleibt ausschließlich auf dem eigenen Gerät
