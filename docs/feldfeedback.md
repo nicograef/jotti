@@ -6,7 +6,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails der Vereine, anonymisiert und 
 
 ## Lage
 
-- 31 Organisationen haben angefragt oder die Nutzungsvereinbarung geschlossen, 3 davon aus Österreich; 1 hat zurückgezogen.
+- 35 Organisationen haben angefragt oder die Nutzungsvereinbarung geschlossen, 3 davon aus Österreich und 1 aus der Schweiz; 1 hat zurückgezogen.
 - 3 Vereine berichten vom Einsatz am Fest, alle positiv. Gemeldete Störungen: ein still hängender Bondrucker und WLAN mit mehreren Access Points.
 - Als Wechselgrund nennen die Vereine teure Miet-Kassensysteme und eine defekte Registrierkasse.
 
@@ -45,7 +45,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails der Vereine, anonymisiert und 
 
 | Wunsch oder Fehler                                         | Vereine | Stand                    |
 | ---------------------------------------------------------- | ------: | ------------------------ |
-| Gläserpfand: Rückgabe und Verrechnung                      |       2 | [backlog.md](backlog.md) |
+| Gläserpfand: Rückgabe und Verrechnung                      |       3 | [backlog.md](backlog.md) |
 | Höchstmenge je Produkt mit Verkaufsstopp                   |       1 | [backlog.md](backlog.md) |
 | Laufende Bewirtung im Vereinsheim                          |       1 | [backlog.md](backlog.md) |
 | Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md) |

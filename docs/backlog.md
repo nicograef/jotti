@@ -32,7 +32,7 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Höchstmenge je Produkt: Ein Verein verkauft Abholbons und will je Produkt eine Höchstmenge
       hinterlegen; ist sie erreicht, sperrt der Verkauf. So gehen nicht mehr Bons raus, als Ware da
       ist. Warenwirtschaft ist Nicht-Ziel; offen ist, ob ein Verkaufsstopp je Variante darunter fällt.
-- [ ] Gläserpfand: Zwei Vereine fragen nach Pfandrückgabe. Ein Pfand-Produkt mit positivem Preis geht
+- [ ] Gläserpfand: Drei Vereine fragen nach Pfandrückgabe. Ein Pfand-Produkt mit positivem Preis geht
       heute. Rückgabe und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein
       darf. Weg wählen (Rückgabe-Vorgang oder
       Negativ-Variante) und die Umsatzsteuer der Rückgabe vorher gegen `docs/rechtsquellen/` prüfen.
