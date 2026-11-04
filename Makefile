@@ -12,7 +12,7 @@
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
-       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo \
+       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo crm \
        check-govulncheck check-audit check-vuln check-integration check check-full verify \
        website-dev website-build website-test website-check website-screenshots \
        help
@@ -343,6 +343,12 @@ check-repo: ## Alle scripts/check-*.sh-Gates ausführen, Fehlschläge gesammelt 
 		exit 1; \
 	fi
 
+crm: ## Privates Vereinsregister in .crm/ prüfen, docs/feldfeedback.md daraus erzeugen, PII-Gate laufen lassen
+	python3 scripts/crm/crm.py validate
+	python3 scripts/crm/crm.py render
+	frontend/node_modules/.bin/prettier --write docs/feldfeedback.md
+	bash scripts/check-private-data.sh
+
 # govulncheck is a tool of backend/go.mod; .github/workflows/security-scans.yml runs these targets.
 # GOWORK=off scans each module at its own go.mod versions, as its Docker image builds it:
 # the workspace would raise them to the highest any module requires.
@@ -423,7 +429,7 @@ CLASS_developer := init hooks up up-attached down restart logs status \
 	starter-syso release-windows build-frontend build sqlc \
 	local-up local-down local-logs db-shell seed rebuild-projections clean \
 	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
-	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo \
+	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo crm \
 	check-govulncheck check-audit check-vuln check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \

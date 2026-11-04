@@ -4,6 +4,7 @@
 Usage:
   python3 scripts/crm/crm.py validate     # schema check, prints the counts
   python3 scripts/crm/crm.py pii-terms    # one search term per line for check-private-data.sh
+  python3 scripts/crm/crm.py render [--check]  # write docs/feldfeedback.md, or compare with it
 
 The register is edited by hand or by Claude; this script only reads it. CRM_DIR
 overrides the register location, which defaults to the main checkout's .crm/ so
@@ -217,6 +218,128 @@ def cmd_pii_terms(crm_dir: Path) -> int:
     return 0
 
 
+FELDFEEDBACK = Path("docs/feldfeedback.md")
+MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
+          "September", "Oktober", "November", "Dezember"]
+COUNTRIES = {"AT": "Österreich", "CH": "der Schweiz", "LI": "Liechtenstein", "LU": "Luxemburg"}
+INTRO = """# Feldfeedback
+
+Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine, anonymisiert und gezählt. Keine Namen, Orte, Termine oder Zitate: Die Zuordnung zu Vereinen liegt nur im gitignorierten Register `.crm/`.
+
+`make crm` erzeugt diese Datei aus dem Register; Änderungen von Hand gehen beim nächsten Lauf verloren. „Vereine" zählt die Vereine und Einzelpersonen, die einen Punkt unabhängig voneinander genannt haben.
+"""
+# Section title, first column header, last column header; frage topics form the last section.
+SECTIONS = [
+    ("umgesetzt", "Umgesetzt", "Wunsch", "Umsetzung"),
+    ("abgelehnt", "Abgelehnt", "Wunsch", "Entscheidung"),
+    ("offen", "Offen", "Wunsch oder Fehler", "Stand"),
+    ("frage", "Wiederkehrende Fragen", "Frage", "Antwort steht in"),
+]
+
+
+def _german_date(d: dt.date) -> str:
+    return f"{d.day}. {MONTHS[d.month - 1]} {d.year}"
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _join(parts: list[str]) -> str:
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " und " + parts[-1]
+
+
+def _table(header: list[str], rows: list[list[str]], right: set[int]) -> list[str]:
+    """A Markdown table aligned the way Prettier aligns it, so `make crm` stays stable."""
+    widths = [max(3, len(header[i]), *(len(r[i]) for r in rows)) for i in range(len(header))]
+
+    def line(cells: list[str]) -> str:
+        padded = [c.rjust(w) if i in right else c.ljust(w) for i, (c, w) in enumerate(zip(cells, widths))]
+        return "| " + " | ".join(padded) + " |"
+
+    rule = ["-" * (w - 1) + ":" if i in right else "-" * w for i, w in enumerate(widths)]
+    return [line(header), "| " + " | ".join(rule) + " |", *(line(r) for r in rows)]
+
+
+def render(register: dict, topics: dict) -> str:
+    """The full docs/feldfeedback.md; only counts, titles, statuses and refs leave the register."""
+    orgs = register.get("org", [])
+    deleted = topics.get("lage", {}).get("deleted", {})
+    agreed = [o for o in orgs if o["status"] == "vereinbart"]
+    withdrawn = sum(o["status"] == "zurueckgetreten" for o in orgs) + deleted.get("zurueckgetreten", 0)
+    disowned = sum(o["status"] == "bestritten" for o in orgs) + deleted.get("bestritten", 0)
+    inquiring_clubs = sum(o["status"] == "anfrage" and o["kind"] == "verein" for o in orgs)
+    inquiring_people = sum(o["status"] == "anfrage" and o["kind"] == "person" for o in orgs)
+
+    lage = [
+        f"{_plural(len(agreed) + withdrawn, 'Organisation hat', 'Organisationen haben')} die "
+        f"Nutzungsvereinbarung geschlossen, {withdrawn} davon zurückgezogen; "
+        f"{_plural(len(agreed), 'Vereinbarung gilt', 'Vereinbarungen gelten')}."
+    ]
+    versions = sorted({o["terms_version"] for o in agreed})
+    if versions:
+        cited = [f"{_german_date(v)} ({sum(o['terms_version'] == v for o in agreed)})" for v in versions]
+        lage.append(f"Die geltenden Annahmesätze nennen die TERMS-Fassungen vom {_join(cited)}.")
+    asked = f"{_plural(inquiring_clubs, 'weitere Organisation', 'weitere Organisationen')} und " \
+            f"{_plural(inquiring_people, 'Einzelperson', 'Einzelpersonen')} haben angefragt, ohne eine Vereinbarung zu schließen."
+    if disowned:
+        asked += f" {_plural(disowned, 'Absender hat seine Mail', 'Absender haben ihre Mail')} bestritten."
+    lage.append(asked)
+    abroad = {}
+    for o in orgs:
+        if o["kind"] == "verein" and o.get("country") not in (None, "DE"):
+            abroad[o["country"]] = abroad.get(o["country"], 0) + 1
+    if abroad:
+        parts = [f"{n} aus {COUNTRIES.get(c, c)}" for c, n in sorted(abroad.items())]
+        lage.append(f"Vereine aus dem Ausland: {_join(parts)}.")
+    reporters = {m["org"] for tp in topics.get("topic", []) if tp["kind"] == "einsatzbericht"
+                 for m in tp["mention"]}
+    if reporters:
+        lage.append(f"{_plural(len(reporters), 'Verein berichtet', 'Vereine berichten')} vom Einsatz am Fest.")
+    lage.extend(topics.get("lage", {}).get("notes", []))
+
+    out = [INTRO, "## Lage", "", *(f"- {s}" for s in lage), ""]
+    for key, title, first, last in SECTIONS:
+        rows = []
+        for tp in topics.get("topic", []):
+            if tp["kind"] in ("verwaltung", "einsatzbericht"):
+                continue
+            section = "frage" if tp["kind"] == "frage" else tp["status"]
+            if section == "beantwortet":
+                section = "umgesetzt"
+            if section != key:
+                continue
+            count = len({m["org"] for m in tp["mention"]})
+            rows.append((count, tp["title"], tp.get("ref", "")))
+        rows.sort(key=lambda r: (-r[0], r[1].casefold()))
+        out += [f"## {title}", ""]
+        if rows:
+            out += _table([first, "Vereine", last], [[t, str(c), ref] for c, t, ref in rows], right={1})
+        else:
+            out.append("Keine Einträge.")
+        out.append("")
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
+def cmd_render(crm_dir: Path, check: bool) -> int:
+    register, topics = load(crm_dir)
+    errors = validate(register, topics)
+    if errors:
+        print("register invalid; run crm.py validate", file=sys.stderr)
+        return 1
+    text = render(register, topics)
+    if check:
+        current = FELDFEEDBACK.read_text(encoding="utf-8") if FELDFEEDBACK.exists() else ""
+        if current != text:
+            print(f"{FELDFEEDBACK} is out of date; run make crm", file=sys.stderr)
+            return 1
+        print(f"{FELDFEEDBACK} is up to date")
+        return 0
+    FELDFEEDBACK.write_text(text, encoding="utf-8")
+    print(f"wrote {FELDFEEDBACK}")
+    return 0
+
+
 def cmd_validate(crm_dir: Path) -> int:
     register, topics = load(crm_dir)
     errors = validate(register, topics)
@@ -231,12 +354,15 @@ def cmd_validate(crm_dir: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["validate", "pii-terms"])
+    parser.add_argument("command", choices=["validate", "pii-terms", "render"])
+    parser.add_argument("--check", action="store_true", help="render: compare instead of writing")
     args = parser.parse_args(argv)
     crm_dir = default_crm_dir()
     if not (crm_dir / "register.toml").is_file():
         print(f"no register at {crm_dir}", file=sys.stderr)
         return 1
+    if args.command == "render":
+        return cmd_render(crm_dir, args.check)
     return {"validate": cmd_validate, "pii-terms": cmd_pii_terms}[args.command](crm_dir)
 
 
