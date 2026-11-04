@@ -37,7 +37,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: 'Für welche Vereine ist jotti gedacht?',
-    a: 'Für eingetragene Vereine (e.V.), gemeinnützige Organisationen und NPOs mit temporären Veranstaltungen — Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Konzerte. Nicht für Dauerbetrieb (Restaurants, Cafés) oder Kartenzahlung.',
+    a: 'Für eingetragene Vereine (e.V.) und andere Organisationen ohne Gewinnerzielungsabsicht mit temporären Veranstaltungen — Vereinsfeste, Sommerfeste, Weihnachtsmärkte, Konzerte. Nicht für Dauerbetrieb (Restaurants, Cafés) oder Kartenzahlung.',
   },
   {
     q: 'Ist der Quellcode offen?',

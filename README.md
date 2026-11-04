@@ -87,7 +87,7 @@ Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen: [docs/handbu
 
 ## Für wen ist jotti?
 
-Eingetragene Vereine (e.V.), gemeinnützige Organisationen und NPOs mit ehrenamtlichen Teams (5–30 Helfer:innen), die temporäre Veranstaltungen im Bargeld-Betrieb abrechnen.
+Eingetragene Vereine (e.V.) und andere Organisationen ohne Gewinnerzielungsabsicht mit ehrenamtlichen Teams (5–30 Helfer:innen), die temporäre Veranstaltungen im Bargeld-Betrieb abrechnen.
 
 Was jotti bewusst nicht ist und wofür es nicht taugt: [docs/produktbeschreibung.md](docs/produktbeschreibung.md).
 

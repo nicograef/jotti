@@ -372,8 +372,8 @@ export default function AnfrageFormular() {
         <ArrowRight size={17} aria-hidden="true" />
       </button>
       <p className="mt-3.5 text-center text-[12px] leading-[1.5] text-muted">
-        Kostenlos für gemeinnützige Organisationen. Das Formular öffnet nur
-        einen vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
+        Kostenlos für Organisationen ohne Gewinnerzielungsabsicht. Das Formular
+        öffnet nur einen vorbefüllten E-Mail-Entwurf — gesendet wird er von dir.
       </p>
     </form>
   )

@@ -32,9 +32,9 @@ Kostenlose Nutzungsvereinbarungen erhalten ausschließlich Organisationen ohne G
 | Organisationsform                     | Voraussetzung                                                  |
 | ------------------------------------- | -------------------------------------------------------------- |
 | Eingetragene Vereine (e.V.)           | Eintragung im Vereinsregister gemäß §§ 21 ff. BGB              |
-| Eingetragene gemeinnützige Stiftungen | Stiftungsregister + Anerkennung der Gemeinnützigkeit           |
-| Gemeinnützige GmbH / UG (gGmbH, gUG)  | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit |
-| Sonstige eingetragene NGOs / NPOs     | Registereintragung und fehlende Gewinnerzielungsabsicht        |
+| Eingetragene gemeinnützige Stiftungen | Eintragung im Stiftungsregister, keine Gewinnerzielungsabsicht |
+| Gemeinnützige GmbH / UG (gGmbH, gUG)  | Eintragung im Handelsregister, keine Gewinnerzielungsabsicht   |
+| Sonstige eingetragene NGOs / NPOs     | Registereintragung, keine Gewinnerzielungsabsicht              |
 | Untergliederungen (z. B. Ortsgruppen) | Untergliederung einer eingetragenen Organisation               |
 | Vereine nach ausländischem Recht      | Registereintragung, soweit das dortige Recht sie verlangt      |
 
