@@ -56,6 +56,7 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - Pfand-Positionen müssen zu einem aktiven Pfand-Produkt gehören. Sonst antwortet der Endpunkt 400 `kein_pfand_produkt`, und nichts wird gebucht.
 - Die Rückgabe-ID macht jeden Command mit Pfand idempotent. Ein zweiter Aufruf mit derselben ID antwortet Erfolg und bucht nichts.
 - Ein verrechneter Abschluss schreibt Zahlung oder Verkauf und Rückgabe in einer Transaktion. Scheitert eins, fehlen beide.
+- Bei einer reinen Rückgabe füllt das bestehende `KommentarField` des Abschlusses ihren `kommentar`.
 - Der Kommentar eines verrechneten Abschlusses gehört zur Zahlung oder zum Verkauf; die Rückgabe trägt dann keinen.
 - Die Abschluss-Barriere der Kassensitzung gilt: `kasse.IsAbschlussEventType()` meldet beide Typen als `false`.
 
@@ -77,7 +78,7 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 
 - Soll-Kassenbestand und Bareinnahmen addieren `kj_extract_pfand_cents`. Umsatz je Steuersatz zieht Rückgaben am Satz ab.
 - `gesamt_umsatz_cents` und `kasse.ComputeAbschlussSummen()` ziehen Rückgaben ab und addieren deren Stornierungen. Der Direktverkauf-Umsatz bleibt Verkaufsumsatz.
-- Kassenbericht und Live-Dashboard führen Anzahl der Rückgaben und deren Nettosumme.
+- Kassenbericht und Live-Dashboard führen Anzahl der Rückgaben und deren Nettosumme. `GetLiveReporting()` liest dieselbe `GetReportingStats`, das Dashboard braucht keine eigene Query.
 - Abrechnung pro Servicekraft: `AbzugebenCents = KassiertCents − RuecknahmenCents − PfandCents`. Es zählen Rückgaben mit `tischId > 0` beim Akteur der Rückgabe. Eine Stornierung zählt für den Akteur der ursprünglichen Rückgabe.
 - Der abzugebende Betrag darf negativ werden. Eigene Übersicht und Live-Dashboard rechnen genauso.
 - Die Produktstatistik bleibt auf Bestellbasis.
@@ -112,6 +113,9 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - `backend/domain/produkt/produkt.go — Produkt`, `NewProdukt()`, `UpdateDetails()` — Pfand-Kennzeichen.
 - `backend/api/kasse/enrichment/enrichment.go — EnrichPositionen()` — fette Positionen aus Eingaben.
 - `backend/api/kasse/direktverkauf/application/command.go — DirektverkaufTaetigen()`, `persistVerkaufEvent()` — Idempotenz per Client-ID, Vorbild.
+- `backend/api/kasse/direktverkauf/application/command.go — DirektverkaufStornieren()` — Vorbild der Pfand-Stornierung; Phase 4 liest es nur hier, Phase 3 bearbeitet die Datei.
+- `backend/repository/repotest/kassenjournal.go — KassenjournalRepo` — gemeinsamer Fake der `command_test.go` von tischgeschaeft und direktverkauf; nur Phase 3 bearbeitet ihn.
+- `scripts/test-integration.sh` — Integrationslauf; Phase 1 ergänzt die Filter `TEST_PKG` und `TEST_RUN`.
 - `backend/api/kasse/tischgeschaeft/application/command.go — ZahlungKassieren()`, `loadTischState()` — Verrechnung am Tisch.
 - `backend/repository/kassenjournal_repo/repo.go — writeEventInTx()`, `WriteTischSessionEventsAtomic()`, `EventExistsByTypeAndVorgangsID()` — Schreibpfad, Outbox, Idempotenz-Lookup.
 - `backend/sqlc/queries/kassensitzungen.sql — GetKassenbestand` — Soll-Formel.
@@ -128,18 +132,26 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - `frontend/src/admin/products/NewProductDialog.tsx`, `frontend/src/admin/products/EditProductDialog.tsx` — Admin-Formular.
 - `frontend/src/lib/produktSchemas.ts — ProduktSchema` — gemeinsamer Produkt-Vertrag.
 - `e2e/tests/direktverkauf-storno.mobile.spec.ts` — Vorbild der E2E-Spec.
+- `docs/verfahrensdokumentation.md` §2, §3, §4 — Geschäftsvorfälle, Subject-Struktur, Prozesstyp-Tabelle.
 
 ## Open questions / Risks
 
-- **Owner-Entscheidung (angewandt): eigener Stream je Rückgabe.** Das PRD legt Rückgaben am Tisch in den Tisch-Session-Stream. Der Plan nimmt immer einen eigenen Stream; Begründung unter „Angewandte KISS-Schnitte". Folge: Die Tisch-Historie zeigt Rückgaben über `tischId`, auch ohne Tisch-Session.
-- **Owner-Entscheidung (angewandt): Z-Bon ohne Folgeversion.** `tagesabschluss-erstellt:v1` trägt keine Pfand-Kennzahlen. Anzahl und Summe stehen im Kassenbericht. Eine `:v2` lohnt erst, wenn der Z-Bon-Druck sie braucht.
-- **Owner-Entscheidung (angewandt): Stornobeleg der Rückgabe.** Das PRD nennt nur den Pfandbeleg. Der Plan macht auch die Stornierung druckbar, weil jeder signierte Vorgang einen erstellbaren Beleg braucht (§ 146a Abs. 2 AO).
+- **Planer-Entscheidung, Owner-Bestätigung offen: eigener Stream je Rückgabe.** Das PRD legt Rückgaben am Tisch in den Tisch-Session-Stream. Der Plan nimmt immer einen eigenen Stream; Begründung unter „Angewandte KISS-Schnitte". Folge: Die Tisch-Historie zeigt Rückgaben über `tischId`, auch ohne Tisch-Session.
+- **Planer-Entscheidung, Owner-Bestätigung offen: Z-Bon ohne Folgeversion.** `tagesabschluss-erstellt:v1` trägt keine Pfand-Kennzahlen. Anzahl und Summe stehen im Kassenbericht. Eine `:v2` lohnt erst, wenn der Z-Bon-Druck sie braucht.
+- **Planer-Entscheidung, Owner-Bestätigung offen: Stornobeleg der Rückgabe.** Das PRD nennt nur den Pfandbeleg. Der Plan macht auch die Stornierung druckbar, weil jeder signierte Vorgang einen erstellbaren Beleg braucht (§ 146a Abs. 2 AO).
+- **PRD nachziehen.** Bestätigt der Owner die drei Entscheidungen, schreibt der Lead vor Phase 1 das PRD um. Betroffen: §„Streams und Projektion", die Zeile „Kassenabschluss und Tagesabschluss führen …" unter §„Kasse und Reporting" und §„Beleg". Lehnt er eine ab, ändert sich zuerst der Plan.
 - **Prüfpunkte aus dem PRD bleiben offen.** BMF-Schreiben vom 20.10.2014 (Warenumschließung oder Transporthilfsmittel) liegt nicht in den Rechtsquellen. Die DSFinV-K zitiert § 17 Abs. 1 Satz 7 UStG, der Gesetzestext hat Satz 8. Beides ist Steuerberater-Sache, kein Blocker.
 - **`docs/decisions.md`** braucht eine Zeile „Pfandrückgabe als eigener Kassenvorgang, nie als Negativpreis". Der Lead trägt sie beim Landen ein; dieser Plan fasst die Datei nicht an.
 - **Migrationsnummer.** 11 ist beim Schreiben frei. `docs/prds/prd-stationsmodell.md` plant ebenfalls die nächste freie Nummer. Landet sie zuerst, wird diese Datei vor dem Landen umbenannt.
 - **Überschneidung im Abschluss.** `docs/prds/prd-kommentar-je-position.md` ändert `frontend/src/service/direktverkauf/DirektverkaufAbschluss.tsx` ebenfalls. Parallel geplant, gibt es dort einen Merge-Konflikt.
 - **Upgrade-Pfad nur in CI.** Der Job `upgrade-path` in `.github/workflows/ci.yml` prüft Spalte und ersetzte Funktion auf einer befüllten Bestandsinstanz. Lokal deckt `make check-integration` nur die Frischinstallation ab.
-- **Integrationstests** laufen nur gesammelt über `make check-integration`. Die Kriterien nennen den jeweiligen Testnamen.
+- **Kriterien für neue Tests scheitern, wenn der Test fehlt.** `go test -run` und `vitest -t` enden ohne Treffer mit 0. Deshalb sucht jedes Kriterium die PASS-Zeile des genannten Tests:
+  - Go: `go test <pkg> -run '^TestX$' -v | grep -- '--- PASS: TestX '`.
+  - Integration: `TEST_PKG=<pkg> TEST_RUN='^TestX$' make check-integration | grep -- '--- PASS: TestX '`. `TEST_RUN` setzt auch `-v`.
+  - Vitest: `pnpm exec vitest run <file> -t '<name>' --reporter=verbose | grep -- '✓ .*<name>'`.
+  - Mehrere Tests: `test "$(… | grep -cE -- '<muster>')" -eq N`.
+  - Ein erweiterter bestehender Test bekommt einen neuen Untertest oder Testnamen, sonst besteht er auch ohne Erweiterung.
+- **Dateibesitz bei parallelen Phasen.** Phasen 3 bis 6 laufen parallel. `backend/repository/repotest/kassenjournal.go` gehört Phase 3; Phase 4 nutzt einen paketlokalen Fake wie `mockHistorieRepo` in `backend/api/kasse/direktverkauf/application/query_test.go`.
 - **`exhaustive`-Linter.** Jeder neue Event-Typ braucht einen Fall in jedem `switch` über `kasse.EventType`. `make lint-backend-full` findet fehlende.
 - **Prosa-Gate.** `scripts/check-prose.sh` prüft alle getrackten Dateien. Code-Kommentare dürfen nicht „Phase N" oder Vorher-Wörter enthalten.
 
@@ -161,9 +173,11 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - `frontend/src/lib/produktSchemas.ts — ProduktSchema`.
 - `frontend/src/admin/products/Produkt.ts`, `frontend/src/admin/products/ProduktBackend.ts`, `frontend/src/admin/products/NewProductDialog.tsx`, `frontend/src/admin/products/EditProductDialog.tsx`, `frontend/src/admin/products/ProductItem.tsx`.
 - `docs/leitfaden/belege-steuersaetze.md` — Leitfaden zu Steuersätzen.
+- `scripts/test-integration.sh` — startet Postgres, migriert, ruft `go test -tags=integration … ./...`.
 
 ### What to build
 
+- `scripts/test-integration.sh` nimmt `TEST_PKG` und `TEST_RUN` aus der Umgebung. `TEST_PKG` ist eine Paketliste relativ zu `backend/`, Standard `./...`. `TEST_RUN` setzt `-run "$TEST_RUN" -v`. Der Usage-Kopf nennt beide.
 - `database/migrations/11_pfandrueckgabe.up.sql` mit dem vollständigen Inhalt aus „Architectural decisions". Die Datei enthält Spalte, beide Indexe und beide Funktionen; spätere Phasen legen keine Migration an.
 - `make sqlc` erneuert `backend/sqlc/dbgen/models.go` und `backend/sqlc/dbgen/produkte.sql.go`.
 - `produkt.Produkt` bekommt `Pfand bool`. `NewProdukt()` und `UpdateDetails()` nehmen `pfand bool` an.
@@ -179,8 +193,9 @@ Demo: Der Admin legt „Pfand" mit Variante „Glas 2,00 €" an und kennzeichne
 ### Acceptance criteria
 
 - [ ] sqlc-Code passt zu Queries und Migration 11: `make check-sqlc`
-- [ ] `TestCreateProdukt` und `TestUpdateProdukt` in `backend/repository/produkt_repo/repo_test.go` speichern und lesen `pfand = true`: `make check-integration`
-- [ ] Das Formular sendet `pfand: true`, wenn der Schalter an ist (neuer Fall in `frontend/src/admin/products/Products.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx`
+- [ ] `scripts/test-integration.sh` besteht den Shell-Lint; seine Filter belegt das nächste Kriterium: `make check-shell`
+- [ ] Anlegen und Bearbeiten speichern und lesen `pfand = true` (`TestCreateProdukt_StoresPfand`, `TestUpdateProdukt_StoresPfand` in `backend/repository/produkt_repo/repo_test.go`): `test "$(TEST_PKG=./repository/produkt_repo/ TEST_RUN='^Test(Create|Update)Produkt_StoresPfand$' make check-integration | grep -cE -- '^--- PASS: Test(Create|Update)Produkt_StoresPfand ')" -eq 2`
+- [ ] Das Formular sendet `pfand: true`, wenn der Schalter an ist (Fall „sends pfand when the Pfand switch is on" in `frontend/src/admin/products/Products.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'sends pfand when the Pfand switch is on' --reporter=verbose | grep -- '✓ .*sends pfand when the Pfand switch is on'`
 - [ ] Jedes Leitfaden-Zitat existiert im Frontend: `./scripts/check-ui-labels.sh`
 - [ ] Prosa-Gate grün: `./scripts/check-prose.sh`
 
@@ -239,7 +254,8 @@ Backend, Anwendung:
 Backend, SQL:
 
 - `GetKassenbestand`: `soll_bestand_cents` und `bareinnahmen_cents` addieren `kj_extract_pfand_cents`; die `type IN`-Liste kennt beide Typen.
-- `GetReportingStats.gesamt_umsatz_cents` addiert `kj_extract_pfand_cents`; `GetUmsatzPositionszeilen` filtert zusätzlich auf beide Typen.
+- `GetReportingStats.gesamt_umsatz_cents` addiert `kj_extract_pfand_cents`; die `WHERE type IN`-Liste von `GetReportingStats` kennt beide Typen. Ohne sie bleibt der Pfand-Term immer 0.
+- `GetUmsatzPositionszeilen` filtert zusätzlich auf beide Typen.
 - `make sqlc` erneuert `backend/sqlc/dbgen/kassensitzungen.sql.go` und `backend/sqlc/dbgen/reporting.sql.go`.
 - `service/get-aktive-produkte` liefert zusätzlich `pfandProdukte`, gefiltert in `backend/api/stammdaten/produkt/application/query.go`.
 
@@ -248,7 +264,9 @@ Frontend:
 - Neuer Ordner `frontend/src/service/pfand/`: `frontend/src/service/pfand/Pfand.ts` (`PfandPositionInputSchema`, `PfandZurueckgebenSchema`), `frontend/src/service/pfand/PfandBackend.ts — pfandZurueckgeben()`, `frontend/src/service/pfand/PfandAbschnitt.tsx`. Den Abschnitt prüfen die Tests der beiden Abschlüsse.
 - `PfandAbschnitt` heißt „Pfand zurück" und listet jede Variante der `pfandProdukte` mit Mengen-Stepper. Er meldet Mengen und Summe nach oben.
 - `ProduktBackend.getAktiveProdukte()` liefert `produkte` und `pfandProdukte`; die Aufrufer reichen `pfandProdukte` an Zahlung- und Direktverkauf-Tab.
-- `ZahlungAbschluss` und `DirektverkaufAbschluss` zeigen den Abschnitt, sobald es Pfand-Produkte gibt. Ohne Positionen, aber mit Pfand, heißt der Button „Pfand auszahlen". Er ruft `pfandZurueckgeben()` mit `tischId` des Tisches oder 0.
+- `frontend/src/service/table/TablePage.test.tsx` und `frontend/src/service/direktverkauf/DirektverkaufPage.test.tsx` antworten auf `service/get-aktive-produkte` zusätzlich mit `pfandProdukte: []`.
+- `ZahlungAbschluss` und `DirektverkaufAbschluss` zeigen den Abschnitt, sobald es Pfand-Produkte gibt. Er ist nur aktiv, solange keine Position gewählt ist; Verrechnung kommt erst in Phase 3.
+- Ohne Positionen, aber mit Pfand, heißt der Button „Pfand auszahlen". Er ruft `pfandZurueckgeben()` mit `tischId` des Tisches oder 0 und dem Kommentar aus `KommentarField`.
 - Jede Rückgabe trägt eine `rueckgabeId` aus `crypto.randomUUID()`. Ein neuer Vorgang erneuert sie, ein Wiederholversuch behält sie.
 - Der Dock-Button in `ZahlungDrawer` und `DirektverkaufDrawer` öffnet den Abschluss auch ohne Auswahl, wenn Pfand-Produkte existieren; Label „Pfand zurück".
 - Der Zahlung-Tab ist an einem Tisch ohne Bestellung erreichbar und bietet dort nur „Pfand zurück". Erfolgsmeldung „Pfand ausgezahlt."
@@ -257,16 +275,17 @@ Demo: Im Direktverkauf zwei Gläser zurücknehmen. Der Soll-Kassenbestand sinkt 
 
 ### Acceptance criteria
 
-- [ ] Beide Event-Verträge sind eingefroren und vollständig gelistet: `cd backend && go test ./domain/kasse/ -run 'TestEventContract'`
-- [ ] Beide Summen-Felder lehnen 0 ab: `cd backend && go test ./domain/kasse/ -run TestGeldsummen_MussPositiv`
-- [ ] Die Rückgabe erzeugt negatives `Kassenbeleg-V1`, die Stornierung positives (neue Fälle in `TestFiskalischeProjektion`): `cd backend && go test ./domain/kasse/ -run TestFiskalischeProjektion`
-- [ ] Z-Bon-Summen und SQL-Reporting stimmen mit Rückgabe und Stornierung überein (`TestComputeAbschlussSummen_AequivalenzMitSQLReporting` erweitert): `make check-integration`
-- [ ] Eine Rückgabe mindert Soll und Bareinnahmen, ihre Stornierung hebt das auf (`TestGetKassenbestand_PfandrueckgabeMindertSoll`): `make check-integration`
-- [ ] Umsatz je Steuersatz zieht eine Rückgabe am Satz des Pfand-Produkts ab (`TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb`): `make check-integration`
-- [ ] Zweimal dieselbe `rueckgabeId` bucht einmal, mit genau einem Signaturauftrag (`backend/api/kasse/pfand/application/idempotenz_integration_test.go`): `make check-integration`
-- [ ] Eine Nicht-Pfand-Variante wird mit `kein_pfand_produkt` abgelehnt, ohne Event (`backend/api/kasse/pfand/application/command_test.go`): `cd backend && go test ./api/kasse/pfand/...`
-- [ ] Der Abschluss ohne Positionen sendet nur `pfandZurueckgeben` mit der Tisch-ID (Fall in `frontend/src/service/table/ZahlungAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/ZahlungAbschluss.test.tsx`
-- [ ] Der Direktverkauf-Abschluss ohne Positionen sendet `tischId: 0` (Fall in `frontend/src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`
+- [ ] Beide Event-Verträge sind eingefroren und vollständig gelistet: `cd backend && test "$(go test ./domain/kasse/ -run '^TestEventContract_(PfandZurueckgegebenV1|PfandrueckgabeStorniertV1|AllTypesPinned|SQLLiterals)$' -v | grep -cE -- '^--- PASS: TestEventContract_(PfandZurueckgegebenV1|PfandrueckgabeStorniertV1|AllTypesPinned|SQLLiterals) ')" -eq 4`
+- [ ] Beide Summen-Felder lehnen 0 ab (Fälle `PfandZurueckgegeben.GesamtbetragCents`, `PfandrueckgabeStorniert.GesamtStornierungCents`): `cd backend && test "$(go test ./domain/kasse/ -run '^TestGeldsummen_MussPositiv$' -v | grep -cE -- '--- PASS: TestGeldsummen_MussPositiv/(PfandZurueckgegeben\.GesamtbetragCents|PfandrueckgabeStorniert\.GesamtStornierungCents)/lehntNullAb ')" -eq 2`
+- [ ] Die Rückgabe erzeugt negatives `Kassenbeleg-V1`, die Stornierung positives (Fälle „pfand zurueckgegeben: …" und „pfandrueckgabe storniert: …" in `TestFiskalischeProjektion`): `cd backend && test "$(go test ./domain/kasse/ -run '^TestFiskalischeProjektion$' -v | grep -cE -- '--- PASS: TestFiskalischeProjektion/(pfand_zurueckgegeben|pfandrueckgabe_storniert):')" -eq 2`
+- [ ] Z-Bon-Summen und SQL-Reporting stimmen mit Rückgabe und Stornierung überein (`TestComputeAbschlussSummen_AequivalenzMitPfandrueckgabe` in `backend/repository/reporting_repo/summen_abschluss_test.go`): `TEST_PKG=./repository/reporting_repo/ TEST_RUN='^TestComputeAbschlussSummen_AequivalenzMitPfandrueckgabe$' make check-integration | grep -- '--- PASS: TestComputeAbschlussSummen_AequivalenzMitPfandrueckgabe '`
+- [ ] Eine Rückgabe mindert Soll und Bareinnahmen, ihre Stornierung hebt das auf (`TestGetKassenbestand_PfandrueckgabeMindertSoll` in `backend/repository/kassenjournal_repo/repo_test.go`): `TEST_PKG=./repository/kassenjournal_repo/ TEST_RUN='^TestGetKassenbestand_PfandrueckgabeMindertSoll$' make check-integration | grep -- '--- PASS: TestGetKassenbestand_PfandrueckgabeMindertSoll '`
+- [ ] Umsatz je Steuersatz zieht eine Rückgabe am Satz des Pfand-Produkts ab (`TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb` in `backend/repository/reporting_repo/repo_test.go`): `TEST_PKG=./repository/reporting_repo/ TEST_RUN='^TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb$' make check-integration | grep -- '--- PASS: TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb '`
+- [ ] Zweimal dieselbe `rueckgabeId` bucht einmal, mit genau einem Signaturauftrag (`TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg` in `backend/api/kasse/pfand/application/idempotenz_integration_test.go`): `TEST_PKG=./api/kasse/pfand/application/ TEST_RUN='^TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg$' make check-integration | grep -- '--- PASS: TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg '`
+- [ ] Eine Nicht-Pfand-Variante wird mit `kein_pfand_produkt` abgelehnt, ohne Event (`TestPfandZurueckgeben_KeinPfandProdukt_KeinEvent` in `backend/api/kasse/pfand/application/command_test.go`): `cd backend && go test ./api/kasse/pfand/application/ -run '^TestPfandZurueckgeben_KeinPfandProdukt_KeinEvent$' -v | grep -- '--- PASS: TestPfandZurueckgeben_KeinPfandProdukt_KeinEvent '`
+- [ ] Der Abschluss ohne Positionen sendet nur `pfandZurueckgeben` mit der Tisch-ID (Fall „sends only the Pfand return with the table id" in `frontend/src/service/table/ZahlungAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/ZahlungAbschluss.test.tsx -t 'sends only the Pfand return with the table id' --reporter=verbose | grep -- '✓ .*sends only the Pfand return with the table id'`
+- [ ] Der Direktverkauf-Abschluss ohne Positionen sendet `tischId: 0` (Fall „sends the Pfand return with table id 0" in `frontend/src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufAbschluss.test.tsx -t 'sends the Pfand return with table id 0' --reporter=verbose | grep -- '✓ .*sends the Pfand return with table id 0'`
+- [ ] Tisch- und Direktverkaufsseite laden mit `pfandProdukte` im Response: `cd frontend && pnpm exec vitest run src/service/table/TablePage.test.tsx src/service/direktverkauf/DirektverkaufPage.test.tsx`
 - [ ] Alle Switches über `kasse.EventType` sind vollständig: `make lint-backend-full`
 
 ## Phase 3: Verrechnung beim Kassieren und im Direktverkauf
@@ -277,6 +296,7 @@ Demo: Im Direktverkauf zwei Gläser zurücknehmen. Der Soll-Kassenbestand sinkt 
 
 - `backend/repository/kassenjournal_repo/repo.go — WriteTischSessionEventsAtomic()`, `WriteEventWithDruckauftraege()`, `writeEventInTx()` — Vorbild der atomaren Schreibweise.
 - `backend/repository/kassenjournal_repo/repo_test.go — TestWriteUmbuchung_RollsBackWhenTargetWriteFails()` — Vorbild Rollback-Test.
+- `backend/repository/repotest/kassenjournal.go — KassenjournalRepo.WriteTischSessionEventsAtomic()` — Fake der `command_test.go`-Dateien.
 - `backend/api/kasse/tischgeschaeft/application/command.go — ZahlungKassieren()`, `loadTischState()`.
 - `backend/api/kasse/tischgeschaeft/http/command_handler.go — zahlungKassierenRequest`, `zahlungKassierenSchema`.
 - `backend/api/kasse/direktverkauf/application/command.go — DirektverkaufTaetigen()`.
@@ -291,6 +311,7 @@ Backend:
 
 - `kassenjournal_repo.Repository.WriteEventsAtomic(ctx, kassensitzungNr, []kassenjournal_repo.NeuesEvent)` schreibt mehrere Events über Stream-Typen hinweg in einer Transaktion.
 - `NeuesEvent` trägt `Event`, `StreamType` und optional `BuildAuftraege`. Der Signatur-Worker wird nach dem Commit einmal angestoßen.
+- `repotest.KassenjournalRepo` in `backend/repository/repotest/kassenjournal.go` bekommt `WriteEventsAtomic()`, alles oder nichts wie `WriteTischSessionEventsAtomic()`.
 - `enrichment.PfandEingabe{RueckgabeID, Positionen}` ist die gemeinsame Eingabe beider Commands.
 - `ZahlungKassieren()` nimmt `pfand *enrichment.PfandEingabe`. Mit Pfand prüft es zuerst per `EventExistsByTypeAndVorgangsID()` die Rückgabe-ID; existiert sie, antwortet es Erfolg ohne Buchung.
 - Danach validiert es Zahlung und Pfand-Positionen vollständig, bevor es schreibt. Zahlung (`version = LastEventVersion + 1`) und Rückgabe (`version = 1`, `tischId` des Tisches) gehen per `WriteEventsAtomic()` hinaus.
@@ -301,6 +322,7 @@ Backend:
 Frontend:
 
 - `ZahlungKassierenSchema` und `DirektverkaufTaetigenSchema` bekommen optional `pfand`.
+- Der Pfand-Abschnitt ist auch neben gewählten Positionen aktiv.
 - Beide Abschlüsse zeigen bei Positionen und Pfand eine Netto-Zeile: Kaufsumme, „Pfand zurück" negativ, Differenz.
 - Ist die Differenz positiv, rechnen `BarzahlungFelder` mit ihr Rückgeld und Trinkgeld.
 - Ist sie null oder negativ, zeigt der Abschluss „Auszahlen" mit dem Betrag; die Barzahlungsfelder entfallen.
@@ -310,12 +332,12 @@ Demo: Am Tisch zwei Bier für 9,00 € kassieren und zwei Gläser verrechnen. De
 
 ### Acceptance criteria
 
-- [ ] `WriteEventsAtomic` rollt beide Events zurück, wenn das zweite scheitert (`TestWriteEventsAtomic_RollsBackBothEvents`): `make check-integration`
-- [ ] Ein wiederholter verrechneter Abschluss am Tisch bucht Zahlung und Rückgabe einmal (`backend/api/kasse/tischgeschaeft/application/idempotenz_integration_test.go`): `make check-integration`
-- [ ] Ein wiederholter verrechneter Direktverkauf bucht Verkauf und Rückgabe einmal (`backend/api/kasse/direktverkauf/application/idempotenz_integration_test.go`): `make check-integration`
-- [ ] Eine ungültige Pfand-Position verhindert auch die Zahlung, kein Event wird geschrieben (Fall in `backend/api/kasse/tischgeschaeft/application/command_test.go`): `cd backend && go test ./api/kasse/tischgeschaeft/...`
-- [ ] Der Tisch-Abschluss zeigt Nettobetrag und Rückgeld und sendet `pfand` (Fall in `frontend/src/service/table/ZahlungAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/ZahlungAbschluss.test.tsx`
-- [ ] Der Direktverkauf-Abschluss zeigt „Auszahlen" bei mehr Pfand als Kaufsumme (Fall in `frontend/src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`
+- [ ] `WriteEventsAtomic` rollt beide Events zurück, wenn das zweite scheitert (`TestWriteEventsAtomic_RollsBackBothEvents` in `backend/repository/kassenjournal_repo/repo_test.go`): `TEST_PKG=./repository/kassenjournal_repo/ TEST_RUN='^TestWriteEventsAtomic_RollsBackBothEvents$' make check-integration | grep -- '--- PASS: TestWriteEventsAtomic_RollsBackBothEvents '`
+- [ ] Ein wiederholter verrechneter Abschluss am Tisch bucht Zahlung und Rückgabe einmal (`TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg` in `backend/api/kasse/tischgeschaeft/application/idempotenz_integration_test.go`): `TEST_PKG=./api/kasse/tischgeschaeft/application/ TEST_RUN='^TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg$' make check-integration | grep -- '--- PASS: TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg '`
+- [ ] Ein wiederholter verrechneter Direktverkauf bucht Verkauf und Rückgabe einmal (`TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg` in `backend/api/kasse/direktverkauf/application/idempotenz_integration_test.go`): `TEST_PKG=./api/kasse/direktverkauf/application/ TEST_RUN='^TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg$' make check-integration | grep -- '--- PASS: TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg '`
+- [ ] Eine ungültige Pfand-Position verhindert auch die Zahlung, kein Event wird geschrieben (`TestZahlungKassieren_UngueltigesPfand_KeinEvent` in `backend/api/kasse/tischgeschaeft/application/command_test.go`): `cd backend && go test ./api/kasse/tischgeschaeft/application/ -run '^TestZahlungKassieren_UngueltigesPfand_KeinEvent$' -v | grep -- '--- PASS: TestZahlungKassieren_UngueltigesPfand_KeinEvent '`
+- [ ] Der Tisch-Abschluss zeigt Nettobetrag und Rückgeld und sendet `pfand` (Fall „nets the Pfand against the payment" in `frontend/src/service/table/ZahlungAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/ZahlungAbschluss.test.tsx -t 'nets the Pfand against the payment' --reporter=verbose | grep -- '✓ .*nets the Pfand against the payment'`
+- [ ] Der Direktverkauf-Abschluss zeigt „Auszahlen" bei mehr Pfand als Kaufsumme (Fall „shows Auszahlen when the Pfand exceeds the sale" in `frontend/src/service/direktverkauf/DirektverkaufAbschluss.test.tsx`): `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufAbschluss.test.tsx -t 'shows Auszahlen when the Pfand exceeds the sale' --reporter=verbose | grep -- '✓ .*shows Auszahlen when the Pfand exceeds the sale'`
 
 ## Phase 4: Historie, Stornierung und Pfandbeleg
 
@@ -325,7 +347,8 @@ Demo: Am Tisch zwei Bier für 9,00 € kassieren und zwei Gläser verrechnen. De
 
 - `backend/domain/kasse/direktverkauf.go — ComputeNichtStornierteVerkaufPositionen()`, `BuildDirektverkaufHistorieEintrag()`.
 - `backend/domain/kasse/direktverkauf_test.go` — Vorbild Storno-Validierung.
-- `backend/api/kasse/direktverkauf/application/command.go — DirektverkaufStornieren()`, `backend/api/kasse/direktverkauf/application/query.go`.
+- `backend/api/kasse/direktverkauf/application/query.go`; das Vorbild `DirektverkaufStornieren()` steht im Inventory.
+- `backend/api/kasse/direktverkauf/application/query_test.go — mockHistorieRepo` — Vorbild des paketlokalen Fakes.
 - `backend/api/kasse/direktverkauf/http/query_handler.go — GetDirektverkaufHistorieHandler()` — Vorbild DTO.
 - `backend/sqlc/queries/kassenjournal.sql — ReadDirektverkaufEvents` — Vorbild Lese-Query.
 - `backend/api/serviceleitung.go`, `backend/api/service.go` — Routen.
@@ -346,6 +369,7 @@ Backend:
 - Eine bekannte `stornierungId` antwortet Erfolg ohne Buchung. Zu große Mengen enden in `position_nicht_stornierbar` 409.
 - Sonst schreibt es `version = n + 1` mit `ResolvePositionen()`. Ein Konflikt führt zum Lookup der Stornierungs-ID.
 - `pfand.Query.GetPfandrueckgabeHistorie(ctx, tischID)` in neuer Datei `backend/api/kasse/pfand/application/query.go` liest per neuer Query `ReadPfandrueckgabeEvents` alle Pfand-Events der offenen Kassensitzung. Es gruppiert nach Subject, filtert auf `tischId` und sortiert neueste zuerst.
+- `backend/api/kasse/pfand/application/query_test.go` nutzt einen paketlokalen Fake mit `ReadPfandrueckgabeEvents()`. `backend/repository/repotest/kassenjournal.go` bleibt in dieser Phase unberührt.
 - Repo-Methode `ReadPfandrueckgabeEvents()` in neuer Datei `backend/repository/kassenjournal_repo/pfandrueckgabe.go`; `make sqlc` erneuert `backend/sqlc/dbgen/kassenjournal.sql.go`.
 - `PfandrueckgabeStornierenHandler()` in `backend/api/kasse/pfand/http/command_handler.go`, `GetPfandrueckgabeHistorieHandler()` in neuer Datei `backend/api/kasse/pfand/http/query_handler.go`.
 - Routen `serviceleitung/pfandrueckgabe-stornieren` in `backend/api/serviceleitung.go` und `service/get-pfandrueckgabe-historie` in `backend/api/service.go`.
@@ -367,12 +391,13 @@ Demo: Eine irrtümliche Rückgabe am Tisch als Serviceleitung stornieren. Die Ze
 
 ### Acceptance criteria
 
-- [ ] Die Stornierung lehnt Mengen über der Rückgabe und doppelte Positionen ab (`backend/domain/kasse/pfandrueckgabe_test.go`): `cd backend && go test ./domain/kasse/ -run Pfandrueckgabe`
-- [ ] Zweimal dieselbe `stornierungId` bucht einmal (Fall in `backend/api/kasse/pfand/application/idempotenz_integration_test.go`): `make check-integration`
-- [ ] Die Historie liefert je Tisch nur dessen Rückgaben, 0 nur die des Direktverkaufs (`backend/api/kasse/pfand/application/query_test.go`): `cd backend && go test ./api/kasse/pfand/...`
-- [ ] Nur Serviceleitung und Admin erreichen die Stornierung, alle Rollen die Historie (`TestBerechtigungsMatrix`): `make check-integration`
-- [ ] Der Pfandbeleg trägt negative Beträge, der Stornobeleg zur Rückgabe positive mit Verweis auf deren Bon-Nr (Fälle in `backend/api/druck/beleg/application/kassenbeleg_command_test.go`): `cd backend && go test ./api/druck/beleg/...`
-- [ ] Stornierte Rückgaben sind markiert, „Stornieren…" fehlt ohne `canCancel`, und der Drawer sendet gewählte Positionen samt Kommentar (`frontend/src/service/pfand/PfandrueckgabeHistorie.test.tsx`, `frontend/src/service/pfand/PfandStornoDrawer.test.tsx`): `cd frontend && pnpm exec vitest run src/service/pfand/`
+- [ ] Offene Mengen sinken mit jeder Teilstornierung, die Historie summiert die Stornierungen (`TestComputeNichtStorniertePfandPositionen_PartialThenFullStorno`, `TestBuildPfandrueckgabeHistorieEintrag_AggregatesStornos` in `backend/domain/kasse/pfandrueckgabe_test.go`): `cd backend && test "$(go test ./domain/kasse/ -run '^(TestComputeNichtStorniertePfandPositionen_PartialThenFullStorno|TestBuildPfandrueckgabeHistorieEintrag_AggregatesStornos)$' -v | grep -cE -- '^--- PASS: (TestComputeNichtStorniertePfandPositionen_PartialThenFullStorno|TestBuildPfandrueckgabeHistorieEintrag_AggregatesStornos) ')" -eq 2`
+- [ ] Eine Menge über der offenen Rückgabe endet in `position_nicht_stornierbar`, ohne Event (`TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent` in `backend/api/kasse/pfand/application/command_test.go`): `cd backend && go test ./api/kasse/pfand/application/ -run '^TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent$' -v | grep -- '--- PASS: TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent '`
+- [ ] Zweimal dieselbe `stornierungId` bucht einmal (`TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg` in `backend/api/kasse/pfand/application/idempotenz_integration_test.go`): `TEST_PKG=./api/kasse/pfand/application/ TEST_RUN='^TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg$' make check-integration | grep -- '--- PASS: TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg '`
+- [ ] Die Historie liefert je Tisch nur dessen Rückgaben, 0 nur die des Direktverkaufs (`TestGetPfandrueckgabeHistorie_FiltertNachTischID` in `backend/api/kasse/pfand/application/query_test.go`): `cd backend && go test ./api/kasse/pfand/application/ -run '^TestGetPfandrueckgabeHistorie_FiltertNachTischID$' -v | grep -- '--- PASS: TestGetPfandrueckgabeHistorie_FiltertNachTischID '`
+- [ ] Die Stornierung liegt nur im Serviceleitungs-Bereich, die Historie im Service-Bereich; `TestBerechtigungsMatrix` prüft dann die Rollen beider Bereiche: `grep -q '"/pfandrueckgabe-stornieren"' backend/api/serviceleitung.go && ! grep -q '"/pfandrueckgabe-stornieren"' backend/api/service.go && grep -q '"/get-pfandrueckgabe-historie"' backend/api/service.go`
+- [ ] Der Pfandbeleg trägt negative Beträge, der Stornobeleg zur Rückgabe positive mit Verweis auf deren Bon-Nr (`TestKassenbelegDrucken_Pfandrueckgabe_NegativeBetraege`, `TestKassenbelegDrucken_PfandStorno_DruckbarAlsStornobeleg` in `backend/api/druck/beleg/application/kassenbeleg_command_test.go`): `cd backend && test "$(go test ./api/druck/beleg/application/ -run '^(TestKassenbelegDrucken_Pfandrueckgabe_NegativeBetraege|TestKassenbelegDrucken_PfandStorno_DruckbarAlsStornobeleg)$' -v | grep -cE -- '^--- PASS: (TestKassenbelegDrucken_Pfandrueckgabe_NegativeBetraege|TestKassenbelegDrucken_PfandStorno_DruckbarAlsStornobeleg) ')" -eq 2`
+- [ ] Stornierte Rückgaben sind markiert, „Stornieren…" fehlt ohne `canCancel`, und der Drawer sendet gewählte Positionen samt Kommentar (Fälle „marks cancelled returns" und „hides Stornieren without canCancel" in `frontend/src/service/pfand/PfandrueckgabeHistorie.test.tsx`, „sends the selected positions with the comment" in `frontend/src/service/pfand/PfandStornoDrawer.test.tsx`): `cd frontend && test "$(pnpm exec vitest run src/service/pfand/ --reporter=verbose | grep -cE -- '✓ .*(marks cancelled returns|hides Stornieren without canCancel|sends the selected positions with the comment)')" -eq 3`
 
 ## Phase 5: Abrechnung und Kassenabschluss
 
@@ -388,6 +413,7 @@ Demo: Eine irrtümliche Rückgabe am Tisch als Serviceleitung stornieren. Die Ze
 - `backend/api/reporting/application/abrechnung_integration_test.go — TestAbrechnung_DirektverkaufBleibtAussen()` — Vorbild.
 - `frontend/src/admin/reporting/types.ts`, `frontend/src/admin/reporting/ReportingResults.tsx`, `frontend/src/admin/reporting/LiveReportingSection.tsx`, `frontend/src/admin/reporting/SummaryCard.tsx`.
 - `frontend/src/service/table/Tisch.ts — EigeneUebersichtSchema`, `frontend/src/service/table/EigeneUebersicht.tsx`.
+- `backend/sqlc/queries/reporting.sql — GetEigeneUebersicht`, `backend/domain/reporting/reporting.go`, `frontend/src/admin/reporting/types.ts`, `frontend/src/service/table/Tisch.ts` — Kommentare mit „nie negativ" und der alten Formel.
 
 ### What to build
 
@@ -396,6 +422,7 @@ Backend:
 - `GetReportingStats` liefert `anzahl_pfandrueckgaben` und `pfandrueckgaben_cents`, die Nettosumme `-SUM(kj_extract_pfand_cents)`.
 - Neue Query `GetPfandProServicekraft`: je Akteur der Rückgabe die Nettosumme aller Rückgaben mit `tischId > 0`. Stornierungen werden über `rueckgabeId` dem Akteur der Rückgabe zugeordnet.
 - `GetEigeneUebersicht` liefert `pfand_cents` nach derselben Regel. `abzugeben_cents = zahlungen − ruecknahmen − pfand`. Der Query-Kommentar „nie negativ" entfällt.
+- Diese Kommentare nennen danach die neue Formel und „darf negativ werden": `backend/domain/reporting/reporting.go — AbrechnungServicekraft` (Doc-Kommentar) und `EigeneUebersicht.AbzugebenCents` („nie negativ").
 - `make sqlc` erneuert `backend/sqlc/dbgen/reporting.sql.go`.
 - `reporting.Summary` bekommt `AnzahlPfandrueckgaben` und `PfandrueckgabenCents`.
 - `AbrechnungServicekraft`, `ServicekraftLive` und `EigeneUebersicht` bekommen `PfandCents`.
@@ -405,7 +432,8 @@ Backend:
 
 Frontend:
 
-- Die Zod-Schemas erlauben negatives `abzugebenCents` und kennen die neuen Felder.
+- Die Zod-Schemas kennen die neuen Felder. `abzugebenCents` ist schon `z.number().int()` und erlaubt negative Werte.
+- Die Formel-Kommentare in `frontend/src/admin/reporting/types.ts` und `frontend/src/service/table/Tisch.ts` ziehen das Pfand mit ab.
 - Kassenbericht und Live-Dashboard zeigen die Kennzahl „Pfandrückgaben" mit Anzahl und Summe. Die Abrechnung pro Servicekraft zeigt die Spalte „Pfand".
 - Die Eigene Übersicht zeigt „Pfand ausgezahlt" und einen negativen abzugebenden Betrag als solchen.
 
@@ -413,13 +441,13 @@ Demo: Eine Servicekraft kassiert 20,00 € und zahlt am Tisch 4,00 € Pfand aus
 
 ### Acceptance criteria
 
-- [ ] Eine Rückgabe am Tisch mindert den abzugebenden Betrag des Akteurs, auch ohne Bestellung am Tisch (`TestAbrechnung_PfandrueckgabeAmTischMindertAbzugeben`): `make check-integration`
-- [ ] Eine Rückgabe im Direktverkauf ändert keine Servicekraft-Zeile (`TestAbrechnung_PfandrueckgabeImDirektverkaufBleibtAussen`): `make check-integration`
-- [ ] Eine Stornierung zählt für den Akteur der Rückgabe, nicht für die Serviceleitung (`TestAbrechnung_PfandStornoTrifftDenAkteurDerRueckgabe`): `make check-integration`
-- [ ] Die Eigene Übersicht zieht ausgezahltes Pfand ab und darf negativ werden (`TestEigeneUebersicht_PfandrueckgabeMindertAbzugeben`): `make check-integration`
-- [ ] Der Kassenbericht zählt Rückgaben und deren Nettosumme (`TestGetReporting_ZaehltPfandrueckgaben`): `make check-integration`
-- [ ] Der Kassenbericht zeigt die Kennzahl „Pfandrückgaben" (Fall in `frontend/src/admin/reporting/ReportingResults.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/reporting/ReportingResults.test.tsx`
-- [ ] Die Eigene Übersicht zeigt einen negativen abzugebenden Betrag (Fall in `frontend/src/service/table/EigeneUebersicht.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/EigeneUebersicht.test.tsx`
+- [ ] Eine Rückgabe am Tisch mindert den abzugebenden Betrag des Akteurs, auch ohne Bestellung am Tisch (`TestAbrechnung_PfandrueckgabeAmTischMindertAbzugeben` in `backend/api/reporting/application/abrechnung_integration_test.go`): `TEST_PKG=./api/reporting/application/ TEST_RUN='^TestAbrechnung_PfandrueckgabeAmTischMindertAbzugeben$' make check-integration | grep -- '--- PASS: TestAbrechnung_PfandrueckgabeAmTischMindertAbzugeben '`
+- [ ] Eine Rückgabe im Direktverkauf ändert keine Servicekraft-Zeile (`TestAbrechnung_PfandrueckgabeImDirektverkaufBleibtAussen`, gleiche Datei): `TEST_PKG=./api/reporting/application/ TEST_RUN='^TestAbrechnung_PfandrueckgabeImDirektverkaufBleibtAussen$' make check-integration | grep -- '--- PASS: TestAbrechnung_PfandrueckgabeImDirektverkaufBleibtAussen '`
+- [ ] Eine Stornierung zählt für den Akteur der Rückgabe, nicht für die Serviceleitung (`TestAbrechnung_PfandStornoTrifftDenAkteurDerRueckgabe`, gleiche Datei): `TEST_PKG=./api/reporting/application/ TEST_RUN='^TestAbrechnung_PfandStornoTrifftDenAkteurDerRueckgabe$' make check-integration | grep -- '--- PASS: TestAbrechnung_PfandStornoTrifftDenAkteurDerRueckgabe '`
+- [ ] Die Eigene Übersicht zieht ausgezahltes Pfand ab und darf negativ werden (`TestEigeneUebersicht_PfandrueckgabeMindertAbzugeben`, gleiche Datei): `TEST_PKG=./api/reporting/application/ TEST_RUN='^TestEigeneUebersicht_PfandrueckgabeMindertAbzugeben$' make check-integration | grep -- '--- PASS: TestEigeneUebersicht_PfandrueckgabeMindertAbzugeben '`
+- [ ] Der Kassenbericht zählt Rückgaben und deren Nettosumme (`TestGetReporting_ZaehltPfandrueckgaben` in `backend/repository/reporting_repo/repo_test.go`): `TEST_PKG=./repository/reporting_repo/ TEST_RUN='^TestGetReporting_ZaehltPfandrueckgaben$' make check-integration | grep -- '--- PASS: TestGetReporting_ZaehltPfandrueckgaben '`
+- [ ] Der Kassenbericht zeigt die Kennzahl „Pfandrückgaben" (Fall „shows the Pfandrückgaben figure" in `frontend/src/admin/reporting/ReportingResults.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/reporting/ReportingResults.test.tsx -t 'shows the Pfandrückgaben figure' --reporter=verbose | grep -- '✓ .*shows the Pfandrückgaben figure'`
+- [ ] Die Eigene Übersicht zeigt einen negativen abzugebenden Betrag (Fall „shows a negative amount to hand over" in `frontend/src/service/table/EigeneUebersicht.test.tsx`): `cd frontend && pnpm exec vitest run src/service/table/EigeneUebersicht.test.tsx -t 'shows a negative amount to hand over' --reporter=verbose | grep -- '✓ .*shows a negative amount to hand over'`
 
 ## Phase 6: DSFinV-K-Export und Demo-Daten
 
@@ -437,6 +465,7 @@ Demo: Eine Servicekraft kassiert 20,00 € und zahlt am Tisch 4,00 € Pfand aus
 - `backend/seed/writer.go — writeStammdaten()`, `backend/sqlc/queries/seed.sql — SeedInsertProdukt`.
 - `backend/seed/engine_test.go` — Invarianten der Seed-Engine.
 - `docs/compliance.md` §3.3, §6.3, §6.6, §6.8.
+- `docs/verfahrensdokumentation.md` §2, §3, §4.
 - `docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/20231215_DSFinV_K_2_4.pdf` — Anhang C S. 50, Tz. 4.2.4, Tz. 4.2.5.
 
 ### What to build
@@ -446,7 +475,8 @@ Export:
 - Konstante `gvTypPfandRueckzahlung = "PfandRueckzahlung"`, in `gvTypReihenfolge` direkt nach „Umsatz".
 - `belegeFromEvents()`: Rückgabe als `beleg` mit `bonID = rueckgabeId`, `BON_TYP` „Beleg", Zahlart Bar und `storno: true` für das negative Vorzeichen. Ohne Referenz.
 - Stornierung als positiver `beleg` mit `bonID = stornierungId` und `refBonIDs = [rueckgabeId]`.
-- `abrechnungskreis()` bekommt eine Variante über die Tisch-ID; Pfand-Bons nutzen `tischId` aus dem Event, 0 ergibt keinen Abrechnungskreis.
+- `abrechnungskreis()` bekommt eine Variante über die Tisch-ID; 0 ergibt keinen Abrechnungskreis.
+- Die Rückgabe nimmt `tischId` aus ihrem Event. `pfandrueckgabe-storniert:v1` trägt keine `tischId`. Deshalb führt `belegeFromEvents()` beim Durchlauf eine Map `rueckgabeId → tischId`, wie `herkunft` für Bestellungen.
 - `buildBusinesscases()` summiert „PfandRueckzahlung" je USt-Schlüssel ohne weitere Änderung.
 
 Demo-Daten:
@@ -464,14 +494,20 @@ Doku `docs/compliance.md`:
 - Storno-Handling: Rückgabe ohne Referenz, Stornierung mit Referenz.
 - Die Zeile zu `subitems.csv` nennt Pfand nicht mehr als Beispiel.
 
+Doku `docs/verfahrensdokumentation.md`:
+
+- §2, Bounded-Context-Tabelle: Pfandrückgabe unter den Geschäftsvorfällen der Kasse.
+- §3, „Strukturierung (Subjects)": jede Pfandrückgabe bildet einen eigenen Strom, wie ein Theken-Direktverkauf.
+- §4, Prozesstyp-Tabelle: Pfandrückgabe und deren Stornierung als `Kassenbeleg-V1`.
+
 Demo: Den Samstag exportieren. `lines.csv` hat Zeilen „PfandRueckzahlung" mit negativer Menge, `businesscases.csv` eine Summe je Satz.
 
 ### Acceptance criteria
 
-- [ ] Rückgabe und Stornierung ergeben die erwarteten Zeilen in Bonkopf, Positionen, Referenzen, Abrechnungskreis und Geschäftsvorfällen (`TestMapPfandrueckgabeUndStorno`): `cd backend && go test ./api/fiskal/dsfinvk/ -run TestMapPfandrueckgabeUndStorno`
-- [ ] Umsatz je Steuersatz und „Umsatz" plus „PfandRueckzahlung" stimmen je USt-Schlüssel überein (Konsistenztest erweitert): `cd backend && go test ./api/reporting/application/ -run TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases`
-- [ ] Die Seed-Engine hält Soll, Z-Bon-Summe und Tisch-Salden auch mit Pfand ein: `cd backend && go test ./seed/`
-- [ ] Der Export aller Seed-Sitzungen ist befundfrei, samt Pfand-Bons (`TestSeedExportBefundfrei`): `make check-integration`
+- [ ] Rückgabe und Stornierung ergeben die erwarteten Zeilen in Bonkopf, Positionen, Referenzen, Abrechnungskreis und Geschäftsvorfällen, auch den Tischnamen der Stornierung (`TestMapPfandrueckgabeUndStorno` in `backend/api/fiskal/dsfinvk/mapper_test.go`): `cd backend && go test ./api/fiskal/dsfinvk/ -run '^TestMapPfandrueckgabeUndStorno$' -v | grep -- '--- PASS: TestMapPfandrueckgabeUndStorno '`
+- [ ] Umsatz je Steuersatz und „Umsatz" plus „PfandRueckzahlung" stimmen je USt-Schlüssel überein (`TestUmsatzProSteuersatz_KonsistentMitPfandrueckzahlung` in `backend/api/reporting/application/query_export_konsistenz_test.go`): `cd backend && go test ./api/reporting/application/ -run '^TestUmsatzProSteuersatz_KonsistentMitPfandrueckzahlung$' -v | grep -- '--- PASS: TestUmsatzProSteuersatz_KonsistentMitPfandrueckzahlung '`
+- [ ] Das Szenario enthält Rückgaben und eine Stornierung, und die Seed-Engine hält Soll, Z-Bon-Summe und Tisch-Salden ein: `cd backend && grep -q 'pfandrueckgabe{' seed/szenario.go && grep -q 'pfandStorno{' seed/szenario.go && go test ./seed/`
+- [ ] Der Export aller Seed-Sitzungen ist befundfrei, samt Pfand-Bons (`TestSeedExportBefundfrei`): `TEST_PKG=./dsfinvkpruefung/ TEST_RUN='^TestSeedExportBefundfrei$' make check-integration | grep -- '--- PASS: TestSeedExportBefundfrei '`
 - [ ] Prosa-Gate grün: `./scripts/check-prose.sh`
 
 ## Phase 7: Ende-zu-Ende und Dokumentation
@@ -483,17 +519,21 @@ Demo: Den Samstag exportieren. `lines.csv` hat Zeilen „PfandRueckzahlung" mit 
 - `e2e/tests/direktverkauf-storno.mobile.spec.ts` — Vorbild am Handy-Viewport.
 - `e2e/support/seed.ts — resetAndSeed()`, `e2e/support/servicekraft.ts — waehleVariante()`, `e2e/support/anmelden.ts — anmelden()`.
 - `docker-compose.e2e.yml` — eigener E2E-Stack, gestartet und abgewartet wie im CI-Job `e2e` in `.github/workflows/ci.yml`.
+- `Makefile — website-screenshots`, `test-e2e` — Vorbild für Stack-Start, Warteschleife und Abbau per `trap`.
 - `frontend/src/admin/kasse/KassensitzungPage.tsx` — zeigt den Soll-Kassenbestand.
-- `docs/handbuch.md` §3.3, §3.6, §3.9, §4.1, §4.5, §5.1, §7.1, §7.2.
+- `docs/handbuch.md` §3.3, §3.6, §3.8, §3.9, §4.1, §4.5, §5.1, §7.1, §7.2.
 - `docs/anforderungen.md` — Kasse-Tabelle, nächste freie Kennung K-27.
 - `docs/language.md` — Abschnitt Kasse.
 - `docs/prds/prd-pfandrueckgabe.md` — Glossar-Einträge unter „Further Notes".
 
 ### What to build
 
+- Make-Target `test-e2e-stack`: startet `docker-compose.e2e.yml` per `up -d --build` auf `E2E_STACK_PORT` (Standard 8080) unter eigenem Projektnamen. Es wartet wie `website-screenshots` auf HTTP 200 und scheitert nach 60 Versuchen.
+- Danach läuft `playwright test $(E2E_ARGS)` mit `E2E_BASE_URL` auf den Stack. Ein `trap` ruft `down -v`, der Exit-Code ist der des Testlaufs.
 - `e2e/tests/pfandrueckgabe.mobile.spec.ts`: Eine Servicekraft verkauft im Direktverkauf Bier mit Pfand. Danach nimmt sie das Glas über „Pfand zurück" an.
 - Der Admin liest den Soll-Kassenbestand vor und nach dem Ablauf. Die Differenz ist Verkauf minus Pfand.
 - `docs/handbuch.md`: Subject `kassensitzung-{nr}/pfandrueckgabe-{rueckgabeId}`, Event-Tabelle „Pfand-Events" und Soll-Formel mit Pfand.
+- §3.8, Stream-Typ-Tabelle: Zeile `"pfandrueckgabe"` ohne Projektion, wie `"direktverkauf"`.
 - Ebenso das Pfand-Kennzeichen am Produkt-Aggregat, die Belegformen und Berechtigungszeilen.
 - Und die Invariante „abzugeben = kassiert − Rücknahmen − Pfand, darf negativ sein".
 - `docs/anforderungen.md`: K-27 „Pfandrückgabe" mit Verrechnung und Stornierung.
@@ -503,8 +543,8 @@ Demo: Die Spec läuft grün gegen den E2E-Stack.
 
 ### Acceptance criteria
 
-- [ ] Verkauf mit Pfand, Rückgabe und Soll-Kassenbestand stimmen am Handy-Viewport: `E2E_BASE_URL=http://localhost:8080 pnpm --dir e2e exec playwright test tests/pfandrueckgabe.mobile.spec.ts`
-- [ ] Die übrigen Specs überstehen das Pfand-Produkt in den Seed-Daten: `E2E_BASE_URL=http://localhost:8080 pnpm --dir e2e test`
+- [ ] Verkauf mit Pfand, Rückgabe und Soll-Kassenbestand stimmen am Handy-Viewport: `make test-e2e-stack E2E_ARGS=tests/pfandrueckgabe.mobile.spec.ts`
+- [ ] Die übrigen Specs überstehen das Pfand-Produkt in den Seed-Daten: `make test-e2e-stack`
 - [ ] E2E-Suite formatiert, typisiert und gelintet: `make check-e2e`
 - [ ] Doku-Links und Anker gültig: `./scripts/check-links.sh`
 - [ ] Prosa-Gate grün: `./scripts/check-prose.sh`
