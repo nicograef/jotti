@@ -80,14 +80,14 @@ func FormatPositionBon(
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP437(fmt.Sprintf("== %s ==\n", tischName)))
+	writeLine(&buf, fmt.Sprintf("== %s ==", tischName))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP437(fmt.Sprintf("%dx %s\n", pos.Menge, pos.Bezeichnung())))
+	writeLine(&buf, fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung()))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
@@ -103,7 +103,7 @@ func FormatPositionBon(
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP437(fmt.Sprintf("  %s  Bedienung: %s\n", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24))))
+	writeLine(&buf, fmt.Sprintf("  %s  Bedienung: %s", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24)))
 
 	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -127,7 +127,7 @@ func FormatSammelBon(
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP437(fmt.Sprintf("== %s ==\n", tischName)))
+	writeLine(&buf, fmt.Sprintf("== %s ==", tischName))
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
@@ -137,8 +137,7 @@ func FormatSammelBon(
 	buf.WriteString(BoldOn)
 	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
-		buf.WriteString(toCP437(artikel))
-		buf.WriteByte('\n')
+		writeLine(&buf, artikel)
 	}
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
@@ -153,10 +152,10 @@ func FormatSammelBon(
 
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
-	buf.WriteString(toCP437(fmt.Sprintf("  %s  Bedienung: %s\n",
+	writeLine(&buf, fmt.Sprintf("  %s  Bedienung: %s",
 		zeitpunkt.In(zeit.Berlin).Format("15:04"),
 		truncate(userName, 24),
-	)))
+	))
 
 	buf.WriteString(strings.Repeat("\n", 5))
 	buf.WriteString(CutPaper)
@@ -186,16 +185,16 @@ func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 	buf.WriteString(AlignCenter)
 	buf.WriteString(TextDoubleAll)
 	buf.WriteString(BoldOn)
-	buf.WriteString(toCP437("TESTBON\n"))
+	writeLine(&buf, "TESTBON")
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 	buf.WriteString("\n")
 
-	buf.WriteString(toCP437(fmt.Sprintf("Station: %s\n", stationsName)))
-	buf.WriteString(toCP437(fmt.Sprintf("%s\n", zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
+	writeLine(&buf, fmt.Sprintf("Station: %s", stationsName))
+	writeLine(&buf, zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 	buf.WriteString("\n")
-	buf.WriteString(toCP437("Drucker und Netzwerk funktionieren.\n"))
-	buf.WriteString(toCP437("Umlaute: äöü ÄÖÜ ß\n"))
+	writeLine(&buf, "Drucker und Netzwerk funktionieren.")
+	writeLine(&buf, "Umlaute: äöü ÄÖÜ ß")
 
 	buf.WriteString(AlignLeft)
 	buf.WriteString(strings.Repeat("\n", 5))
@@ -254,7 +253,7 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString(BoldOn)
 	fmt.Fprintf(&buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
 	buf.WriteString(BoldOff)
-	buf.WriteString(toCP437(fmt.Sprintf("Zahlungsart: %s\n", data.Zahlungsart)))
+	writeLine(&buf, fmt.Sprintf("Zahlungsart: %s", data.Zahlungsart))
 
 	if len(data.Steuermatrix) > 0 {
 		buf.WriteByte('\n')
@@ -283,8 +282,8 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		buf.WriteString(wrapCP437(data.TSE.Signatur, lineWidth-2))
 		buf.WriteByte('\n')
 		if data.TSE.Nachsigniert {
-			buf.WriteString(toCP437(fmt.Sprintf("  Nachsigniert am %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))))
-			buf.WriteString(toCP437("  (TSE war bei der Erfassung nicht erreichbar)\n"))
+			writeLine(&buf, fmt.Sprintf("  Nachsigniert am %s", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05")))
+			writeLine(&buf, "  (TSE war bei der Erfassung nicht erreichbar)")
 		}
 
 		appendNativeQRCode(&buf, data.TSE.QRCodeData)
@@ -293,12 +292,12 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 		case TSEVermerkVoruebergehend:
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
-			buf.WriteString(toCP437("  TSE voruebergehend nicht erreichbar.\n"))
-			buf.WriteString(toCP437("  Dieser Vorgang wird automatisch nachsigniert.\n"))
+			writeLine(&buf, "  TSE voruebergehend nicht erreichbar.")
+			writeLine(&buf, "  Dieser Vorgang wird automatisch nachsigniert.")
 		case TSEVermerkKeineKonfiguration:
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
-			buf.WriteString(toCP437("  Fuer diesen Vorgang war keine TSE konfiguriert.\n"))
+			writeLine(&buf, "  Fuer diesen Vorgang war keine TSE konfiguriert.")
 		case KeinTSEVermerk:
 		}
 	}
@@ -360,9 +359,17 @@ var asciiErsatz = map[rune]string{
 
 // printable reduces UTF-8 text to runes CP437 can encode, so callers count print columns
 // in runes. Accented letters lose only their accent; "?" marks a rune with no readable form.
+// Control bytes would reach the printer as ESC/POS commands: whitespace becomes a space,
+// every other C0 control and DEL is dropped.
 func printable(s string) string {
 	var out strings.Builder
 	for _, r := range norm.NFC.String(s) {
+		if r < 0x20 || r == 0x7F {
+			if unicode.IsSpace(r) {
+				out.WriteByte(' ')
+			}
+			continue
+		}
 		if _, ok := charmap.CodePage437.EncodeRune(r); ok {
 			out.WriteRune(r)
 			continue
@@ -385,19 +392,29 @@ func printable(s string) string {
 }
 
 // toCP437 encodes visible text for the printer codepage set by SetCodepagePC437.
-// ESC/POS control sequences never pass through here.
+// ESC/POS control sequences never pass through here; a line break in s prints as a space.
 func toCP437(s string) string {
-	var out strings.Builder
-	for _, r := range printable(s) {
-		b, _ := charmap.CodePage437.EncodeRune(r)
-		out.WriteByte(b)
-	}
-	return out.String()
+	return encodeCP437(printable(s))
+}
+
+func writeLine(buf *bytes.Buffer, s string) {
+	buf.WriteString(toCP437(s))
+	buf.WriteByte('\n')
 }
 
 // wrapCP437 wraps after the transliteration, which can lengthen a line ("…" → "...").
 func wrapCP437(s string, width int) string {
-	return toCP437(wrapLine(printable(s), width))
+	return encodeCP437(wrapLine(printable(s), width))
+}
+
+// encodeCP437 expects the output of printable, plus the line breaks of wrapLine.
+func encodeCP437(s string) string {
+	var out strings.Builder
+	for _, r := range s {
+		b, _ := charmap.CodePage437.EncodeRune(r)
+		out.WriteByte(b)
+	}
+	return out.String()
 }
 
 // truncate kürzt einen String auf maxLen Runen (inkl. Auslassungszeichen)

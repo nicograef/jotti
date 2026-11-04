@@ -555,6 +555,20 @@ func TestFormatPositionBon_KommentarAlsCP437(t *testing.T) {
 	}
 }
 
+// Steuerbytes im Kommentar führte der Drucker als ESC/POS-Befehle ausführen.
+func TestFormatPositionBon_KommentarOhneSteuerbytes(t *testing.T) {
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "Ohne\x1b\x64\x05Zwiebeln\x1d\x56\x00!")
+
+	for _, injiziert := range []string{"\x1b\x64\x05", "\x1d\x56\x00"} {
+		if bytes.Contains(payload, []byte(injiziert)) {
+			t.Errorf("Bon enthaelt den injizierten Befehl %q; got:\n%q", injiziert, payload)
+		}
+	}
+	if !bytes.Contains(payload, []byte("OhnedZwiebelnV!\n")) {
+		t.Errorf("Bon enthaelt den bereinigten Kommentar nicht; got:\n%q", payload)
+	}
+}
+
 func TestFormatTestbon_DrucktUmlautzeileInCP437(t *testing.T) {
 	payload := escpos.FormatTestbon("Getränke", testTime)
 

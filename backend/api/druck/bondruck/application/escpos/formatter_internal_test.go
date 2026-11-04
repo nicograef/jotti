@@ -56,6 +56,7 @@ func TestPrintable_ErsetztZeichenOhneCP437(t *testing.T) {
 		{"Dvořák Łukasz", "Dvorák ?ukasz"},
 		{"Bier 🍺\u200d, bitte", "Bier ?, bitte"},
 		{"Ma\u00adria", "Maria"},
+		{"Ohne\tZwiebeln\r\nscharf\x1b\x00\x7f!", "Ohne Zwiebeln  scharf!"},
 	}
 	for _, tc := range cases {
 		if got := printable(tc.in); got != tc.want {
