@@ -88,7 +88,7 @@ const (
 	BonmodusKeinBon Bonmodus = "kein_bon"
 )
 
-// AlleBonmodi ist die einzige Quelle der Wertemenge; die OneOf-Validierung in
+// AlleBonmodi ist die Backend-Quelle der Wertemenge; die OneOf-Validierung in
 // api/druck/station/http/handler.go liest von hier.
 func AlleBonmodi() []string {
 	return []string{
