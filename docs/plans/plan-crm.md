@@ -13,6 +13,10 @@ Auslöser: Die Handzählung hat beim ersten Abgleich zwei Organisationen aus Git
 Der Mail-Index enthält 13 Fehlzuordnungen, und 8 Antworten sind unbemerkt offen. Die Einzelfälle
 stehen nur in `.crm/`.
 
+Von Nico entschieden: TOML, minimaler Datenumfang, Ordner `.crm/`, Rohkopien nach Abgleich löschen,
+Python im Repo-Gate, Datenschutzerklärung in Phase 4 ergänzen, Löschung nur lokal, Backup über
+Nicos eigene Sicherung.
+
 ## Architectural decisions
 
 - **Kein CRM-Produkt.** Ein SaaS-CRM wäre ein weiterer Auftragsverarbeiter für Vereinsdaten und
@@ -22,8 +26,7 @@ stehen nur in `.crm/`.
   in Gmail, öffentliche Issues liegen auf GitHub. Das Register hält nur die extrahierten Fakten
   und verweist mit `gmail:<message-id>` oder `gh:<issue-nummer>` auf die Quelle. Lokale `.eml`-Kopien
   braucht es nicht. Gründe:
-  - Die Datenschutzerklärung (`website/src/pages/datenschutz.astro`, „Speicherdauer") verspricht,
-    Korrespondenz nach der Bearbeitung zu löschen. Eine zweite Kopie verdoppelt diese Pflicht.
+  - Jede lokale Kopie muss die Löschregel mitmachen; ohne Kopien bleibt nur das Register.
   - Rohbytes liefert der Gmail-Connector nur über das Session-Transkript. Zum Lesen genügt
     `get_thread` mit `PLAIN_TEXT`.
 - **Format TOML, Werkzeug Python-Stdlib.** `tomllib` liest TOML ohne Paket-Abhängigkeit
@@ -62,7 +65,8 @@ stehen nur in `.crm/`.
   - `zurueckgetreten`, `bestritten`, `erledigt`: sofort;
   - `anfrage` nur, wenn alle Meldungen `answered = true` sind und Nico sie auf `erledigt` setzt;
   - `vereinbart`: erst nach Beendigung nach TERMS § 8.
-  Gelöscht wird von Hand in Gmail, danach der Eintrag im Register.
+  Gelöscht werden der Eintrag im Register und lokale Kopien. Gmail bleibt außen vor (Nicos
+  Entscheidung).
 - **PII-Grenze als Gate.** `scripts/check-private-data.sh` bekommt die Suchbegriffe von
   `crm.py pii-terms`: E-Mail-Adressen, Kontaktnamen, Organisationsnamen ohne `public_name_ok`,
   ohne Dienstleister, jeweils mindestens 5 Zeichen. GitHub-Logins fehlen, sie sind auf den Issues
@@ -131,7 +135,7 @@ ref = "[backlog.md](backlog.md)"
 ## Inventory
 
 - `.mails/README.md` — Index, Anfragen je Verein, Datenschutzregel. Wird zu `.crm/README.md`.
-- `.mails/raw/*.eml` — 52 Dateien, Quelle der Erstbefüllung.
+- `.mails/raw/*.eml` — 49 Mails und 5 Anhänge, Quelle der Erstbefüllung.
 - `.mails/extract_gmail_raw.py` — Rohbytes aus dem Transkript. Wird mit den Rohkopien gelöscht.
 - `.gitignore` — Zeile `.mails/`.
 - `docs/feldfeedback.md` — heute Handzählung, Prettier-formatierte Tabellen. Wird erzeugt.
@@ -146,21 +150,17 @@ ref = "[backlog.md](backlog.md)"
 
 ## Open questions / Risks
 
-- **Python im Repo-Gate.** `check-crm.sh` und `check-private-data.sh` brauchen Python ≥ 3.11.
-  Das ist keine Paket-Abhängigkeit, aber ein neues Werkzeug im Gate; Nicos Plan-Freigabe deckt
-  die Regel „Ask before adding a dependency". macOS-System-Python 3.9 reicht nicht; die Skripte
+- **Python im Repo-Gate** ist freigegeben. macOS-System-Python 3.9 reicht nicht; die Skripte
   brechen dort mit klarer Meldung ab.
-- **Lokale Rohkopien löschen** ist ein Handschritt nach Nicos Freigabe, kein Phase-Kriterium:
+- **Lokale Rohkopien löschen** ist freigegeben, als Handschritt nach Phase 1, kein Phase-Kriterium:
   1. In einer Session jede `.eml` in `.crm/mail/` per `rfc822msgid:` in Gmail suchen und ihre
      Quelle im Register bestätigen.
   2. Danach `.crm/mail/` und `.crm/extract_gmail_raw.py` löschen.
   3. Den Abschnitt zu Rohkopien aus `.crm/README.md` streichen.
-- **Löschpflicht überfällig.** Ein Verein ist zurückgetreten, ein Absender hat die Mail
-  abgestritten. `crm.py retention` listet beide nach Phase 4. Löschen in Gmail bleibt Nicos
-  Handgriff.
-- **Kein Backup von `.crm/`.** Geht der Rechner verloren, lässt sich das Register aus Gmail und
-  GitHub neu aufbauen; die Pflegearbeit ist dann verloren. Ein verschlüsseltes Backup liegt
-  außerhalb dieses Plans.
+- **Gelöschte Fälle.** Die lokalen Kopien eines zurückgetretenen Vereins und eines Absenders, der
+  die Mail abgestritten hat, sind gelöscht. Das Register führt sie nur als Zahl.
+- **Backup von `.crm/`** läuft über Nicos eigene Sicherung des Home-Verzeichnisses. `.crm/README.md`
+  nennt das. Fehlt sie, lässt sich das Register aus Gmail und GitHub neu aufbauen.
 - **Fälle mit „Ein Verein"** in `docs/backlog.md` beschreiben den Anlass eines Eintrags, keine
   Zählung. Sie bleiben. Gestrichen werden Mehrzahl-Zählungen.
 
@@ -193,7 +193,8 @@ ref = "[backlog.md](backlog.md)"
   - `CRM_DIR` nach der Architekturentscheidung, überschreibbar per Umgebung
 - `crm.py` bricht unter Python 3.11 mit klarer Meldung ab. `scripts/setup-dev-tools.sh` prüft
   die Version.
-- `.crm/register.toml` und `.crm/topics.toml` aus allen 52 Mails und 5 Issues befüllen. Die
+- `.crm/register.toml` und `.crm/topics.toml` aus allen 49 Mails und 5 Issues befüllen. Die zwei
+  gelöschten Fälle gehen nur als Zahl ein: `[lage]` bekommt einen Zähler `deleted = 2`. Die
   Klassifikation folgt den Architekturentscheidungen.
 - `scripts/crm/test_crm.py` (stdlib `unittest`) mit erfundenen Fixtures: gültiges Register
   besteht, Schema-Verstöße werden abgewiesen.
