@@ -26,7 +26,7 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] `JOTTI_DOMAIN` bei jedem Compose-Befehl des Public-Stacks: Folge der Entscheidung Option A —
       jeder Compose-Befehl mit `docker-compose.prod.yml` (auch `make prod-down`, `make prod-logs`)
       verlangt die Variable. Option A (hinnehmen) laut statt still bestätigen.
-- [ ] Gläserpfand, Rabatt und Gutschrift: Drei Vereine fragen nach Pfandrückgabe, einer davon auch
+- [ ] Gläserpfand, Rabatt und Gutschrift: Vereine fragen nach Pfandrückgabe, einer davon auch
       nach Rabatt und Gutschrift am Tisch. Ein Pfand-Produkt mit positivem Preis geht heute. Rückgabe,
       Rabatt und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein darf. Der
       DSFinV-K-Export schreibt Preisfindung (`itemamounts.csv`) und Zusatzinfo (`subitems.csv`) nur
