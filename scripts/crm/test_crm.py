@@ -132,6 +132,16 @@ class ValidateTest(unittest.TestCase):
         self.assertIn("org[1] offener-verein contact[0]: emails must list at least one address", errors)
         self.assertIn("topic[0] pfand mention[1]: source must be gmail:<16 hex> or gh:<number>", errors)
 
+    def test_rejects_shared_source_finished_org_with_open_reply_and_flat_deleted(self):
+        register, topics = fixture()
+        topics["topic"][0]["mention"][1]["source"] = "gmail:0000000000000002"
+        register["org"][0]["status"] = "erledigt"
+        topics["lage"]["deleted"] = 3
+        errors = crm.validate(register, topics)
+        self.assertIn("topic[0] pfand mention[1]: duplicate source in this topic", errors)
+        self.assertIn("org[0] beispielverein: erledigt while a mention still waits for a reply", errors)
+        self.assertIn("[lage].deleted: must be a table of org status to count", errors)
+
 
 class ReportTest(unittest.TestCase):
     def test_open_lists_only_unanswered_mentions(self):
