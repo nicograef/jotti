@@ -2,7 +2,7 @@
 
 **Stand: 4. November 2026**
 
-Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch gemeinnützige Organisationen. Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande.
+Diese Nutzungsbedingungen regeln die kostenlose Nutzung der Software „jotti" durch Organisationen ohne Gewinnerzielungsabsicht (§ 2). Die Nutzungsvereinbarung kommt durch eine einzige E-Mail an den Autor zustande.
 
 > Autor: Nico Gräf, Freiburg im Breisgau, Deutschland — graef.nico@gmail.com
 

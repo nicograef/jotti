@@ -35,13 +35,13 @@ Kostenlose Nutzungsvereinbarungen erhalten ausschließlich Organisationen ohne G
 | Eingetragene gemeinnützige Stiftungen | Stiftungsregister + Anerkennung der Gemeinnützigkeit           |
 | Gemeinnützige GmbH / UG (gGmbH, gUG)  | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit |
 | Sonstige eingetragene NGOs / NPOs     | Registereintragung und fehlende Gewinnerzielungsabsicht        |
-| Untergliederungen (z. B. Ortsgruppen) | Zugehörigkeit zu einer berechtigten Organisation               |
+| Untergliederungen (z. B. Ortsgruppen) | Untergliederung einer eingetragenen Organisation               |
 | Vereine nach ausländischem Recht      | Registereintragung, soweit das dortige Recht sie verlangt      |
 
 Keine kostenlose Vereinbarung erhalten:
 
 - gewerbliche Unternehmen
-- Organisationen ohne gemeinnützigen Status
+- nicht eingetragene Organisationen, für die keine Ausnahme nach TERMS.md § 2 Abs. 1 gilt
 - gewerblich nutzende Einzelpersonen
 - Dritte, die jotti als Dienstleistung betreiben wollen (SaaS)
 
@@ -64,10 +64,10 @@ Diese Restriktionen schützen das geistige Eigentum, halten das Dual-Licensing-M
 
 Als alleiniger Urheber kann Nico Gräf jotti unter beliebig vielen Lizenzen gleichzeitig anbieten:
 
-| Pfad        | Lizenz                                                         | Zielgruppe                                         | Kosten          |
-| ----------- | -------------------------------------------------------------- | -------------------------------------------------- | --------------- |
-| Non-Profit  | Proprietäre Source-Available + kostenlose Nutzungsvereinbarung | Eingetragene Vereine, gemeinnützige Organisationen | Kostenlos       |
-| Kommerziell | Proprietäre kommerzielle Lizenz                                | Unternehmen, gewerbliche Betriebe, SaaS-Anbieter   | Kostenpflichtig |
+| Pfad        | Lizenz                                                         | Zielgruppe                                       | Kosten          |
+| ----------- | -------------------------------------------------------------- | ------------------------------------------------ | --------------- |
+| Non-Profit  | Proprietäre Source-Available + kostenlose Nutzungsvereinbarung | Organisationen ohne Gewinnerzielungsabsicht      | Kostenlos       |
+| Kommerziell | Proprietäre kommerzielle Lizenz                                | Unternehmen, gewerbliche Betriebe, SaaS-Anbieter | Kostenpflichtig |
 
 Ausdrücklich vorbehalten bleiben:
 
