@@ -114,6 +114,13 @@ Daten bleiben erhalten.
 Aktualisiert zuhause vor dem Fest, nicht am Veranstaltungstag (siehe
 [Aktualisieren](aktualisieren.md)).
 
+**Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?** Wählt im Formular
+„Untergliederung eines eingetragenen Verbands". Eine eigene Eintragung braucht die
+Ortsgruppe nicht (siehe [Nutzungsbedingungen § 2](../../TERMS.md)).
+
+Die Ortsgruppe schließt die Vereinbarung im eigenen Namen. Als Namen nennt ihr
+Ortsgruppe und Verband, etwa: Ortsgruppe Musterhausen im Landesverband Musterland e.V.
+
 **Darf ein Partnerverein unsere Installation mitnutzen?** Nein. Jeder Verein schließt
 seine eigene Nutzungsvereinbarung und betreibt eine eigene Installation.
 

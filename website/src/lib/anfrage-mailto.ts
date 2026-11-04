@@ -10,11 +10,14 @@ export interface AnfrageFelder {
 }
 
 // Das erste Label ist der Vorgabewert des Selects (AnfrageFormular.tsx).
+// Die Optionen folgen TERMS.md § 2 (1).
 export const artOptionen = [
   'Eingetragener Verein (e.V.)',
   'Gemeinnützige Stiftung',
-  'NGO / NPO',
-  'Sonstige gemeinnützige Organisation',
+  'Gemeinnützige GmbH oder UG (gGmbH, gUG)',
+  'Untergliederung eines eingetragenen Verbands',
+  'Verein nach ausländischem Recht (z. B. Schweiz, Österreich)',
+  'Sonstige eingetragene Organisation ohne Gewinnerzielungsabsicht',
 ] as const
 
 // art hat als Select immer einen Wert, message ist optional — beide werden
@@ -64,7 +67,7 @@ export interface AnfrageMail {
 
 // Vorlage aus TERMS.md: Die Nutzungsvereinbarung kommt allein durch diese
 // Annahme-E-Mail zustande, deshalb der wörtliche Annahmesatz mit Fassungsbezug
-// (7. September 2026) und der TERMS-URL.
+// und der TERMS-URL.
 export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
   const verein = felder.verein.trim()
   const betreff = `Nutzungsvereinbarung jotti — ${verein}`
@@ -74,7 +77,7 @@ export function buildAnfrageMail(felder: AnfrageFelder): AnfrageMail {
   const zeilen = [
     'Hallo Herr Gräf,',
     '',
-    `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026 (${termsUrl}).`,
+    `wir sind ${verein} und akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 4. November 2026 (${termsUrl}).`,
     '',
     `Rechtsform: ${felder.art.trim()}`,
     `Sitz: ${felder.sitz.trim()}`,

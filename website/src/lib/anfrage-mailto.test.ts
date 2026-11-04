@@ -102,7 +102,7 @@ describe('buildMailtoUrl', () => {
         'body',
       ) ?? ''
     expect(body).toContain(
-      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 7. September 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
+      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 4. November 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
     )
   })
 

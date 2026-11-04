@@ -27,7 +27,7 @@ Die Veröffentlichung dient Transparenz, Vertrauen und Sicherheitsüberprüfung,
 
 ## 3. Berechtigte: kostenlose Nutzung
 
-Kostenlose Nutzungsvereinbarungen erhalten ausschließlich eingetragene Organisationen ohne Gewinnerzielungsabsicht (verbindlich: [TERMS.md § 2](../TERMS.md)):
+Kostenlose Nutzungsvereinbarungen erhalten ausschließlich Organisationen ohne Gewinnerzielungsabsicht (verbindlich: [TERMS.md § 2](../TERMS.md)):
 
 | Organisationsform                     | Voraussetzung                                                  |
 | ------------------------------------- | -------------------------------------------------------------- |
@@ -35,6 +35,8 @@ Kostenlose Nutzungsvereinbarungen erhalten ausschließlich eingetragene Organisa
 | Eingetragene gemeinnützige Stiftungen | Stiftungsregister + Anerkennung der Gemeinnützigkeit           |
 | Gemeinnützige GmbH / UG (gGmbH, gUG)  | Handelsregister + steuerliche Anerkennung der Gemeinnützigkeit |
 | Sonstige eingetragene NGOs / NPOs     | Registereintragung und fehlende Gewinnerzielungsabsicht        |
+| Untergliederungen (z. B. Ortsgruppen) | Zugehörigkeit zu einer berechtigten Organisation               |
+| Vereine nach ausländischem Recht      | Registereintragung, soweit das dortige Recht sie verlangt      |
 
 Keine kostenlose Vereinbarung erhalten:
 
