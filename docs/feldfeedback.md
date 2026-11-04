@@ -52,18 +52,18 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 
 ## Offen
 
-| Wunsch oder Fehler                                         | Vereine | Stand                                                                           |
-| ---------------------------------------------------------- | ------: | ------------------------------------------------------------------------------- |
-| Gläserpfand: Rückgabe und Verrechnung                      |       3 | [backlog.md](backlog.md)                                                        |
-| Ausgabestationen unabhängig von Produktkategorien          |       1 | [backlog.md](backlog.md), [#146](https://github.com/nicograef/jotti/issues/146) |
-| Bestellkommentar erscheint auf allen Arbeitsbons           |       1 | [backlog.md](backlog.md), [#145](https://github.com/nicograef/jotti/issues/145) |
-| Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                        |
-| Installation ohne Docker oder gehosteter Betrieb           |       1 | [backlog.md](backlog.md)                                                        |
-| Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                        |
-| Rabatte und Gutschriften                                   |       1 | [backlog.md](backlog.md)                                                        |
-| Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md)                                                        |
-| Umlaute auf Epson-Bondruckern unlesbar                     |       1 | [backlog.md](backlog.md), [#144](https://github.com/nicograef/jotti/issues/144) |
-| WLAN mit mehreren Access Points verliert die Adresse       |       1 | [backlog.md](backlog.md)                                                        |
+| Wunsch oder Fehler                                         | Vereine | Stand                                                                                                                                             |
+| ---------------------------------------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gläserpfand: Rückgabe und Verrechnung                      |       3 | [backlog.md](backlog.md), [PRD](prds/prd-pfandrueckgabe.md)                                                                                       |
+| Ausgabestationen unabhängig von Produktkategorien          |       1 | Piepton entfernt, „Kein Bon" im Direktverkauf; Modell im [PRD](prds/prd-stationsmodell.md), [#146](https://github.com/nicograef/jotti/issues/146) |
+| Bestellkommentar erscheint auf allen Arbeitsbons           |       1 | [PRD](prds/prd-kommentar-je-position.md), [#145](https://github.com/nicograef/jotti/issues/145)                                                   |
+| Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                                                                                          |
+| Installation ohne Docker oder gehosteter Betrieb           |       1 | [backlog.md](backlog.md), [PRD](prds/prd-windows-einzeldatei.md)                                                                                  |
+| Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                                                                                          |
+| Rabatte und Gutschriften                                   |       1 | außerhalb von [PRD](prds/prd-pfandrueckgabe.md), [backlog.md](backlog.md)                                                                         |
+| Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md)                                                                                                                          |
+| Umlaute auf Epson-Bondruckern unlesbar                     |       1 | PC437 umgesetzt, Druckprobe offen; [#144](https://github.com/nicograef/jotti/issues/144)                                                          |
+| WLAN mit mehreren Access Points verliert die Adresse       |       1 | [backlog.md](backlog.md)                                                                                                                          |
 
 ## Wiederkehrende Fragen
 
@@ -78,7 +78,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 | Läuft jotti bei schwachem Netz stabil?                       |       1 | Leitfaden „Häufige Fragen"                                            |
 | Was passiert bei Stromausfall?                               |       1 | Leitfaden „Häufige Fragen"                                            |
 | Welche Bondrucker passen?                                    |       1 | Leitfaden „Installation"                                              |
-| Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?    |       1 | offen in [backlog.md](backlog.md)                                     |
+| Welche Rechtsform gibt eine Ortsgruppe eines Verbands an?    |       1 | neue TERMS-Fassung in Prüfung, [backlog.md](backlog.md)               |
 | Wie aktualisieren wir jotti?                                 |       1 | Leitfaden „Aktualisieren"                                             |
 | Wie läuft ein mehrtägiges Fest?                              |       1 | Leitfaden „Der Veranstaltungstag"                                     |
 | Wie verhält sich jotti unter hoher Last?                     |       1 | Leitfaden „Häufige Fragen"; Messung offen in [backlog.md](backlog.md) |

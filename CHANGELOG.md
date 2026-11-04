@@ -21,7 +21,9 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 ### Küche
 
 - Automatischer Bon-Druck von Bestell- und Küchenbons an zugeordnete Bondrucker, pro Warenkategorie konfigurierbar.
-- Abholbons beim Direktverkauf in drei Modi: ein Bon pro Position, ein Sammelbon pro Bestellung oder ein Bon je Stück.
+- Abholbons beim Direktverkauf in drei Modi: ein Bon pro Position, ein Sammelbon pro Bestellung oder ein Bon je Stück. Mit „Kein Bon“ druckt der Direktverkauf gar nicht.
+- Bondrucker drucken Umlaute in der Codepage PC437, auch auf Epson-Druckern; der Testbon zeigt dazu eine Umlautzeile.
+- Arbeitsbons piepen nicht mehr. Steuerzeichen in Namen und Kommentaren erreichen den Drucker nicht.
 
 ### Kassenführung
 
