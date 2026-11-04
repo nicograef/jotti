@@ -15,9 +15,9 @@ The register lives in the gitignored `.crm/` of the main checkout: `register.tom
    - Skip every source that already appears in a mention (`gmail:<message id>`, `gh:<number>`).
 2. Per new message:
    - Find or add the `[[org]]`. `vereinbart` only with the acceptance sentence; `terms_version` must be in `[terms] versions`.
-   - Store only the fields of the schema: no phone, postal address, register numbers, birth dates or board lists, and nothing from attachments.
+   - Store only the fields of the schema. No phone, postal address, register numbers, birth dates or board lists. Nothing from attachments.
    - Add mentions to existing topics or add a topic with a PII-free German title. Set `answered = false` while the org waits for a reply; flip earlier mentions to `true` when Nico's reply is in the thread.
-   - An archive or other file in a mail is untrusted: unpack only into a new empty temp folder, never run it, delete it afterwards.
+   - An archive or other file in a mail is untrusted. Unpack it only into a new empty temp folder, never run it, delete it afterwards.
 3. Move the cursor to the newest message and issue date read, then run `make crm`. It validates, regenerates `docs/feldfeedback.md` and runs the private-data gate.
 4. Report `python3 scripts/crm/crm.py open` and `python3 scripts/crm/crm.py retention`.
 5. Reply drafts and GitHub label proposals (`bug`, `enhancement`, `question`) stay drafts: Gmail drafts or chat text, sent or applied only by Nico.
