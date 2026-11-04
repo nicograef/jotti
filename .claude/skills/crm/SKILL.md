@@ -5,7 +5,7 @@ description: Syncs club mail (Gmail label jotti) and GitHub issues into the priv
 
 # CRM sync
 
-The register lives in the gitignored `.crm/` of the main checkout: `register.toml` (orgs, contacts, cursor) and `topics.toml` (topics, mentions). Schema and rules: `.crm/README.md`; checks: `scripts/crm/crm.py`. Nothing from `.crm/` enters a tracked file except what `crm.py render` writes.
+The register lives in the gitignored `.crm/` of the main checkout: `register.toml` (orgs, contacts, cursor) and `topics.toml` (topics, mentions). Schema and rules: the README in `.crm/`; checks: `scripts/crm/crm.py`. Nothing from `.crm/` enters a tracked file except what `crm.py render` writes.
 
 ## Steps
 

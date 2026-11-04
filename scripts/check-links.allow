@@ -10,4 +10,3 @@ website/src/lib/link-rewriter.test.ts  rewrite('  # fixture targets relative to 
 website/src/lib/link-rewriter.test.ts  target:  # fixture targets relative to the fixture's source path
 website/src/lib/link-rewriter.test.ts  sourcePath  # fixture source paths relative to docs/
 website/src/lib/link-rewriter.test.ts  publishedDocs:  # fixture list relative to docs/
-.claude/skills/crm/SKILL.md  .crm/README.md  # the private register's README is gitignored by design
