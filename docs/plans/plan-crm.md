@@ -291,11 +291,11 @@ ref = "[backlog.md](backlog.md)"
 
 ### Acceptance criteria
 
-- [ ] `make crm` endet mit 0.
-- [ ] `python3 scripts/crm/crm.py render --check` endet mit 0 direkt nach `make crm`.
-- [ ] `git grep -n -i -E '\b(zwei|drei|vier|fünf|[0-9]+) Vereine\b' docs/backlog.md` findet nichts.
-- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün.
-- [ ] `make check-repo check-format` grün.
+- [x] `make crm` endet mit 0.
+- [x] `python3 scripts/crm/crm.py render --check` endet mit 0 direkt nach `make crm`.
+- [x] `git grep -n -i -E '\b(zwei|drei|vier|fünf|[0-9]+) Vereine\b' docs/backlog.md` findet nichts.
+- [x] `python3 -m unittest scripts/crm/test_crm.py` grün.
+- [x] `make check-repo check-format` grün.
 
 ## Phase 4: Sync-Routine, offene Antworten, Löschregel
 
