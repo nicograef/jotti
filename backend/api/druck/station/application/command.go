@@ -48,9 +48,9 @@ func (c Command) UpsertDruckstation(ctx context.Context, kategorie, druckerIP, b
 	return nil
 }
 
-// TestbonDrucken reiht einen Testbon (Stationsname + Zeitstempel) in die Outbox
-// ein. Es gibt keinen Status-Rückkanal: Schlägt der Druck fehl, erscheint der
-// Auftrag wie jeder andere in den fehlgeschlagenen Druckaufträgen.
+// TestbonDrucken reiht einen Testbon (Stationsname, Zeitstempel, Umlautzeile) in die
+// Outbox ein. Es gibt keinen Status-Rückkanal: Schlägt der Druck fehl, erscheint
+// der Auftrag wie jeder andere in den fehlgeschlagenen Druckaufträgen.
 func (c Command) TestbonDrucken(ctx context.Context, kategorie string) error {
 	log := logging.FromContext(ctx)
 
