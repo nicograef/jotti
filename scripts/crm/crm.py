@@ -227,7 +227,10 @@ def pii_terms(register: dict) -> list[str]:
 
 
 def cmd_pii_terms(crm_dir: Path) -> int:
-    register, _ = load(crm_dir)
+    register, topics = load(crm_dir)
+    if validate(register, topics):
+        print("register invalid; run crm.py validate", file=sys.stderr)
+        return 1
     print("\n".join(pii_terms(register)))
     return 0
 
