@@ -5,7 +5,7 @@
 #   bash scripts/setup-dev-tools.sh
 #
 # What it does:
-#   1. Requires Go and Node.
+#   1. Requires Go, Node and Python >= 3.11 (scripts/crm reads TOML with tomllib).
 #   2. Installs golangci-lint, golang-migrate and actionlint at their pins via
 #      `go install`, and shellcheck via apt-get. sqlc, govulncheck and goimports
 #      are tool directives of backend/go.mod and run via `go tool`.
@@ -33,6 +33,10 @@ cd "$PROJECT_ROOT"
 info "Checking base runtimes..."
 ensure_cmd go "Install Go; CI and GOTOOLCHAIN=auto use the go directive of backend/go.mod."
 ensure_cmd node "Install Node >= 24 (CI uses 24)."
+ensure_cmd python3 "Install Python >= 3.11; scripts/check-crm.sh runs the scripts/crm tests."
+if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))'; then
+  fatal "python3 is $(python3 -V 2>&1); scripts/crm needs >= 3.11 (tomllib)."
+fi
 
 GO_BIN_PATH="$(go env GOPATH)/bin"
 export PATH="$GO_BIN_PATH:$PATH"
