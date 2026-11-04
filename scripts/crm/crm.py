@@ -202,22 +202,24 @@ def validate(register: dict, topics: dict) -> list[str]:
 
 
 MIN_TERM_LENGTH = 5
+LEGAL_FORM_RE = re.compile(r"\s+(?:e\.\s?V\.|eV|gGmbH|gUG|GmbH|Verein)$")
 
 
 def pii_terms(register: dict) -> list[str]:
     """Terms that must never appear in a tracked file.
 
     Contact e-mails, full contact names (a single first name is no identifier and
-    would fire on ordinary prose), and org names unless the org consented to be
-    named. Service providers are skipped: docs may name them. GitHub logins are
-    public on the issues anyway.
+    would fire on ordinary prose), and org names with and without a trailing legal
+    form unless the org consented to be named. Service providers are skipped: docs
+    may name them. GitHub logins are public on the issues anyway.
     """
     terms: set[str] = set()
     for org in register.get("org", []):
         if org.get("kind") == "dienstleister":
             continue
         if not org.get("public_name_ok", False):
-            terms.add(org["name"].strip())
+            name = org["name"].strip()
+            terms.update({name, LEGAL_FORM_RE.sub("", name)})
         for contact in org.get("contact", []):
             name = contact["name"].strip()
             if " " in name:

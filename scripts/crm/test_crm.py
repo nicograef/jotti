@@ -238,6 +238,7 @@ class PiiTermsTest(unittest.TestCase):
         self.assertEqual(
             crm.pii_terms(register),
             [
+                "Beispielverein Musterstadt",
                 "Beispielverein Musterstadt e.V.",
                 "Erika Mustermann",
                 "Max Beispiel",
