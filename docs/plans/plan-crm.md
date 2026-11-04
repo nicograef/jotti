@@ -334,10 +334,3 @@ ref = "[backlog.md](backlog.md)"
 - [x] `git grep -n -i 'GitHub' website/src/pages/datenschutz.astro` findet den neuen Kontaktweg.
 - [x] `make check-repo check-format` und `make website-check` grün.
 
-## Run state
-
-- Base: `main` at `0eca01a8e32fe0a9172101c764a3b3d3034f5377`. Run branch: `plan/crm`.
-- `/home/nico/r/jotti-wt/plan/crm -> plan/crm -> phases 1–4`, all criteria ticked.
-- Next: apply the findings of the whole-diff review. Nico's decision: rewrite „Speicherdauer" in `website/src/pages/datenschutz.astro` to the real practice: mail stays in Gmail for the agreement's term plus a stated period, the internal register follows the deletion rule. Then land (rebase on the pinned base, `make check-repo check-format check-shell`, `make website-check` in the main checkout, `merge --ff-only`, push).
-- Verify command: `make check-repo check-format check-shell`.
-- Worktree aids to remove before `git worktree remove`: symlinks `frontend/node_modules` and `website/node_modules`; their lines and `.crm/` in `.git/info/exclude` go once `main` ignores `.crm/`.
