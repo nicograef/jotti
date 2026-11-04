@@ -13,13 +13,13 @@ Docker Desktop und Netzwerk-Know-how sind die größte Hürde der Vereine.
 - Das ZIP enthält Starter, Relay und drei Hilfsskripte; der Verein muss wissen, welche Datei was tut.
 - Ein Verein fragte ausdrücklich nach einer Installation ohne Docker.
 
-Das ganze PRD hängt an der offenen Entscheidung 1: eingebettetes Postgres (empfohlen) oder SQLite, wie der Owner es wünscht.
+Entschieden: jotti bettet Postgres ein, nicht SQLite. Das eingefrorene Schema bleibt so unverändert.
 
 ## Solution
 
 Der Verein lädt eine einzige Datei `jotti.exe` herunter und doppelklickt sie.
 Mehr braucht der Kassenrechner nicht: kein Docker Desktop, kein ZIP, keine Hilfsskripte.
-Die Lösung gilt für beide Ausgänge der Entscheidung 1; bei SQLite ersetzt der Abschnitt „Rückfall B" die Datenbankteile.
+Der Abschnitt „Rückfall B" hält die verworfene SQLite-Variante zum Vergleich fest.
 
 - SmartScreen und UAC bestätigt der Verein wie heute einmal.
 - Der erste Doppelklick richtet jotti ein, gibt die Firewall frei und startet die Kasse.
@@ -69,7 +69,7 @@ Gewählt ist A. Die Owner-Entscheidung nennt SQLite; dieses PRD empfiehlt davon 
 - B verdoppelt den kassenwirksamen Teil des Codes und damit den Prüfaufwand jeder fiskalischen Änderung.
 - B gewinnt eine kleinere Datei und keinen zweiten Prozess; das wiegt die Doppelpflege nicht auf.
 - C scheidet aus, weil er persistierte Daten aller Bestandsinstallationen umformt.
-- Besteht der Owner auf SQLite, gilt der Abschnitt „Rückfall B" unten.
+- Die verworfene SQLite-Variante beschreibt der Abschnitt „Rückfall B" unten.
 
 ### Aufbau der Einzeldatei
 
@@ -268,7 +268,7 @@ D15 erstreckt sich dann auch auf die eingebettete Postgres-Version.
 
 Offene Entscheidungen für den Owner:
 
-1. Datenbank: eingebettetes Postgres (empfohlen) statt SQLite. Bei SQLite gilt Rückfall B mit seinem Mehraufwand.
+1. Datenbank: entschieden für eingebettetes Postgres.
 2. Zusätzliche Go-Abhängigkeiten: Caddy als Bibliothek, golang-migrate als Bibliothek und die Postgres-Windows-Binaries.
 3. Code-Signatur der Einzeldatei: kaufen (empfohlen vor Stufe 5) oder unsigniert mit SmartScreen-Hinweis bleiben.
 4. Windows-Runner in der CI für den Rauchtest (empfohlen) oder Rauchtest von Hand je Release.

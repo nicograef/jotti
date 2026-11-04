@@ -36,8 +36,8 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       Wiederherstellung über die Startkonsole bauen oder einen Weg dokumentieren.
 - [ ] Installation ohne Docker: Docker Desktop und Netzwerk-Know-how sind die größte Hürde der
       Vereine. `docs/prds/prd-windows-einzeldatei.md` beschreibt jotti als eine Windows-Datei ohne
-      Docker Desktop, mit Kosten und Stufen. Es empfiehlt eingebettetes Postgres statt SQLite, weil das
-      eingefrorene Schema dann bleibt. Offen: Nicos Wahl der Datenbank und Freigabe des PRD.
+      Docker Desktop, mit Kosten und Stufen. Entschieden: eingebettetes Postgres statt SQLite, das
+      eingefrorene Schema bleibt. Offen: Freigabe der Abhängigkeiten und der übrigen PRD-Entscheidungen.
 - [ ] Kommentar je Position (#145): Der Bestellkommentar druckt an jede Station. Entschieden: Er
       bleibt der Normalfall, dazu kommt ein optionaler Kommentar je Position.
       `docs/prds/prd-kommentar-je-position.md` beschreibt den Weg; Voraussetzung ist der Eintrag
