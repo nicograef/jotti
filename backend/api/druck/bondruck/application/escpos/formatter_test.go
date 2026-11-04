@@ -25,7 +25,7 @@ var (
 )
 
 func TestFormatPositionBon_ContainsTischName(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "Tisch 7") {
 		t.Errorf("Bon enthaelt nicht den Tischnamen; got:\n%q", got)
@@ -33,7 +33,7 @@ func TestFormatPositionBon_ContainsTischName(t *testing.T) {
 }
 
 func TestFormatPositionBon_ContainsArtikel(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "3x Pommes gross") {
 		t.Errorf("Bon enthaelt nicht den Artikel; got:\n%q", got)
@@ -41,7 +41,7 @@ func TestFormatPositionBon_ContainsArtikel(t *testing.T) {
 }
 
 func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "Bedienung: Maria") {
 		t.Errorf("Bon enthaelt nicht Bedienung; got:\n%q", got)
@@ -49,7 +49,7 @@ func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
 }
 
 func TestFormatPositionBon_ContainsZeit(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "21:34") {
 		t.Errorf("Bon enthaelt nicht Zeitstempel; got:\n%q", got)
@@ -57,7 +57,7 @@ func TestFormatPositionBon_ContainsZeit(t *testing.T) {
 }
 
 func TestFormatPositionBon_WithKommentar(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "ohne Ketchup", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "ohne Ketchup")
 	got := string(payload)
 	if !strings.Contains(got, "ohne Ketchup") {
 		t.Errorf("Bon enthaelt nicht den Kommentar; got:\n%q", got)
@@ -65,30 +65,22 @@ func TestFormatPositionBon_WithKommentar(t *testing.T) {
 }
 
 func TestFormatPositionBon_WithoutKommentar_NoEmptyKommentarLine(t *testing.T) {
-	withKommentar := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "Kommentar", false)
-	without := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	withKommentar := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "Kommentar")
+	without := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	if len(without) >= len(withKommentar) {
 		t.Errorf("Bon ohne Kommentar sollte kuerzer sein als mit Kommentar")
 	}
 }
 
-func TestFormatPositionBon_WithBeep_ContainsBeepBytes(t *testing.T) {
-	withBeep := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", true)
-	withoutBeep := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
-	if len(withBeep) <= len(withoutBeep) {
-		t.Errorf("Bon mit Beep sollte laenger sein als ohne Beep")
-	}
-}
-
 func TestFormatPositionBon_EndsWithCutPaper(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
 		t.Errorf("Bon endet nicht mit CutPaper-Befehl")
 	}
 }
 
 func TestFormatPositionBon_HasFiveNewlinesBeforeCut(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	cutIdx := strings.LastIndex(got, escpos.CutPaper)
 	if cutIdx < 0 {
@@ -111,7 +103,7 @@ func TestFormatSammelBon_ContainsAllPositionen(t *testing.T) {
 		EinzelpreisCents: 250,
 		Menge:            1,
 	}
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos, pos2}, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatSammelBon([]kasse.Position{testPos, pos2}, "Tisch 7", "Maria", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "3x Pommes gross") {
 		t.Errorf("Sammelbon enthaelt nicht erste Position; got:\n%q", got)
@@ -122,7 +114,7 @@ func TestFormatSammelBon_ContainsAllPositionen(t *testing.T) {
 }
 
 func TestFormatSammelBon_ContainsTischName(t *testing.T) {
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 12", "Felix", testTime, "", false)
+	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 12", "Felix", testTime, "")
 	got := string(payload)
 	if !strings.Contains(got, "Tisch 12") {
 		t.Errorf("Sammelbon enthaelt nicht Tischnamen; got:\n%q", got)
@@ -130,14 +122,14 @@ func TestFormatSammelBon_ContainsTischName(t *testing.T) {
 }
 
 func TestFormatSammelBon_EndsWithCutPaper(t *testing.T) {
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "", false)
+	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "")
 	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
 		t.Errorf("Sammelbon endet nicht mit CutPaper-Befehl")
 	}
 }
 
 func TestFormatSammelBon_WithKommentar(t *testing.T) {
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "ohne Ketchup fuer die Pommes", false)
+	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "ohne Ketchup fuer die Pommes")
 	got := string(payload)
 	if !strings.Contains(got, "ohne Ketchup") {
 		t.Errorf("Sammelbon enthaelt nicht Kommentar; got:\n%q", got)
@@ -538,7 +530,7 @@ func TestFormatKassenbeleg_WithErsteBestellungZeitpunkt_ContainsKlartext(t *test
 }
 
 func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
-	payload := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "", false))
+	payload := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, ""))
 
 	cpIdx := strings.Index(payload, escpos.SetCodepageWPC1252)
 	if cpIdx < 0 {
@@ -554,7 +546,7 @@ func TestFormatPositionBon_SetsWPC1252CodepageAfterInit(t *testing.T) {
 
 func TestFormatPositionBon_TranscodesUmlautsAndEuroToWPC1252(t *testing.T) {
 	// Umlaute und Euro stehen im Kommentar und müssen als WPC1252-Einzelbytes erscheinen.
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "äöüÄÖÜß 1€")
 
 	// WPC1252 (Windows-1252): ä=0xE4 ö=0xF6 ü=0xFC Ä=0xC4 Ö=0xD6 Ü=0xDC ß=0xDF €=0x80
 	wantBytes := []byte{0xE4, 0xF6, 0xFC, 0xC4, 0xD6, 0xDC, 0xDF, 0x80}
@@ -693,7 +685,7 @@ func TestFormatKassenbeleg_ZeitpunkteInDeutscherOrtszeit(t *testing.T) {
 func TestFormatPositionBon_ZeitpunktInDeutscherOrtszeit(t *testing.T) {
 	utcNacht := time.Date(2026, 7, 1, 23, 30, 0, 0, time.UTC)
 
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", utcNacht, "", false)
+	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", utcNacht, "")
 	got := string(payload)
 
 	if !strings.Contains(got, "01:30") {

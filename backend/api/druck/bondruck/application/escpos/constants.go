@@ -28,4 +28,3 @@ const QRCodeErrorCorrectionM = "\x1D\x28\x6B\x03\x00\x31\x45\x31"
 const QRCodePrint = "\x1D\x28\x6B\x03\x00\x31\x51\x30"
 
 const CutPaper = "\x1D\x56\x42\x00" // Partial Cut (GS V B 0)
-const Beep = "\x1B\x42\x03\x02"     // 3 Piepser, Dauer 2 (ESC B n1 n2)

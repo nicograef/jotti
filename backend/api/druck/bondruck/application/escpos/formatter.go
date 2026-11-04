@@ -70,13 +70,9 @@ func FormatPositionBon(
 	userName string,
 	zeitpunkt time.Time,
 	kommentar string,
-	withBeep bool,
 ) []byte {
 	var buf bytes.Buffer
 
-	if withBeep {
-		buf.WriteString(Beep)
-	}
 	buf.WriteString(Init)
 	buf.WriteString(SetCodepageWPC1252)
 
@@ -121,13 +117,9 @@ func FormatSammelBon(
 	userName string,
 	zeitpunkt time.Time,
 	kommentar string,
-	withBeep bool,
 ) []byte {
 	var buf bytes.Buffer
 
-	if withBeep {
-		buf.WriteString(Beep)
-	}
 	buf.WriteString(Init)
 	buf.WriteString(SetCodepageWPC1252)
 
@@ -179,7 +171,7 @@ func FormatDirektverkaufAbholbon(
 	zeitpunkt time.Time,
 	kommentar string,
 ) []byte {
-	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar, false)
+	return FormatSammelBon(positionen, "Direktverkauf", userName, zeitpunkt, kommentar)
 }
 
 // FormatTestbon trägt nur Stationsname und Zeitstempel — kein fiskalischer

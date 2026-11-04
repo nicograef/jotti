@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"testing"
@@ -148,7 +149,6 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		evt.UserName,
 		evt.Time,
 		"ohne Ketchup",
-		true,
 	))
 	expectedSecond := base64.StdEncoding.EncodeToString(escpos.FormatPositionBon(
 		positionen[1],
@@ -156,7 +156,6 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		evt.UserName,
 		evt.Time,
 		"ohne Ketchup",
-		false,
 	))
 
 	if auftraege[0].Payload != expectedFirst {
@@ -192,7 +191,6 @@ func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 		evt.UserName,
 		evt.Time,
 		"",
-		true,
 	))
 	if auftraege[0].Payload != expected {
 		t.Error("payload must use tischName 'Tisch 15', not tisch ID 18 from subject")
@@ -337,5 +335,54 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 
 	if len(auftraege) != 0 {
 		t.Errorf("expected 0 auftraege without configured stations, got %d", len(auftraege))
+	}
+}
+
+// Kein Arbeitsbon piept: jeder Payload beginnt mit ESC @ (Init), an keiner Station
+// steht ein Steuerbefehl davor.
+func TestCreateArbeitsbonAuftraege_KeinPiepton(t *testing.T) {
+	cases := []struct {
+		name      string
+		evt       event.Event
+		stationen map[string]druckstation.Druckstation
+	}{
+		{
+			"essen pro_position",
+			makeBestellungEvent(t, 30, "kassensitzung-1/tisch-1", []kasse.Position{position("Pommes", "gross", "essen", 2)}, ""),
+			map[string]druckstation.Druckstation{"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"}},
+		},
+		{
+			"essen pro_bestellung",
+			makeBestellungEvent(t, 31, "kassensitzung-1/tisch-1", []kasse.Position{position("Pommes", "gross", "essen", 1)}, ""),
+			map[string]druckstation.Druckstation{"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"}},
+		},
+		{
+			"getraenk pro_position",
+			makeBestellungEvent(t, 32, "kassensitzung-1/tisch-1", []kasse.Position{position("Bier", "0,5l", "getraenk", 1)}, ""),
+			map[string]druckstation.Druckstation{"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_position"}},
+		},
+		{
+			"abholbon pro_stueck",
+			makeDirektverkaufEvent(t, 33, []kasse.Position{position("Pommes", "gross", "essen", 2)}, ""),
+			map[string]druckstation.Druckstation{"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			auftraege := CreateArbeitsbonAuftraegeFromEvent(tc.evt, tc.stationen, "Tisch 1")
+			if len(auftraege) == 0 {
+				t.Fatal("expected at least one auftrag")
+			}
+			for i, auftrag := range auftraege {
+				payload, err := base64.StdEncoding.DecodeString(auftrag.Payload)
+				if err != nil {
+					t.Fatalf("payload %d: %v", i, err)
+				}
+				if !bytes.HasPrefix(payload, []byte("\x1B\x40")) {
+					t.Errorf("payload %d must start with ESC @, got %q", i, payload[:min(len(payload), 4)])
+				}
+			}
+		})
 	}
 }

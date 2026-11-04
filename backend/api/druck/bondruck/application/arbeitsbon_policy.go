@@ -137,8 +137,6 @@ func createStationsAuftraegeFromData(
 			continue
 		}
 
-		withBeep := kategorie == string(druckstation.KategorieEssen)
-
 		if konfig.Bonmodus == druckstation.BonmodusProBestellung {
 			payload := escpos.FormatSammelBon(
 				positionen,
@@ -146,7 +144,6 @@ func createStationsAuftraegeFromData(
 				evt.UserName,
 				evt.Time,
 				data.Kommentar,
-				withBeep,
 			)
 			auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
 				ZielIP:   konfig.DruckerIP,
@@ -164,7 +161,6 @@ func createStationsAuftraegeFromData(
 				evt.UserName,
 				evt.Time,
 				data.Kommentar,
-				withBeep,
 			)
 			auftraege = append(auftraege, druckauftrag_repo.NeuerDruckauftrag{
 				ZielIP:   konfig.DruckerIP,
@@ -172,7 +168,6 @@ func createStationsAuftraegeFromData(
 				BonArt:   "arbeitsbon",
 				Referenz: referenz,
 			})
-			withBeep = false
 		}
 	}
 
