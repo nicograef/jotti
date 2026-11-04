@@ -25,6 +25,7 @@ import datetime as dt
 import os
 import re
 import subprocess
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -49,6 +50,8 @@ LAGE_KEYS = {"notes", "deleted"}
 TOPIC_KEYS = {"id", "title", "kind", "status", "ref", "mention"}
 MENTION_KEYS = {"org", "source", "on", "answered"}
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 class RegisterError(Exception):
     """The register violates the schema; the message lists every violation."""
@@ -61,10 +64,10 @@ def default_crm_dir() -> Path:
     try:
         common = subprocess.run(
             ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            check=True, capture_output=True, text=True,
+            cwd=ROOT, check=True, capture_output=True, text=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
-        return Path(".crm")
+        return ROOT / ".crm"
     return Path(common).parent / ".crm"
 
 
@@ -229,7 +232,8 @@ def cmd_pii_terms(crm_dir: Path) -> int:
     return 0
 
 
-FELDFEEDBACK = Path("docs/feldfeedback.md")
+FELDFEEDBACK = ROOT / "docs" / "feldfeedback.md"
+PRETTIER = ROOT / "frontend" / "node_modules" / ".bin" / "prettier"
 MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
           "September", "Oktober", "November", "Dezember"]
 COUNTRIES = {"AT": "Österreich", "CH": "der Schweiz", "LI": "Liechtenstein", "LU": "Luxemburg"}
@@ -332,22 +336,45 @@ def render(register: dict, topics: dict) -> str:
     return "\n".join(out).rstrip("\n") + "\n"
 
 
+def _prettier(text: str) -> str | None:
+    """text as `make crm` leaves it after Prettier; None when Prettier is missing or fails."""
+    if not PRETTIER.is_file():
+        print(f"Prettier missing at {PRETTIER}; run pnpm install in frontend/", file=sys.stderr)
+        return None
+    # Inside docs/, so Prettier resolves the same config and ignore files as for the real file.
+    fd, name = tempfile.mkstemp(prefix="feldfeedback-check-", suffix=".md", dir=FELDFEEDBACK.parent)
+    tmp = Path(name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        result = subprocess.run([str(PRETTIER), "--write", str(tmp)], cwd=ROOT, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Prettier failed: {result.stderr.strip()}", file=sys.stderr)
+            return None
+        return tmp.read_text(encoding="utf-8")
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def cmd_render(crm_dir: Path, check: bool) -> int:
     register, topics = load(crm_dir)
-    errors = validate(register, topics)
-    if errors:
+    if validate(register, topics):
         print("register invalid; run crm.py validate", file=sys.stderr)
         return 1
     text = render(register, topics)
+    rel = FELDFEEDBACK.relative_to(ROOT)
     if check:
-        current = FELDFEEDBACK.read_text(encoding="utf-8") if FELDFEEDBACK.exists() else ""
-        if current != text:
-            print(f"{FELDFEEDBACK} is out of date; run make crm", file=sys.stderr)
+        formatted = _prettier(text)
+        if formatted is None:
             return 1
-        print(f"{FELDFEEDBACK} is up to date")
+        current = FELDFEEDBACK.read_text(encoding="utf-8") if FELDFEEDBACK.exists() else ""
+        if current != formatted:
+            print(f"{rel} is out of date; run make crm", file=sys.stderr)
+            return 1
+        print(f"{rel} is up to date")
         return 0
     FELDFEEDBACK.write_text(text, encoding="utf-8")
-    print(f"wrote {FELDFEEDBACK}")
+    print(f"wrote {rel}")
     return 0
 
 
