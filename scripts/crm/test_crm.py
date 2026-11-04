@@ -55,7 +55,7 @@ TOPICS = {
             "title": "Gläserpfand",
             "kind": "wunsch",
             "status": "offen",
-            "ref": "[backlog.md](backlog.md)",
+            "ref": "K-99",
             "mention": [
                 {"org": "beispielverein", "source": "gmail:0000000000000002",
                  "on": dt.date(2026, 1, 20), "answered": False},
