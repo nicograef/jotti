@@ -183,8 +183,8 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 ## Lage
 
 - 2 Organisationen haben die Nutzungsvereinbarung geschlossen, 1 davon zurückgezogen; 1 Vereinbarung gilt.
-- Die geltenden Annahmesätze nennen die TERMS-Fassungen vom 7. September 2026 (1).
-- 1 weitere Organisation und 0 Einzelpersonen haben angefragt, ohne eine Vereinbarung zu schließen.
+- Der geltende Annahmesatz nennt die TERMS-Fassung vom 7. September 2026 (1).
+- 1 weitere Organisation hat angefragt, ohne eine Vereinbarung zu schließen.
 - Ein Satz zur Lage.
 
 ## Umgesetzt

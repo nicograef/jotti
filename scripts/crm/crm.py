@@ -269,8 +269,18 @@ def _join(parts: list[str]) -> str:
     return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " und " + parts[-1]
 
 
+# Sorts umlauts with their base vowel independent of the locale, as a German index does.
+SORT_FOLD = str.maketrans({"ä": "a", "ö": "o", "ü": "u", "ß": "ss", "Ä": "A", "Ö": "O", "Ü": "U"})
+
+
+def _sort_key(title: str) -> str:
+    return title.translate(SORT_FOLD).casefold()
+
+
 def _table(header: list[str], rows: list[list[str]], right: set[int]) -> list[str]:
     """A Markdown table aligned the way Prettier aligns it, so `make crm` stays stable."""
+    header = [c.replace("|", "\\|") for c in header]
+    rows = [[c.replace("|", "\\|") for c in r] for r in rows]
     widths = [max(3, len(header[i]), *(len(r[i]) for r in rows)) for i in range(len(header))]
 
     def line(cells: list[str]) -> str:
@@ -291,20 +301,33 @@ def render(register: dict, topics: dict) -> str:
     inquiring_clubs = sum(o["status"] == "anfrage" and o["kind"] == "verein" for o in orgs)
     inquiring_people = sum(o["status"] == "anfrage" and o["kind"] == "person" for o in orgs)
 
+    signed = len(agreed) + withdrawn
+    retracted = f", {withdrawn} davon zurückgezogen" if withdrawn else ""
     lage = [
-        f"{_plural(len(agreed) + withdrawn, 'Organisation hat', 'Organisationen haben')} die "
-        f"Nutzungsvereinbarung geschlossen, {withdrawn} davon zurückgezogen; "
+        f"{_plural(signed, 'Organisation hat', 'Organisationen haben')} die "
+        f"Nutzungsvereinbarung geschlossen{retracted}; "
         f"{_plural(len(agreed), 'Vereinbarung gilt', 'Vereinbarungen gelten')}."
     ]
     versions = sorted({o["terms_version"] for o in agreed})
     if versions:
         cited = [f"{_german_date(v)} ({sum(o['terms_version'] == v for o in agreed)})" for v in versions]
-        lage.append(f"Die geltenden Annahmesätze nennen die TERMS-Fassungen vom {_join(cited)}.")
-    asked = f"{_plural(inquiring_clubs, 'weitere Organisation', 'weitere Organisationen')} und " \
-            f"{_plural(inquiring_people, 'Einzelperson', 'Einzelpersonen')} haben angefragt, ohne eine Vereinbarung zu schließen."
+        subject = "Der geltende Annahmesatz nennt" if len(agreed) == 1 else "Die geltenden Annahmesätze nennen"
+        fassung = "TERMS-Fassung" if len(versions) == 1 else "TERMS-Fassungen"
+        lage.append(f"{subject} die {fassung} vom {_join(cited)}.")
+    other = "weitere " if signed else ""
+    asking = []
+    if inquiring_clubs:
+        asking.append(_plural(inquiring_clubs, f"{other}Organisation", f"{other}Organisationen"))
+    if inquiring_people:
+        asking.append(_plural(inquiring_people, "Einzelperson", "Einzelpersonen"))
+    sentences = []
+    if asking:
+        verb = "hat" if inquiring_clubs + inquiring_people == 1 else "haben"
+        sentences.append(f"{_join(asking)} {verb} angefragt, ohne eine Vereinbarung zu schließen.")
     if disowned:
-        asked += f" {_plural(disowned, 'Absender hat seine Mail', 'Absender haben ihre Mail')} bestritten."
-    lage.append(asked)
+        sentences.append(f"{_plural(disowned, 'Absender hat seine Mail', 'Absender haben ihre Mail')} bestritten.")
+    if sentences:
+        lage.append(" ".join(sentences))
     abroad = {}
     for o in orgs:
         if o["kind"] == "verein" and o.get("country") not in (None, "DE"):
@@ -331,7 +354,7 @@ def render(register: dict, topics: dict) -> str:
                 continue
             count = len({m["org"] for m in tp["mention"]})
             rows.append((count, tp["title"], tp.get("ref", "")))
-        rows.sort(key=lambda r: (-r[0], r[1].casefold()))
+        rows.sort(key=lambda r: (-r[0], _sort_key(r[1]), r[1]))
         out += [f"## {title}", ""]
         if rows:
             out += _table([first, "Vereine", last], [[t, str(c), ref] for c, t, ref in rows], right={1})
