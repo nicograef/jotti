@@ -5,6 +5,8 @@ Usage:
   python3 scripts/crm/crm.py validate     # schema check, prints the counts
   python3 scripts/crm/crm.py pii-terms    # one search term per line for check-private-data.sh
   python3 scripts/crm/crm.py render [--check]  # write docs/feldfeedback.md, or compare with it
+  python3 scripts/crm/crm.py open         # mentions still waiting for a reply, oldest first
+  python3 scripts/crm/crm.py retention    # orgs whose correspondence is due for deletion
 
 The register is edited by hand or by Claude; this script only reads it. CRM_DIR
 overrides the register location, which defaults to the main checkout's .crm/ so
@@ -340,6 +342,51 @@ def cmd_render(crm_dir: Path, check: bool) -> int:
     return 0
 
 
+RETENTION_STATUSES = {"zurueckgetreten", "bestritten", "erledigt"}
+
+
+def open_mentions(topics: dict) -> list[tuple[dt.date, str, str, str]]:
+    """(date, org id, source, topic id) of every mention still waiting for a reply."""
+    rows = [(m["on"], m["org"], m["source"], tp["id"])
+            for tp in topics.get("topic", []) for m in tp["mention"] if not m["answered"]]
+    return sorted(rows)
+
+
+def retention(register: dict, topics: dict) -> list[tuple[str, str, list[str]]]:
+    """(org id, last date or '-', sources) of every org whose correspondence is to be deleted.
+
+    Mirrors the website privacy policy: withdrawn, disowned and finished contacts go
+    now; agreements stay for their term and inquiries until Nico marks them erledigt.
+    """
+    rows = []
+    for org in register.get("org", []):
+        if org["status"] not in RETENTION_STATUSES:
+            continue
+        mentions = [m for tp in topics.get("topic", []) for m in tp["mention"] if m["org"] == org["id"]]
+        sources = sorted({m["source"] for m in mentions})
+        last = max((m["on"] for m in mentions), default=None)
+        rows.append((org["id"], last.isoformat() if last else "-", sources))
+    return rows
+
+
+def cmd_open(crm_dir: Path) -> int:
+    _, topics = load(crm_dir)
+    rows = open_mentions(topics)
+    for on, org, source, topic in rows:
+        print(f"{on.isoformat()}\t{org}\t{source}\t{topic}")
+    print(f"{len(rows)} mention(s) waiting for a reply", file=sys.stderr)
+    return 0
+
+
+def cmd_retention(crm_dir: Path) -> int:
+    register, topics = load(crm_dir)
+    rows = retention(register, topics)
+    for org, last, sources in rows:
+        print(f"{org}\t{last}\t{','.join(sources) or '-'}")
+    print(f"{len(rows)} organisation(s) due for deletion", file=sys.stderr)
+    return 0
+
+
 def cmd_validate(crm_dir: Path) -> int:
     register, topics = load(crm_dir)
     errors = validate(register, topics)
@@ -354,7 +401,7 @@ def cmd_validate(crm_dir: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["validate", "pii-terms", "render"])
+    parser.add_argument("command", choices=["validate", "pii-terms", "render", "open", "retention"])
     parser.add_argument("--check", action="store_true", help="render: compare instead of writing")
     args = parser.parse_args(argv)
     crm_dir = default_crm_dir()
@@ -363,7 +410,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.command == "render":
         return cmd_render(crm_dir, args.check)
-    return {"validate": cmd_validate, "pii-terms": cmd_pii_terms}[args.command](crm_dir)
+    return {"validate": cmd_validate, "pii-terms": cmd_pii_terms, "open": cmd_open,
+            "retention": cmd_retention}[args.command](crm_dir)
 
 
 if __name__ == "__main__":
