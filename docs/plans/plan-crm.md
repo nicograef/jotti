@@ -328,8 +328,8 @@ ref = "[backlog.md](backlog.md)"
 
 ### Acceptance criteria
 
-- [ ] `python3 scripts/crm/crm.py open` und `python3 scripts/crm/crm.py retention` enden mit 0 und geben je mindestens eine Zeile aus.
-- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive der Fälle für `open` und `retention`.
-- [ ] `test -f .claude/skills/crm/SKILL.md && grep -q '\.crm/' AGENTS.md` endet mit 0.
-- [ ] `git grep -n -i 'GitHub' website/src/pages/datenschutz.astro` findet den neuen Kontaktweg.
-- [ ] `make check-repo check-format` und `make website-check` grün.
+- [x] `python3 scripts/crm/crm.py open` und `python3 scripts/crm/crm.py retention` enden mit 0 und geben je mindestens eine Zeile aus.
+- [x] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive der Fälle für `open` und `retention`.
+- [x] `test -f .claude/skills/crm/SKILL.md && grep -q '\.crm/' AGENTS.md` endet mit 0.
+- [x] `git grep -n -i 'GitHub' website/src/pages/datenschutz.astro` findet den neuen Kontaktweg.
+- [x] `make check-repo check-format` und `make website-check` grün.
