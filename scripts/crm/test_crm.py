@@ -2,7 +2,11 @@
 
 import copy
 import datetime as dt
+import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -35,7 +39,11 @@ REGISTER = {
             "name": "Offener Verein e.V.",
             "status": "anfrage",
             "public_name_ok": True,
-            "contact": [{"name": "Max Beispiel", "emails": ["max@example.net"]}],
+            "contact": [
+                {"name": "Max Beispiel", "emails": ["max@example.net"]},
+                {"name": "Ida", "emails": ["ida@example.net"]},
+                {"name": "Al B", "emails": ["a@bc"]},
+            ],
         },
         {
             "id": "ticketdienst",
@@ -123,6 +131,82 @@ class ValidateTest(unittest.TestCase):
         errors = crm.validate(register, topics)
         self.assertIn("org[1] offener-verein contact[0]: emails must list at least one address", errors)
         self.assertIn("topic[0] pfand mention[1]: source must be gmail:<16 hex> or gh:<number>", errors)
+
+
+SCRIPTS = Path(__file__).resolve().parent.parent
+
+REGISTER_TOML = """
+[terms]
+versions = [2026-09-07]
+
+[[org]]
+id = "beispielverein"
+kind = "verein"
+name = "Beispielverein Musterstadt e.V."
+status = "anfrage"
+  [[org.contact]]
+  name = "Erika Mustermann"
+  emails = ["vorstand@example.org"]
+"""
+
+
+class PiiTermsTest(unittest.TestCase):
+    def test_terms_skip_public_names_providers_first_names_and_short_terms(self):
+        register, _ = fixture()
+        self.assertEqual(
+            crm.pii_terms(register),
+            [
+                "Beispielverein Musterstadt e.V.",
+                "Erika Mustermann",
+                "Max Beispiel",
+                "ida@example.net",
+                "max@example.net",
+                "vorstand@example.org",
+            ],
+        )
+
+
+class CheckPrivateDataTest(unittest.TestCase):
+    """Runs scripts/check-private-data.sh against a throwaway git repository."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        repo = self.tmp / "repo"
+        (repo / "scripts" / "crm").mkdir(parents=True)
+        for rel in ("check-private-data.sh", "lib.sh", "crm/crm.py"):
+            shutil.copy(SCRIPTS / rel, repo / "scripts" / rel)
+        (repo / "README.md").write_text("Ein öffentliches Dokument.\n", encoding="utf-8")
+        crm_dir = self.tmp / "crm"
+        crm_dir.mkdir()
+        (crm_dir / "register.toml").write_text(REGISTER_TOML, encoding="utf-8")
+        (crm_dir / "topics.toml").write_text("", encoding="utf-8")
+        self.repo, self.env = repo, {**os.environ, "CRM_DIR": str(crm_dir)}
+
+    def run_gate(self):
+        git = ["git", "-C", str(self.repo)]
+        subprocess.run(git + ["init", "-q"], check=True)
+        subprocess.run(git + ["add", "-A"], check=True)
+        return subprocess.run(
+            ["bash", str(self.repo / "scripts" / "check-private-data.sh")],
+            env=self.env, capture_output=True, text=True,
+        )
+
+    def test_clean_repo_passes(self):
+        self.assertEqual(self.run_gate().returncode, 0)
+
+    def test_leaked_contact_email_fails_without_printing_it(self):
+        (self.repo / "notes.txt").write_text("Kontakt: Vorstand@Example.org\n", encoding="utf-8")
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("notes.txt:1", result.stderr)
+        self.assertNotIn("example.org", (result.stdout + result.stderr).lower())
+
+    def test_missing_register_passes_with_notice(self):
+        self.env["CRM_DIR"] = str(self.tmp / "nonexistent")
+        result = self.run_gate()
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("private-data check skipped", result.stderr)
 
 
 if __name__ == "__main__":
