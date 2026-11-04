@@ -10,8 +10,8 @@ The register lives in the gitignored `.crm/` of the main checkout: `register.tom
 ## Steps
 
 1. Read `[sync]` in `.crm/register.toml`. Fetch:
-   - Gmail: `search_threads` with `label:jotti after:<gmail_through>`, then `get_thread` with `PLAIN_TEXT` per thread.
-   - GitHub: `gh issue list --state all --search "created:>=<gh_through>" --json number,title,author,createdAt,state`, plus `gh issue view <n> --comments` for open issues with new comments.
+   - Gmail: `search_threads` with `label:jotti after:YYYY/MM/DD`, the `gmail_through` date with slashes, then `get_thread` with `PLAIN_TEXT` per thread.
+   - GitHub: `gh issue list --state all --search "updated:>=<gh_through>" --json number,title,author,createdAt,updatedAt,state`, so new comments on old issues show up too, plus `gh issue view <n> --comments` per listed issue.
    - Skip every source that already appears in a mention (`gmail:<message id>`, `gh:<number>`).
 2. Per new message:
    - Find or add the `[[org]]`. `vereinbart` only with the acceptance sentence; `terms_version` must be in `[terms] versions`.
