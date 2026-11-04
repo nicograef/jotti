@@ -133,6 +133,34 @@ class ValidateTest(unittest.TestCase):
         self.assertIn("topic[0] pfand mention[1]: source must be gmail:<16 hex> or gh:<number>", errors)
 
 
+class ReportTest(unittest.TestCase):
+    def test_open_lists_only_unanswered_mentions(self):
+        _, topics = fixture()
+        self.assertEqual(
+            crm.open_mentions(topics),
+            [(dt.date(2026, 1, 20), "beispielverein", "gmail:0000000000000002", "pfand")],
+        )
+
+    def test_retention_follows_the_status(self):
+        register, topics = fixture()
+        for status in ("zurueckgetreten", "bestritten", "erledigt", "anfrage"):
+            register["org"].append(
+                {"id": f"org-{status}", "kind": "verein", "name": status, "status": status}
+            )
+        topics["topic"][0]["mention"].append(
+            {"org": "org-bestritten", "source": "gh:7", "on": dt.date(2026, 2, 1), "answered": True}
+        )
+        self.assertEqual(
+            crm.retention(register, topics),
+            [
+                ("ticketdienst", "-", []),
+                ("org-zurueckgetreten", "-", []),
+                ("org-bestritten", "2026-02-01", ["gh:7"]),
+                ("org-erledigt", "-", []),
+            ],
+        )
+
+
 EXPECTED_RENDER = """# Feldfeedback
 
 Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine, anonymisiert und gezählt. Keine Namen, Orte, Termine oder Zitate: Die Zuordnung zu Vereinen liegt nur im gitignorierten Register `.crm/`.
