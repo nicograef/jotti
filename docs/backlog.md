@@ -31,11 +31,14 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       offen.
 - [ ] Höchstmenge je Produkt: Ein Verein verkauft Abholbons und will je Produkt eine Höchstmenge
       hinterlegen; ist sie erreicht, sperrt der Verkauf. So gehen nicht mehr Bons raus, als Ware da
-      ist. Warenwirtschaft ist Nicht-Ziel; offen ist, ob ein Verkaufsstopp je Variante darunter fällt.
-- [ ] Gläserpfand: Drei Vereine fragen nach Pfandrückgabe. Ein Pfand-Produkt mit positivem Preis geht
-      heute. Rückgabe und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein
-      darf. Weg wählen (Rückgabe-Vorgang oder
-      Negativ-Variante) und die Umsatzsteuer der Rückgabe vorher gegen `docs/rechtsquellen/` prüfen.
+      ist. Heute schaltet der Admin eine Variante von Hand ausverkauft; eine automatische Grenze
+      fehlt. Warenwirtschaft ist Nicht-Ziel; offen ist, ob ein Verkaufsstopp je Variante darunter fällt.
+- [ ] Gläserpfand, Rabatt und Gutschrift: Drei Vereine fragen nach Pfandrückgabe, einer davon auch
+      nach Rabatt und Gutschrift am Tisch. Ein Pfand-Produkt mit positivem Preis geht heute. Rückgabe,
+      Rabatt und Verrechnung mit neuen Positionen gehen nicht, weil kein Preis negativ sein darf. Der
+      DSFinV-K-Export schreibt Preisfindung (`itemamounts.csv`) und Zusatzinfo (`subitems.csv`) nur
+      als Kopfzeile. Weg wählen (Rückgabe-Vorgang, Negativ-Variante oder Preisfindung je Position).
+      Die Umsatzsteuer von Rückgabe und Rabatt vorher gegen `docs/rechtsquellen/` prüfen.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
@@ -43,7 +46,37 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       Wiederherstellung über die Startkonsole bauen oder einen Weg dokumentieren.
 - [ ] Installation ohne Docker: Docker Desktop und Netzwerk-Know-how sind die größte Hürde der
       Vereine. Vorschläge: ein Binary mit SQLite und eingebettetem Frontend oder ein gehosteter Betrieb
-      mit Freischaltung je Verein. Beides berührt D13, D15 und die Freeze-Regeln.
+      mit Freischaltung je Verein. Beides berührt D13, D15 und die Freeze-Regeln. Bekannte Kosten von
+      SQLite: Das eingefrorene `01_initial.up.sql` ist reines Postgres (plpgsql-Trigger, `REVOKE`,
+      `GENERATED … AS IDENTITY`, JSONB). SQLite bräuchte eine zweite Schema- und Migrationslinie mit
+      nachgebauten Schutz-Triggern. sqlc generiert für die Postgres-Engine, die Abfragen nutzen
+      `LATERAL`, JSONB und Zeilensperren. Die Abschluss-Barriere (`FOR SHARE` gegen `UPDATE`) und die
+      Passwort-Sperre (`FOR UPDATE`) müssten auf SQLites einzigen Schreiber umziehen. Ein
+      Replikations-Backup mit einer Woche Aufbewahrung ersetzt nicht die zehn Jahre nach § 147 AO.
+      Ein Binary mit eigenem TLS ersetzt Caddy (D18). HTTP-01 scheitert im LAN, deshalb holt jotti
+      Zertifikate per DNS-01 über acme-dns. Der gehostete Betrieb widerspricht TERMS § 1 (2) und
+      § 3 (2): kein SaaS, kein Betrieb für Dritte.
+- [ ] Bestellkommentar an fremden Stationen (#145): Der Kommentar hängt an der Bestellung, nicht
+      an der Position. Die Arbeitsbon-Policy druckt ihn deshalb an jede Station, bei
+      `pro_position` auf jeden Einzelbon. Bei einem Verein landeten so 44 % der Kommentare auf
+      mindestens zwei Druckern. Wege: auf dem Bon als Hinweis zur ganzen Bestellung kennzeichnen,
+      ohne Datenänderung. Oder ein Kommentar je Position als neue Event-Version.
+- [ ] Ausgabestationen unabhängig von Kategorien (#146): `druckstationen` hat eine Zeile je
+      Kategorie, also höchstens drei Produktstationen. Ein Verein legte deshalb ein Gericht unter
+      Getränke ab, was die Produktstatistik verfälscht. Ein Direktverkauf ohne Bon lässt sich
+      nicht einstellen, und nur „Essen" piept. Vorschlag: Station als eigener Datensatz, Produkt
+      schlägt Kategorie. Kleinster Teil: Aus-Schalter für den Direktverkauf.
+- [ ] Berechtigung in Grenzfällen: TERMS § 2 (1) verlangt eine eingetragene, nicht-gewinnorientierte
+      Organisation. Eine Untergliederung eines Verbands ohne eigene Eintragung kannte ihre Rechtsform
+      nicht. Schweizer Vereine sind auch ohne Eintrag rechtsfähig (Annahme, gegen das ZGB prüfen). Ein
+      Verein fragt, ob ein Partnerverein seine Installation mitnutzen darf. § 3 erlaubt nur eigene
+      Veranstaltungen und schließt den Betrieb für Dritte aus. Technisch trägt eine Installation genau
+      einen Betreiber mit einer Steuernummer auf allen Belegen. Klarstellung in TERMS oder FAQ
+      entscheiden; eine TERMS-Änderung ist eine neue Fassung.
+- [ ] Probelauf auf dem späteren Kassenrechner: Das Kassenjournal ist append-only, Kassensitzungs-
+      und Z-Nummern zählen fortlaufend (K-16). Eine Probe-Kassensitzung auf dem Rechner, der danach
+      live kassiert, bleibt vermutlich im Export. Für Windows gibt es keinen dokumentierten Weg zum
+      sauberen Neubeginn. Prüfen, dann Leitfaden-Hinweis oder Reset vor dem ersten Echtbetrieb.
 
 ## Folgekandidaten
 
@@ -69,8 +102,37 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
       Neustart, der nichts ändert. Der Fall ist theoretisch, weil acme-dns Kleinbuchstaben-UUIDs
       vergibt.
 - [ ] Bondrucker hängt still: Im Einsatz druckte ein WLAN-Bondrucker zweimal nach 1–1,5 h nichts
-      mehr, bis er neu startete. Relay und Kasse meldeten keinen Fehler, weil das Relay nur die
-      TCP-Zustellung prüft. Ursache klären; Kandidat ist die ESC/POS-Statusabfrage vor dem Druck.
+      mehr, bis er neu startete. Relay und Kasse meldeten keinen Fehler. Das Relay fragt vor dem Druck
+      nur den Papiersensor ab, eine fehlende Antwort gilt als OK. Kandidat: Offline-Status abfragen
+      und Schweigen als Fehler werten.
+- [ ] Umlaute auf Epson-Bondruckern (#144): `SetCodepageWPC1252` sendet `ESC t 6`. Am MUNBYN ist
+      das WPC1252, am Epson TM-T20IV Hiragana; Umlaute und ß werden dort Zeichensalat. Das trifft
+      Arbeitsbon, Testbon und Kassenbeleg. Kandidat ohne Einstellung: PC437 per `ESC t 0`, denn
+      die Bons drucken „EUR" statt €. Auf beiden Druckern prüfen; der Testbon druckt eine
+      Umlautzeile mit.
+- [ ] Migration vorab gegen eine Kopie prüfen: `make prod-update` sichert vor der Migration und nennt
+      bei einem Fehlschlag den Restore-Weg. Eine Migration, die an Bestandsdaten scheitert, fällt aber
+      erst im Live-Stack auf. Dort bleibt `schema_migrations` auf `dirty = true`, und der Stack fährt
+      nicht hoch. `scripts/prod-backup-verify.sh` spielt den Dump schon in ein Wegwerf-Postgres. Vor
+      `up -d` dort das `jotti-migrate`-Image der Zielversion laufen lassen. Dessen `CMD` erwartet den
+      Host `postgres`; der Windows-Starter zieht nach.
+- [ ] Anfrage-Mail ohne Zeilenumbrüche: Zwei Annahme-Mails kamen als ein einziger Absatz an.
+      `buildMailtoUrl` in `website/src/lib/anfrage-mailto.ts` trennt die Zeilen mit `\n`, kodiert als
+      `%0A`. RFC 6068 verlangt `%0D%0A` für Zeilenumbrüche im Body. Für die URL mit `\r\n` verbinden;
+      die Anzeige zum Kopieren behält `\n`.
+- [ ] Fassungsdatum der Nutzungsbedingungen von Hand an drei Stellen: `TERMS.md` nennt es im Stand
+      und in der E-Mail-Vorlage, `buildAnfrageMail` im Annahmesatz. Der Test pinnt nur das Literal,
+      eine neue Fassung ohne Formular-Update bleibt grün. Ein Verein nannte das Datum einer älteren
+      Fassung. Ein Test liest den Stand aus `TERMS.md` und vergleicht ihn mit dem Annahmesatz.
+- [ ] Rechtsform-Auswahl im Anfrage-Formular: `artOptionen` bietet e.V., Stiftung, „NGO / NPO" und
+      „Sonstige". Vereine aus Österreich und der Schweiz wählen deshalb „Eingetragener Verein (e.V.)".
+      gGmbH und gUG aus TERMS § 2 (1) fehlen. Optionen an § 2 (1) angleichen und einen Verein nach
+      österreichischem oder Schweizer Recht anbieten.
+- [ ] Lasttest fehlt: Die FAQ legt jotti auf Teams bis 30 Helfer aus, der Self-Hosting-Leitfaden
+      nennt einen kleinen VPS. Keine Messung stützt beides, das Repo hat keinen Lasttest. Ein Verein
+      fragt nach der Grenze unter hoher Last. Einmal messen: 30 Servicekräfte buchen und kassieren
+      parallel gegen den Prod-Stack mit fiskaly-Testumgebung. Das Ergebnis als Grenze in FAQ und
+      Leitfaden eintragen.
 - [ ] WLAN mit mehreren Access Points: Ein Verein hatte drei Router unter derselben SSID. Jedes Handy
       musste nach einem Wechsel die Adresse neu eingeben; mit einem Router lief es. Das WLAN hatte kein Internet,
       mobile Daten waren aus. Ursache klären und in die Fehlersuche des Leitfadens aufnehmen.
