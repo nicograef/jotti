@@ -22,6 +22,7 @@ Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen
 - `backend/sqlc/dbgen/` is generated and never edited; run `make sqlc` after a query change.
 - Ask before adding a dependency or changing the Docker or reverse-proxy configuration.
 - No secrets or passwords in the code.
+- Club data (names, e-mails, messages) lives only in the gitignored `.crm/`. Maintain field feedback with the `crm` skill; `make crm` regenerates `docs/feldfeedback.md` and runs the private-data gate.
 
 ## Freeze discipline
 
