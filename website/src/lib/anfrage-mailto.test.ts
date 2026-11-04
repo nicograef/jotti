@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import type { AnfrageFelder } from './anfrage-mailto'
@@ -103,6 +105,21 @@ describe('buildMailtoUrl', () => {
       ) ?? ''
     expect(body).toContain(
       'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 4. November 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
+    )
+  })
+
+  it('nennt im Annahmesatz die Fassung aus dem Stand von TERMS.md', () => {
+    const terms = readFileSync(
+      new URL('../../../TERMS.md', import.meta.url),
+      'utf8',
+    )
+    const stand = /^\*\*Stand: (.+)\*\*$/m.exec(terms)?.[1]
+    const vorlage = /in der Fassung vom (.+)$/m.exec(terms)?.[1]
+
+    expect(stand).toBeTruthy()
+    expect(vorlage).toBe(stand)
+    expect(buildAnfrageMail(felder()).text).toContain(
+      `in der Fassung vom ${stand ?? ''} (`,
     )
   })
 
