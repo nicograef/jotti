@@ -67,6 +67,22 @@ Nicos eigene Sicherung.
   - `vereinbart`: erst nach Beendigung nach TERMS § 8.
   Gelöscht werden der Eintrag im Register und lokale Kopien. Gmail bleibt außen vor (Nicos
   Entscheidung).
+- **Erfassungsregeln** aus der Durchsicht aller Mails, Anhänge und Issues:
+  - Eine Vereinbarung gilt nur mit Annahmesatz in Textform. Signierte PDFs, freie Briefe und
+    Formularmails ohne Satz bleiben `anfrage`.
+  - `terms_version` muss eine Fassung aus `[terms] versions` in `register.toml` sein. Zitiert
+    wurden drei Fassungen, eine davon eine Woche nach Erscheinen der nächsten.
+  - Die Annahme steht oft in einem Thread mit anderem Thema. `agreement_source` darf jede
+    Nachricht sein, und dieselbe Nachricht trägt weitere Meldungen.
+  - Eine Nachricht, die nur als Zitat in einer späteren Mail vorliegt, bekommt deren Quelle.
+  - Rechtsform und Land sind Angaben des Vereins. Vereine aus Österreich und der Schweiz wählen
+    im Formular „e.V."; `country` folgt dem Sitz, Zweifel stehen in `notes`.
+  - Kontakt-E-Mail und Absender weichen oft ab, einer schreibt im Auftrag eines anderen. Ein
+    Kontakt hat deshalb eine Liste `emails`. Internationalisierte Domains stehen in Unicode.
+  - Anhänge kommen nie ins Register. Registerauszüge und Signaturen nennen Dritte mit
+    Geburtsdatum oder Amt; sie bleiben in Gmail. Archive aus Mails sind fremder Code: nur in
+    einem leeren Temp-Ordner entpacken, nie ausführen, danach löschen. Die Erkenntnis geht als
+    Kurzfassung in die Meldung.
 - **PII-Grenze als Gate.** `scripts/check-private-data.sh` bekommt die Suchbegriffe von
   `crm.py pii-terms`: E-Mail-Adressen, Kontaktnamen, Organisationsnamen ohne `public_name_ok`,
   ohne Dienstleister, jeweils mindestens 5 Zeichen. GitHub-Logins fehlen, sie sind auf den Issues
@@ -92,6 +108,9 @@ Alle Werte unten sind erfunden.
 gmail_through = 2026-01-31        # Datum der neuesten eingelesenen Nachricht
 gh_through = 2026-01-31
 
+[terms]
+versions = [2026-06-03, 2026-07-14, 2026-09-07]   # Fassungen von TERMS.md
+
 [[org]]
 id = "beispielverein"             # slug, eindeutig
 kind = "verein"
@@ -110,7 +129,7 @@ notes = ""
   [[org.contact]]
   name = "Erika Mustermann"
   role = "Vorsitzende"
-  email = "vorstand@example.org"
+  emails = ["vorstand@example.org"]
 ```
 
 ```toml
@@ -146,7 +165,7 @@ ref = "[backlog.md](backlog.md)"
 - `Makefile` — `check-repo` führt jedes `scripts/check-*.sh` aus. `.githooks/pre-push` ruft es auf.
 - `scripts/lib.sh` — gemeinsame Helfer der Check-Skripte.
 - `scripts/setup-dev-tools.sh` — Entwicklerwerkzeuge. Bekommt die Prüfung auf Python ≥ 3.11.
-- GitHub-Issues #55, #58, #144, #145, #146 — externe Meldungen, bisher in keinem Index.
+- GitHub-Issues #55, #58, #144, #145, #146 — externe Meldungen, in keinem Index.
 
 ## Open questions / Risks
 
@@ -175,7 +194,7 @@ ref = "[backlog.md](backlog.md)"
   zugeschrieben, die sie nicht genannt haben.
 - `.mails/raw/*.eml` — Quelle. Gmail-IDs liefert `search_threads label:jotti`; eine Datei findet
   ihre ID über `rfc822msgid:<Message-ID>`.
-- GitHub-Issues #55, #58, #144–#146 — fehlen bisher in Index und Zählung.
+- GitHub-Issues #55, #58, #144–#146 — fehlen in Index und Zählung.
 - `.gitignore` — Zeile `.mails/`.
 
 ### What to build
@@ -189,6 +208,8 @@ ref = "[backlog.md](backlog.md)"
   - eindeutige `id`, Enum-Werte, Pflichtfelder je `status`
   - Quellformat `gmail:[0-9a-f]{16}` oder `gh:[0-9]+`, jede Quelle höchstens einmal je Thema
   - jede `mention.org` existiert
+  - `terms_version` steht in `[terms] versions`
+  - jeder Kontakt hat mindestens eine E-Mail in `emails`
   - kein Feld außerhalb des Schemas: `phone`, `address` und Unbekanntes werden abgewiesen
   - `CRM_DIR` nach der Architekturentscheidung, überschreibbar per Umgebung
 - `crm.py` bricht unter Python 3.11 mit klarer Meldung ab. `scripts/setup-dev-tools.sh` prüft
@@ -205,7 +226,7 @@ ref = "[backlog.md](backlog.md)"
 ### Acceptance criteria
 
 - [ ] `python3 scripts/crm/crm.py validate` endet mit 0 und meldet die Zahl der Organisationen und Themen.
-- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive Abweisung eines `phone`-Felds und einer unbekannten `mention.org`.
+- [ ] `python3 -m unittest scripts/crm/test_crm.py` grün, inklusive Abweisung eines `phone`-Felds, einer unbekannten `mention.org` und einer unbekannten `terms_version`.
 - [ ] `git check-ignore -q .crm/register.toml && test ! -e .mails` endet mit 0.
 - [ ] `make check-repo` grün.
 
