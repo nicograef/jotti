@@ -2,7 +2,8 @@
 """crm.py — checks and reports on the private club register in .crm/ (never tracked).
 
 Usage:
-  python3 scripts/crm/crm.py validate
+  python3 scripts/crm/crm.py validate     # schema check, prints the counts
+  python3 scripts/crm/crm.py pii-terms    # one search term per line for check-private-data.sh
 
 The register is edited by hand or by Claude; this script only reads it. CRM_DIR
 overrides the register location, which defaults to the main checkout's .crm/ so
@@ -185,6 +186,37 @@ def validate(register: dict, topics: dict) -> list[str]:
     return errors
 
 
+MIN_TERM_LENGTH = 5
+
+
+def pii_terms(register: dict) -> list[str]:
+    """Terms that must never appear in a tracked file.
+
+    Contact e-mails, full contact names (a single first name is no identifier and
+    would fire on ordinary prose), and org names unless the org consented to be
+    named. Service providers are skipped: docs may name them. GitHub logins are
+    public on the issues anyway.
+    """
+    terms: set[str] = set()
+    for org in register.get("org", []):
+        if org.get("kind") == "dienstleister":
+            continue
+        if not org.get("public_name_ok", False):
+            terms.add(org["name"].strip())
+        for contact in org.get("contact", []):
+            name = contact["name"].strip()
+            if " " in name:
+                terms.add(name)
+            terms.update(e.strip() for e in contact.get("emails", []))
+    return sorted(t for t in terms if len(t) >= MIN_TERM_LENGTH)
+
+
+def cmd_pii_terms(crm_dir: Path) -> int:
+    register, _ = load(crm_dir)
+    print("\n".join(pii_terms(register)))
+    return 0
+
+
 def cmd_validate(crm_dir: Path) -> int:
     register, topics = load(crm_dir)
     errors = validate(register, topics)
@@ -199,13 +231,13 @@ def cmd_validate(crm_dir: Path) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=["validate"])
+    parser.add_argument("command", choices=["validate", "pii-terms"])
     args = parser.parse_args(argv)
     crm_dir = default_crm_dir()
     if not (crm_dir / "register.toml").is_file():
         print(f"no register at {crm_dir}", file=sys.stderr)
         return 1
-    return {"validate": cmd_validate}[args.command](crm_dir)
+    return {"validate": cmd_validate, "pii-terms": cmd_pii_terms}[args.command](crm_dir)
 
 
 if __name__ == "__main__":
