@@ -237,7 +237,7 @@ def cmd_pii_terms(crm_dir: Path) -> int:
     return 0
 
 
-FELDFEEDBACK = ROOT / "docs" / "feldfeedback.md"
+FELDFEEDBACK = ROOT / "docs/feldfeedback.md"
 PRETTIER = ROOT / "frontend" / "node_modules" / ".bin" / "prettier"
 MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
           "September", "Oktober", "November", "Dezember"]
