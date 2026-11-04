@@ -6,7 +6,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails der Vereine, anonymisiert und 
 
 ## Lage
 
-- 35 Organisationen haben angefragt oder die Nutzungsvereinbarung geschlossen, 3 davon aus Österreich und 1 aus der Schweiz; 1 hat zurückgezogen.
+- 36 Organisationen haben angefragt oder die Nutzungsvereinbarung geschlossen, 3 davon aus Österreich und 2 aus der Schweiz; 1 hat zurückgezogen.
 - 3 Vereine berichten vom Einsatz am Fest, alle positiv. Gemeldete Störungen: ein still hängender Bondrucker und WLAN mit mehreren Access Points.
 - Als Wechselgrund nennen die Vereine teure Miet-Kassensysteme und eine defekte Registrierkasse.
 
