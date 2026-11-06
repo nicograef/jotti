@@ -152,7 +152,7 @@ func (b *beleg) ustAufteilungJeGvTyp() []gvUstBetrag {
 }
 
 func ustBetraege(positionen []kasse.PositionEventData) []ustBetrag {
-	matrix := steuer.Steuermatrix(steuermatrixPositionen(positionen))
+	matrix := steuer.Steuermatrix(kasse.SteuermatrixPositionen(kasse.PositionenFromEventData(positionen)))
 	out := make([]ustBetrag, 0, len(matrix))
 	for _, a := range matrix {
 		out = append(out, ustBetrag{schluessel: ustSchluessel(a.Satz), brutto: a.Brutto, netto: a.Netto, ust: a.Steuer})
@@ -1317,17 +1317,6 @@ func ordnung(reihenfolge map[string]int, key string) int {
 		return v
 	}
 	return len(reihenfolge) + 1
-}
-
-func steuermatrixPositionen(positionen []kasse.PositionEventData) []steuer.SteuermatrixPosition {
-	out := make([]steuer.SteuermatrixPosition, len(positionen))
-	for i, p := range positionen {
-		out[i] = steuer.SteuermatrixPosition{
-			Brutto:     p.EinzelpreisCents * p.Menge,
-			Steuersatz: steuer.Steuersatz(p.Steuersatz),
-		}
-	}
-	return out
 }
 
 // ZertifikatZuLang reports whether the TSE certificate exceeds the two official

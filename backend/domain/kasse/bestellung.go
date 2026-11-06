@@ -109,6 +109,18 @@ func PositionenFromEventData(positionen []PositionEventData) []Position {
 	return out
 }
 
+// SteuermatrixPositionen feeds steuer.Steuermatrix: the gross amount and rate of each position.
+func SteuermatrixPositionen(positionen []Position) []steuer.SteuermatrixPosition {
+	out := make([]steuer.SteuermatrixPosition, len(positionen))
+	for i, p := range positionen {
+		out[i] = steuer.SteuermatrixPosition{
+			Brutto:     p.EinzelpreisCents * p.Menge,
+			Steuersatz: steuer.Steuersatz(p.Steuersatz),
+		}
+	}
+	return out
+}
+
 // PositionFromEventData is the single source of truth for this mapping; the Besteller
 // fields stay zero (the event form carries no besteller).
 func PositionFromEventData(p PositionEventData) Position {

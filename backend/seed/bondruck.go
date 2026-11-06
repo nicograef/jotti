@@ -262,7 +262,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		Zeitpunkt:                evt.Time,
 		ErsteBestellungZeitpunkt: ersteBestellung,
 		Positionen:               positionen,
-		Steuermatrix:             steuer.Steuermatrix(zuSteuermatrixPositionen(positionen)),
+		Steuermatrix:             steuer.Steuermatrix(kasse.SteuermatrixPositionen(positionen)),
 		TSE:                      zuTSEAbschnitt(signatur),
 		GesamtbetragCents:        gesamtbetragCents,
 		Zahlungsart:              "bar",
@@ -299,16 +299,4 @@ func parseEventData[T any](evt e.Event) (T, error) {
 		return data, fmt.Errorf("event-daten parsen: %w", err)
 	}
 	return data, nil
-}
-
-// zuPositionen wandelt die persistierte Positions-Darstellung zurück in Domain-Positionen.
-func zuSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {
-	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
-	for _, p := range positionen {
-		matrixPositionen = append(matrixPositionen, steuer.SteuermatrixPosition{
-			Brutto:     p.EinzelpreisCents * p.Menge,
-			Steuersatz: steuer.Steuersatz(p.Steuersatz),
-		})
-	}
-	return matrixPositionen
 }

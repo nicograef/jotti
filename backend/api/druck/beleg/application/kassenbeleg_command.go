@@ -19,18 +19,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {
-	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
-	for _, position := range positionen {
-		matrixPositionen = append(matrixPositionen, steuer.SteuermatrixPosition{
-			Brutto:     position.EinzelpreisCents * position.Menge,
-			Steuersatz: steuer.Steuersatz(position.Steuersatz),
-		})
-	}
-
-	return matrixPositionen
-}
-
 func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, kasse.ZahlungKassiertV1Data, error) {
 	for _, evt := range events {
 		if !kasse.IstZahlungKassiert(evt.Type) {
@@ -296,7 +284,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 
 	positionen := quelle.Positionen
 	gesamtbetragCents := quelle.GesamtbetragCents
-	steuermatrix := steuer.Steuermatrix(toSteuermatrixPositionen(positionen))
+	steuermatrix := steuer.Steuermatrix(kasse.SteuermatrixPositionen(positionen))
 	if quelle.Negativ {
 		steuermatrix = negiereAufteilungen(steuermatrix)
 		positionen = negierePositionen(positionen)
