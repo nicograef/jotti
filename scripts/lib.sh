@@ -110,3 +110,43 @@ decompress() {
     cat "$SELECTED"
   fi
 }
+
+# start_throwaway_postgres CONTAINER PORT — replaces CONTAINER with a fresh
+# Postgres (user, password and database admin/admin/jotti) on 127.0.0.1:PORT,
+# waits for it and applies every migration. The caller's EXIT trap removes it.
+start_throwaway_postgres() {
+  local container="$1" port="$2" image="postgres:17.11" ready="" i
+  local migrations
+  migrations="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/database/migrations"
+
+  docker rm -f "$container" >/dev/null 2>&1 || true
+
+  info "Starting $image on port $port ..."
+  docker run -d \
+    --name "$container" \
+    -e POSTGRES_USER=admin \
+    -e POSTGRES_PASSWORD=admin \
+    -e POSTGRES_DB=jotti \
+    -p "127.0.0.1:${port}:5432" \
+    "$image" >/dev/null
+
+  # pg_isready also answers for the image's temporary socket-only init server, and
+  # migrate then fails with "connection reset by peer"; a TCP query does not.
+  info "Waiting for PostgreSQL to accept real connections ..."
+  for ((i = 0; i < 30; i++)); do
+    if docker exec -e PGPASSWORD=admin "$container" \
+      psql -h 127.0.0.1 -U admin -d jotti -c "SELECT 1" >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 2
+  done
+  if [[ -z "$ready" ]]; then
+    error "PostgreSQL did not become ready in time. Container logs:"
+    docker logs "$container" >&2
+    exit 1
+  fi
+
+  info "Running database migrations (forward-only) ..."
+  migrate -path "$migrations" -database "postgres://admin:admin@localhost:${port}/jotti?sslmode=disable" up
+}

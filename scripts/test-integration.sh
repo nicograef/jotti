@@ -26,8 +26,6 @@ TEST_PG_CONTAINER="${TEST_PG_CONTAINER:-jotti-postgres-test}"
 TEST_PG_PORT="${TEST_PG_PORT:-5432}"
 TEST_PKG="${TEST_PKG:-./...}"
 TEST_RUN="${TEST_RUN:-}"
-PG_IMAGE="postgres:17.11"
-DATABASE_URL="postgres://admin:admin@localhost:${TEST_PG_PORT}/jotti?sslmode=disable"
 
 cleanup() {
   info "Removing $TEST_PG_CONTAINER ..."
@@ -35,37 +33,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker rm -f "$TEST_PG_CONTAINER" >/dev/null 2>&1 || true
-
-info "Starting $PG_IMAGE on port $TEST_PG_PORT ..."
-docker run -d \
-  --name "$TEST_PG_CONTAINER" \
-  -e POSTGRES_USER=admin \
-  -e POSTGRES_PASSWORD=admin \
-  -e POSTGRES_DB=jotti \
-  -p "127.0.0.1:${TEST_PG_PORT}:5432" \
-  "$PG_IMAGE" >/dev/null
-
-# pg_isready also answers for the image's temporary socket-only init server, and
-# migrate then fails with "connection reset by peer"; a TCP query does not.
-info "Waiting for PostgreSQL to accept real connections ..."
-ready=""
-for ((i = 0; i < 30; i++)); do
-  if docker exec -e PGPASSWORD=admin "$TEST_PG_CONTAINER" \
-    psql -h 127.0.0.1 -U admin -d jotti -c "SELECT 1" >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
-  sleep 2
-done
-if [[ -z "$ready" ]]; then
-  error "PostgreSQL did not become ready in time. Container logs:"
-  docker logs "$TEST_PG_CONTAINER"
-  exit 1
-fi
-
-info "Running database migrations (forward-only) ..."
-migrate -path "$PROJECT_ROOT/database/migrations" -database "$DATABASE_URL" up
+start_throwaway_postgres "$TEST_PG_CONTAINER" "$TEST_PG_PORT"
 
 # -p 1: every package shares this one database, so parallel packages would
 # pollute each other's data.
