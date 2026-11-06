@@ -1,4 +1,8 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  type QueryClient,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
 
@@ -28,6 +32,14 @@ export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
 // teilen diese Schwelle.
 export const RUECKSTAND_WARN_SEKUNDEN = 60
 
+// Jede Änderung der Konfiguration ändert auch istKonfiguriert im Status.
+function invalidiereTSE(queryClient: QueryClient): Promise<unknown> {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] }),
+    queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] }),
+  ])
+}
+
 interface TSEKonfigurationResult {
   tseKonfiguration: TSEKonfiguration | undefined
   isPending: boolean
@@ -46,15 +58,12 @@ export function useTSEKonfiguration(): TSEKonfigurationResult {
 
   const saveTSEKonfiguration = async (config: TSEKonfigurationSpeichern) => {
     await tseBackend.saveTSEKonfiguration(config)
-    // Speichern/Leeren ändern auch istKonfiguriert — beide Ansichten neu laden.
-    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
-    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
+    await invalidiereTSE(queryClient)
   }
 
   const clearTSEKonfiguration = async () => {
     await tseBackend.clearTSEKonfiguration()
-    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
-    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
+    await invalidiereTSE(queryClient)
   }
 
   const testTSEVerbindung = async (): Promise<TSEVerbindungStatus> => {
@@ -89,8 +98,7 @@ export function useTSEEinrichtung(): TSEEinrichtungResult {
     eingabe: TSEEinrichten,
   ): Promise<TSEEinrichtenErgebnis> => {
     const ergebnis = await tseBackend.richteTSEEin(eingabe)
-    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
-    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
+    await invalidiereTSE(queryClient)
     return ergebnis
   }
 
@@ -98,8 +106,7 @@ export function useTSEEinrichtung(): TSEEinrichtungResult {
     eingabe: TSEUebernehmen,
   ): Promise<TSEEinrichtenErgebnis> => {
     const ergebnis = await tseBackend.uebernimmTSE(eingabe)
-    await queryClient.invalidateQueries({ queryKey: [TSE_KONFIGURATION_KEY] })
-    await queryClient.invalidateQueries({ queryKey: [TSE_STATUS_KEY] })
+    await invalidiereTSE(queryClient)
     return ergebnis
   }
 
