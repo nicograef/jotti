@@ -190,6 +190,42 @@ func validDirektverkaufStornoData(verkaufID string, gesamtStornierungCents int) 
 	}
 }
 
+func pfandPosition(einzelpreisCents, menge int) []map[string]any {
+	return []map[string]any{
+		{
+			"positionId":       "f0000000-0000-0000-0000-000000000001",
+			"varianteId":       2,
+			"produktName":      "Pfand",
+			"varianteName":     "Glas",
+			"kategorie":        "sonstiges",
+			"steuersatz":       "regel",
+			"einzelpreisCents": einzelpreisCents,
+			"menge":            menge,
+		},
+	}
+}
+
+func validPfandrueckgabeData(rueckgabeID string, einzelpreisCents, menge int) map[string]any {
+	return map[string]any{
+		"rueckgabeId":       rueckgabeID,
+		"tischId":           0,
+		"positionen":        pfandPosition(einzelpreisCents, menge),
+		"gesamtbetragCents": einzelpreisCents * menge,
+		"kommentar":         "",
+	}
+}
+
+func validPfandrueckgabeStornoData(rueckgabeID string, gesamtStornierungCents int) map[string]any {
+	return map[string]any{
+		"stornierungId":          "s0000000-0000-0000-0000-000000000002",
+		"rueckgabeId":            rueckgabeID,
+		"tischId":                0,
+		"positionen":             pfandPosition(gesamtStornierungCents, 1),
+		"gesamtStornierungCents": gesamtStornierungCents,
+		"kommentar":              "Falsch gezählt",
+	}
+}
+
 func cleanDB(t *testing.T, db *sql.DB) {
 	_, err := db.Exec("DELETE FROM tse_signaturauftraege")
 	if err != nil {
@@ -877,6 +913,43 @@ func TestGetKassenbestand_DirektverkaufIncreasesThenStornoDecreases(t *testing.T
 	}
 	if bestand.SollBestandCents != 700 {
 		t.Errorf("Expected kassenbestand 700 after direktverkauf-storno, got %d", bestand.SollBestandCents)
+	}
+}
+
+func TestGetKassenbestand_PfandrueckgabeMindertSoll(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	verkauf := newTestEvent(userID, "direktverkauf-getaetigt:v1", kasse.DirektverkaufSubject(ksNr, "verkauf-1"), 1, validDirektverkaufData("verkauf-1", 1200))
+	if _, err := insertEventRaw(repo.db, verkauf, ksNr); err != nil {
+		t.Fatalf("Failed to insert direktverkauf-getaetigt event: %v", err)
+	}
+
+	pfandSubject := kasse.PfandrueckgabeSubject(ksNr, "rueckgabe-1")
+	rueckgabe := newTestEvent(userID, "pfand-zurueckgegeben:v1", pfandSubject, 1, validPfandrueckgabeData("rueckgabe-1", 200, 2))
+	if _, err := insertEventRaw(repo.db, rueckgabe, ksNr); err != nil {
+		t.Fatalf("Failed to insert pfand-zurueckgegeben event: %v", err)
+	}
+
+	bestand, err := repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand.SollBestandCents != 800 || bestand.BareinnahmenCents != 800 {
+		t.Errorf("after Rückgabe: expected Soll 800 and Bareinnahmen 800, got %d and %d", bestand.SollBestandCents, bestand.BareinnahmenCents)
+	}
+
+	storno := newTestEvent(userID, "pfandrueckgabe-storniert:v1", pfandSubject, 2, validPfandrueckgabeStornoData("rueckgabe-1", 400))
+	if _, err := insertEventRaw(repo.db, storno, ksNr); err != nil {
+		t.Fatalf("Failed to insert pfandrueckgabe-storniert event: %v", err)
+	}
+
+	bestand, err = repo.GetKassenbestand(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if bestand.SollBestandCents != 1200 || bestand.BareinnahmenCents != 1200 {
+		t.Errorf("after Stornierung: expected Soll 1200 and Bareinnahmen 1200, got %d and %d", bestand.SollBestandCents, bestand.BareinnahmenCents)
 	}
 }
 

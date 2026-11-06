@@ -353,6 +353,8 @@ SELECT
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(type, data)), 0)::int
     )::int AS gesamt_umsatz_cents,
     COALESCE(SUM(kj_extract_bestellung_cents(type, data)), 0)::int AS gesamt_bestellungen_cents,
     (
@@ -376,6 +378,8 @@ WHERE type IN (
     'bestellung-korrigiert:v1',
     'direktverkauf-getaetigt:v1',
     'direktverkauf-storniert:v1',
+    'pfand-zurueckgegeben:v1',
+    'pfandrueckgabe-storniert:v1',
     'geldtransit-gebucht:v1'
 )
 AND kassensitzung_nr = $1
@@ -392,7 +396,8 @@ type GetReportingStatsRow struct {
 	DirektverkaufUmsatzCents int
 }
 
-// Reporting: Aggregierte Kennzahlen für eine Kassensitzung.
+// Reporting: Aggregierte Kennzahlen für eine Kassensitzung. Der Gesamtumsatz ist netto:
+// Pfandrückgaben mindern ihn, deren Stornierungen heben das auf.
 func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (GetReportingStatsRow, error) {
 	row := q.db.QueryRowContext(ctx, getReportingStats, kassensitzungNr)
 	var i GetReportingStatsRow
@@ -559,7 +564,7 @@ SELECT
     s.brutto_cents::int AS brutto_cents
 FROM kassenjournal kj
 CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steuersatz, brutto_cents)
-WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1')
+WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1', 'pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
 AND kj.kassensitzung_nr = $1
 `
 
@@ -572,9 +577,9 @@ type GetUmsatzPositionszeilenRow struct {
 // Kassensitzung, unaggregiert (eine Zeile je Position). Die USt-Aufschlüsselung
 // rechnet die Anwendungsschicht auf Zeilenbasis (steuer.Aufteilen je Zeile,
 // danach Aggregation) — dieselbe Basis wie Beleg, TSE-processData und
-// DSFinV-K-Export. Kassenwirksame Warenrücknahmen (stornierung-erteilt) und
-// Direktverkauf-Stornos zählen als negative Zeilen (Faktor -1 in
-// kj_extract_umsatz_pro_steuersatz).
+// DSFinV-K-Export. Kassenwirksame Warenrücknahmen (stornierung-erteilt),
+// Direktverkauf-Stornos und Pfandrückgaben zählen als negative Zeilen (Faktor -1 in
+// kj_extract_umsatz_pro_steuersatz), Stornierungen von Pfandrückgaben als positive.
 func (q *Queries) GetUmsatzPositionszeilen(ctx context.Context, kassensitzungNr int) ([]GetUmsatzPositionszeilenRow, error) {
 	rows, err := q.db.QueryContext(ctx, getUmsatzPositionszeilen, kassensitzungNr)
 	if err != nil {

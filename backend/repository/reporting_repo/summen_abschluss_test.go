@@ -27,6 +27,7 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	tischSubject := kasse.TischSessionSubject(ksNr, 1)
 	ksSubject := kasse.KassensitzungSubject(ksNr)
 	dvSubject := kasse.DirektverkaufSubject(ksNr, "d1")
+	pfandSubject := kasse.PfandrueckgabeSubject(ksNr, "r1")
 
 	// zahlung-kassiert: kj_extract_zahlung_cents → gesamtZahlungCents
 	insertEvent(t, db, userID, "testuser", "zahlung-kassiert:v1", tischSubject, 1, map[string]any{
@@ -97,6 +98,37 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"kommentar": "Fehlbuchung",
 	}, ksNr)
 
+	// pfand-zurueckgegeben: kj_extract_pfandrueckgabe_cents → gesamtbetragCents
+	insertEvent(t, db, userID, "testuser", string(kasse.EventTypePfandZurueckgegebenV1), pfandSubject, 1, map[string]any{
+		"rueckgabeId":       "r1",
+		"tischId":           0,
+		"gesamtbetragCents": 400,
+		"positionen": []map[string]any{{
+			"produktName":      "Pfand",
+			"varianteName":     "Glas",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 200,
+			"menge":            2,
+		}},
+		"kommentar": "",
+	}, ksNr)
+
+	// pfandrueckgabe-storniert: kj_extract_pfandrueckgabe_storno_cents → gesamtStornierungCents
+	insertEvent(t, db, userID, "testuser", string(kasse.EventTypePfandrueckgabeStorniertV1), pfandSubject, 2, map[string]any{
+		"stornierungId":          "rs1",
+		"rueckgabeId":            "r1",
+		"tischId":                0,
+		"gesamtStornierungCents": 150,
+		"positionen": []map[string]any{{
+			"produktName":      "Pfand",
+			"varianteName":     "Becher",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 150,
+			"menge":            1,
+		}},
+		"kommentar": "Falsch gezählt",
+	}, ksNr)
+
 	// geldtransit-gebucht deposit: kj_extract_geldtransit_cents → richtung + betragCents
 	insertEvent(t, db, userID, "testuser", "geldtransit-gebucht:v1", ksSubject, 1, map[string]any{
 		"betragCents":  500,
@@ -111,8 +143,9 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"beschreibung": "Restgeld entnommen",
 	}, ksNr)
 
-	// For the reader only, the test compares Go with SQL: Umsatz 2238 − 1455 + 880 − 335 = 1328,
-	// Storno 1455 + 200 + 335 = 1990, Geldtransit 500 − 150 = 350.
+	// Umsatz 2238 − 1455 + 880 − 335 − 400 + 150 = 1078, Storno 1455 + 200 + 335 = 1990,
+	// Geldtransit 500 − 150 = 350. Umsatz is also pinned to the literal, so a Pfand type
+	// missing on both sides cannot pass.
 
 	// Go side: read the events from the DB and aggregate.
 	kjRepo := kassenjournal_repo.NewRepository(db)
@@ -134,6 +167,9 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 
 	if got.UmsatzCents != sql.GesamtUmsatzCents {
 		t.Errorf("UmsatzCents: Go=%d, SQL=%d", got.UmsatzCents, sql.GesamtUmsatzCents)
+	}
+	if got.UmsatzCents != 1078 {
+		t.Errorf("UmsatzCents: Go=%d, erwartet 1078", got.UmsatzCents)
 	}
 	if got.StornierungCents != sql.GesamtStornierungenCents {
 		t.Errorf("StornierungCents: Go=%d, SQL=%d", got.StornierungCents, sql.GesamtStornierungenCents)

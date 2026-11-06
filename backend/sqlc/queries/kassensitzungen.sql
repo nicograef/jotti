@@ -71,7 +71,7 @@ ORDER BY ks.datum DESC, ks.created_at DESC;
 
 -- name: GetKassenbestand :one
 -- Kassenbestand (Soll) samt Aufschlüsselung. Der Soll-Bestand ist die Summe aus
--- Anfangsbestand, Zahlungen, Warenrücknahmen, Geldtransits und Differenz-Buchungen.
+-- Anfangsbestand, Zahlungen, Warenrücknahmen, Pfandrückgaben, Geldtransits und Differenz-Buchungen.
 -- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 -- geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 -- Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
@@ -80,6 +80,7 @@ ORDER BY ks.datum DESC, ks.created_at DESC;
 -- Die vier Komponenten werten dieselben kj_extract_*-Funktionen einzeln aus:
 --   - anfangsbestand = Anfangsbestand der Eröffnung
 --   - bareinnahmen   = Zahlungen + Direktverkauf − geldwirksame Stornos (Warenrücknahme + Direktverkauf-Storno)
+--                      − Pfandrückgaben + deren Stornierungen
 --   - einlagen       = geldtransit-gebucht:v1 mit richtung='einlage'
 --   - entnahmen      = geldtransit-gebucht:v1 mit richtung='entnahme'
 -- Invariante (vor Kassensturz, also ohne Differenzbuchung):
@@ -91,6 +92,8 @@ SELECT
         - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(type, data)), 0)::int
         + COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_differenz_cents(type, data)), 0)::int
     )::int AS soll_bestand_cents,
@@ -100,6 +103,8 @@ SELECT
         + COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_stornierung_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_cents(type, data)), 0)::int
+        + COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(type, data)), 0)::int
     )::int AS bareinnahmen_cents,
     COALESCE(SUM(CASE WHEN type = 'geldtransit-gebucht:v1' AND data->>'richtung' = 'einlage'
         THEN (data->>'betragCents')::int END), 0)::int AS einlagen_cents,
@@ -113,6 +118,8 @@ WHERE kassensitzung_nr = $1
     'stornierung-erteilt:v1',
     'direktverkauf-getaetigt:v1',
     'direktverkauf-storniert:v1',
+    'pfand-zurueckgegeben:v1',
+    'pfandrueckgabe-storniert:v1',
     'geldtransit-gebucht:v1',
     'differenz-soll-ist-gebucht:v1'
   );

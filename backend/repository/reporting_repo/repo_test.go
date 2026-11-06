@@ -491,6 +491,67 @@ func TestGetReporting_UmsatzProSteuersatzZiehtWarenruecknahmeAb(t *testing.T) {
 	}
 }
 
+// TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb: a Rückgabe lowers the Umsatz at the rate of the
+// Pfand product, its Stornierung restores it.
+func TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb(t *testing.T) {
+	db := dbtest.Open()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	pfandPosition := func(steuersatz string, einzelpreisCents, menge int) []map[string]any {
+		return []map[string]any{{
+			"produktName":      "Pfand",
+			"varianteName":     "Glas",
+			"steuersatz":       steuersatz,
+			"einzelpreisCents": einzelpreisCents,
+			"menge":            menge,
+		}}
+	}
+
+	insertEvent(t, db, userID, "anna", "zahlung-kassiert:v1", "kassensitzung-1/tisch-1", 1, zahlungData("z-anna", 2000), ksNr)
+	insertEvent(t, db, userID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r1", 1, map[string]any{
+		"rueckgabeId": "r1", "tischId": 1, "positionen": pfandPosition("regel", 200, 2), "gesamtbetragCents": 400, "kommentar": "",
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "pfandrueckgabe-storniert:v1", "kassensitzung-1/pfandrueckgabe-r1", 2, map[string]any{
+		"stornierungId": "rs1", "rueckgabeId": "r1", "tischId": 1, "positionen": pfandPosition("regel", 200, 1), "gesamtStornierungCents": 200, "kommentar": "Falsch gezählt",
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r2", 1, map[string]any{
+		"rueckgabeId": "r2", "tischId": 0, "positionen": pfandPosition("ermaessigt", 100, 3), "gesamtbetragCents": 300, "kommentar": "",
+	}, ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	proSatz := map[string]int{}
+	summe := 0
+	for _, zeile := range data.UmsatzProSteuersatz {
+		proSatz[string(zeile.Satz)] += zeile.BruttoCents
+		summe += zeile.BruttoCents
+	}
+
+	if proSatz["regel"] != 1800 {
+		t.Errorf("expected regel-Umsatz 1800 (2000 Zahlung - 400 Rückgabe + 200 Stornierung), got %d", proSatz["regel"])
+	}
+	if proSatz["ermaessigt"] != -300 {
+		t.Errorf("expected ermaessigt-Umsatz -300 (Rückgabe am Satz des Pfand-Produkts), got %d", proSatz["ermaessigt"])
+	}
+	if data.Summary.GesamtUmsatzCents != 1500 {
+		t.Errorf("expected GesamtUmsatz 1500, got %d", data.Summary.GesamtUmsatzCents)
+	}
+	if summe != data.Summary.GesamtUmsatzCents {
+		t.Errorf("expected Zeilen-Summe %d == GesamtUmsatz %d", summe, data.Summary.GesamtUmsatzCents)
+	}
+}
+
 // TestGetReporting_MetadatenAusJournalEvents: the report header projects opening and closing time, the closing user
 // (frozen user_name) and the count difference purely from journal events.
 func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
