@@ -158,7 +158,6 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error) {
 	var (
 		stats            dbgen.GetReportingStatsRow
-		offeneSaldi      int
 		offeneTischeRows []dbgen.GetOffeneTischeDetailsRow
 		kassiertRows     []dbgen.GetKassiertProServicekraftRow
 		stornoRows       []dbgen.GetStornierungenRow
@@ -170,11 +169,6 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	g.Go(func() error {
 		var err error
 		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		offeneSaldi, err = r.q.GetOffeneSaldi(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -203,12 +197,14 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	}
 
 	offeneTische := make([]reporting.OffenerTisch, len(offeneTischeRows))
+	offeneSaldi := 0
 	for i, row := range offeneTischeRows {
 		offeneTische[i] = reporting.OffenerTisch{
 			TischID:    row.TischID,
 			TischName:  row.TischName,
 			SaldoCents: row.SaldoCents,
 		}
+		offeneSaldi += row.SaldoCents
 	}
 
 	stornierungen, err := toStornierungen(stornoRows)

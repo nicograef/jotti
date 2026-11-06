@@ -916,3 +916,53 @@ func TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer(t *testing.T) {
 	}
 	assertBetroffene(t, storno, "anna")
 }
+
+// The live dashboard's open total is the sum over the open tables it lists; a settled table counts for neither.
+func TestGetLiveReporting_OffeneSaldiSummiertOffeneTische(t *testing.T) {
+	db := dbtest.Open()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	var tischIDs []int
+	t.Cleanup(func() {
+		cleanDB(t, db)
+		for _, id := range tischIDs {
+			if _, err := db.Exec("DELETE FROM tische WHERE id = $1", id); err != nil {
+				t.Errorf("Failed to delete tisch %d: %v", id, err)
+			}
+		}
+	})
+	for i, saldo := range []int{300, 450, 0} {
+		var tischID int
+		if err := db.QueryRow(
+			"INSERT INTO tische (name, status, created_at, updated_at) VALUES ($1, 'active', now(), now()) RETURNING id",
+			"Live-Tisch "+string(rune('A'+i)),
+		).Scan(&tischID); err != nil {
+			t.Fatalf("Failed to insert tisch: %v", err)
+		}
+		tischIDs = append(tischIDs, tischID)
+		subject := "kassensitzung-1/tisch-live-" + string(rune('a'+i))
+		insertEvent(t, db, userID, "anna", "bestellung-aufgenommen:v1", subject, 1, bestellungData([]string{"p-" + subject}, 150), ksNr)
+		if _, err := db.Exec(
+			`INSERT INTO tisch_sessions (subject, tisch_id, kassensitzung_nr, saldo_cents, unbezahlte_positionen, gesamt_zahlungen_cents, last_event_id, last_event_version, updated_at)
+			 SELECT $1, $2, $3, $4, '[]', 0, id, 1, now() FROM kassenjournal WHERE subject = $1`,
+			subject, tischID, ksNr, saldo,
+		); err != nil {
+			t.Fatalf("Failed to insert tisch session: %v", err)
+		}
+	}
+
+	data, err := NewRepository(db).GetLiveReporting(context.Background(), ksNr)
+	if err != nil {
+		t.Fatalf("GetLiveReporting failed: %v", err)
+	}
+	if len(data.OffeneTische) != 2 {
+		t.Errorf("expected 2 open tables, got %d", len(data.OffeneTische))
+	}
+	if data.OffeneSaldiCents != 750 {
+		t.Errorf("expected OffeneSaldiCents 750, got %d", data.OffeneSaldiCents)
+	}
+}

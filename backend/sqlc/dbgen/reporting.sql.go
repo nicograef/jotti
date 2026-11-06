@@ -199,19 +199,6 @@ func (q *Queries) GetKassiertProServicekraft(ctx context.Context, kassensitzungN
 	return items, nil
 }
 
-const getOffeneSaldi = `-- name: GetOffeneSaldi :one
-SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = $1
-`
-
-// Live-Dashboard: Summe der offenen Saldi der offenen Kassensitzung.
-func (q *Queries) GetOffeneSaldi(ctx context.Context, kassensitzungNr int) (int, error) {
-	row := q.db.QueryRowContext(ctx, getOffeneSaldi, kassensitzungNr)
-	var offene_saldi_cents int
-	err := row.Scan(&offene_saldi_cents)
-	return offene_saldi_cents, err
-}
-
 const getOffeneTischeDetails = `-- name: GetOffeneTischeDetails :many
 SELECT ts.tisch_id, t.name AS tisch_name, ts.saldo_cents
 FROM tisch_sessions ts

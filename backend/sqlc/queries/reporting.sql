@@ -55,11 +55,6 @@ WHERE type IN (
 )
 AND kassensitzung_nr = @kassensitzung_nr;
 
--- name: GetOffeneSaldi :one
--- Live-Dashboard: Summe der offenen Saldi der offenen Kassensitzung.
-SELECT COALESCE(SUM(saldo_cents), 0)::int AS offene_saldi_cents
-FROM tisch_sessions WHERE saldo_cents > 0 AND kassensitzung_nr = @kassensitzung_nr;
-
 -- name: GetKassiertProServicekraft :many
 -- Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung — die
 -- Kassiert-Seite der Abrechnung pro Servicekraft (die zugeordneten Rücknahmen kommen aus den
