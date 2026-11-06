@@ -129,12 +129,7 @@ func (r Repository) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error)
 }
 
 func (r Repository) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
-	result, err := r.q.UpdateTisch(ctx, dbgen.UpdateTischParams{
-		Name:      t.Name,
-		Status:    dbgen.Entitystatus(t.Status),
-		UpdatedAt: t.UpdatedAt,
-		ID:        t.ID,
-	})
+	result, err := r.q.UpdateTisch(ctx, updateTischParams(t))
 	if err != nil {
 		return db.Error(err)
 	}
@@ -150,15 +145,19 @@ func (r Repository) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) 
 			return db.Error(err)
 		}
 
-		result, err := qtx.UpdateTisch(ctx, dbgen.UpdateTischParams{
-			Name:      t.Name,
-			Status:    dbgen.Entitystatus(t.Status),
-			UpdatedAt: t.UpdatedAt,
-			ID:        t.ID,
-		})
+		result, err := qtx.UpdateTisch(ctx, updateTischParams(t))
 		if err != nil {
 			return db.Error(err)
 		}
 		return db.ResultError(result)
 	})
+}
+
+func updateTischParams(t tisch.Tisch) dbgen.UpdateTischParams {
+	return dbgen.UpdateTischParams{
+		Name:      t.Name,
+		Status:    dbgen.Entitystatus(t.Status),
+		UpdatedAt: t.UpdatedAt,
+		ID:        t.ID,
+	}
 }

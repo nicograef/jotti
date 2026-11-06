@@ -73,15 +73,7 @@ func (r Repository) CreateProdukt(ctx context.Context, p produkt.Produkt) (int, 
 }
 
 func (r Repository) UpdateProdukt(ctx context.Context, p produkt.Produkt) error {
-	result, err := r.q.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
-		Name:       p.Name,
-		Kategorie:  dbgen.Produktkategorie(p.Kategorie),
-		Steuersatz: dbgen.Steuersatz(p.Steuersatz),
-		Pfand:      p.Pfand,
-		Status:     dbgen.Entitystatus(p.Status),
-		UpdatedAt:  p.UpdatedAt,
-		ID:         p.ID,
-	})
+	result, err := r.q.UpdateProdukt(ctx, updateProduktParams(p))
 	if err != nil {
 		return db.Error(err)
 	}
@@ -250,14 +242,7 @@ func setVarianteReihenfolge(ctx context.Context, qtx *dbgen.Queries, id int, rei
 func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for i := range p.Varianten {
-			v := p.Varianten[i]
-			result, err := qtx.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
-				Name:       v.Name,
-				PreisCents: v.PreisCents,
-				Status:     dbgen.Entitystatus(v.Status),
-				UpdatedAt:  v.UpdatedAt,
-				ID:         v.ID,
-			})
+			result, err := qtx.UpdateVariante(ctx, updateVarianteParams(p.Varianten[i]))
 			if err != nil {
 				return db.Error(err)
 			}
@@ -266,15 +251,7 @@ func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Pro
 			}
 		}
 
-		result, err := qtx.UpdateProdukt(ctx, dbgen.UpdateProduktParams{
-			Name:       p.Name,
-			Kategorie:  dbgen.Produktkategorie(p.Kategorie),
-			Steuersatz: dbgen.Steuersatz(p.Steuersatz),
-			Pfand:      p.Pfand,
-			Status:     dbgen.Entitystatus(p.Status),
-			UpdatedAt:  p.UpdatedAt,
-			ID:         p.ID,
-		})
+		result, err := qtx.UpdateProdukt(ctx, updateProduktParams(p))
 		if err != nil {
 			return db.Error(err)
 		}
@@ -292,4 +269,26 @@ func (r Repository) SortiereVariantenAlphabetisch(ctx context.Context, produktID
 		return db.Error(err)
 	}
 	return nil
+}
+
+func updateProduktParams(p produkt.Produkt) dbgen.UpdateProduktParams {
+	return dbgen.UpdateProduktParams{
+		Name:       p.Name,
+		Kategorie:  dbgen.Produktkategorie(p.Kategorie),
+		Steuersatz: dbgen.Steuersatz(p.Steuersatz),
+		Pfand:      p.Pfand,
+		Status:     dbgen.Entitystatus(p.Status),
+		UpdatedAt:  p.UpdatedAt,
+		ID:         p.ID,
+	}
+}
+
+func updateVarianteParams(v produkt.Variante) dbgen.UpdateVarianteParams {
+	return dbgen.UpdateVarianteParams{
+		Name:       v.Name,
+		PreisCents: v.PreisCents,
+		Status:     dbgen.Entitystatus(v.Status),
+		UpdatedAt:  v.UpdatedAt,
+		ID:         v.ID,
+	}
 }
