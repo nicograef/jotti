@@ -407,7 +407,7 @@ func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	if err != nil {
 		return err
 	}
-	data, err := parseEventData[kasse.PfandZurueckgegebenV1Data](evt)
+	data, err := e.Decode[kasse.PfandZurueckgegebenV1Data](evt)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package seed
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -215,7 +214,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 
 	switch kasse.EventType(evt.Type) {
 	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2:
-		data, err := parseEventData[kasse.ZahlungKassiertV1Data](evt)
+		data, err := e.Decode[kasse.ZahlungKassiertV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}
@@ -227,7 +226,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		}
 
 	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
-		data, err := parseEventData[kasse.DirektverkaufGetaetigtV1Data](evt)
+		data, err := e.Decode[kasse.DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}
@@ -268,12 +267,4 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 	}
 	b.setStatus(&z)
 	return z, true, nil
-}
-
-func parseEventData[T any](evt e.Event) (T, error) {
-	var data T
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		return data, fmt.Errorf("event-daten parsen: %w", err)
-	}
-	return data, nil
 }

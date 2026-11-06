@@ -97,6 +97,15 @@ func (e *Event) Validate() error {
 	return nil
 }
 
+// Decode unmarshals the event data into T without schema validation, for reading stored events.
+func Decode[T any](e Event) (T, error) {
+	var data T
+	if err := json.Unmarshal(e.Data, &data); err != nil {
+		return data, fmt.Errorf("decode %s (event %d): %w", e.Type, e.ID, err)
+	}
+	return data, nil
+}
+
 func ParseData[T any](e Event, dest *T, schema *z.StructSchema) error {
 	if err := json.Unmarshal(e.Data, dest); err != nil {
 		return err

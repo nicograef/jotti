@@ -1,7 +1,6 @@
 package kasse
 
 import (
-	"encoding/json"
 	"fmt"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
@@ -164,9 +163,9 @@ func kassenbelegVorgang(positionen []Position, zahlbetragCents int, faktor int) 
 }
 
 func parseProjektionsData[T any](evt e.Event) (T, error) {
-	var data T
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
-		return data, fmt.Errorf("fiskalische projektion %s: event-daten parsen: %w", evt.Type, err)
+	data, err := e.Decode[T](evt)
+	if err != nil {
+		return data, fmt.Errorf("fiskalische projektion: %w", err)
 	}
 	return data, nil
 }

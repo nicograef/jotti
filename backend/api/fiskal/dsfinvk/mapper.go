@@ -1,7 +1,6 @@
 package dsfinvk
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -75,8 +74,7 @@ type beleg struct {
 	nichtSteuerbar   bool     // cash movement without VAT: one line with UST_SCHLUESSEL 5 instead of a tax split
 	artikeltext      string   // ARTIKELTEXT of the synthetic line (nichtSteuerbar only)
 	refBonIDs        []string // REF_BON_ID per origin Bon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchung Zugang → Abgang, Pfand-Storno → Rückgabe)
-	start            string
-	ende             string
+	zeitpunkt        string   // BON_START and BON_ENDE: a Vorgang is one event, so both are its time
 	bedienerID       int
 	bedienerName     string
 	positionen       []kasse.PositionEventData
@@ -259,25 +257,19 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 		vorher := len(belege)
 		switch ev.Type {
 		case string(kasse.EventTypeBestellungAufgenommenV1):
-			var data kasse.BestellungAufgenommenV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal bestellung-aufgenommen (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.BestellungAufgenommenV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			for _, p := range data.Positionen {
 				herkunft[p.PositionID] = data.BestellungID
 			}
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.BestellungID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBestellung,
 				gvTyp:            gvTypUmsatz,
 				geldneutral:      true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtPreisCents,
 				notiz:            data.Kommentar,
@@ -285,24 +277,18 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 
 		case string(kasse.EventTypeZahlungKassiertV1), string(kasse.EventTypeZahlungKassiertV2):
 			// v1 has no pfand key, so its positions read as no Pfand.
-			var data kasse.ZahlungKassiertV2Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal zahlung-kassiert (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.ZahlungKassiertV2Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			positionen, pfand := verkaufsPositionen(data.Positionen)
 			verkaufsPfand[data.ZahlungID] = pfandJePosition(data.Positionen)
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.ZahlungID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBeleg,
 				gvTyp:            gvTypUmsatz,
 				zahlart:          zahlartBar,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       positionen,
 				pfand:            pfand,
 				bruttoCents:      data.GesamtZahlungCents,
@@ -310,26 +296,20 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			})
 
 		case string(kasse.EventTypeStornierungErteiltV1):
-			var data kasse.StornierungErteiltV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal stornierung-erteilt (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.StornierungErteiltV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// Warenrücknahme of paid lines: negative revenue at the original VAT rate with cash
 			// refund (DSFinV-K Tz. 4.2.5), referencing the Zahlung (Tz. 4.2.2, docs/compliance.md §6.6).
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.StornierungID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBeleg,
 				gvTyp:            gvTypUmsatz,
 				zahlart:          zahlartBar,
 				storno:           true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
 				refBonIDs:        []string{data.ZahlungID},
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				pfand:            ruecknahmePfand(data.Positionen, verkaufsPfand[data.ZahlungID]),
 				bruttoCents:      data.GesamtStornierungCents,
@@ -337,35 +317,29 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			})
 
 		case string(kasse.EventTypeBestellungKorrigiertV1):
-			var data kasse.BestellungKorrigiertV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal bestellung-korrigiert (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.BestellungKorrigiertV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// Cash-neutral cancellation of unpaid lines: an AVBestellung without revenue,
 			// Zahlart or cash effect, referencing the origin order.
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.KorrekturID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBestellung,
 				gvTyp:            gvTypUmsatz,
 				geldneutral:      true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
 				storno:           true,
 				refBonIDs:        ursprungsbons(data.Positionen, herkunft),
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtCents,
 				notiz:            data.Kommentar,
 			})
 
 		case string(kasse.EventTypeBestellungUmgebuchtV1):
-			var data kasse.BestellungUmgebuchtV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal bestellung-umgebucht (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.BestellungUmgebuchtV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			tischID, err := kasse.ParseTischIDFromSubject(ev.Subject)
 			if err != nil {
@@ -374,15 +348,10 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			// An Umbuchung is a cash-neutral AVBestellung. Source and target share the
 			// UmbuchungID: the Abgang carries it as BON_ID, the Zugang references it.
 			bon := beleg{
-				bonNr:            0, // set below
 				bonTyp:           bonTypBestellung,
 				gvTyp:            gvTypUmsatz,
 				geldneutral:      true,
 				abrechnungskreis: abrechnungskreis(ev.Subject, tischnamen),
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtCents,
 				notiz:            umbuchungNotiz(data.Kommentar, data.BenutzerKommentar),
@@ -396,162 +365,132 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 					herkunft[p.PositionID] = bon.bonID
 				}
 			}
-			bonNr++
-			bon.bonNr = bonNr
 			belege = append(belege, bon)
 
 		case string(kasse.EventTypeDirektverkaufGetaetigtV1), string(kasse.EventTypeDirektverkaufGetaetigtV2):
 			// v1 has no pfand key, so its positions read as no Pfand.
-			var data kasse.DirektverkaufGetaetigtV2Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal direktverkauf-getaetigt (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.DirektverkaufGetaetigtV2Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			positionen, pfand := verkaufsPositionen(data.Positionen)
 			verkaufsPfand[data.VerkaufID] = pfandJePosition(data.Positionen)
-			bonNr++
 			belege = append(belege, beleg{
-				bonID:        data.VerkaufID,
-				bonNr:        bonNr,
-				bonTyp:       bonTypBeleg,
-				gvTyp:        gvTypUmsatz,
-				zahlart:      zahlartBar,
-				start:        zeit(ev),
-				ende:         zeit(ev),
-				bedienerID:   ev.UserID,
-				bedienerName: ev.UserName,
-				positionen:   positionen,
-				pfand:        pfand,
-				bruttoCents:  data.GesamtbetragCents,
-				notiz:        data.Kommentar,
+				bonID:       data.VerkaufID,
+				bonTyp:      bonTypBeleg,
+				gvTyp:       gvTypUmsatz,
+				zahlart:     zahlartBar,
+				positionen:  positionen,
+				pfand:       pfand,
+				bruttoCents: data.GesamtbetragCents,
+				notiz:       data.Kommentar,
 			})
 
 		case string(kasse.EventTypeDirektverkaufStorniertV1):
-			var data kasse.DirektverkaufStorniertV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal direktverkauf-storniert (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.DirektverkaufStorniertV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
-			bonNr++
 			belege = append(belege, beleg{
-				bonID:        data.StornierungID,
-				bonNr:        bonNr,
-				bonTyp:       bonTypBeleg,
-				gvTyp:        gvTypUmsatz,
-				zahlart:      zahlartBar,
-				storno:       true,
-				refBonIDs:    []string{data.VerkaufID},
-				start:        zeit(ev),
-				ende:         zeit(ev),
-				bedienerID:   ev.UserID,
-				bedienerName: ev.UserName,
-				positionen:   data.Positionen,
-				pfand:        ruecknahmePfand(data.Positionen, verkaufsPfand[data.VerkaufID]),
-				bruttoCents:  data.GesamtStornierungCents,
-				notiz:        data.Kommentar,
+				bonID:       data.StornierungID,
+				bonTyp:      bonTypBeleg,
+				gvTyp:       gvTypUmsatz,
+				zahlart:     zahlartBar,
+				storno:      true,
+				refBonIDs:   []string{data.VerkaufID},
+				positionen:  data.Positionen,
+				pfand:       ruecknahmePfand(data.Positionen, verkaufsPfand[data.VerkaufID]),
+				bruttoCents: data.GesamtStornierungCents,
+				notiz:       data.Kommentar,
 			})
 
 		case string(kasse.EventTypePfandZurueckgegebenV1):
-			var data kasse.PfandZurueckgegebenV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal pfand-zurueckgegeben (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.PfandZurueckgegebenV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// Pfand paid out in cash: a negative Beleg without reference, since a Pfand return
 			// reduces the consideration independently of the sale (Abschn. 10.1 Abs. 8 Satz 3 UStAE).
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.RueckgabeID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBeleg,
 				gvTyp:            gvTypPfandRueckzahlung,
 				zahlart:          zahlartBar,
 				storno:           true,
 				abrechnungskreis: abrechnungskreisFuerTisch(data.TischID, tischnamen),
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtbetragCents,
 				notiz:            data.Kommentar,
 			})
 
 		case string(kasse.EventTypePfandrueckgabeStorniertV1):
-			var data kasse.PfandrueckgabeStorniertV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal pfandrueckgabe-storniert (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.PfandrueckgabeStorniertV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// Cancelling a Pfand return is a positive Beleg referencing the Rückgabe.
-			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.StornierungID,
-				bonNr:            bonNr,
 				bonTyp:           bonTypBeleg,
 				gvTyp:            gvTypPfandRueckzahlung,
 				zahlart:          zahlartBar,
 				abrechnungskreis: abrechnungskreisFuerTisch(data.TischID, tischnamen),
 				refBonIDs:        []string{data.RueckgabeID},
-				start:            zeit(ev),
-				ende:             zeit(ev),
-				bedienerID:       ev.UserID,
-				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
 				bruttoCents:      data.GesamtStornierungCents,
 				notiz:            data.Kommentar,
 			})
 
 		case string(kasse.EventTypeKassensitzungEroeffnetV1):
-			var data kasse.KassensitzungEroeffnetV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal kassensitzung-eroeffnet (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.KassensitzungEroeffnetV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// Without cash at session start there is no Anfangsbestand to record
 			// (Anhang C: recording not mandatory).
 			if data.BetragCents == 0 {
 				continue
 			}
-			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("anfangsbestand-%d", ev.ID), bonNr, gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung))
+			belege = append(belege, geldbewegung(fmt.Sprintf("anfangsbestand-%d", ev.ID), gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung))
 
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
-			var data kasse.GeldtransitGebuchtV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal geldtransit-gebucht (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.GeldtransitGebuchtV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
-			bonNr++
-			belege = append(belege, geldbewegung(ev, data.GeldtransitID, bonNr, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
+			belege = append(belege, geldbewegung(data.GeldtransitID, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
 
 		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
-			var data kasse.DifferenzSollIstGebuchtV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal differenz-soll-ist-gebucht (event %d): %w", ev.ID, err)
+			data, err := event.Decode[kasse.DifferenzSollIstGebuchtV1Data](ev)
+			if err != nil {
+				return nil, err
 			}
 			// BetragCents = Soll − Ist: positive is a shortfall (cash missing, reduce the
 			// balance), negative a surplus.
-			bonNr++
-			belege = append(belege, geldbewegung(ev, fmt.Sprintf("differenz-soll-ist-%d", ev.ID), bonNr, gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, ""))
+			belege = append(belege, geldbewegung(fmt.Sprintf("differenz-soll-ist-%d", ev.ID), gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, ""))
 
 		case string(kasse.EventTypeTagesabschlussErstelltV1):
-			var data kasse.TagesabschlussErstelltV1Data
-			if err := json.Unmarshal(ev.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal tagesabschluss-erstellt (event %d): %w", ev.ID, err)
+			if _, err := event.Decode[kasse.TagesabschlussErstelltV1Data](ev); err != nil {
+				return nil, err
 			}
 			// The Tagesabschluss is a TSE-signed, cash-neutral AVSonstige without lines. It
 			// exists in the export so its signature gets a transactions_tse.csv row (docs/compliance.md §6.8).
-			bonNr++
 			belege = append(belege, beleg{
-				bonID:        fmt.Sprintf("tagesabschluss-%d", ev.ID),
-				bonNr:        bonNr,
-				bonTyp:       bonTypSonstige,
-				geldneutral:  true,
-				start:        zeit(ev),
-				ende:         zeit(ev),
-				bedienerID:   ev.UserID,
-				bedienerName: ev.UserName,
+				bonID:       fmt.Sprintf("tagesabschluss-%d", ev.ID),
+				bonTyp:      bonTypSonstige,
+				geldneutral: true,
 			})
 		}
-		// Each Beleg of this iteration takes its event's TSE state from the Signaturauftrag
-		// table, the single source for signature duty, signature and TSE_TA_VORGANGSART.
+		// Each Beleg of this iteration counts up BON_NR, carries its event's time and operator, and
+		// takes its event's TSE state from the Signaturauftrag table, the single source for signature
+		// duty, signature and TSE_TA_VORGANGSART.
 		sig, pflichtig := signaturen[ev.ID]
 		for i := vorher; i < len(belege); i++ {
+			bonNr++
+			belege[i].bonNr = bonNr
+			belege[i].zeitpunkt = zeit(ev)
+			belege[i].bedienerID = ev.UserID
+			belege[i].bedienerName = ev.UserName
 			belege[i].tsePflichtig = pflichtig
 			belege[i].tse = sig.Signatur
 			belege[i].processType = sig.ProcessType
@@ -564,20 +503,15 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 // geldbewegung builds a non-taxable cash movement: BON_TYP "Beleg" with one line
 // (ARTIKELTEXT = GV type, UST_SCHLUESSEL 5; DSFinV-K Anhang C, docs/compliance.md §6.8).
 // betragCents is the positive magnitude; barabfluss sets the sign.
-func geldbewegung(ev event.Event, bonID string, bonNr int, gvTyp string, betragCents int, barabfluss bool, notiz string) beleg {
+func geldbewegung(bonID string, gvTyp string, betragCents int, barabfluss bool, notiz string) beleg {
 	return beleg{
 		bonID:          bonID,
-		bonNr:          bonNr,
 		bonTyp:         bonTypBeleg,
 		gvTyp:          gvTyp,
 		zahlart:        zahlartBar,
 		barabfluss:     barabfluss,
 		nichtSteuerbar: true,
 		artikeltext:    gvTyp,
-		start:          zeit(ev),
-		ende:           zeit(ev),
-		bedienerID:     ev.UserID,
-		bedienerName:   ev.UserName,
 		bruttoCents:    betragCents,
 		notiz:          notiz,
 	}
@@ -828,7 +762,7 @@ func buildTransactions(s Snapshot, erstellung string, belege []beleg) Table {
 		records = append(records, []string{
 			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 			b.bonID, itoa(b.bonNr), b.bonTyp, bonName(b),
-			"", stornoNein, b.start, b.ende,
+			"", stornoNein, b.zeitpunkt, b.zeitpunkt,
 			itoa(b.bedienerID), b.bedienerName, formatAmount(umsBrutto),
 			"", "", "", "",
 			"", "", "", "",
