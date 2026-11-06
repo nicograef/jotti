@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { BackendError } from './Backend'
-import { commonErrorMessages, getActionErrorMessage } from './errorMessages'
+import { getActionErrorMessage } from './errorMessages'
 
 const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
@@ -9,7 +9,11 @@ const serverErrorMessage =
 describe('getActionErrorMessage', () => {
   // Literal rows pin the wording of messages a volunteer must act on.
   it.each([
-    ...Object.entries(commonErrorMessages),
+    [
+      'position_nicht_bezahlbar',
+      'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Tischstatus aktualisieren und erneut versuchen.',
+    ],
+    ['validation_error', 'Bitte die Eingaben prüfen und erneut versuchen.'],
     [
       'pfandrueckgabe_abweichend',
       'Diese Pfandrückgabe wurde mit anderer Auswahl schon gebucht. Bitte Historie prüfen und neu erfassen.',

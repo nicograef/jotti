@@ -9,8 +9,8 @@ export function appendReferenz(message: string, referenz?: string): string {
   return referenz ? `${message} Referenz: ${referenz}` : message
 }
 
-// Zentrale Meldung je Backend-Fehlercode; exportiert, weil der Test iteriert.
-export const commonErrorMessages: Record<string, string> = {
+// Zentrale Meldung je Backend-Fehlercode.
+const commonErrorMessages: Record<string, string> = {
   onetime_password_locked:
     'Das Einmalpasswort wurde nach zu vielen Fehlversuchen gesperrt. Bitte einen Admin um ein neues Einmalpasswort.',
   already_has_password:
