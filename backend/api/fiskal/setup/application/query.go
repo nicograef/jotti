@@ -76,11 +76,6 @@ func (q Query) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration, erro
 func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, error) {
 	log := logging.FromContext(ctx)
 
-	if q.NewTSEConnectionTester == nil {
-		log.Error("Missing TSE connection tester factory")
-		return tse.VerbindungStatus{}, ErrDatabase
-	}
-
 	conf, err := q.TSERepo.GetTSEKonfiguration(ctx)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
@@ -121,27 +116,13 @@ func (q Query) TestTSEVerbindung(ctx context.Context) (tse.VerbindungStatus, err
 func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentials) (TSESetupBefund, error) {
 	log := logging.FromContext(ctx)
 
-	if q.NewTSESetupClient == nil {
-		log.Error("Missing TSE setup client factory")
-		return TSESetupBefund{}, ErrDatabase
-	}
 	if err := credentials.Validate(); err != nil {
 		return TSESetupBefund{}, ErrTSESetupZugangsdaten
 	}
 
-	client, err := q.NewTSESetupClient(credentials)
+	client, umgebung, tssList, err := oeffneSetupClient(ctx, log, q.NewTSESetupClient, credentials, nil, "setup check")
 	if err != nil {
-		log.Error("Failed to create TSE setup client", "error", err)
-		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
-	}
-
-	umgebung, tssList, err := client.ListTSS(ctx)
-	if err != nil {
-		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-			return TSESetupBefund{}, ErrTSESetupZugangsdaten
-		}
-		log.Warn("Failed to list TSS during setup check", "error", err)
-		return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
+		return TSESetupBefund{}, err
 	}
 
 	identitaet, err := q.TSERepo.GetKassenidentitaet(ctx)
@@ -199,10 +180,6 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 	if !status.IstKonfiguriert {
 		return status, nil
 	}
-	if q.NewTSEConnectionTester == nil {
-		return status, nil
-	}
-
 	tester, err := q.NewTSEConnectionTester(conf.Credentials())
 	if err != nil {
 		log.Warn("Failed to create TSE connection tester for status", "error", err)

@@ -52,21 +52,7 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 	}
 	defer freigeben()
 
-	if c.NewTSESetupClient == nil {
-		log.Error("Missing TSE setup client factory")
-		return TSESetupErgebnis{}, ErrDatabase
-	}
-	if err := credentials.Validate(); err != nil {
-		return TSESetupErgebnis{}, ErrTSESetupZugangsdaten
-	}
-	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
-		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
-	}
-	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
-		return TSESetupErgebnis{}, err
-	}
-
-	client, umgebung, tssListe, err := c.oeffneSetupClient(ctx, log, credentials, bestaetigteUmgebung, "setup")
+	client, umgebung, tssListe, err := c.vorbereiteEinrichtung(ctx, log, credentials, bestaetigteUmgebung, "setup")
 	if err != nil {
 		return TSESetupErgebnis{}, err
 	}
@@ -135,25 +121,12 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}
 	defer freigeben()
 
-	if c.NewTSESetupClient == nil {
-		log.Error("Missing TSE setup client factory")
-		return TSESetupErgebnis{}, ErrDatabase
-	}
-	if err := credentials.Validate(); err != nil {
-		return TSESetupErgebnis{}, ErrTSESetupZugangsdaten
-	}
-	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
-		return TSESetupErgebnis{}, ErrTSESetupUmgebungAbweichung
-	}
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
 	}
-	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
-		return TSESetupErgebnis{}, err
-	}
 
-	client, umgebung, tssListe, err := c.oeffneSetupClient(ctx, log, credentials, bestaetigteUmgebung, "takeover")
+	client, umgebung, tssListe, err := c.vorbereiteEinrichtung(ctx, log, credentials, bestaetigteUmgebung, "takeover")
 	if err != nil {
 		return TSESetupErgebnis{}, err
 	}
@@ -250,8 +223,23 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 
 // oeffneSetupClient holds the LIVE guard: an environment mismatch ends the setup before any write.
 // zweck only labels the log message.
-func (c Command) oeffneSetupClient(ctx context.Context, log *slog.Logger, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
-	client, err := c.NewTSESetupClient(credentials)
+// vorbereiteEinrichtung runs the checks RichteTSEEin and UebernimmTSE share before any write at fiskaly.
+func (c Command) vorbereiteEinrichtung(ctx context.Context, log *slog.Logger, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
+	if err := credentials.Validate(); err != nil {
+		return nil, "", nil, ErrTSESetupZugangsdaten
+	}
+	if bestaetigteUmgebung != tse.UmgebungTest && bestaetigteUmgebung != tse.UmgebungLive {
+		return nil, "", nil, ErrTSESetupUmgebungAbweichung
+	}
+	if err := c.ensureKeineAktiveKassensitzung(ctx); err != nil {
+		return nil, "", nil, err
+	}
+	return oeffneSetupClient(ctx, log, c.NewTSESetupClient, credentials, &bestaetigteUmgebung, zweck)
+}
+
+// oeffneSetupClient lists the account's TSS; a nil bestaetigteUmgebung accepts any environment.
+func oeffneSetupClient(ctx context.Context, log *slog.Logger, newClient NewTSESetupClient, credentials tse.SetupCredentials, bestaetigteUmgebung *tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
+	client, err := newClient(credentials)
 	if err != nil {
 		log.Error("Failed to create TSE setup client", "error", err)
 		return nil, "", nil, ErrTSEVerbindungFehlgeschlagen
@@ -266,8 +254,8 @@ func (c Command) oeffneSetupClient(ctx context.Context, log *slog.Logger, creden
 		return nil, "", nil, ErrTSEVerbindungFehlgeschlagen
 	}
 
-	if umgebung != bestaetigteUmgebung {
-		log.Warn("Confirmed TSE environment does not match actual environment", "bestaetigt", string(bestaetigteUmgebung), "tatsaechlich", string(umgebung))
+	if bestaetigteUmgebung != nil && umgebung != *bestaetigteUmgebung {
+		log.Warn("Confirmed TSE environment does not match actual environment", "bestaetigt", string(*bestaetigteUmgebung), "tatsaechlich", string(umgebung))
 		return nil, "", nil, ErrTSESetupUmgebungAbweichung
 	}
 
