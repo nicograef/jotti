@@ -104,6 +104,8 @@ jobs:
               - 'database/**'
               - 'reverse-proxy/**'
               - '.node-version'
+              - 'scripts/e2e-stack.sh'
+              - 'scripts/lib.sh'
             ci:
               - '.github/workflows/ci.yml'
 
