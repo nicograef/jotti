@@ -95,10 +95,11 @@ func zahlungData(zahlungID string, gesamtCents int) map[string]any {
 	}
 }
 
-// stornierungData builds a cash-relevant return referencing the returned payment.
+// stornierungData builds a cash-relevant return referencing the returned payment. Its stornierungId
+// derives from the zahlungId, since the BON_ID index admits each ID once.
 func stornierungData(zahlungID string, betragCents int, kommentar string) map[string]any {
 	return map[string]any{
-		"stornierungId":          "s0000000-0000-0000-0000-000000000001",
+		"stornierungId":          "storno-" + zahlungID,
 		"zahlungId":              zahlungID,
 		"gesamtStornierungCents": betragCents,
 		"kommentar":              kommentar,
