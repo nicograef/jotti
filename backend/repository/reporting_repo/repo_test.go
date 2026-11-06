@@ -920,7 +920,6 @@ func TestGetStornierungen_DirektverkaufStornoNenntDenVerkaeufer(t *testing.T) {
 // The live dashboard's open total is the sum over the open tables it lists; a settled table counts for neither.
 func TestGetLiveReporting_OffeneSaldiSummiertOffeneTische(t *testing.T) {
 	db := dbtest.Open()
-	defer func() { _ = db.Close() }()
 	cleanDB(t, db)
 
 	userID := createUser(t, db, "Anna Müller", "anna", "active")
@@ -934,6 +933,7 @@ func TestGetLiveReporting_OffeneSaldiSummiertOffeneTische(t *testing.T) {
 				t.Errorf("Failed to delete tisch %d: %v", id, err)
 			}
 		}
+		_ = db.Close()
 	})
 	for i, saldo := range []int{300, 450, 0} {
 		var tischID int
