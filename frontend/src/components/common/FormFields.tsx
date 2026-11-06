@@ -359,3 +359,48 @@ export function CategoryField<AllFormFields extends FieldValues>({
     />
   )
 }
+
+interface TextFieldProps<TField extends FieldValues> {
+  form: UseFormReturn<TField>
+  name: FieldPath<TField>
+  label: string
+  placeholder?: string
+  description?: string
+  type?: 'text' | 'password'
+  autoComplete?: string
+}
+
+/** Labelled text field; a null form value shows as an empty input. */
+export function TextField<TField extends FieldValues>({
+  form,
+  name,
+  label,
+  placeholder,
+  description,
+  type = 'text',
+  autoComplete,
+}: TextFieldProps<TField>) {
+  const id = `form-${name}`
+  return (
+    <Controller
+      name={name}
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className="gap-1.5">
+          <FieldLabel htmlFor={id}>{label}</FieldLabel>
+          <Input
+            {...field}
+            value={(field.value as string | null) ?? ''}
+            id={id}
+            type={type}
+            aria-invalid={fieldState.invalid}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+          />
+          {description && <FieldDescription>{description}</FieldDescription>}
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  )
+}

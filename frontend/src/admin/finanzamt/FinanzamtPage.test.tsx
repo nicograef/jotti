@@ -199,6 +199,46 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
   })
 })
 
+describe('FinanzamtPage — Betreiber-Stammdaten', () => {
+  it('zeigt die Schema-Meldung am Feld und speichert nicht', async () => {
+    const fake = backend()
+    await renderPage(fake)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }))
+    await userEvent.clear(screen.getByLabelText('Vereinsname *'))
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    expect(
+      await screen.findByText('Vereinsname ist erforderlich.'),
+    ).toBeInTheDocument()
+    expect(fake.bodies('admin/update-betreiber')).toHaveLength(0)
+  })
+
+  it('sendet ein geleertes optionales Feld als null', async () => {
+    const fake = backend({
+      betreiber: makeBetreiber({ steuernummer: '12/345/67890' }),
+    }).respond('admin/update-betreiber', {})
+    await renderPage(fake)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Bearbeiten' }))
+    await userEvent.clear(screen.getByLabelText('Steuernummer (optional)'))
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(fake.bodies('admin/update-betreiber')).toEqual([
+        {
+          vereinsname: 'Musterverein e.V.',
+          strasse: 'Musterstraße 1',
+          plz: '12345',
+          ort: 'Musterstadt',
+          steuernummer: null,
+          ustId: null,
+        },
+      ])
+    })
+  })
+})
+
 describe('FinanzamtPage — Läuft-alles-Ampel', () => {
   it('zeigt den grünen Normalzustand als Klartext', async () => {
     await renderPage()

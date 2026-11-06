@@ -3,6 +3,15 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
+// An empty optional field is sent as null.
+const optionalesFeld = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, { message })
+    .nullable()
+    .transform((wert) => (wert === '' ? null : wert))
+
 // The address fields appear on every Kassenbeleg (§ 6 KassenSichV). Limits and trim mirror the zog schema
 // in domain/betreiber, which holds the legal maximum lengths of the DSFinV-K master data.
 export const BetreiberEingabeSchema = z.object({
@@ -26,16 +35,8 @@ export const BetreiberEingabeSchema = z.object({
     .trim()
     .min(1, { message: 'Ort ist erforderlich.' })
     .max(62, { message: 'Der Ort ist zu lang.' }),
-  steuernummer: z
-    .string()
-    .trim()
-    .max(20, { message: 'Die Steuernummer ist zu lang.' })
-    .nullable(),
-  ustId: z
-    .string()
-    .trim()
-    .max(15, { message: 'Die USt-ID ist zu lang.' })
-    .nullable(),
+  steuernummer: optionalesFeld(20, 'Die Steuernummer ist zu lang.'),
+  ustId: optionalesFeld(15, 'Die USt-ID ist zu lang.'),
 })
 export type BetreiberEingabe = z.infer<typeof BetreiberEingabeSchema>
 

@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
+import { TextField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
-import { type BetreiberEingabe } from './BetreiberBackend'
+import {
+  type BetreiberEingabe,
+  BetreiberEingabeSchema,
+} from './BetreiberBackend'
 
 export function BetreiberForm({
   initial,
@@ -15,96 +18,71 @@ export function BetreiberForm({
   initial: BetreiberEingabe
   onSave: (b: BetreiberEingabe) => Promise<void>
 }) {
-  const [form, setForm] = useState<BetreiberEingabe>(initial)
-  const { loading: saving, run } = useActionSubmit({
+  const form = useForm<BetreiberEingabe>({
+    defaultValues: initial,
+    resolver: zodResolver(BetreiberEingabeSchema),
+    mode: 'onTouched',
+  })
+  const { loading: saving, run } = useFormActionSubmit({
+    form,
     actionLabel: 'Betreiber-Stammdaten speichern',
   })
 
-  const handleChange =
-    (field: keyof BetreiberEingabe) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setForm((prev) => ({
-        ...prev,
-        [field]:
-          value === '' && (field === 'steuernummer' || field === 'ustId')
-            ? null
-            : value,
-      }))
-    }
-
-  const handleSave = async () => {
+  const onSubmit = async (daten: BetreiberEingabe) => {
     await run(async () => {
-      await onSave(form)
+      await onSave(daten)
       toast.success('Betreiber-Stammdaten gespeichert.')
     })
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-1.5">
-        <Label htmlFor="vereinsname">Vereinsname *</Label>
-        <Input
-          id="vereinsname"
-          value={form.vereinsname}
-          onChange={handleChange('vereinsname')}
-          placeholder="z.B. Sportverein Musterstadt e.V."
-        />
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="strasse">Straße und Hausnummer *</Label>
-        <Input
-          id="strasse"
-          value={form.strasse}
-          onChange={handleChange('strasse')}
-          placeholder="z.B. Musterstraße 1"
-        />
-      </div>
+    <form
+      className="grid gap-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void form.handleSubmit(onSubmit)()
+      }}
+    >
+      <TextField
+        form={form}
+        name="vereinsname"
+        label="Vereinsname *"
+        placeholder="z.B. Sportverein Musterstadt e.V."
+      />
+      <TextField
+        form={form}
+        name="strasse"
+        label="Straße und Hausnummer *"
+        placeholder="z.B. Musterstraße 1"
+      />
       <div className="grid grid-cols-[120px_1fr] gap-4">
-        <div className="grid gap-1.5">
-          <Label htmlFor="plz">PLZ *</Label>
-          <Input
-            id="plz"
-            value={form.plz}
-            onChange={handleChange('plz')}
-            placeholder="12345"
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="ort">Ort *</Label>
-          <Input
-            id="ort"
-            value={form.ort}
-            onChange={handleChange('ort')}
-            placeholder="Musterstadt"
-          />
-        </div>
-      </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="steuernummer">Steuernummer (optional)</Label>
-        <Input
-          id="steuernummer"
-          value={form.steuernummer ?? ''}
-          onChange={handleChange('steuernummer')}
-          placeholder="z.B. 12/345/67890"
-          autoComplete="off"
+        <TextField form={form} name="plz" label="PLZ *" placeholder="12345" />
+        <TextField
+          form={form}
+          name="ort"
+          label="Ort *"
+          placeholder="Musterstadt"
         />
       </div>
-      <div className="grid gap-1.5">
-        <Label htmlFor="ustId">USt-ID (optional)</Label>
-        <Input
-          id="ustId"
-          value={form.ustId ?? ''}
-          onChange={handleChange('ustId')}
-          placeholder="z.B. DE123456789"
-          autoComplete="off"
-        />
-      </div>
+      <TextField
+        form={form}
+        name="steuernummer"
+        label="Steuernummer (optional)"
+        placeholder="z.B. 12/345/67890"
+        autoComplete="off"
+      />
+      <TextField
+        form={form}
+        name="ustId"
+        label="USt-ID (optional)"
+        placeholder="z.B. DE123456789"
+        autoComplete="off"
+      />
       <div>
-        <Button onClick={() => void handleSave()} disabled={saving}>
+        <Button type="submit" disabled={saving}>
           {saving ? 'Speichern…' : 'Speichern'}
         </Button>
       </div>
-    </div>
+    </form>
   )
 }

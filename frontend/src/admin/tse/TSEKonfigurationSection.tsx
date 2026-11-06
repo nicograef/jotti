@@ -1,5 +1,9 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+
+import { TextField } from '@/components/common/FormFields'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,13 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { useTSEKonfiguration } from './hooks'
 import {
   type TSEKonfigurationSpeichern,
+  TSEKonfigurationSpeichernSchema,
   type TSEVerbindungStatus,
   verbindungIstSigniertfaehig,
 } from './TSEBackend'
@@ -47,17 +51,18 @@ function TSEKonfigurationForm({
   onClear: () => Promise<void>
   onTestConnection: () => Promise<TSEVerbindungStatus>
 }) {
-  const [form, setForm] = useState<TSEKonfigurationSpeichern>(initial)
+  const form = useForm<TSEKonfigurationSpeichern>({
+    defaultValues: initial,
+    resolver: zodResolver(TSEKonfigurationSpeichernSchema),
+    mode: 'onTouched',
+  })
   const [verbindungStatus, setVerbindungStatus] =
     useState<TSEVerbindungStatus | null>(null)
 
-  const { loading: saving, run: runSave } = useActionSubmit({
+  const { loading: saving, run: runSave } = useFormActionSubmit({
+    form,
     actionLabel: 'TSE-Konfiguration speichern',
     byCode: {
-      // validation_error ist der globale Code jedes Formulars; nur hier lässt
-      // sich sagen, welche Felder gemeint sind.
-      validation_error:
-        'Bitte alle vier Felder ausfüllen und auf gültige Länge prüfen.',
       // Ohne zentrale Meldung.
       tse_konfiguration_kassensitzung_offen: `Die TSE-Konfiguration kann nicht geändert werden, ${KASSENSITZUNG_AKTIV_GRUND}`,
     },
@@ -79,14 +84,10 @@ function TSEKonfigurationForm({
     },
   })
 
-  const handleSave = async () => {
+  const onSubmit = async (config: TSEKonfigurationSpeichern) => {
     await runSave(async () => {
-      await onSave(form)
-      setForm((prev) => ({
-        ...prev,
-        apiKey: '',
-        apiSecret: '',
-      }))
+      await onSave(config)
+      form.reset({ ...config, apiKey: '', apiSecret: '' })
       setVerbindungStatus(null)
       toast.success('TSE-Konfiguration gespeichert.')
     })
@@ -95,7 +96,7 @@ function TSEKonfigurationForm({
   const handleClear = async () => {
     await runClear(async () => {
       await onClear()
-      setForm(emptyTSEKonfiguration)
+      form.reset(emptyTSEKonfiguration)
       setVerbindungStatus(null)
       toast.success('TSE-Konfiguration geleert.')
     })
@@ -114,79 +115,58 @@ function TSEKonfigurationForm({
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-1.5">
-        <Label htmlFor="tseApiKey">API-Key *</Label>
-        <Input
-          id="tseApiKey"
-          type="password"
-          value={form.apiKey}
-          onChange={(event) => {
-            setForm((prev) => ({ ...prev, apiKey: event.target.value }))
-          }}
-          placeholder="fiskaly API-Key"
-          autoComplete="off"
-        />
-        {apiKeyGesetzt && (
-          <p className="text-sm text-muted-foreground">
-            Ein API-Key ist bereits hinterlegt. Beim Speichern wird der hier
-            eingegebene Wert übernommen.
-          </p>
-        )}
-      </div>
-
-      <div className="grid gap-1.5">
-        <Label htmlFor="tseApiSecret">API-Secret *</Label>
-        <Input
-          id="tseApiSecret"
-          type="password"
-          value={form.apiSecret}
-          onChange={(event) => {
-            setForm((prev) => ({
-              ...prev,
-              apiSecret: event.target.value,
-            }))
-          }}
-          placeholder="fiskaly API-Secret"
-          autoComplete="off"
-        />
-        {apiSecretGesetzt && (
-          <p className="text-sm text-muted-foreground">
-            Ein API-Secret ist bereits hinterlegt. Beim Speichern wird der hier
-            eingegebene Wert übernommen.
-          </p>
-        )}
-      </div>
-
-      <div className="grid gap-1.5">
-        <Label htmlFor="tseTssId">TSS-ID *</Label>
-        <Input
-          id="tseTssId"
-          value={form.tssId}
-          onChange={(event) => {
-            setForm((prev) => ({ ...prev, tssId: event.target.value }))
-          }}
-          placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000"
-        />
-      </div>
-
-      <div className="grid gap-1.5">
-        <Label htmlFor="tseClientId">Client-ID *</Label>
-        <Input
-          id="tseClientId"
-          value={form.clientId}
-          onChange={(event) => {
-            setForm((prev) => ({ ...prev, clientId: event.target.value }))
-          }}
-          placeholder="z.B. KASSE-1"
-        />
-      </div>
+    <form
+      className="grid gap-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void form.handleSubmit(onSubmit)()
+      }}
+    >
+      <TextField
+        form={form}
+        name="apiKey"
+        label="API-Key *"
+        type="password"
+        placeholder="fiskaly API-Key"
+        autoComplete="off"
+        description={
+          apiKeyGesetzt
+            ? 'Ein API-Key ist bereits hinterlegt. Beim Speichern wird der hier eingegebene Wert übernommen.'
+            : undefined
+        }
+      />
+      <TextField
+        form={form}
+        name="apiSecret"
+        label="API-Secret *"
+        type="password"
+        placeholder="fiskaly API-Secret"
+        autoComplete="off"
+        description={
+          apiSecretGesetzt
+            ? 'Ein API-Secret ist bereits hinterlegt. Beim Speichern wird der hier eingegebene Wert übernommen.'
+            : undefined
+        }
+      />
+      <TextField
+        form={form}
+        name="tssId"
+        label="TSS-ID *"
+        placeholder="z.B. 123e4567-e89b-12d3-a456-426614174000"
+      />
+      <TextField
+        form={form}
+        name="clientId"
+        label="Client-ID *"
+        placeholder="z.B. KASSE-1"
+      />
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => void handleSave()} disabled={saving || clearing}>
+        <Button type="submit" disabled={saving || clearing}>
           {saving ? 'Speichern…' : 'Speichern'}
         </Button>
         <Button
+          type="button"
           variant="secondary"
           onClick={() => void handleTestConnection()}
           disabled={saving || clearing || testing}
@@ -194,6 +174,7 @@ function TSEKonfigurationForm({
           {testing ? 'Teste Verbindung…' : 'Verbindung testen'}
         </Button>
         <Button
+          type="button"
           variant="outline"
           onClick={() => void handleClear()}
           disabled={saving || clearing || testing}
@@ -209,7 +190,7 @@ function TSEKonfigurationForm({
           Das Ergebnis erscheint nach einem Verbindungstest.
         </p>
       )}
-    </div>
+    </form>
   )
 }
 
