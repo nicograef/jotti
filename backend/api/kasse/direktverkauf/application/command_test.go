@@ -46,7 +46,6 @@ var testVariant = produkt.Variante{
 type spyEventRepo struct {
 	written        []writtenEvent
 	druckauftraege []druckauftrag_repo.NeuerDruckauftrag
-	maxVersion     int
 	writeErr       error
 	streamEvents   []event.Event
 	readErr        error
@@ -56,10 +55,6 @@ type writtenEvent struct {
 	event           event.Event
 	streamType      kasse.StreamType
 	kassensitzungNr int
-}
-
-func (s *spyEventRepo) GetMaxVersion(_ context.Context, _ string) (int, error) {
-	return s.maxVersion, nil
 }
 
 func (s *spyEventRepo) ReadEventsBySubject(_ context.Context, _ string) ([]event.Event, error) {
@@ -72,17 +67,6 @@ func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType k
 	}
 	s.written = append(s.written, writtenEvent{event: e, streamType: streamType, kassensitzungNr: kassensitzungNr})
 	return len(s.written), nil
-}
-
-func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
-	id, err := s.WriteEvent(context.Background(), e, streamType, kassensitzungNr)
-	if err != nil {
-		return 0, err
-	}
-
-	e.ID = id
-	s.druckauftraege = append(s.druckauftraege, buildAuftraege(e)...)
-	return id, nil
 }
 
 func (s *spyEventRepo) WriteEventsAtomic(_ context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error {
@@ -427,7 +411,7 @@ func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
 
 func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
-	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
@@ -444,7 +428,7 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 	// verfügbare Menge (3) nicht übersteigt.
 	for _, menge := range []int{2, 1} {
 		getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 3)
-		spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+		spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}}
 		command := newCommand(spy, testOpenKS)
 
 		refs := []kasse.PositionRef{
@@ -463,7 +447,7 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 
 func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) {
 	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
-	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}}
+	spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
 	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
@@ -480,7 +464,7 @@ func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) 
 		t.Errorf("expected stream type %s, got %s", kasse.StreamTypeDirektverkauf, got.streamType)
 	}
 	if got.event.Version != 2 {
-		t.Errorf("expected version 2 (maxVersion+1), got %d", got.event.Version)
+		t.Errorf("expected version 2 (last version+1), got %d", got.event.Version)
 	}
 	if got.event.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
 		t.Errorf("expected type %s, got %s", kasse.EventTypeDirektverkaufStorniertV1, got.event.Type)
@@ -497,13 +481,26 @@ func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) 
 	}
 }
 
-func TestDirektverkaufStornieren_Conflict(t *testing.T) {
-	getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
-	spy := &spyEventRepo{maxVersion: 1, streamEvents: []event.Event{getaetigt}, writeErr: db.ErrAlreadyExists}
-	command := newCommand(spy, testOpenKS)
+func TestDirektverkaufStornieren_WriteErrors(t *testing.T) {
+	cases := []struct {
+		name     string
+		writeErr error
+		want     error
+	}{
+		{"unique violation", db.ErrAlreadyExists, ErrConflict},
+		{"deadlock", db.ErrConflict, ErrConflict},
+		{"kassensitzung closed meanwhile", kassenjournal_repo.ErrKassensitzungNichtOffen, ErrKasseNichtGeoeffnet},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			getaetigt, verkaufID, positionID := getaetigtEvent(t, 500, 2)
+			spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}, writeErr: tc.writeErr}
+			command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("expected ErrConflict, got %v", err)
+			err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+			if !errors.Is(err, tc.want) {
+				t.Errorf("expected %v, got %v", tc.want, err)
+			}
+		})
 	}
 }

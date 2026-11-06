@@ -42,15 +42,11 @@ func (c Command) PfandZurueckgeben(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, 0, ks.ZNr, nil); err != nil {
+	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, 0, ks.ZNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return c.pruefeReineRueckgabe(ctx, rueckgabeID, tischID, inputs)
 		}
-		if errors.Is(err, ErrKasseNichtGeoeffnet) {
-			return err
-		}
-		log.Error("Failed to write pfand zurueckgegeben event", "error", err)
-		return ErrDatabase
+		return err
 	}
 
 	log.Info("Pfand zurückgegeben", "rueckgabe_id", rueckgabeID, "tisch_id", tischID)
@@ -126,18 +122,13 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 		return err
 	}
 
-	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
+	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, events[len(events)-1].Version, ks.ZNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			if gebucht, err := c.pruefeGebuchteStornierung(ctx, stornierungID, rueckgabeID, positionen); gebucht || err != nil {
 				return err
 			}
-			return ErrConflict
 		}
-		if errors.Is(err, ErrKasseNichtGeoeffnet) {
-			return err
-		}
-		log.Error("Failed to write pfandrueckgabe storniert event", "error", err, "rueckgabe_id", rueckgabeID)
-		return ErrDatabase
+		return err
 	}
 
 	log.Info("Pfandrückgabe storniert", "rueckgabe_id", rueckgabeID, "gesamt_stornierung_cents", gesamtStornierungCents)

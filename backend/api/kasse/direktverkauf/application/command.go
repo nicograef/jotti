@@ -19,9 +19,7 @@ import (
 
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
-	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
-	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
 	ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungNr int, tischID int) ([]event.Event, error)
@@ -195,52 +193,36 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypeDirektverkauf, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
-		if errors.Is(err, ErrConflict) {
-			return ErrConflict
-		}
-		log.Error("Failed to write direktverkauf storniert event", "error", err, "verkauf_id", verkaufID)
-		return ErrDatabase
+	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypeDirektverkauf, subject, events[len(events)-1].Version, ks.ZNr); err != nil {
+		return err
 	}
 
 	log.Info("Direktverkauf storniert", "verkauf_id", verkaufID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
 }
 
-// expectedVersion is the state the command validated against (0 for a fresh stream, the replay's
-// highest version for a Storno). A UNIQUE(subject, version) conflict means the stream changed since
-// reading and becomes ErrConflict.
-func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
+// writeEventOCC writes at expectedVersion+1: 0 for a fresh stream, the replay's highest version for
+// a Storno. A UNIQUE(subject, version) conflict or a deadlock means the stream changed since reading
+// and becomes ErrConflict.
+func (c Command) writeEventOCC(ctx context.Context, e event.Event, streamType kasse.StreamType, subject string, expectedVersion int, kassensitzungNr int) error {
+	log := logging.FromContext(ctx)
 	e.Version = expectedVersion + 1
 
-	if _, err := write(e); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			logging.FromContext(ctx).Warn("OCC conflict", "version", e.Version, "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, db.ErrConflict) {
-			logging.FromContext(ctx).Warn("Deadlock on event write", "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			logging.FromContext(ctx).Warn("Kassensitzung nicht mehr offen", "subject", subject)
-			return ErrKasseNichtGeoeffnet
-		}
-		return err
+	_, err := c.EventRepo.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, db.ErrAlreadyExists):
+		log.Warn("OCC conflict", "version", e.Version, "subject", subject)
+		return ErrConflict
+	case errors.Is(err, db.ErrConflict):
+		log.Warn("Deadlock on event write", "subject", subject)
+		return ErrConflict
+	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
+		log.Warn("Kassensitzung nicht mehr offen", "subject", subject)
+		return ErrKasseNichtGeoeffnet
+	default:
+		log.Error("Failed to write event", "error", err, "subject", subject, "type", e.Type)
+		return ErrDatabase
 	}
-
-	return nil
-}
-
-// persistVerkaufEvent: mit nicht-nil buildAuftraege entstehen die Druckaufträge in derselben
-// Transaktion; der Signaturauftrag des Events entsteht in jedem Fall im selben Commit.
-func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, streamType kasse.StreamType, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
-	if buildAuftraege != nil {
-		return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
-		})
-	}
-	return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return c.EventRepo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
-	})
 }
