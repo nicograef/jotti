@@ -22,13 +22,18 @@ func NewServiceleitungApi(deps Deps) (http.Handler, []string) {
 	}}
 	r.HandleFunc("/stornierung-erteilen", tc.StornierungErteilenHandler())
 
-	dc := direktverkaufHTTP.CommandHandler{Command: direktverkaufApp.Command{
+	dvCommand := direktverkaufApp.Command{
 		EventRepo:           deps.KassenjournalRepo,
 		ProduktRepo:         deps.ProduktRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
-	}}
+		TischRepo:           deps.TischRepo,
+	}
+	dc := direktverkaufHTTP.CommandHandler{Command: dvCommand}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
+
+	pc := direktverkaufHTTP.PfandCommandHandler{Command: dvCommand}
+	r.HandleFunc("/pfandrueckgabe-stornieren", pc.PfandrueckgabeStornierenHandler())
 
 	return r.Handler(), r.Paths()
 }

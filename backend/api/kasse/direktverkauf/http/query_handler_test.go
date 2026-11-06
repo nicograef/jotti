@@ -19,6 +19,10 @@ func (m *mockQuery) GetDirektverkaufHistorie(_ context.Context) ([]kasse.Direktv
 	return m.historie, nil
 }
 
+func (m *mockQuery) GetPfandrueckgabeHistorie(_ context.Context, _ int) ([]kasse.PfandrueckgabeHistorieEintrag, error) {
+	return nil, nil
+}
+
 func TestGetDirektverkaufHistorieHandler_ReturnsHistorie(t *testing.T) {
 	const posID = "6f9619ff-8b86-d011-b42d-00cf4fc964ff"
 	handler := &QueryHandler{Query: &mockQuery{historie: []kasse.DirektverkaufHistorieEintrag{

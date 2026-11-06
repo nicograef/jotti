@@ -70,6 +70,7 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 	}}
 	r.HandleFunc("/get-direktverkauf-historie", dq.GetDirektverkaufHistorieHandler())
+	r.HandleFunc("/get-pfandrueckgabe-historie", dq.GetPfandrueckgabeHistorieHandler())
 
 	tq := tischgeschaeftHTTP.QueryHandler{Query: tischgeschaeftApp.Query{
 		TischRepo:           deps.TischRepo,
