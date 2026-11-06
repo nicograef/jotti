@@ -21,6 +21,8 @@ var fiskalischeTypen = map[string]string{
 	string(kasse.EventTypeBestellungUmgebuchtV1):     tse.ProcessTypeBestellungV1,
 	string(kasse.EventTypeDirektverkaufGetaetigtV1):  tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDirektverkaufStorniertV1):  tse.ProcessTypeKassenbelegV1,
+	string(kasse.EventTypePfandZurueckgegebenV1):     tse.ProcessTypeKassenbelegV1,
+	string(kasse.EventTypePfandrueckgabeStorniertV1): tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeGeldtransitGebuchtV1):      tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDifferenzSollIstGebuchtV1): tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeTagesabschlussErstelltV1):  tse.ProcessTypeSonstigerVorgang,

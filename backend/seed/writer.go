@@ -165,6 +165,7 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 			Name:        p.Name,
 			Kategorie:   dbgen.Produktkategorie(p.Kategorie),
 			Steuersatz:  dbgen.Steuersatz(p.Steuersatz),
+			Pfand:       p.Pfand,
 			Status:      dbgen.Entitystatus(p.Status),
 			CreatedAt:   jetzt,
 			UpdatedAt:   jetzt,

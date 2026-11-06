@@ -134,8 +134,8 @@ func (q *Queries) SeedInsertLeereTSEKonfiguration(ctx context.Context) error {
 }
 
 const seedInsertProdukt = `-- name: SeedInsertProdukt :exec
-INSERT INTO produkte (id, name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO produkte (id, name, kategorie, steuersatz, pfand, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type SeedInsertProduktParams struct {
@@ -143,6 +143,7 @@ type SeedInsertProduktParams struct {
 	Name        string
 	Kategorie   Produktkategorie
 	Steuersatz  Steuersatz
+	Pfand       bool
 	Status      Entitystatus
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -155,6 +156,7 @@ func (q *Queries) SeedInsertProdukt(ctx context.Context, arg SeedInsertProduktPa
 		arg.Name,
 		arg.Kategorie,
 		arg.Steuersatz,
+		arg.Pfand,
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,

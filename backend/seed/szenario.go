@@ -60,6 +60,7 @@ type produkt struct {
 	Name       string
 	Kategorie  produktDomain.Kategorie
 	Steuersatz steuer.Steuersatz
+	Pfand      bool
 	Status     produktDomain.Status
 	Varianten  []variante
 }
@@ -136,6 +137,25 @@ type direktverkaufStorno struct {
 	Kommentar string
 }
 
+// pfandrueckgabe zahlt Pfand für zurückgegebene Pfand-Varianten bar aus; Tisch 0 ist die
+// Theke. Die RueckgabeID ist die feste Subject-UUID aus dem Drehbuch.
+type pfandrueckgabe struct {
+	RueckgabeID string
+	Tisch, User int
+	Posten      []bestellposten
+	Kommentar   string
+}
+
+// pfandStorno storniert Positionen einer Pfandrückgabe; leere Posten = alle nicht
+// stornierten Positionen der Rückgabe.
+type pfandStorno struct {
+	RueckgabeID   string
+	StornierungID string
+	User          int
+	Posten        []bestellposten
+	Kommentar     string
+}
+
 // geldtransit bucht eine Einlage oder Entnahme auf Kassensitzungs-Ebene.
 type geldtransit struct {
 	User        int
@@ -157,6 +177,8 @@ func (stornieren) istAktion()          {}
 func (umbuchen) istAktion()            {}
 func (direktverkauf) istAktion()       {}
 func (direktverkaufStorno) istAktion() {}
+func (pfandrueckgabe) istAktion()      {}
+func (pfandStorno) istAktion()         {}
 func (geldtransit) istAktion()         {}
 func (kassensturz) istAktion()         {}
 
@@ -278,6 +300,16 @@ func verflechte(straenge ...[]aktion) []aktion {
 // erste Gruppe = Festtag (1–3), letzte Gruppe = laufende Nummer.
 func dvID(tag, nr int) string {
 	return fmt.Sprintf("%08d-0000-4000-8000-%012d", tag, nr)
+}
+
+// pfandID liefert die feste Subject-UUID einer Pfandrückgabe nach dem Schema von dvID.
+func pfandID(tag, nr int) string {
+	return fmt.Sprintf("%08d-0000-4000-9000-%012d", tag, nr)
+}
+
+// pfandStornoID liefert die feste UUID einer Pfandrückgabe-Stornierung.
+func pfandStornoID(tag, nr int) string {
+	return fmt.Sprintf("%08d-0000-4000-a000-%012d", tag, nr)
 }
 
 // --- Das Drehbuch: 3-Tage-Sommerfest „TSV Musterstadt e.V." ---
@@ -433,6 +465,10 @@ func demoSzenario() szenario {
 			{ID: 22, Name: "Langos", Kategorie: produktDomain.EssenKategorie, Steuersatz: steuer.ErmaessigtSteuersatz, Status: produktDomain.DeletedStatus, Varianten: []variante{
 				{ID: 53, Name: "mit Knoblauch", PreisCents: 400, Status: produktDomain.DeletedStatus},
 				{ID: 54, Name: "mit Käse", PreisCents: 500, Status: produktDomain.DeletedStatus},
+			}},
+			// Glaspfand teilt den Satz der Getränke (Leitfaden Belege und Steuersätze).
+			{ID: 23, Name: "Pfand", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Pfand: true, Status: produktDomain.ActiveStatus, Varianten: []variante{
+				{ID: 55, Name: "Glas", PreisCents: 200, Status: produktDomain.ActiveStatus},
 			}},
 		},
 		Favoriten: []favorit{
@@ -697,12 +733,17 @@ func samstagsAktionen() []aktion {
 		posten(pos(10, 2), pos(39, 2)),
 		posten(pos(14, 2), pos(36, 2)),
 	)
-	bar := runden(18, anna, 28,
+	// Stehtisch Bar: Hugo und Aperol im Pfandglas. Gäste bringen Gläser zurück, eins davon
+	// gehört dem Nachbarstand; die Serviceleitung storniert es aus der Rückgabe.
+	bar := append(runden(18, anna, 28,
 		posten(pos(24, 2)),
-		posten(pos(48, 2)),
-		posten(pos(49, 2)),
+		posten(pos(48, 2), pos(55, 2)),
+		posten(pos(49, 2), pos(55, 2)),
 		posten(pos(23, 3)),
 		posten(pos(30, 2)),
+	),
+		pfandrueckgabe{RueckgabeID: pfandID(2, 1), Tisch: 18, User: anna, Posten: posten(pos(55, 4))},
+		pfandStorno{RueckgabeID: pfandID(2, 1), StornierungID: pfandStornoID(2, 1), User: felix, Posten: posten(pos(55, 1)), Kommentar: "Glas vom Nachbarstand, kein Pfand von uns"},
 	)
 	eingang := runden(19, anna, 20,
 		posten(pos(31, 2), pos(20, 2)),
@@ -715,7 +756,7 @@ func samstagsAktionen() []aktion {
 		posten(pos(10, 2), pos(38, 2)),
 	)
 	// Direktverkaufsstand: Festbändchen und Kuchen den ganzen Tag, ein Verkauf wird
-	// von der Serviceleitung storniert.
+	// von der Serviceleitung storniert. Abends nimmt der Stand Pfandgläser an.
 	stand := []aktion{
 		direktverkauf{VerkaufID: dvID(2, 1), User: sophie, Posten: posten(pos(51, 4), pos(52, 2))},
 		direktverkauf{VerkaufID: dvID(2, 2), User: sophie, Posten: posten(pos(51, 2))},
@@ -728,6 +769,7 @@ func samstagsAktionen() []aktion {
 		direktverkauf{VerkaufID: dvID(2, 8), User: sophie, Posten: posten(pos(52, 4))},
 		direktverkauf{VerkaufID: dvID(2, 9), User: sophie, Posten: posten(pos(51, 2), pos(16, 2))},
 		direktverkauf{VerkaufID: dvID(2, 10), User: sophie, Posten: posten(pos(16, 6))},
+		pfandrueckgabe{RueckgabeID: pfandID(2, 2), Tisch: 0, User: sophie, Posten: posten(pos(55, 3)), Kommentar: "Gläser vom Festplatz"},
 	}
 
 	tag := verflechte(stammtisch, jungeLeute, ehepaar, geburtstag, vorstand, kollegen, familie,

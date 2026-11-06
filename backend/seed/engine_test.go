@@ -227,7 +227,7 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		}
 		abschluss := parseData[kasse.TagesabschlussErstelltV1Data](t, letztes)
 
-		var zahlungen, warenruecknahmen, korrekturen, dv, dvStorno, transit int
+		var zahlungen, warenruecknahmen, korrekturen, dv, dvStorno, pfand, pfandStorno, transit int
 		for _, evt := range tagesEvents {
 			switch evt.Type {
 			case string(kasse.EventTypeZahlungKassiertV1):
@@ -240,6 +240,10 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 				dv += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 			case string(kasse.EventTypeDirektverkaufStorniertV1):
 				dvStorno += parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents
+			case string(kasse.EventTypePfandZurueckgegebenV1):
+				pfand += parseData[kasse.PfandZurueckgegebenV1Data](t, evt).GesamtbetragCents
+			case string(kasse.EventTypePfandrueckgabeStorniertV1):
+				pfandStorno += parseData[kasse.PfandrueckgabeStorniertV1Data](t, evt).GesamtStornierungCents
 			case string(kasse.EventTypeGeldtransitGebuchtV1):
 				data := parseData[kasse.GeldtransitGebuchtV1Data](t, evt)
 				if data.Richtung == "einlage" {
@@ -251,8 +255,9 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		}
 
 		// Die kassenwirksame Warenrücknahme mindert den Umsatz, die geldneutrale
-		// Korrektur nicht; StornierungCents umfasst beide Storno-Arten.
-		umsatz := zahlungen + dv - dvStorno - warenruecknahmen
+		// Korrektur nicht; StornierungCents umfasst beide Storno-Arten. Pfandrückgaben
+		// mindern den Umsatz, ihre Stornierungen heben das auf; beide sind kein Storno.
+		umsatz := zahlungen + dv - dvStorno - warenruecknahmen - pfand + pfandStorno
 		if abschluss.UmsatzGesamtCents != umsatz {
 			t.Errorf("Sitzung %d: UmsatzGesamtCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.UmsatzGesamtCents, umsatz)
 		}
@@ -415,6 +420,10 @@ func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 			bestand += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 		case string(kasse.EventTypeDirektverkaufStorniertV1):
 			bestand -= parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents
+		case string(kasse.EventTypePfandZurueckgegebenV1):
+			bestand -= parseData[kasse.PfandZurueckgegebenV1Data](t, evt).GesamtbetragCents
+		case string(kasse.EventTypePfandrueckgabeStorniertV1):
+			bestand += parseData[kasse.PfandrueckgabeStorniertV1Data](t, evt).GesamtStornierungCents
 		case string(kasse.EventTypeGeldtransitGebuchtV1):
 			data := parseData[kasse.GeldtransitGebuchtV1Data](t, evt)
 			if data.Richtung == "einlage" {

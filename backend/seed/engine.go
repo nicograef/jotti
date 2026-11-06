@@ -36,25 +36,30 @@ type seedDaten struct {
 
 // tagesSummen collects a business day's amounts for the Tagesabschluss.
 // StornierungenCents covers both Storno kinds; only the Warenrücknahme lowers turnover and cash, so it is also kept apart.
+// Pfand returns and their Stornos change turnover and cash but are no Storno.
 type tagesSummen struct {
 	ZahlungenCents            int
 	DirektverkaufCents        int
 	DirektverkaufStornosCents int
 	StornierungenCents        int
 	WarenruecknahmenCents     int
+	PfandrueckgabenCents      int
+	PfandStornosCents         int
 	GeldtransitCents          int
 }
 
 // UmsatzGesamtCents follows gesamt_umsatz_cents of GetReportingStats in backend/sqlc/queries/reporting.sql;
 // the cash-neutral Korrektur does not count.
 func (s tagesSummen) UmsatzGesamtCents() int {
-	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents
+	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents -
+		s.PfandrueckgabenCents + s.PfandStornosCents
 }
 
 // buildSeedDaten deterministically turns the scenario into events and Kassensitzung rows before jetzt, via the domain constructors.
 // Timestamps rise strictly across all sessions and every subject carries gap-free versions from 1.
 func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 	variantenIdx := variantenIndex(s.Produkte)
+	pfandIdx := pfandVariantenIndex(s.Produkte)
 	benutzerIdx := benutzerIndex(s.Benutzer)
 	tischIdx := tischIndex(s.Tische)
 
@@ -71,13 +76,15 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 		vorherigesEnde = ende
 
 		bauer := &sitzungsBuilder{
-			sitzung:       *sitzung,
-			varianten:     variantenIdx,
-			benutzer:      benutzerIdx,
-			tische:        tischIdx,
-			versionen:     map[string]int{},
-			tischEvents:   map[int][]e.Event{},
-			verkaufEvents: map[string][]e.Event{},
+			sitzung:        *sitzung,
+			varianten:      variantenIdx,
+			pfandVarianten: pfandIdx,
+			benutzer:       benutzerIdx,
+			tische:         tischIdx,
+			versionen:      map[string]int{},
+			tischEvents:    map[int][]e.Event{},
+			verkaufEvents:  map[string][]e.Event{},
+			pfandOffen:     map[string]offenePfandrueckgabe{},
 		}
 		events, err := bauer.buildEvents(start, ende)
 		if err != nil {
@@ -121,15 +128,17 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 // Kassenbestand, die Tagessummen und die aufgelaufenen Events je Tisch bzw. Direktverkauf,
 // um Folge-Aktionen (Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
 type sitzungsBuilder struct {
-	sitzung   kassensitzungDrehbuch
-	varianten map[int]kasse.Position
-	benutzer  map[int]string
-	tische    map[int]tisch
+	sitzung        kassensitzungDrehbuch
+	varianten      map[int]kasse.Position
+	pfandVarianten map[int]bool
+	benutzer       map[int]string
+	tische         map[int]tisch
 
 	versionen       map[string]int
 	events          []e.Event
 	tischEvents     map[int][]e.Event
 	verkaufEvents   map[string][]e.Event
+	pfandOffen      map[string]offenePfandrueckgabe
 	bestandCents    int
 	summen          tagesSummen
 	kassensturzDone bool
@@ -178,6 +187,10 @@ func (b *sitzungsBuilder) process(a aktion) error {
 		return b.direktverkauf(a)
 	case direktverkaufStorno:
 		return b.direktverkaufStorno(a)
+	case pfandrueckgabe:
+		return b.pfandrueckgabe(a)
+	case pfandStorno:
+		return b.pfandStorno(a)
 	case geldtransit:
 		return b.geldtransit(a)
 	case kassensturz:
@@ -363,6 +376,99 @@ func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	b.bestandCents -= betrag
 	b.summen.DirektverkaufStornosCents += betrag
 	return nil
+}
+
+// offenePfandrueckgabe holds a Rückgabe's table and its not-yet-cancelled positions.
+type offenePfandrueckgabe struct {
+	tischID    int
+	positionen []kasse.Position
+}
+
+// pfandrueckgabe accepts only Pfand variants and an existing table, like PfandZurueckgeben in production.
+func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
+	name, err := b.benutzerName(a.User)
+	if err != nil {
+		return err
+	}
+	if a.Tisch != 0 {
+		if _, err := b.tischName(a.Tisch); err != nil {
+			return err
+		}
+	}
+	if _, ok := b.pfandOffen[a.RueckgabeID]; ok {
+		return fmt.Errorf("pfandrückgabe %s doppelt im Drehbuch", a.RueckgabeID)
+	}
+	for _, p := range a.Posten {
+		if !b.pfandVarianten[p.VarianteID] {
+			return fmt.Errorf("variante %d gehört zu keinem Pfand-Produkt", p.VarianteID)
+		}
+	}
+	positionen, err := buildPositionen(a.Posten, b.varianten)
+	if err != nil {
+		return err
+	}
+	subject := kasse.PfandrueckgabeSubject(b.sitzung.ZNr, a.RueckgabeID)
+	evt, err := kasse.NewPfandZurueckgegebenEvent(subject, a.RueckgabeID, a.Tisch, a.User, name, positionen, a.Kommentar)
+	if err != nil {
+		return err
+	}
+	data, err := parseEventData[kasse.PfandZurueckgegebenV1Data](evt)
+	if err != nil {
+		return err
+	}
+	b.add(evt)
+	offen := make([]kasse.Position, len(data.Positionen))
+	for i, p := range data.Positionen {
+		offen[i] = kasse.PositionFromEventData(p)
+	}
+	b.pfandOffen[a.RueckgabeID] = offenePfandrueckgabe{tischID: a.Tisch, positionen: offen}
+	b.bestandCents -= data.GesamtbetragCents
+	b.summen.PfandrueckgabenCents += data.GesamtbetragCents
+	return nil
+}
+
+// pfandStorno takes at most the open quantity per position and carries the Rückgabe's table.
+func (b *sitzungsBuilder) pfandStorno(a pfandStorno) error {
+	name, err := b.benutzerName(a.User)
+	if err != nil {
+		return err
+	}
+	rueckgabe, ok := b.pfandOffen[a.RueckgabeID]
+	if !ok {
+		return fmt.Errorf("pfandrückgabe %s nicht im Drehbuch", a.RueckgabeID)
+	}
+	auswahl, err := selectPositionen(rueckgabe.positionen, a.Posten)
+	if err != nil {
+		return fmt.Errorf("nicht stornierte Pfand-Positionen: %w", err)
+	}
+	betrag := summeCents(auswahl)
+	subject := kasse.PfandrueckgabeSubject(b.sitzung.ZNr, a.RueckgabeID)
+	evt, err := kasse.NewPfandrueckgabeStorniertEvent(subject, a.StornierungID, a.RueckgabeID, rueckgabe.tischID, a.User, name, auswahl, betrag, a.Kommentar)
+	if err != nil {
+		return err
+	}
+	b.add(evt)
+	rueckgabe.positionen = ohneStornierteMengen(rueckgabe.positionen, auswahl)
+	b.pfandOffen[a.RueckgabeID] = rueckgabe
+	b.bestandCents += betrag
+	b.summen.PfandStornosCents += betrag
+	return nil
+}
+
+// ohneStornierteMengen subtracts the cancelled quantities per PositionID and drops used-up positions.
+func ohneStornierteMengen(offen, storniert []kasse.Position) []kasse.Position {
+	abzug := map[string]int{}
+	for _, p := range storniert {
+		abzug[p.PositionID] += p.Menge
+	}
+	var rest []kasse.Position
+	for _, p := range offen {
+		p.Menge -= abzug[p.PositionID]
+		if p.Menge > 0 {
+			rest = append(rest, p)
+		}
+	}
+	return rest
 }
 
 func (b *sitzungsBuilder) geldtransit(a geldtransit) error {
@@ -598,6 +704,20 @@ func variantenIndex(produkte []produkt) map[int]kasse.Position {
 				Steuersatz:       string(p.Steuersatz),
 				EinzelpreisCents: v.PreisCents,
 			}
+		}
+	}
+	return idx
+}
+
+// pfandVariantenIndex markiert die Varianten der Pfand-Produkte.
+func pfandVariantenIndex(produkte []produkt) map[int]bool {
+	idx := map[int]bool{}
+	for _, p := range produkte {
+		if !p.Pfand {
+			continue
+		}
+		for _, v := range p.Varianten {
+			idx[v.ID] = true
 		}
 	}
 	return idx
