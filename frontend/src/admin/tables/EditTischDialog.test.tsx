@@ -30,7 +30,6 @@ function renderDialog(t: Tisch, be = backend()) {
   render(
     <EditTischDialog
       backend={be}
-      open
       tisch={t}
       updated={vi.fn()}
       deleted={vi.fn()}

@@ -30,7 +30,6 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface EditProductDialogProps {
   backend: Pick<ProduktBackend, 'updateProdukt'>
-  open: boolean
   product: Produkt
   updated: () => void
   close: () => void
@@ -87,7 +86,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
           <DialogTitle>{props.product.name}</DialogTitle>

@@ -40,7 +40,6 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface EditTischDialogProps {
   backend: Pick<TischBackend, 'updateTisch' | 'deleteTisch'>
-  open: boolean
   tisch: Tisch
   updated: () => void
   deleted: (tischId: number) => void
@@ -96,7 +95,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
           <DialogTitle>{props.tisch.name}</DialogTitle>

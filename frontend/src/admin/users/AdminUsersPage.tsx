@@ -27,11 +27,6 @@ const initialPasswordResetState = {
   open: false,
 }
 
-const initialEditState = {
-  user: null as User | null,
-  open: false,
-}
-
 export function AdminUsersPage() {
   const queryClient = useQueryClient()
   const { isPending, users } = useAllUsers()
@@ -41,7 +36,7 @@ export function AdminUsersPage() {
   const [passwordResetState, setPasswordResetState] = useState(
     initialPasswordResetState,
   )
-  const [editState, setEditState] = useState(initialEditState)
+  const [zuBearbeiten, setZuBearbeiten] = useState<User | null>(null)
 
   const { run: runResetPassword } = useActionSubmit({
     actionLabel: 'Passwort zurücksetzen',
@@ -82,17 +77,16 @@ export function AdminUsersPage() {
           setPasswordResetState(initialPasswordResetState)
         }}
       />
-      {editState.user && (
+      {zuBearbeiten && (
         <EditUserDialog
           backend={userBackend}
-          open={editState.open}
-          user={editState.user}
-          isSelf={editState.user.id === AuthSingleton.userId}
+          user={zuBearbeiten}
+          isSelf={zuBearbeiten.id === AuthSingleton.userId}
           updated={() => {
             invalidateUsers()
           }}
           close={() => {
-            setEditState(initialEditState)
+            setZuBearbeiten(null)
           }}
         />
       )}
@@ -117,8 +111,7 @@ export function AdminUsersPage() {
           backend={userBackend}
           users={users}
           onEdit={(userId) => {
-            const userToEdit = users.find((u) => u.id === userId) ?? null
-            setEditState({ user: userToEdit, open: true })
+            setZuBearbeiten(users.find((u) => u.id === userId) ?? null)
           }}
           onStatusChange={() => {
             invalidateUsers()

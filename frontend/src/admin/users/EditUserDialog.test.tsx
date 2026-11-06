@@ -23,7 +23,6 @@ function renderDialog(isSelf = false) {
   render(
     <EditUserDialog
       backend={{ updateUser: vi.fn().mockResolvedValue(undefined) }}
-      open
       user={user()}
       isSelf={isSelf}
       updated={vi.fn()}

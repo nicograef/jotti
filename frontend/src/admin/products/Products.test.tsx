@@ -277,7 +277,6 @@ describe('Produkt-Formulare', () => {
         render(
           <EditProductDialog
             backend={backend}
-            open
             product={produkt({ id: 3, name: 'Pfand' })}
             updated={vi.fn()}
             close={vi.fn()}

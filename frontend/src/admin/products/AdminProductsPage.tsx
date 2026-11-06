@@ -12,18 +12,11 @@ import { NewProductDialog } from './NewProductDialog'
 import { produktUnterzeile } from './productGrouping'
 import { Products } from './Products'
 
-const initialProduktEditState = {
-  produkt: null as Produkt | null,
-  open: false,
-}
-
 export function AdminProductsPage() {
   const queryClient = useQueryClient()
   const { isPending, produkte } = useAllProdukte()
   const { druckstationen } = useDruckstationen()
-  const [produktEditState, setProduktEditState] = useState(
-    initialProduktEditState,
-  )
+  const [zuBearbeiten, setZuBearbeiten] = useState<Produkt | null>(null)
 
   const invalidateProdukte = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_PRODUKTE_KEY] })
@@ -36,16 +29,15 @@ export function AdminProductsPage() {
 
   return (
     <>
-      {produktEditState.produkt && (
+      {zuBearbeiten && (
         <EditProductDialog
           backend={produktBackend}
-          open={produktEditState.open}
-          product={produktEditState.produkt}
+          product={zuBearbeiten}
           updated={() => {
             invalidateProdukte()
           }}
           close={() => {
-            setProduktEditState(initialProduktEditState)
+            setZuBearbeiten(null)
           }}
         />
       )}
@@ -69,8 +61,7 @@ export function AdminProductsPage() {
         products={produkte}
         druckstationen={druckstationen}
         onEdit={(produktId) => {
-          const produktToEdit = produkte.find((p) => p.id === produktId) ?? null
-          setProduktEditState({ produkt: produktToEdit, open: true })
+          setZuBearbeiten(produkte.find((p) => p.id === produktId) ?? null)
         }}
         onDelete={onProduktDelete}
         onChanged={invalidateProdukte}

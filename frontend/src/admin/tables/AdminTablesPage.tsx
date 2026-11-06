@@ -9,15 +9,10 @@ import { NewTischDialog } from './NewTischDialog'
 import type { Tisch } from './Tisch'
 import { Tische } from './Tische'
 
-const initialEditState = {
-  tisch: null as Tisch | null,
-  open: false,
-}
-
 export function AdminTablesPage() {
   const queryClient = useQueryClient()
   const { isPending, tische } = useAllTische()
-  const [editState, setEditState] = useState(initialEditState)
+  const [zuBearbeiten, setZuBearbeiten] = useState<Tisch | null>(null)
 
   const invalidateTische = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_TISCHE_KEY] })
@@ -34,11 +29,10 @@ export function AdminTablesPage() {
 
   return (
     <>
-      {editState.tisch && (
+      {zuBearbeiten && (
         <EditTischDialog
           backend={tischBackend}
-          open={editState.open}
-          tisch={editState.tisch}
+          tisch={zuBearbeiten}
           updated={() => {
             invalidateTische()
           }}
@@ -47,7 +41,7 @@ export function AdminTablesPage() {
             toast.success('Tisch wurde gelöscht.')
           }}
           close={() => {
-            setEditState(initialEditState)
+            setZuBearbeiten(null)
           }}
         />
       )}
@@ -69,8 +63,7 @@ export function AdminTablesPage() {
         backend={tischBackend}
         tische={tische}
         onEdit={(tischId) => {
-          const tischToEdit = tische.find((t) => t.id === tischId) ?? null
-          setEditState({ tisch: tischToEdit, open: true })
+          setZuBearbeiten(tische.find((t) => t.id === tischId) ?? null)
         }}
         onStatusChange={() => {
           invalidateTische()

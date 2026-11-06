@@ -27,7 +27,6 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface EditUserDialogProps {
   backend: Pick<UserBackend, 'updateUser'>
-  open: boolean
   user: User
   // Beim eigenen Konto bleibt die Rolle gesperrt: eine Herabstufung sperrte den
   // letzten Admin aus. Das Backend lehnt sie zusätzlich mit cannot_demote_self ab.
@@ -73,7 +72,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="mb-4">
           <DialogTitle>{props.user.name}</DialogTitle>
