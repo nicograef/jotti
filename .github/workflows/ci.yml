@@ -438,7 +438,7 @@ jobs:
         # Health check over TCP instead of the unix socket: during initialization
         # the postgres image runs a temporary socket-only server that is restarted
         # afterwards; only the final server accepts TCP connections. Matches the
-        # startup-race hardening in scripts/test-integration.sh.
+        # startup-race hardening in start_throwaway_postgres in scripts/lib.sh.
         options: >-
           --health-cmd "pg_isready -h 127.0.0.1 -U admin -d jotti"
           --health-interval 10s
