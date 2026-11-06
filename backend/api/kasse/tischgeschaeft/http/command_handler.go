@@ -7,11 +7,11 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
@@ -33,59 +33,17 @@ var kasseFehler = []helper.ErrorCode{
 	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
 }
 
-type bestellPositionInput struct {
-	ProduktID  int `json:"produktId"`
-	VarianteID int `json:"varianteId"`
-	Menge      int `json:"menge"`
-}
-
-func toBestellPositionInputs(positionen []bestellPositionInput) []enrichment.PositionInput {
-	out := make([]enrichment.PositionInput, len(positionen))
-	for i, p := range positionen {
-		out[i] = enrichment.PositionInput{
-			ProduktID:  p.ProduktID,
-			VarianteID: p.VarianteID,
-			Menge:      p.Menge,
-		}
-	}
-	return out
-}
-
 type bestellungAufnehmenRequest struct {
-	BestellungID string                 `json:"bestellungId"`
-	TischID      int                    `json:"tischId"`
-	Positionen   []bestellPositionInput `json:"positionen"`
-	Kommentar    string                 `json:"kommentar"`
+	BestellungID string                  `json:"bestellungId"`
+	TischID      int                     `json:"tischId"`
+	Positionen   []eingabe.PositionInput `json:"positionen"`
+	Kommentar    string                  `json:"kommentar"`
 }
-
-type positionRefRequest struct {
-	PositionID string `json:"positionId"`
-	Menge      int    `json:"menge"`
-}
-
-func toPositionRefs(refs []positionRefRequest) []kasse.PositionRef {
-	out := make([]kasse.PositionRef, len(refs))
-	for i, ref := range refs {
-		out[i] = kasse.PositionRef{PositionID: ref.PositionID, Menge: ref.Menge}
-	}
-	return out
-}
-
-var bestellPositionInputSchema = z.Struct(z.Shape{
-	"ProduktID":  produkt.IDSchema.Required(),
-	"VarianteID": produkt.IDSchema.Required(),
-	"Menge":      kasse.PositionEingabeSchema,
-})
-
-var positionRefRequestSchema = z.Struct(z.Shape{
-	"PositionID": z.String().UUID().Required(),
-	"Menge":      z.Int().GTE(1).Required(),
-})
 
 var bestellungAufnehmenSchema = z.Struct(z.Shape{
 	"BestellungID": z.String().UUID().Required(),
 	"TischID":      tisch.TischIDSchema.Required(),
-	"Positionen":   z.Slice(bestellPositionInputSchema).Min(1).Required(),
+	"Positionen":   z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
 	"Kommentar":    z.String().Max(100),
 })
 
@@ -101,7 +59,7 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, eingabe.ToPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
@@ -116,35 +74,18 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 	}
 }
 
-type pfandRequest struct {
-	RueckgabeID string                 `json:"rueckgabeId"`
-	Positionen  []bestellPositionInput `json:"positionen"`
-}
-
-var pfandRequestSchema = z.Struct(z.Shape{
-	"RueckgabeID": z.String().UUID().Required(),
-	"Positionen":  z.Slice(bestellPositionInputSchema).Min(1).Required(),
-})
-
-func toPfandEingabe(pfand *pfandRequest) *enrichment.PfandEingabe {
-	if pfand == nil {
-		return nil
-	}
-	return &enrichment.PfandEingabe{RueckgabeID: pfand.RueckgabeID, Positionen: toBestellPositionInputs(pfand.Positionen)}
-}
-
 type zahlungKassierenRequest struct {
-	TischID    int                  `json:"tischId"`
-	Positionen []positionRefRequest `json:"positionen"`
-	Kommentar  string               `json:"kommentar"`
-	Pfand      *pfandRequest        `json:"pfand"`
+	TischID    int                   `json:"tischId"`
+	Positionen []eingabe.PositionRef `json:"positionen"`
+	Kommentar  string                `json:"kommentar"`
+	Pfand      *eingabe.PfandRequest `json:"pfand"`
 }
 
 var zahlungKassierenSchema = z.Struct(z.Shape{
 	"TischID":    tisch.TischIDSchema.Required(),
-	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
-	"Pfand":      z.Ptr(pfandRequestSchema),
+	"Pfand":      z.Ptr(eingabe.PfandSchema),
 })
 
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
@@ -159,7 +100,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar, toPfandEingabe(body.Pfand))
+		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar, eingabe.ToPfandEingabe(body.Pfand))
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
@@ -178,28 +119,28 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 }
 
 type stornierungErteilenRequest struct {
-	TischID    int                  `json:"tischId"`
-	Positionen []positionRefRequest `json:"positionen"`
-	Kommentar  string               `json:"kommentar"`
+	TischID    int                   `json:"tischId"`
+	Positionen []eingabe.PositionRef `json:"positionen"`
+	Kommentar  string                `json:"kommentar"`
 }
 
 type bestellungUmbuchenRequest struct {
-	QuellTischID      int                  `json:"quellTischId"`
-	ZielTischID       int                  `json:"zielTischId"`
-	Positionen        []positionRefRequest `json:"positionen"`
-	BenutzerKommentar string               `json:"benutzerKommentar"`
+	QuellTischID      int                   `json:"quellTischId"`
+	ZielTischID       int                   `json:"zielTischId"`
+	Positionen        []eingabe.PositionRef `json:"positionen"`
+	BenutzerKommentar string                `json:"benutzerKommentar"`
 }
 
 var stornierungErteilenSchema = z.Struct(z.Shape{
 	"TischID":    tisch.TischIDSchema.Required(),
-	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"Kommentar":  z.String().Min(3).Max(100).Required(),
 })
 
 var bestellungUmbuchenSchema = z.Struct(z.Shape{
 	"QuellTischID":      tisch.TischIDSchema.Required(),
 	"ZielTischID":       tisch.TischIDSchema.Required(),
-	"Positionen":        z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Positionen":        z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"BenutzerKommentar": z.String().Max(100),
 })
 
@@ -215,7 +156,7 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
@@ -242,7 +183,7 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.BenutzerKommentar)
+		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, eingabe.ToPositionRefs(body.Positionen), body.BenutzerKommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},

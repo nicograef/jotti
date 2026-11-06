@@ -9,6 +9,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -24,17 +25,17 @@ type PfandCommandHandler struct {
 }
 
 type pfandZurueckgebenRequest struct {
-	RueckgabeID string                 `json:"rueckgabeId"`
-	TischID     *int                   `json:"tischId"`
-	Positionen  []verkaufPositionInput `json:"positionen"`
-	Kommentar   string                 `json:"kommentar"`
+	RueckgabeID string                  `json:"rueckgabeId"`
+	TischID     *int                    `json:"tischId"`
+	Positionen  []eingabe.PositionInput `json:"positionen"`
+	Kommentar   string                  `json:"kommentar"`
 }
 
 var pfandZurueckgebenSchema = z.Struct(z.Shape{
 	"RueckgabeID": z.String().UUID().Required(),
 	// Pointer: tischId 0 (Direktverkauf) is valid, a missing tischId is not.
 	"TischID":    z.Ptr(z.Int().GTE(0).LTE(math.MaxInt32)).NotNil(z.Message("Tisch-ID ist erforderlich")),
-	"Positionen": z.Slice(verkaufPositionInputSchema).Min(1).Required(),
+	"Positionen": z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
 })
 
@@ -51,7 +52,7 @@ func (h *PfandCommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.PfandZurueckgeben(r.Context(), userID, userName, body.RueckgabeID, *body.TischID, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.PfandZurueckgeben(r.Context(), userID, userName, body.RueckgabeID, *body.TischID, eingabe.ToPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
@@ -66,16 +67,16 @@ func (h *PfandCommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 }
 
 type pfandrueckgabeStornierenRequest struct {
-	StornierungID string               `json:"stornierungId"`
-	RueckgabeID   string               `json:"rueckgabeId"`
-	Positionen    []positionRefRequest `json:"positionen"`
-	Kommentar     string               `json:"kommentar"`
+	StornierungID string                `json:"stornierungId"`
+	RueckgabeID   string                `json:"rueckgabeId"`
+	Positionen    []eingabe.PositionRef `json:"positionen"`
+	Kommentar     string                `json:"kommentar"`
 }
 
 var pfandrueckgabeStornierenSchema = z.Struct(z.Shape{
 	"StornierungID": z.String().UUID().Required(),
 	"RueckgabeID":   z.String().UUID().Required(),
-	"Positionen":    z.Slice(positionRefRequestSchema).Min(1).Required(),
+	"Positionen":    z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"Kommentar":     z.String().Min(3).Max(100).Required(),
 }).TestFunc(func(val any, _ z.Ctx) bool {
 	body, ok := val.(*pfandrueckgabeStornierenRequest)
@@ -96,7 +97,7 @@ func (h *PfandCommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc
 			return
 		}
 
-		err := h.Command.PfandrueckgabeStornieren(r.Context(), userID, userName, body.StornierungID, body.RueckgabeID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.PfandrueckgabeStornieren(r.Context(), userID, userName, body.StornierungID, body.RueckgabeID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found", Status: http.StatusNotFound},
