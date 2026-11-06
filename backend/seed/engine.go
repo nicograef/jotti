@@ -384,7 +384,7 @@ type offenePfandrueckgabe struct {
 	positionen []kasse.Position
 }
 
-// pfandrueckgabe accepts only Pfand variants and an existing table, like PfandZurueckgeben in production.
+// pfandrueckgabe accepts only Pfand variants and a table that exists in the scenario.
 func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	name, err := b.benutzerName(a.User)
 	if err != nil {
