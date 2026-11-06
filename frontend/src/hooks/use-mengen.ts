@@ -21,7 +21,7 @@ export function useMengen<K extends string | number>(
   )
 
   // Any selected quantity is work that a forced reload would throw away.
-  // Reported centrally here rather than at the six call sites.
+  // Reported centrally here rather than at each call site.
   useOffenerVorgang(Object.values<number>(mengen).some((menge) => menge > 0))
 
   const add = (key: K) => {

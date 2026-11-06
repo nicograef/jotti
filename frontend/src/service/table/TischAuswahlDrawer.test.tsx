@@ -105,7 +105,7 @@ describe('TischAuswahlDrawer', () => {
     expect(namen).toEqual(['Tisch 1', 'Tisch 2', 'Tisch 10'])
   })
 
-  it('zeigt Favoriten-Stern und Saldo pro Zeile weiterhin an', async () => {
+  it('zeigt Favoriten-Stern und Saldo pro Zeile an', async () => {
     renderDrawer(
       backend([
         { id: 1, name: 'Tisch 2', istFavorit: true, saldoCents: 100 },

@@ -49,7 +49,7 @@ describe('EigeneUebersichtKarten', () => {
     expect(hinweis).toHaveTextContent('Eine Rücknahme')
     expect(hinweis).toHaveTextContent('12,50 €')
     expect(hinweis).toHaveTextContent('87,50 €')
-    // Die Kacheln zeigen weiterhin den kassierten Bruttobetrag.
+    // Die Kacheln zeigen den kassierten Bruttobetrag.
     expect(screen.getByText('Kassiert')).toBeInTheDocument()
     expect(screen.getByText('· 100,00 €')).toBeInTheDocument()
   })
