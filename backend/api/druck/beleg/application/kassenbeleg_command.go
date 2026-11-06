@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
@@ -20,22 +21,64 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, kasse.ZahlungKassiertV1Data, error) {
+// vorgangSuche finds the event of one Vorgang type by the ID in its data.
+type vorgangSuche[D any] struct {
+	istTyp   func(eventType string) bool
+	id       func(D) string
+	notFound error
+}
+
+func typ(t kasse.EventType) func(string) bool {
+	return func(eventType string) bool { return eventType == string(t) }
+}
+
+var (
+	zahlungSuche = vorgangSuche[kasse.ZahlungKassiertV1Data]{
+		istTyp: kasse.IstZahlungKassiert, id: func(d kasse.ZahlungKassiertV1Data) string { return d.ZahlungID }, notFound: ErrZahlungNichtGefunden,
+	}
+	stornierungSuche = vorgangSuche[kasse.StornierungErteiltV1Data]{
+		istTyp: typ(kasse.EventTypeStornierungErteiltV1), id: func(d kasse.StornierungErteiltV1Data) string { return d.StornierungID }, notFound: ErrStornierungNichtGefunden,
+	}
+	direktverkaufSuche = vorgangSuche[kasse.DirektverkaufGetaetigtV1Data]{
+		istTyp: kasse.IstDirektverkaufGetaetigt, id: func(d kasse.DirektverkaufGetaetigtV1Data) string { return d.VerkaufID }, notFound: ErrVerkaufNichtGefunden,
+	}
+	direktverkaufStornoSuche = vorgangSuche[kasse.DirektverkaufStorniertV1Data]{
+		istTyp: typ(kasse.EventTypeDirektverkaufStorniertV1), id: func(d kasse.DirektverkaufStorniertV1Data) string { return d.StornierungID }, notFound: ErrStornierungNichtGefunden,
+	}
+	pfandrueckgabeSuche = vorgangSuche[kasse.PfandZurueckgegebenV1Data]{
+		istTyp: typ(kasse.EventTypePfandZurueckgegebenV1), id: func(d kasse.PfandZurueckgegebenV1Data) string { return d.RueckgabeID }, notFound: ErrRueckgabeNichtGefunden,
+	}
+	pfandStornoSuche = vorgangSuche[kasse.PfandrueckgabeStorniertV1Data]{
+		istTyp: typ(kasse.EventTypePfandrueckgabeStorniertV1), id: func(d kasse.PfandrueckgabeStorniertV1Data) string { return d.StornierungID }, notFound: ErrStornierungNichtGefunden,
+	}
+)
+
+// finde returns notFound when no event of the type carries want; a decode failure is returned as is.
+func (s vorgangSuche[D]) finde(events []event.Event, want string) (event.Event, D, error) {
+	var leer D
 	for _, evt := range events {
-		if !kasse.IstZahlungKassiert(evt.Type) {
+		if !s.istTyp(evt.Type) {
 			continue
 		}
-
-		var data kasse.ZahlungKassiertV1Data
+		var data D
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.ZahlungKassiertV1Data{}, err
+			return event.Event{}, leer, err
 		}
-		if data.ZahlungID == zahlungID {
+		if s.id(data) == want {
 			return evt, data, nil
 		}
 	}
+	return event.Event{}, leer, s.notFound
+}
 
-	return event.Event{}, kasse.ZahlungKassiertV1Data{}, ErrZahlungNichtGefunden
+// fehler logs a finde error: a missing event warns and keeps its sentinel, a decode failure is ErrDatabase.
+func (s vorgangSuche[D]) fehler(log *slog.Logger, err error, notFoundMsg, decodeMsg string, logArgs ...any) error {
+	if errors.Is(err, s.notFound) {
+		log.Warn(notFoundMsg, logArgs...)
+		return s.notFound
+	}
+	log.Error(decodeMsg, append([]any{"error", err}, logArgs...)...)
+	return ErrDatabase
 }
 
 func TSEAbschnittAusSignatur(signatur *tse.Signatur) *escpos.TSEAbschnitt {
@@ -48,96 +91,6 @@ func TSEAbschnittAusSignatur(signatur *tse.Signatur) *escpos.TSEAbschnitt {
 		Signatur:        signatur.Signatur,
 		QRCodeData:      signatur.QRCodeData,
 	}
-}
-
-func findStornierungEvent(events []event.Event, stornierungID string) (event.Event, kasse.StornierungErteiltV1Data, error) {
-	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypeStornierungErteiltV1) {
-			continue
-		}
-
-		var data kasse.StornierungErteiltV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.StornierungErteiltV1Data{}, err
-		}
-		if data.StornierungID == stornierungID {
-			return evt, data, nil
-		}
-	}
-
-	return event.Event{}, kasse.StornierungErteiltV1Data{}, ErrStornierungNichtGefunden
-}
-
-func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, kasse.DirektverkaufGetaetigtV1Data, error) {
-	for _, evt := range events {
-		if !kasse.IstDirektverkaufGetaetigt(evt.Type) {
-			continue
-		}
-
-		var data kasse.DirektverkaufGetaetigtV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.DirektverkaufGetaetigtV1Data{}, err
-		}
-		if data.VerkaufID == verkaufID {
-			return evt, data, nil
-		}
-	}
-
-	return event.Event{}, kasse.DirektverkaufGetaetigtV1Data{}, ErrVerkaufNichtGefunden
-}
-
-func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string) (event.Event, kasse.DirektverkaufStorniertV1Data, error) {
-	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypeDirektverkaufStorniertV1) {
-			continue
-		}
-
-		var data kasse.DirektverkaufStorniertV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, err
-		}
-		if data.StornierungID == stornierungID {
-			return evt, data, nil
-		}
-	}
-
-	return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
-}
-
-func findPfandZurueckgegebenEvent(events []event.Event, rueckgabeID string) (event.Event, kasse.PfandZurueckgegebenV1Data, error) {
-	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypePfandZurueckgegebenV1) {
-			continue
-		}
-
-		var data kasse.PfandZurueckgegebenV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.PfandZurueckgegebenV1Data{}, err
-		}
-		if data.RueckgabeID == rueckgabeID {
-			return evt, data, nil
-		}
-	}
-
-	return event.Event{}, kasse.PfandZurueckgegebenV1Data{}, ErrRueckgabeNichtGefunden
-}
-
-func findPfandrueckgabeStorniertEvent(events []event.Event, stornierungID string) (event.Event, kasse.PfandrueckgabeStorniertV1Data, error) {
-	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypePfandrueckgabeStorniertV1) {
-			continue
-		}
-
-		var data kasse.PfandrueckgabeStorniertV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return event.Event{}, kasse.PfandrueckgabeStorniertV1Data{}, err
-		}
-		if data.StornierungID == stornierungID {
-			return evt, data, nil
-		}
-	}
-
-	return event.Event{}, kasse.PfandrueckgabeStorniertV1Data{}, ErrStornierungNichtGefunden
 }
 
 // BelegStatus ist die Beleg-Abruf-Antwort: eingereiht (Druckauftrag angelegt)
@@ -359,24 +312,14 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
+	verkaufEvent, _, err := direktverkaufSuche.finde(events, verkaufID)
 	if err != nil {
-		if errors.Is(err, ErrVerkaufNichtGefunden) {
-			log.Warn("Direktverkauf not found for stornobeleg", "verkauf_id", verkaufID)
-			return BelegQuelle{}, ErrVerkaufNichtGefunden
-		}
-		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, direktverkaufSuche.fehler(log, err, "Direktverkauf not found for stornobeleg", "Failed to decode direktverkauf event data", "verkauf_id", verkaufID)
 	}
 
-	stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
+	stornoEvent, stornoData, err := direktverkaufStornoSuche.finde(events, stornierungID)
 	if err != nil {
-		if errors.Is(err, ErrStornierungNichtGefunden) {
-			log.Warn("Stornierung not found for stornobeleg", "verkauf_id", verkaufID, "stornierung_id", stornierungID)
-			return BelegQuelle{}, ErrStornierungNichtGefunden
-		}
-		log.Error("Failed to decode direktverkauf storno event data", "error", err, "verkauf_id", verkaufID, "stornierung_id", stornierungID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, direktverkaufStornoSuche.fehler(log, err, "Stornierung not found for stornobeleg", "Failed to decode direktverkauf storno event data", "verkauf_id", verkaufID, "stornierung_id", stornierungID)
 	}
 
 	return BelegQuelle{
@@ -400,14 +343,9 @@ func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung,
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	rueckgabeEvent, rueckgabeData, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
+	rueckgabeEvent, rueckgabeData, err := pfandrueckgabeSuche.finde(events, rueckgabeID)
 	if err != nil {
-		if errors.Is(err, ErrRueckgabeNichtGefunden) {
-			log.Warn("Pfandrückgabe not found for kassenbeleg", "rueckgabe_id", rueckgabeID)
-			return BelegQuelle{}, ErrRueckgabeNichtGefunden
-		}
-		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, pfandrueckgabeSuche.fehler(log, err, "Pfandrückgabe not found for kassenbeleg", "Failed to decode pfandrueckgabe event data", "rueckgabe_id", rueckgabeID)
 	}
 
 	return BelegQuelle{
@@ -430,24 +368,14 @@ func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensi
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	rueckgabeEvent, _, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
+	rueckgabeEvent, _, err := pfandrueckgabeSuche.finde(events, rueckgabeID)
 	if err != nil {
-		if errors.Is(err, ErrRueckgabeNichtGefunden) {
-			log.Warn("Pfandrückgabe not found for stornobeleg", "rueckgabe_id", rueckgabeID)
-			return BelegQuelle{}, ErrRueckgabeNichtGefunden
-		}
-		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, pfandrueckgabeSuche.fehler(log, err, "Pfandrückgabe not found for stornobeleg", "Failed to decode pfandrueckgabe event data", "rueckgabe_id", rueckgabeID)
 	}
 
-	stornoEvent, stornoData, err := findPfandrueckgabeStorniertEvent(events, stornierungID)
+	stornoEvent, stornoData, err := pfandStornoSuche.finde(events, stornierungID)
 	if err != nil {
-		if errors.Is(err, ErrStornierungNichtGefunden) {
-			log.Warn("Stornierung not found for pfand stornobeleg", "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
-			return BelegQuelle{}, ErrStornierungNichtGefunden
-		}
-		log.Error("Failed to decode pfandrueckgabe storno event data", "error", err, "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, pfandStornoSuche.fehler(log, err, "Stornierung not found for pfand stornobeleg", "Failed to decode pfandrueckgabe storno event data", "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
 	}
 
 	return BelegQuelle{
@@ -471,24 +399,14 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
+	stornoEvent, stornoData, err := stornierungSuche.finde(events, stornierungID)
 	if err != nil {
-		if errors.Is(err, ErrStornierungNichtGefunden) {
-			log.Warn("Stornierung not found for stornobeleg", "tisch_id", tischID, "stornierung_id", stornierungID)
-			return BelegQuelle{}, ErrStornierungNichtGefunden
-		}
-		log.Error("Failed to decode stornierung event data", "error", err, "tisch_id", tischID, "stornierung_id", stornierungID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, stornierungSuche.fehler(log, err, "Stornierung not found for stornobeleg", "Failed to decode stornierung event data", "tisch_id", tischID, "stornierung_id", stornierungID)
 	}
 
-	zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
+	zahlungEvent, _, err := zahlungSuche.finde(events, stornoData.ZahlungID)
 	if err != nil {
-		if errors.Is(err, ErrZahlungNichtGefunden) {
-			log.Warn("Referenzierte Zahlung not found for stornobeleg", "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
-			return BelegQuelle{}, ErrZahlungNichtGefunden
-		}
-		log.Error("Failed to decode referenzierte zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, zahlungSuche.fehler(log, err, "Referenzierte Zahlung not found for stornobeleg", "Failed to decode referenzierte zahlung event data", "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
 	}
 
 	return BelegQuelle{
@@ -512,14 +430,9 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	verkaufEvent, verkaufData, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
+	verkaufEvent, verkaufData, err := direktverkaufSuche.finde(events, verkaufID)
 	if err != nil {
-		if errors.Is(err, ErrVerkaufNichtGefunden) {
-			log.Warn("Direktverkauf not found for kassenbeleg", "verkauf_id", verkaufID)
-			return BelegQuelle{}, ErrVerkaufNichtGefunden
-		}
-		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, direktverkaufSuche.fehler(log, err, "Direktverkauf not found for kassenbeleg", "Failed to decode direktverkauf event data", "verkauf_id", verkaufID)
 	}
 
 	return BelegQuelle{
@@ -546,14 +459,9 @@ func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassen
 		return BelegQuelle{}, ErrDatabase
 	}
 
-	zahlungEvent, zahlungData, err := findZahlungEvent(events, zahlungID)
+	zahlungEvent, zahlungData, err := zahlungSuche.finde(events, zahlungID)
 	if err != nil {
-		if errors.Is(err, ErrZahlungNichtGefunden) {
-			log.Warn("Zahlung not found for kassenbeleg", "tisch_id", tischID, "zahlung_id", zahlungID)
-			return BelegQuelle{}, ErrZahlungNichtGefunden
-		}
-		log.Error("Failed to decode zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", zahlungID)
-		return BelegQuelle{}, ErrDatabase
+		return BelegQuelle{}, zahlungSuche.fehler(log, err, "Zahlung not found for kassenbeleg", "Failed to decode zahlung event data", "tisch_id", tischID, "zahlung_id", zahlungID)
 	}
 
 	return BelegQuelle{
