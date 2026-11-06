@@ -718,6 +718,8 @@ func TestGetLiveReporting_DatabaseError_ReportingRepo(t *testing.T) {
 	q := Query{
 		ReportingRepo:       mockReportingRepo{err: errors.New("db error")},
 		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
+		TischSessionRepo:    mockTischSessionRepo{},
+		TischRepo:           mockTischRepo{},
 	}
 
 	_, err := q.GetLiveReporting(context.Background())

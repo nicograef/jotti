@@ -4,6 +4,8 @@ import (
 	"context"
 	"sort"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
@@ -46,22 +48,35 @@ type Query struct {
 func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	log := logging.FromContext(ctx)
 
-	data, err := q.ReportingRepo.GetReporting(ctx, kassensitzungNr)
-	if err != nil {
-		log.Error("Failed to get reporting", "error", err)
-		return reporting.ReportingData{}, ErrDatabase
+	var (
+		data   reporting.ReportingData
+		zeilen []reporting.ProduktStatistikZeile
+	)
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var err error
+		if data, err = q.ReportingRepo.GetReporting(gctx, kassensitzungNr); err != nil {
+			log.Error("Failed to get reporting", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var err error
+		if zeilen, err = q.ReportingRepo.GetProduktStatistik(gctx, kassensitzungNr); err != nil {
+			log.Error("Failed to get produkt statistik", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return reporting.ReportingData{}, err
 	}
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
 	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
 		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen, data.Breakdowns.PfandProServicekraft,
 	)
-
-	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, kassensitzungNr)
-	if err != nil {
-		log.Error("Failed to get produkt statistik", "error", err)
-		return reporting.ReportingData{}, ErrDatabase
-	}
 	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
 	log.Info("Retrieved reporting")
@@ -282,26 +297,52 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 		return nil, nil
 	}
 
-	data, err := q.ReportingRepo.GetLiveReporting(ctx, ks.ZNr)
-	if err != nil {
-		log.Error("Failed to get live reporting", "error", err)
-		return nil, ErrDatabase
+	var (
+		data     reporting.LiveReportingData
+		sessions []kasse.TischSession
+		tische   []tisch.Tisch
+		zeilen   []reporting.ProduktStatistikZeile
+	)
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var err error
+		if data, err = q.ReportingRepo.GetLiveReporting(gctx, ks.ZNr); err != nil {
+			log.Error("Failed to get live reporting", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var err error
+		if sessions, err = q.TischSessionRepo.GetTischSessionsByKassensitzungNr(gctx, ks.ZNr); err != nil {
+			log.Error("Failed to get tisch sessions for live reporting", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var err error
+		if tische, err = q.TischRepo.GetAlleTische(gctx); err != nil {
+			log.Error("Failed to get tische for live reporting", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	g.Go(func() error {
+		var err error
+		if zeilen, err = q.ReportingRepo.GetProduktStatistik(gctx, ks.ZNr); err != nil {
+			log.Error("Failed to get produkt statistik for live reporting", "error", err)
+			return ErrDatabase
+		}
+		return nil
+	})
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	data.Bezeichnung = ks.Bezeichnung
 	data.Datum = ks.Datum
 
-	sessions, err := q.TischSessionRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
-	if err != nil {
-		log.Error("Failed to get tisch sessions for live reporting", "error", err)
-		return nil, ErrDatabase
-	}
-
-	tische, err := q.TischRepo.GetAlleTische(ctx)
-	if err != nil {
-		log.Error("Failed to get tische for live reporting", "error", err)
-		return nil, ErrDatabase
-	}
 	nameByTischID := make(map[int]string, len(tische))
 	for _, t := range tische {
 		nameByTischID[t.ID] = t.Name
@@ -311,12 +352,6 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen, data.Breakdowns.PfandProServicekraft,
 	)
 	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.AbrechnungProServicekraft, sessions, nameByTischID)
-
-	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, ks.ZNr)
-	if err != nil {
-		log.Error("Failed to get produkt statistik for live reporting", "error", err)
-		return nil, ErrDatabase
-	}
 	data.ProduktStatistik = gruppiereProduktStatistik(zeilen)
 
 	log.Info("Retrieved live reporting")

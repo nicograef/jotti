@@ -44,41 +44,51 @@ type servicekraftRefJSON struct {
 	Name     string `json:"name"`
 }
 
+// gemeinsameAbfragen holds the rows the daily report and the live dashboard both read.
+type gemeinsameAbfragen struct {
+	stats        dbgen.GetReportingStatsRow
+	kassiertRows []dbgen.GetKassiertProServicekraftRow
+	stornoRows   []dbgen.GetStornierungenRow
+	pfandRows    []dbgen.GetPfandProServicekraftRow
+}
+
+// starte registers the shared queries on g; the rows are valid once g.Wait returns nil.
+func (a *gemeinsameAbfragen) starte(ctx context.Context, g *errgroup.Group, q *dbgen.Queries, kassensitzungNr int) {
+	g.Go(func() error {
+		var err error
+		a.stats, err = q.GetReportingStats(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		a.kassiertRows, err = q.GetKassiertProServicekraft(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		a.stornoRows, err = q.GetStornierungen(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		a.pfandRows, err = q.GetPfandProServicekraft(ctx, kassensitzungNr)
+		return err
+	})
+}
+
 func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (reporting.ReportingData, error) {
 	var (
-		stats        dbgen.GetReportingStatsRow
-		kassiertRows []dbgen.GetKassiertProServicekraftRow
+		gemeinsam    gemeinsameAbfragen
 		zeilenRows   []dbgen.GetUmsatzPositionszeilenRow
-		stornoRows   []dbgen.GetStornierungenRow
-		pfandRows    []dbgen.GetPfandProServicekraftRow
 		metadatenRow dbgen.GetKassensitzungMetadatenRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	g.Go(func() error {
-		var err error
-		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		kassiertRows, err = r.q.GetKassiertProServicekraft(ctx, kassensitzungNr)
-		return err
-	})
+	gemeinsam.starte(ctx, g, r.q, kassensitzungNr)
 	g.Go(func() error {
 		var err error
 		zeilenRows, err = r.q.GetUmsatzPositionszeilen(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		pfandRows, err = r.q.GetPfandProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -91,7 +101,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		return reporting.ReportingData{}, db.Error(err)
 	}
 
-	stornierungen, err := toStornierungen(stornoRows)
+	stornierungen, err := toStornierungen(gemeinsam.stornoRows)
 	if err != nil {
 		return reporting.ReportingData{}, err
 	}
@@ -113,10 +123,10 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	return reporting.ReportingData{
 		KassensitzungNr: kassensitzungNr,
 		Metadaten:       metadaten,
-		Summary:         toSummary(stats),
+		Summary:         toSummary(gemeinsam.stats),
 		Breakdowns: reporting.Breakdowns{
-			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
-			PfandProServicekraft:      toPfandServicekraft(pfandRows),
+			AbrechnungProServicekraft: toAbrechnungServicekraft(gemeinsam.kassiertRows),
+			PfandProServicekraft:      toPfandServicekraft(gemeinsam.pfandRows),
 		},
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
@@ -157,38 +167,16 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 
 func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (reporting.LiveReportingData, error) {
 	var (
-		stats            dbgen.GetReportingStatsRow
+		gemeinsam        gemeinsameAbfragen
 		offeneTischeRows []dbgen.GetOffeneTischeDetailsRow
-		kassiertRows     []dbgen.GetKassiertProServicekraftRow
-		stornoRows       []dbgen.GetStornierungenRow
-		pfandRows        []dbgen.GetPfandProServicekraftRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	g.Go(func() error {
-		var err error
-		stats, err = r.q.GetReportingStats(ctx, kassensitzungNr)
-		return err
-	})
+	gemeinsam.starte(ctx, g, r.q, kassensitzungNr)
 	g.Go(func() error {
 		var err error
 		offeneTischeRows, err = r.q.GetOffeneTischeDetails(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		kassiertRows, err = r.q.GetKassiertProServicekraft(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		pfandRows, err = r.q.GetPfandProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 
@@ -207,7 +195,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		offeneSaldi += row.SaldoCents
 	}
 
-	stornierungen, err := toStornierungen(stornoRows)
+	stornierungen, err := toStornierungen(gemeinsam.stornoRows)
 	if err != nil {
 		return reporting.LiveReportingData{}, err
 	}
@@ -216,10 +204,10 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		KassensitzungNr:  kassensitzungNr,
 		OffeneTische:     offeneTische,
 		OffeneSaldiCents: offeneSaldi,
-		Summary:          toSummary(stats),
+		Summary:          toSummary(gemeinsam.stats),
 		Breakdowns: reporting.Breakdowns{
-			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
-			PfandProServicekraft:      toPfandServicekraft(pfandRows),
+			AbrechnungProServicekraft: toAbrechnungServicekraft(gemeinsam.kassiertRows),
+			PfandProServicekraft:      toPfandServicekraft(gemeinsam.pfandRows),
 		},
 		Stornierungen: stornierungen,
 	}, nil
