@@ -17,6 +17,7 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
 	"github.com/nicograef/jotti/backend/repository/produkt_repo"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
 func cleanDVDB(t *testing.T, db *sql.DB) {
@@ -29,6 +30,7 @@ func cleanDVDB(t *testing.T, db *sql.DB) {
 		"DELETE FROM kassenjournal",
 		"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",
 		"DELETE FROM kassensitzungen",
+		"DELETE FROM tische",
 		"DELETE FROM produkt_varianten",
 		"DELETE FROM produkte",
 		"DELETE FROM users",
@@ -81,6 +83,7 @@ func setupDVIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql
 		ProduktRepo:         produkt_repo.NewRepository(db),
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		// DruckstationRepo: nil — nil-bewacht, keine Druckaufträge im Test
+		TischRepo: tisch_repo.NewRepository(db),
 	}
 	return
 }

@@ -3,12 +3,20 @@
 package application
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
+	"github.com/nicograef/jotti/backend/repository/produkt_repo"
+	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
 // TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg: two calls with the same rueckgabeId store one event
@@ -98,6 +106,96 @@ func TestPfandZurueckgeben_AbweichendeRueckgabe_KeinEvent(t *testing.T) {
 				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
 			}
 		})
+	}
+}
+
+// TestPfandZurueckgeben_AmTisch: a pure return at an active table books the tischId; an inactive or
+// unknown table books nothing; a retry under a rueckgabeId settled with a Zahlung at that table is
+// refused, since answering success would pay out cash the journal never booked.
+func TestPfandZurueckgeben_AmTisch(t *testing.T) {
+	const unbekannterTisch = 999999
+	tests := []struct {
+		name        string
+		tischStatus string // leer: kein Tisch angelegt
+		verrechnet  bool
+		wantErr     error
+	}{
+		{"aktiver Tisch", "active", false, nil},
+		{"inaktiver Tisch", "inactive", false, ErrTischNichtAktiv},
+		{"unbekannter Tisch", "", false, ErrTischNichtGefunden},
+		{"mit Zahlung verrechnet", "active", true, ErrPfandrueckgabeAbweichend},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+			pfand := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}}
+			rueckgabeID := uuid.New().String()
+
+			tischID := unbekannterTisch
+			if tt.tischStatus != "" {
+				if err := db.QueryRow(
+					"INSERT INTO tische (name, status, created_at, updated_at) VALUES ('Tisch 1', $1, now(), now()) RETURNING id", tt.tischStatus,
+				).Scan(&tischID); err != nil {
+					t.Fatalf("create tisch: %v", err)
+				}
+			}
+			if tt.verrechnet {
+				verrechneMitZahlung(t, db, userID, ksNr, tischID, enrichment.PositionInput{ProduktID: produktID, VarianteID: varianteID, Menge: 1}, &enrichment.PfandEingabe{RueckgabeID: rueckgabeID, Positionen: pfand})
+			}
+			var vorher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&vorher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+
+			err := cmd.PfandZurueckgeben(ctx, userID, "test", rueckgabeID, tischID, pfand, "")
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("erwartet %v, bekam: %v", tt.wantErr, err)
+			}
+
+			var nachher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&nachher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+			if tt.wantErr != nil {
+				if nachher != vorher {
+					t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+				}
+				return
+			}
+			var gespeicherterTisch int
+			if err := db.QueryRow("SELECT (data->>'tischId')::int FROM kassenjournal WHERE type = 'pfand-zurueckgegeben:v1' AND data->>'rueckgabeId' = $1", rueckgabeID).Scan(&gespeicherterTisch); err != nil {
+				t.Fatalf("Rückgabe lesen: %v", err)
+			}
+			if gespeicherterTisch != tischID {
+				t.Errorf("erwartet tischId %d an der Rückgabe, bekam %d", tischID, gespeicherterTisch)
+			}
+		})
+	}
+}
+
+// verrechneMitZahlung books an order at tischID and pays it with pfand offset, through the
+// Tischgeschäft commands.
+func verrechneMitZahlung(t *testing.T, db *sql.DB, userID, ksNr, tischID int, bestellt enrichment.PositionInput, pfand *enrichment.PfandEingabe) {
+	t.Helper()
+	ctx := context.Background()
+	tg := tischgeschaeftApp.Command{
+		TischRepo:           tisch_repo.NewRepository(db),
+		EventRepo:           kassenjournal_repo.NewRepository(db),
+		ProduktRepo:         produkt_repo.NewRepository(db),
+		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
+		DruckstationRepo:    druckstation_repo.NewRepository(db),
+	}
+	if err := tg.BestellungAufnehmen(ctx, userID, "test", uuid.New().String(), tischID, []enrichment.PositionInput{bestellt}, ""); err != nil {
+		t.Fatalf("Bestellung aufnehmen: %v", err)
+	}
+	session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+	if err != nil {
+		t.Fatalf("Tisch-Session lesen: %v", err)
+	}
+	refs := []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: bestellt.Menge}}
+	if err := tg.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+		t.Fatalf("Zahlung mit Pfand kassieren: %v", err)
 	}
 }
 
