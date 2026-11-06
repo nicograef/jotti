@@ -18,6 +18,10 @@ func DirektverkaufSubject(zNr int, verkaufID string) string {
 	return KassensitzungSubject(zNr) + "/direktverkauf-" + verkaufID
 }
 
+func PfandrueckgabeSubject(zNr int, rueckgabeID string) string {
+	return KassensitzungSubject(zNr) + "/pfandrueckgabe-" + rueckgabeID
+}
+
 func ParseVerkaufIDFromSubject(subject string) (string, error) {
 	const marker = "/direktverkauf-"
 	idx := strings.LastIndex(subject, marker)

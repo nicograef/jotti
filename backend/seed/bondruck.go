@@ -127,6 +127,8 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 			}
 			zeilen = append(zeilen, zeile)
 		case kasse.EventTypeDirektverkaufStorniertV1,
+			kasse.EventTypePfandZurueckgegebenV1,
+			kasse.EventTypePfandrueckgabeStorniertV1,
 			kasse.EventTypeKassensitzungEroeffnetV1,
 			kasse.EventTypeGeldtransitGebuchtV1,
 			kasse.EventTypeKassensturzDurchgefuehrtV1,
@@ -234,6 +236,8 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
 	case kasse.EventTypeDirektverkaufStorniertV1,
+		kasse.EventTypePfandZurueckgegebenV1,
+		kasse.EventTypePfandrueckgabeStorniertV1,
 		kasse.EventTypeKassensitzungEroeffnetV1,
 		kasse.EventTypeGeldtransitGebuchtV1,
 		kasse.EventTypeKassensturzDurchgefuehrtV1,

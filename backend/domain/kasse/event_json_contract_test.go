@@ -23,6 +23,8 @@ var allEventTypes = []EventType{
 	EventTypeTagesabschlussErstelltV1,
 	EventTypeDirektverkaufGetaetigtV1,
 	EventTypeDirektverkaufStorniertV1,
+	EventTypePfandZurueckgegebenV1,
+	EventTypePfandrueckgabeStorniertV1,
 }
 
 // Fails when a new EventType is added without a frozen contract test.
@@ -40,6 +42,8 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 		EventTypeTagesabschlussErstelltV1:   true,
 		EventTypeDirektverkaufGetaetigtV1:   true,
 		EventTypeDirektverkaufStorniertV1:   true,
+		EventTypePfandZurueckgegebenV1:      true,
+		EventTypePfandrueckgabeStorniertV1:  true,
 	}
 	for _, et := range allEventTypes {
 		if !contractedTypes[et] {
@@ -53,7 +57,7 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 }
 
 // The EventType constants must match the SQL literals in the kj_extract_* functions
-// (01_initial.up.sql); a mismatch makes the SQL silently return NULL.
+// (01_initial.up.sql, 11_pfandrueckgabe.up.sql); a mismatch makes the SQL silently return NULL.
 func TestEventContract_SQLLiterals(t *testing.T) {
 	checks := []struct {
 		constant EventType
@@ -68,6 +72,8 @@ func TestEventContract_SQLLiterals(t *testing.T) {
 		{EventTypeDifferenzSollIstGebuchtV1, "differenz-soll-ist-gebucht:v1"},
 		{EventTypeDirektverkaufGetaetigtV1, "direktverkauf-getaetigt:v1"},
 		{EventTypeDirektverkaufStorniertV1, "direktverkauf-storniert:v1"},
+		{EventTypePfandZurueckgegebenV1, "pfand-zurueckgegeben:v1"},
+		{EventTypePfandrueckgabeStorniertV1, "pfandrueckgabe-storniert:v1"},
 	}
 	for _, c := range checks {
 		if string(c.constant) != c.sqlLit {
@@ -420,6 +426,49 @@ func TestEventContract_DirektverkaufStorniertV1(t *testing.T) {
 	assertField(t, "verkaufId", data.VerkaufID, "88888888-8888-4888-8888-888888888888")
 	assertField(t, "gesamtStornierungCents", data.GesamtStornierungCents, 700)
 	assertField(t, "kommentar", data.Kommentar, "Bestellung falsch")
+	if len(data.Positionen) != 1 {
+		t.Fatalf("positionen count: %d", len(data.Positionen))
+	}
+	assertPosition(t, data.Positionen[0])
+}
+
+func TestEventContract_PfandZurueckgegebenV1(t *testing.T) {
+	const lit = `{
+		"rueckgabeId":       "aaaaaaaa-0000-4000-8000-000000000001",
+		"tischId":           0,
+		"positionen":        [` + positionLiteral + `],
+		"gesamtbetragCents": 700,
+		"kommentar":         ""
+	}`
+	var data PfandZurueckgegebenV1Data
+	unmarshalJSON(t, lit, &data)
+	assertField(t, "rueckgabeId", data.RueckgabeID, "aaaaaaaa-0000-4000-8000-000000000001")
+	assertField(t, "tischId", data.TischID, 0)
+	assertField(t, "gesamtbetragCents", data.GesamtbetragCents, 700)
+	if len(data.Positionen) != 1 {
+		t.Fatalf("positionen count: %d", len(data.Positionen))
+	}
+	assertPosition(t, data.Positionen[0])
+	assertJSONKeyPresent(t, data, "tischId")
+	assertJSONKeyPresent(t, data, "kommentar")
+}
+
+func TestEventContract_PfandrueckgabeStorniertV1(t *testing.T) {
+	const lit = `{
+		"stornierungId":          "bbbbbbbb-0000-4000-8000-000000000002",
+		"rueckgabeId":            "aaaaaaaa-0000-4000-8000-000000000001",
+		"tischId":                4,
+		"positionen":             [` + positionLiteral + `],
+		"gesamtStornierungCents": 700,
+		"kommentar":              "Falsch gezählt"
+	}`
+	var data PfandrueckgabeStorniertV1Data
+	unmarshalJSON(t, lit, &data)
+	assertField(t, "stornierungId", data.StornierungID, "bbbbbbbb-0000-4000-8000-000000000002")
+	assertField(t, "rueckgabeId", data.RueckgabeID, "aaaaaaaa-0000-4000-8000-000000000001")
+	assertField(t, "tischId", data.TischID, 4)
+	assertField(t, "gesamtStornierungCents", data.GesamtStornierungCents, 700)
+	assertField(t, "kommentar", data.Kommentar, "Falsch gezählt")
 	if len(data.Positionen) != 1 {
 		t.Fatalf("positionen count: %d", len(data.Positionen))
 	}

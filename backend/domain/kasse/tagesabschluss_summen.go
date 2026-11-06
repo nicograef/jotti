@@ -52,6 +52,18 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 			}
 			s.UmsatzCents -= data.GesamtStornierungCents
 			s.StornierungCents += data.GesamtStornierungCents
+		case EventTypePfandZurueckgegebenV1:
+			var data PfandZurueckgegebenV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			}
+			s.UmsatzCents -= data.GesamtbetragCents
+		case EventTypePfandrueckgabeStorniertV1:
+			var data PfandrueckgabeStorniertV1Data
+			if err := json.Unmarshal(evt.Data, &data); err != nil {
+				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			}
+			s.UmsatzCents += data.GesamtStornierungCents
 		case EventTypeGeldtransitGebuchtV1:
 			var data GeldtransitGebuchtV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {

@@ -79,6 +79,21 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		}
 		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtStornierungCents, -1)
 
+	case EventTypePfandZurueckgegebenV1:
+		// Auszahlung: negative Bruttobeträge am Satz des Pfand-Produkts, negative Barzahlung.
+		data, err := parseProjektionsData[PfandZurueckgegebenV1Data](evt)
+		if err != nil {
+			return FiskalischerVorgang{}, false, err
+		}
+		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtbetragCents, -1)
+
+	case EventTypePfandrueckgabeStorniertV1:
+		data, err := parseProjektionsData[PfandrueckgabeStorniertV1Data](evt)
+		if err != nil {
+			return FiskalischerVorgang{}, false, err
+		}
+		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), data.GesamtStornierungCents, 1)
+
 	case EventTypeKassensitzungEroeffnetV1:
 		data, err := parseProjektionsData[KassensitzungEroeffnetV1Data](evt)
 		if err != nil {

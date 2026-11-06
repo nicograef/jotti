@@ -11,8 +11,8 @@ import (
 )
 
 // Every money sum of Kasse events and projections is >= 1 Cent, hence GTE(1).Required(): zog skips
-// GTE on the zero value, only Required() rejects 0. Five fields go through the event constructors
-// taking the sum; the other six (summed from positions or copied from the event) through their schema.
+// GTE on the zero value, only Required() rejects 0. Six fields go through the event constructors
+// taking the sum; the other seven (summed from positions or copied from the event) through their schema.
 
 func validEventPositionen() []PositionEventData {
 	return []PositionEventData{{
@@ -100,6 +100,15 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			},
 		},
 		{
+			name:  "PfandrueckgabeStorniert.GesamtStornierungCents",
+			field: "GesamtStornierungCents",
+			run: func(summe int) error {
+				rueckgabeID := uuid.New().String()
+				_, err := NewPfandrueckgabeStorniertEvent(PfandrueckgabeSubject(1, rueckgabeID), uuid.New().String(), rueckgabeID, 0, 1, "TestUser", positionen, summe, "Test")
+				return err
+			},
+		},
+		{
 			name:  "BestellungAufgenommen.GesamtPreisCents (event)",
 			field: "GesamtPreisCents",
 			run: func(summe int) error {
@@ -113,6 +122,14 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			run: func(summe int) error {
 				data := DirektverkaufGetaetigtV1Data{VerkaufID: uuid.New().String(), Positionen: validEventPositionen(), GesamtbetragCents: summe}
 				return validateSchema(direktverkaufGetaetigtV1DataSchema, &data)
+			},
+		},
+		{
+			name:  "PfandZurueckgegeben.GesamtbetragCents",
+			field: "GesamtbetragCents",
+			run: func(summe int) error {
+				data := PfandZurueckgegebenV1Data{RueckgabeID: uuid.New().String(), Positionen: validEventPositionen(), GesamtbetragCents: summe}
+				return validateSchema(pfandZurueckgegebenV1DataSchema, &data)
 			},
 		},
 		{

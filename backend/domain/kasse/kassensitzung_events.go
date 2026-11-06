@@ -31,6 +31,8 @@ func IsAbschlussEventType(eventType string) bool {
 		return true
 	case EventTypeDirektverkaufGetaetigtV1,
 		EventTypeDirektverkaufStorniertV1,
+		EventTypePfandZurueckgegebenV1,
+		EventTypePfandrueckgabeStorniertV1,
 		EventTypeKassensitzungEroeffnetV1,
 		EventTypeGeldtransitGebuchtV1,
 		EventTypeBestellungAufgenommenV1,

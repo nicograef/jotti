@@ -112,6 +112,24 @@ func TestFiskalischeProjektion(t *testing.T) {
 			wantProcessData: "Beleg^-10.00_0.00_0.00_0.00_0.00^-10.00:Bar",
 		},
 		{
+			name: "pfand zurueckgegeben: Kassenbeleg-V1 mit negativen Betraegen",
+			event: projektionsEvent(t, EventTypePfandZurueckgegebenV1, "kassensitzung-1/pfandrueckgabe-p1", PfandZurueckgegebenV1Data{
+				RueckgabeID: "p", TischID: 7, Positionen: testPositionen(), GesamtbetragCents: 1000,
+			}),
+			pflichtig:       true,
+			wantProcessType: tse.ProcessTypeKassenbelegV1,
+			wantProcessData: "Beleg^-10.00_0.00_0.00_0.00_0.00^-10.00:Bar",
+		},
+		{
+			name: "pfandrueckgabe storniert: Kassenbeleg-V1 mit positiven Betraegen",
+			event: projektionsEvent(t, EventTypePfandrueckgabeStorniertV1, "kassensitzung-1/pfandrueckgabe-p1", PfandrueckgabeStorniertV1Data{
+				StornierungID: "s", RueckgabeID: "p", TischID: 7, Positionen: testPositionen(), GesamtStornierungCents: 1000,
+			}),
+			pflichtig:       true,
+			wantProcessType: tse.ProcessTypeKassenbelegV1,
+			wantProcessData: "Beleg^10.00_0.00_0.00_0.00_0.00^10.00:Bar",
+		},
+		{
 			name: "sitzungseroeffnung mit anfangsbestand: Eigenbeleg (Bareinlage)",
 			event: projektionsEvent(t, EventTypeKassensitzungEroeffnetV1, "kassensitzung-1", KassensitzungEroeffnetV1Data{
 				Datum: "2026-06-12", Bezeichnung: "Sommerfest", BetragCents: 15000, EroeffnetVon: 1,
