@@ -1,3 +1,4 @@
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
@@ -15,8 +16,8 @@ interface DirektverkaufAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   totalCents: number
-  // Liefert die verkaufId für diesen Versuch (siehe Vorgang.schluesselFuer).
-  schluesselFuer: (inhalt: unknown) => string
+  // Liefert Kommentar und verkaufId; beide überstehen das Aushängen des Abschlusses.
+  vorgang: Vorgang<number>
   verkaufAbgeschlossen: () => void
   // Leert den Korb ohne Erfolgsmeldung, damit der nächste Versuch eine neue verkaufId zieht.
   verkaufVerworfen: () => void
@@ -43,10 +44,12 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       kassieren={(eingabe) => {
         const inhalt = { positionen: props.positionen, ...eingabe }
         return props.backend.direktverkaufTaetigen({
-          verkaufId: props.schluesselFuer(inhalt),
+          verkaufId: props.vorgang.schluesselFuer(inhalt),
           ...inhalt,
         })
       }}
+      kommentar={props.vorgang.kommentar}
+      setKommentar={props.vorgang.setKommentar}
       kassiert={props.verkaufAbgeschlossen}
       kaufVerworfen={props.verkaufVerworfen}
       pfandBackend={props.pfandBackend}

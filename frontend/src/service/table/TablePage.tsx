@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
-import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { formatEuro } from '@/lib/utils'
@@ -126,12 +125,12 @@ export function TablePage() {
     reload()
   }, [reload])
 
-  // Korb, Auswahl und Vorgangs-Schlüssel liegen hier, damit sie das Aus- und
-  // Wiedereinhängen der Radix-Tab-Inhalte überstehen; ein Tab-Wechsel verlöre
-  // sie sonst, und ein Retry nach verlorener Antwort buchte doppelt.
+  // Korb, Auswahl, Kommentar und Vorgangs-Schlüssel liegen hier, damit sie das
+  // Aus- und Wiedereinhängen der Radix-Tab-Inhalte überstehen; ein Tab-Wechsel
+  // verlöre sie sonst, und ein Retry nach verlorener Antwort buchte doppelt.
   const bestellung = useVorgang<number>()
   const unbezahlteMengen = toMengen(state.unbezahltePositionen)
-  const kassierenAuswahl = useMengen<string>(
+  const kassieren = useVorgang<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
   const pfandVorgang = useVorgang<number>()
@@ -142,7 +141,9 @@ export function TablePage() {
   if (tischId !== aktiverTisch) {
     setAktiverTisch(tischId)
     bestellung.steuerung.reset()
-    kassierenAuswahl.reset()
+    kassieren.steuerung.reset()
+    // Ein Pfand-Kommentar steht bei leerer Auswahl; der Reset oben leert ihn nicht.
+    kassieren.setKommentar('')
     pfandVorgang.steuerung.reset()
   }
 
@@ -150,11 +151,11 @@ export function TablePage() {
   // schrumpft die unbezahlte Menge einer ausgewählten Position (z. B. Storno-
   // Refetch beim Schließen des Erfolgs-Pops), wird sie hier im Render abgeglichen.
   const gedeckelteAuswahl = deckeleAuswahl(
-    kassierenAuswahl.mengen,
+    kassieren.steuerung.mengen,
     unbezahlteMengen,
   )
   if (gedeckelteAuswahl) {
-    kassierenAuswahl.setAll(gedeckelteAuswahl)
+    kassieren.steuerung.setAll(gedeckelteAuswahl)
   }
 
   // Expliziter Fehlerzustand statt der Leer-Defaults (Saldo 0,00 €) — sonst
@@ -265,7 +266,7 @@ export function TablePage() {
       pfandVorgang={pfandVorgang}
       tisch={tisch}
       positionen={state.unbezahltePositionen}
-      mengenSteuerung={kassierenAuswahl}
+      vorgang={kassieren}
       onErfolg={zeigeErfolg}
     />
   )

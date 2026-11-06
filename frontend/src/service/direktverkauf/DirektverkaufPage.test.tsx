@@ -135,8 +135,9 @@ describe('DirektverkaufPage', () => {
   })
 
   // Der Verkauf ist gebucht, die Antwort geht verloren. Nach einem Blick in die
-  // Historie müssen Korb und verkaufId stehen, sonst bucht die Wiederholung doppelt.
-  it('behält Korb und verkaufId über einen Blick in die Historie', async () => {
+  // Historie müssen Korb, Kommentar und verkaufId stehen, sonst bucht die
+  // Wiederholung doppelt.
+  it('behält Korb, Kommentar und verkaufId über einen Blick in die Historie', async () => {
     setViewportWidth(1024)
     const direktverkaufTaetigen = vi
       .fn()
@@ -154,6 +155,7 @@ describe('DirektverkaufPage', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Variante hinzufügen' }),
     )
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'ohne Zwiebeln')
     await user.click(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     )
@@ -173,9 +175,10 @@ describe('DirektverkaufPage', () => {
     const [erster, wiederholung] = fake.bodies(
       'service/direktverkauf-taetigen',
     ) as [
-      { verkaufId: string; positionen: unknown[] },
-      { verkaufId: string; positionen: unknown[] },
+      { verkaufId: string; positionen: unknown[]; kommentar: string },
+      { verkaufId: string; positionen: unknown[]; kommentar: string },
     ]
+    expect(wiederholung.kommentar).toBe('ohne Zwiebeln')
     expect(wiederholung.positionen).toEqual(erster.positionen)
     expect(wiederholung.positionen).toHaveLength(1)
     expect(wiederholung.verkaufId).toBe(erster.verkaufId)

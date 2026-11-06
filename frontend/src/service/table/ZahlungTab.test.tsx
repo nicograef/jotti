@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useMengen } from '@/hooks/use-mengen'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -16,25 +15,22 @@ import type { Tisch } from './Tisch'
 import { TischBackend } from './TischBackend'
 import { ZahlungTab } from './ZahlungTab'
 
-// Die Kassieren-Auswahl liegt in TablePage; dieser Harness stellt die gehobene
-// Steuerung inklusive der Deckelung auf die unbezahlte Menge bereit.
+// Der Kassieren-Vorgang liegt in TablePage; dieser Harness stellt ihn
+// inklusive der Deckelung auf die unbezahlte Menge bereit.
 function ZahlungHarness(
-  props: Omit<
-    ComponentProps<typeof ZahlungTab>,
-    'mengenSteuerung' | 'pfandVorgang'
-  >,
+  props: Omit<ComponentProps<typeof ZahlungTab>, 'vorgang' | 'pfandVorgang'>,
 ) {
   const unbezahlteMengen: Record<string, number> = {}
   props.positionen.forEach((position) => {
     unbezahlteMengen[position.positionId] = position.menge
   })
-  const mengenSteuerung = useMengen<string>(
+  const vorgang = useVorgang<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
   return (
     <ZahlungTab
       {...props}
-      mengenSteuerung={mengenSteuerung}
+      vorgang={vorgang}
       pfandVorgang={useVorgang<number>()}
     />
   )

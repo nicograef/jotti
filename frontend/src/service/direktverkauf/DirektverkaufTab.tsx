@@ -81,7 +81,7 @@ export function DirektverkaufTab({
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={total}
-            schluesselFuer={vorgang.schluesselFuer}
+            vorgang={vorgang}
             verkaufAbgeschlossen={verkaufAbgeschlossen}
             verkaufVerworfen={reset}
             pfandAusgezahlt={pfandAusgezahlt}
@@ -102,7 +102,7 @@ export function DirektverkaufTab({
         positionen={inputItems}
         anzahl={anzahl}
         totalCents={total}
-        schluesselFuer={vorgang.schluesselFuer}
+        vorgang={vorgang}
         verkaufAbgeschlossen={verkaufAbgeschlossen}
         verkaufVerworfen={reset}
         pfandAusgezahlt={pfandAusgezahlt}

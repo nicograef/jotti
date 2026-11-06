@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/item'
 import { useEintritt } from '@/hooks/use-eintritt'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
-import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Vorgang } from '@/hooks/use-vorgang'
 import { AuthSingleton } from '@/lib/Auth'
 import type { Produkt } from '@/lib/produktSchemas'
 import { cn, formatEuro, formatPositionName } from '@/lib/utils'
@@ -42,8 +42,8 @@ interface ZahlungTabProps {
   tisch: Tisch
   positionen: Position[]
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
-  // Menge), von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
-  mengenSteuerung: MengenSteuerung<string>
+  // Menge) samt Kommentar, von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
+  vorgang: Vorgang<string>
   onErfolg: (nachricht: string) => void
 }
 
@@ -54,14 +54,14 @@ export function ZahlungTab({
   pfandProdukte,
   pfandVorgang,
   positionen,
-  mengenSteuerung,
+  vorgang,
   onErfolg,
 }: ZahlungTabProps) {
   const isMobile = useIsMobile()
   const [andereOffen, setAndereOffen] = useState(false)
   const erstAufbau = useErstAufbau(true)
 
-  const { mengen, add, remove, reset } = mengenSteuerung
+  const { mengen, add, remove, reset } = vorgang.steuerung
 
   const meinePositionen: Position[] = []
   const anderePositionen: Position[] = []
@@ -120,7 +120,7 @@ export function ZahlungTab({
       {meinePositionen.length > 0 && (
         <AlleAuswaehlenButton
           positionen={meinePositionen}
-          steuerung={mengenSteuerung}
+          steuerung={vorgang.steuerung}
           variante="meine"
         />
       )}
@@ -188,6 +188,8 @@ export function ZahlungTab({
             positionenToPay={positionenToPay}
             totalCents={auswahlSumme}
             restNachZahlungCents={restNachZahlung}
+            kommentar={vorgang.kommentar}
+            setKommentar={vorgang.setKommentar}
             zahlungKassiert={zahlungKassiert}
             pfandAusgezahlt={pfandAusgezahlt}
           />
@@ -208,6 +210,8 @@ export function ZahlungTab({
         totalCents={auswahlSumme}
         anzahl={auswahlAnzahl}
         restNachZahlungCents={restNachZahlung}
+        kommentar={vorgang.kommentar}
+        setKommentar={vorgang.setKommentar}
         zahlungKassiert={zahlungKassiert}
         pfandAusgezahlt={pfandAusgezahlt}
       />

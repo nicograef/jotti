@@ -18,11 +18,22 @@ import type { Tisch } from './Tisch'
 import type { ZahlungKassieren } from './Zahlung'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 
-// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+// Kassieren- und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function ZahlungAbschlussHarness(
-  props: Omit<ComponentProps<typeof ZahlungAbschluss>, 'pfandVorgang'>,
+  props: Omit<
+    ComponentProps<typeof ZahlungAbschluss>,
+    'pfandVorgang' | 'kommentar' | 'setKommentar'
+  >,
 ) {
-  return <ZahlungAbschluss {...props} pfandVorgang={useVorgang<number>()} />
+  const kassieren = useVorgang<string>()
+  return (
+    <ZahlungAbschluss
+      {...props}
+      kommentar={kassieren.kommentar}
+      setKommentar={kassieren.setKommentar}
+      pfandVorgang={useVorgang<number>()}
+    />
+  )
 }
 
 vi.mock('sonner', () => ({

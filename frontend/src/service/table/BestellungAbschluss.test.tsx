@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { type ComponentProps, useState } from 'react'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
@@ -20,12 +20,9 @@ afterEach(() => {
 
 // Der Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
 function BestellungAbschlussHarness(
-  props: Omit<ComponentProps<typeof BestellungAbschluss>, 'schluesselFuer'>,
+  props: Omit<ComponentProps<typeof BestellungAbschluss>, 'vorgang'>,
 ) {
-  const vorgang = useVorgang<number>()
-  return (
-    <BestellungAbschluss {...props} schluesselFuer={vorgang.schluesselFuer} />
-  )
+  return <BestellungAbschluss {...props} vorgang={useVorgang<number>()} />
 }
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
@@ -147,41 +144,5 @@ describe('BestellungAbschluss (Spalte)', () => {
       ersterKey,
     )
     expect(bestellungAufnehmen.mock.calls[1][0].kommentar).toBe('Ohne Zwiebeln')
-  })
-
-  it('setzt den Kommentar beim neuen Vorgang zurück', async () => {
-    const user = userEvent.setup()
-
-    function Harness() {
-      const [leer, setLeer] = useState(false)
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setLeer((v) => !v)
-            }}
-          >
-            toggle
-          </button>
-          <BestellungAbschlussHarness
-            variant="spalte"
-            backend={{ bestellungAufnehmen: vi.fn() }}
-            tisch={tisch}
-            receiptItems={leer ? [] : receiptItems}
-            positionen={leer ? [] : positionen}
-            totalCents={leer ? 0 : 700}
-            bestellungAufgenommen={vi.fn()}
-          />
-        </>
-      )
-    }
-    render(<Harness />)
-
-    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Zwiebeln')
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
-
-    expect(screen.getByPlaceholderText(/Kommentar/)).toHaveValue('')
   })
 })

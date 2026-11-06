@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
+import type { Vorgang } from '@/hooks/use-vorgang'
 
 import type { BestellPositionInput } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
@@ -17,7 +18,7 @@ interface BestellungDrawerProps {
   positionen: BestellPositionInput[]
   totalCents: number
   anzahl: number
-  schluesselFuer: (inhalt: unknown) => string
+  vorgang: Vorgang<number>
   bestellungAufgenommen: () => void
 }
 
@@ -48,7 +49,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
         receiptItems={props.receiptItems}
         positionen={props.positionen}
         totalCents={props.totalCents}
-        schluesselFuer={props.schluesselFuer}
+        vorgang={props.vorgang}
         bestellungAufgenommen={() => {
           setOpen(false)
           props.bestellungAufgenommen()

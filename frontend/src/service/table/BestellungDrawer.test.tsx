@@ -1,7 +1,9 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgang } from '@/hooks/use-vorgang'
 import { testProdukt } from '@/test/fixtures'
 
 import { ServiceDock } from '../ServiceDock'
@@ -23,20 +25,26 @@ afterEach(() => {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
+// Der Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function BestellungDrawerHarness(
+  props: Omit<ComponentProps<typeof BestellungDrawer>, 'vorgang'>,
+) {
+  return <BestellungDrawer {...props} vorgang={useVorgang<number>()} />
+}
+
 // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
 // Drawer hier in ein Dock eingebettet (leiste bleibt leer).
 function renderDrawer(mengen: Record<number, number>) {
   const { receiptItems, inputItems } = toBestellungData([testProdukt], mengen)
   render(
     <ServiceDock leiste={null}>
-      <BestellungDrawer
+      <BestellungDrawerHarness
         backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         receiptItems={receiptItems}
         positionen={inputItems}
         totalCents={calculateTotalPrice(receiptItems)}
         anzahl={calculateAnzahl(inputItems)}
-        schluesselFuer={() => crypto.randomUUID()}
         bestellungAufgenommen={vi.fn()}
       />
     </ServiceDock>,

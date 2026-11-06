@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
@@ -20,7 +21,7 @@ interface DirektverkaufDrawerProps {
   positionen: VerkaufPositionInput[]
   anzahl: number
   totalCents: number
-  schluesselFuer: (inhalt: unknown) => string
+  vorgang: Vorgang<number>
   verkaufAbgeschlossen: () => void
   verkaufVerworfen: () => void
   pfandAusgezahlt: () => void
@@ -58,7 +59,7 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
         receiptItems={props.receiptItems}
         positionen={props.positionen}
         totalCents={props.totalCents}
-        schluesselFuer={props.schluesselFuer}
+        vorgang={props.vorgang}
         verkaufAbgeschlossen={() => {
           setOpen(false)
           props.verkaufAbgeschlossen()

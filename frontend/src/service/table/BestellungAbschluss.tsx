@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import type { Vorgang } from '@/hooks/use-vorgang'
 
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
@@ -22,36 +21,23 @@ interface BestellungAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: BestellPositionInput[]
   totalCents: number
-  // Liefert die bestellungId für diesen Versuch (siehe Vorgang.schluesselFuer).
-  schluesselFuer: (inhalt: unknown) => string
+  // Liefert Kommentar und bestellungId; beide überstehen das Aushängen des Abschlusses.
+  vorgang: Vorgang<number>
   bestellungAufgenommen: () => void
   variant: 'sheet' | 'spalte'
 }
 
 export function BestellungAbschluss(props: BestellungAbschlussProps) {
-  const [kommentar, setKommentar] = useState('')
-
+  const { kommentar, setKommentar } = props.vorgang
   const noPositionenSelected = props.positionen.length === 0
-
-  // A selection starting from empty is a new Vorgang; the persistent column carries no Kommentar over from an abandoned one.
-  const warLeerRef = useRef(noPositionenSelected)
-  useEffect(() => {
-    if (warLeerRef.current && !noPositionenSelected) {
-      setKommentar('')
-    }
-    warLeerRef.current = noPositionenSelected
-  }, [noPositionenSelected])
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Bestellung aufnehmen',
-    onSuccess: () => {
-      setKommentar('')
-      props.bestellungAufgenommen()
-    },
+    onSuccess: props.bestellungAufgenommen,
   })
 
   const onSubmit = async () => {
-    const bestellungId = props.schluesselFuer({
+    const bestellungId = props.vorgang.schluesselFuer({
       positionen: props.positionen,
       kommentar,
     })
@@ -80,12 +66,7 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
           <>
             <Receipt positionen={props.receiptItems} />
             <div className="px-4">
-              <KommentarField
-                value={kommentar}
-                onChange={(value) => {
-                  setKommentar(value)
-                }}
-              />
+              <KommentarField value={kommentar} onChange={setKommentar} />
             </div>
           </>
         )}

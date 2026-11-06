@@ -68,7 +68,7 @@ export function BestellungTab({
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={totalCents}
-            schluesselFuer={vorgang.schluesselFuer}
+            vorgang={vorgang}
             bestellungAufgenommen={bestellungAufgenommen}
           />
         }
@@ -85,7 +85,7 @@ export function BestellungTab({
         positionen={inputItems}
         totalCents={totalCents}
         anzahl={calculateAnzahl(inputItems)}
-        schluesselFuer={vorgang.schluesselFuer}
+        vorgang={vorgang}
         bestellungAufgenommen={bestellungAufgenommen}
       />
       {productList}

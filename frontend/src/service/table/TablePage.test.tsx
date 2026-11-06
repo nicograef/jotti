@@ -327,8 +327,9 @@ describe('TablePage', () => {
   })
 
   // Die Bestellung ist gebucht, die Antwort geht verloren. Nach einem Tab-Wechsel
-  // muss die Wiederholung dieselbe bestellungId tragen, sonst bucht sie doppelt.
-  it('behält die bestellungId über einen Tab-Wechsel hinweg', async () => {
+  // muss die Wiederholung denselben Inhalt und dieselbe bestellungId tragen, sonst
+  // bucht sie doppelt.
+  it('behält Kommentar und bestellungId über einen Tab-Wechsel hinweg', async () => {
     setViewportWidth(1024)
     getTischState.mockReturnValue(stammtisch)
     getTischHistorie.mockReturnValue([])
@@ -349,6 +350,7 @@ describe('TablePage', () => {
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),
     )
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'ohne Zwiebeln')
     await user.click(
       screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
     )
@@ -367,7 +369,11 @@ describe('TablePage', () => {
 
     const [erster, wiederholung] = fake.bodies(
       'service/bestellung-aufnehmen',
-    ) as [{ bestellungId: string }, { bestellungId: string }]
+    ) as [
+      { bestellungId: string; kommentar: string },
+      { bestellungId: string; kommentar: string },
+    ]
+    expect(wiederholung.kommentar).toBe('ohne Zwiebeln')
     expect(wiederholung.bestellungId).toBe(erster.bestellungId)
   })
 

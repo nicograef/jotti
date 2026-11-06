@@ -19,6 +19,9 @@ interface ZahlungAbschlussProps {
   positionenToPay: Position[]
   totalCents: number
   restNachZahlungCents: number
+  // Liegt im Kassieren-Vorgang von TablePage, wie die Auswahl.
+  kommentar: string
+  setKommentar: (kommentar: string) => void
   zahlungKassiert: () => void
   pfandAusgezahlt: () => void
   variant: 'sheet' | 'spalte'
@@ -41,6 +44,8 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
       aktion={{ button: 'Kassieren', fehlerLabel: 'Zahlung kassieren' }}
       receiptItems={toReceiptItems(props.positionenToPay)}
       totalCents={props.totalCents}
+      kommentar={props.kommentar}
+      setKommentar={props.setKommentar}
       kassieren={(eingabe) =>
         props.backend.zahlungKassieren({
           tischId: props.tisch.id,

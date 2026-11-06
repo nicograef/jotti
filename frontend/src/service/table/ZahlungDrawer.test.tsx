@@ -10,11 +10,22 @@ import { ServiceDock } from '../ServiceDock'
 import type { Tisch } from './Tisch'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
-// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+// Kassieren- und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function ZahlungDrawerHarness(
-  props: Omit<ComponentProps<typeof ZahlungDrawer>, 'pfandVorgang'>,
+  props: Omit<
+    ComponentProps<typeof ZahlungDrawer>,
+    'pfandVorgang' | 'kommentar' | 'setKommentar'
+  >,
 ) {
-  return <ZahlungDrawer {...props} pfandVorgang={useVorgang<number>()} />
+  const kassieren = useVorgang<string>()
+  return (
+    <ZahlungDrawer
+      {...props}
+      kommentar={kassieren.kommentar}
+      setKommentar={kassieren.setKommentar}
+      pfandVorgang={useVorgang<number>()}
+    />
+  )
 }
 
 vi.mock('sonner', () => ({

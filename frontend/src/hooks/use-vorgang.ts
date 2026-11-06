@@ -2,8 +2,9 @@ import { useState } from 'react'
 
 import { type MengenSteuerung, useMengen } from './use-mengen'
 
-// Eine Auswahl samt Idempotenz-Schlüssel des logischen Vorgangs (D08). Die Seite
-// hält beide, damit sie das Aus- und Einhängen der Tab-Inhalte überstehen.
+// Eine Auswahl samt Kommentar und Idempotenz-Schlüssel des logischen Vorgangs
+// (D08). Die Seite hält alle drei, damit sie das Aus- und Einhängen der
+// Tab-Inhalte überstehen: ein Retry trägt so denselben Inhalt und Schlüssel.
 export interface Vorgang<K extends string | number> {
   steuerung: MengenSteuerung<K>
   // Neu, sobald die Auswahl leer wird oder sich wieder füllt; ein Retry behält ihn.
@@ -12,6 +13,9 @@ export interface Vorgang<K extends string | number> {
   // mit anderem Inhalt ist der alte verbraucht: das Backend hielte die geänderte
   // Buchung für ein Duplikat und verwürfe sie stillschweigend.
   schluesselFuer: (inhalt: unknown) => string
+  // Leer, sobald die Auswahl leer wird oder sich wieder füllt.
+  kommentar: string
+  setKommentar: (kommentar: string) => void
 }
 
 export function useVorgang<K extends string | number>(
@@ -25,9 +29,15 @@ export function useVorgang<K extends string | number>(
     leer,
     vorgangId: crypto.randomUUID(),
     letzterVersuch: null as string | null,
+    kommentar: '',
   }))
   if (stand.leer !== leer) {
-    setStand({ leer, vorgangId: crypto.randomUUID(), letzterVersuch: null })
+    setStand({
+      leer,
+      vorgangId: crypto.randomUUID(),
+      letzterVersuch: null,
+      kommentar: '',
+    })
   }
 
   const schluesselFuer = (inhalt: unknown): string => {
@@ -36,9 +46,19 @@ export function useVorgang<K extends string | number>(
       stand.letzterVersuch === null || stand.letzterVersuch === versuch
         ? stand.vorgangId
         : crypto.randomUUID()
-    setStand({ ...stand, vorgangId, letzterVersuch: versuch })
+    setStand((vorher) => ({ ...vorher, vorgangId, letzterVersuch: versuch }))
     return vorgangId
   }
 
-  return { steuerung, vorgangId: stand.vorgangId, schluesselFuer }
+  const setKommentar = (kommentar: string) => {
+    setStand((vorher) => ({ ...vorher, kommentar }))
+  }
+
+  return {
+    steuerung,
+    vorgangId: stand.vorgangId,
+    schluesselFuer,
+    kommentar: stand.kommentar,
+    setKommentar,
+  }
 }

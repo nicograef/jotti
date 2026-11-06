@@ -24,6 +24,8 @@ interface ZahlungDrawerProps {
   totalCents: number
   anzahl: number
   restNachZahlungCents: number
+  kommentar: string
+  setKommentar: (kommentar: string) => void
   zahlungKassiert: () => void
   pfandAusgezahlt: () => void
 }
@@ -64,6 +66,8 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
         positionenToPay={props.positionenToPay}
         totalCents={props.totalCents}
         restNachZahlungCents={props.restNachZahlungCents}
+        kommentar={props.kommentar}
+        setKommentar={props.setKommentar}
         zahlungKassiert={() => {
           setOpen(false)
           props.zahlungKassiert()

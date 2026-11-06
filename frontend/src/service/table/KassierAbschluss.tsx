@@ -37,6 +37,9 @@ interface KassierAbschlussProps {
   aktion: { button: string; fehlerLabel: string }
   receiptItems: ReceiptPosition[]
   totalCents: number
+  // Liegt im Vorgang der Seite, damit ein Retry nach dem Aushängen denselben Inhalt trägt.
+  kommentar: string
+  setKommentar: (kommentar: string) => void
   kassieren: (eingabe: KassierEingabe) => Promise<void>
   kassiert: () => void
   // Läuft, wenn der Server den Kauf mit `pfandrueckgabe_abweichend` abweist.
@@ -56,12 +59,10 @@ function useBarzahlungEingaben() {
   const [erhaltenEuro, setErhaltenEuro] = useState('')
   const [zielbetragEuro, setZielbetragEuro] = useState('')
   const [andererAktiv, setAndererAktiv] = useState(false)
-  const [kommentar, setKommentar] = useState('')
   const zuruecksetzen = useCallback(() => {
     setErhaltenEuro('')
     setZielbetragEuro('')
     setAndererAktiv(false)
-    setKommentar('')
   }, [])
   return {
     erhaltenEuro,
@@ -70,8 +71,6 @@ function useBarzahlungEingaben() {
     setZielbetragEuro,
     andererAktiv,
     setAndererAktiv,
-    kommentar,
-    setKommentar,
     zuruecksetzen,
   }
 }
@@ -132,7 +131,7 @@ export function KassierAbschluss(props: KassierAbschlussProps) {
     },
     onSuccess: () => {
       pfand.steuerung.reset()
-      eingaben.setKommentar('')
+      props.setKommentar('')
       props.pfandAusgezahlt()
     },
   })
@@ -141,7 +140,7 @@ export function KassierAbschluss(props: KassierAbschlussProps) {
   const onSubmit = async () => {
     await kauf.run(async () => {
       await props.kassieren({
-        kommentar: eingaben.kommentar,
+        kommentar: props.kommentar,
         ...(mitPfand
           ? {
               pfand: {
@@ -160,19 +159,14 @@ export function KassierAbschluss(props: KassierAbschlussProps) {
         rueckgabeId: pfand.rueckgabeId,
         tischId: props.pfandTischId,
         positionen: pfand.positionen,
-        kommentar: eingaben.kommentar,
+        kommentar: props.kommentar,
       })
     })
   }
 
   const kommentarFeld = (
     <div className="px-4 pt-3">
-      <KommentarField
-        value={eingaben.kommentar}
-        onChange={(value) => {
-          eingaben.setKommentar(value)
-        }}
-      />
+      <KommentarField value={props.kommentar} onChange={props.setKommentar} />
     </div>
   )
 

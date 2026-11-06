@@ -41,10 +41,13 @@ describe('useVorgang', () => {
     expect(result.current.vorgangId).toBe(geaendert)
   })
 
-  it('zieht mit einer neu gefüllten Auswahl einen neuen Schlüssel', () => {
+  it('beginnt mit einer neu gefüllten Auswahl mit neuem Schlüssel und leerem Kommentar', () => {
     const { result } = renderHook(() => useVorgang<number>())
     act(() => {
       result.current.steuerung.add(1)
+    })
+    act(() => {
+      result.current.setKommentar('Ohne Zwiebeln')
     })
     const ersterVorgang = result.current.vorgangId
 
@@ -56,5 +59,6 @@ describe('useVorgang', () => {
     })
 
     expect(result.current.vorgangId).not.toBe(ersterVorgang)
+    expect(result.current.kommentar).toBe('')
   })
 })
