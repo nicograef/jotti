@@ -40,7 +40,6 @@ export const TSEClientBefundSchema = z.object({
   serialNumber: z.string(),
   state: fiskalyZustand,
 })
-export type TSEClientBefund = z.infer<typeof TSEClientBefundSchema>
 
 export const TSSBefundSchema = z.object({
   id: z.string(),

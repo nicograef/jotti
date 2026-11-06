@@ -22,7 +22,6 @@ export const ServicekraftRefSchema = z.object({
   userName: z.string(),
   name: z.string(),
 })
-export type ServicekraftRef = z.infer<typeof ServicekraftRefSchema>
 
 // abzugebenCents = kassiertCents − ruecknahmenCents − pfandCents and may be negative;
 // Direktverkäufe and Pfand at the counter are not included.
@@ -35,9 +34,6 @@ export const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
   pfandCents: z.number().int(),
   abzugebenCents: z.number().int(),
 })
-export type AbrechnungServicekraft = z.infer<
-  typeof AbrechnungServicekraftSchema
->
 
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
@@ -69,7 +65,6 @@ export const UmsatzSteuersatzSchema = z.object({
   nettoCents: z.number().int(),
   steuerCents: z.number().int(),
 })
-export type UmsatzSteuersatz = z.infer<typeof UmsatzSteuersatzSchema>
 
 // ausgegebeneMenge (Produktion) und umsatzCents (Bestellwert) ruhen auf derselben
 // Ereignismenge und Gewichtung; kassierte Zahlungen ändern den Umsatz nicht.
@@ -79,7 +74,6 @@ export const VarianteStatistikSchema = z.object({
   ausgegebeneMenge: z.number().int(),
   umsatzCents: z.number().int(),
 })
-export type VarianteStatistik = z.infer<typeof VarianteStatistikSchema>
 
 // Vom Backend fertig gruppiert und sortiert; Ein-Varianten-Produkte tragen
 // genau eine Variante.
@@ -111,7 +105,6 @@ export const MetadatenSchema = z.object({
   abgeschlossenVon: z.string(),
   kassensturzDifferenzCents: z.number().int().nullable(),
 })
-export type Metadaten = z.infer<typeof MetadatenSchema>
 
 export const OffenerTischSchema = z.object({
   tischId: z.number().int(),
@@ -121,12 +114,11 @@ export const OffenerTischSchema = z.object({
 export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
 // Ohne Betrag: der offene Saldo wird auf Servicekraft-Ebene aggregiert
-// (ServicekraftLive.offenCents).
+// (ServicekraftLiveSchema.offenCents).
 export const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
 })
-export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
 // erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
 export const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
@@ -139,7 +131,6 @@ export const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
   offeneTische: z.array(OffeneArbeitTischSchema),
   erledigt: z.boolean(),
 })
-export type ServicekraftLive = z.infer<typeof ServicekraftLiveSchema>
 
 export const LiveReportingDataSchema = z.object({
   kassensitzungNr: z.number().int(),

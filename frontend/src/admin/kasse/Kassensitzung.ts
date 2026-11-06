@@ -37,7 +37,7 @@ export const KommentarSchema = z
   .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
   .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' })
 
-// KasseBackend erweitert diesen Datensatz zu AktiveKassensitzung; das Reporting nutzt ihn über diesen Typ.
+// KasseBackend erweitert diesen Datensatz zu AktiveKassensitzung.
 export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
@@ -48,7 +48,6 @@ export const KassensitzungSchema = z.object({
     KassensitzungStatus.ABGESCHLOSSEN,
   ]),
 })
-export type Kassensitzung = z.infer<typeof KassensitzungSchema>
 
 // Der Kassenbestand (Soll) samt Aufschlüsselung. Es gilt (vor dem Kassensturz):
 // anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
