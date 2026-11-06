@@ -4,6 +4,7 @@ import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
 import { formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
+import { AbrechnungAufschluesselung } from './AbrechnungAufschluesselung'
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
@@ -181,12 +182,7 @@ export function ReportingResults({
                 >
                   <span className="flex flex-col gap-0.5">
                     {formatServicekraft(sk.userName, sk.name)}
-                    <span className="text-xs text-muted-foreground">
-                      Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
-                      {formatEuro(sk.ruecknahmenCents)}
-                      {sk.pfandCents !== 0 &&
-                        ` · Pfand ${formatEuro(sk.pfandCents)}`}
-                    </span>
+                    <AbrechnungAufschluesselung {...sk} />
                     {sk.anzahlStornierungen > 0 && (
                       <StornoMarker anzahl={sk.anzahlStornierungen} />
                     )}

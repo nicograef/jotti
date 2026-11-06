@@ -16,13 +16,18 @@ export const SummarySchema = z.object({
   pfandrueckgabenCents: z.number().int(),
 })
 
-// abzugebenCents = kassiertCents − ruecknahmenCents − pfandCents and may be negative;
-// Direktverkäufe and Pfand at the counter are not included.
-// anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
-export const AbrechnungServicekraftSchema = z.object({
+// userName ist der eingefrorene Username, name der live aufgelöste Klarname.
+export const ServicekraftRefSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
   name: z.string(),
+})
+export type ServicekraftRef = z.infer<typeof ServicekraftRefSchema>
+
+// abzugebenCents = kassiertCents − ruecknahmenCents − pfandCents and may be negative;
+// Direktverkäufe and Pfand at the counter are not included.
+// anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
+export const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
   kassiertCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
   ruecknahmenCents: z.number().int(),
@@ -33,14 +38,6 @@ export const AbrechnungServicekraftSchema = z.object({
 export type AbrechnungServicekraft = z.infer<
   typeof AbrechnungServicekraftSchema
 >
-
-// userName ist der eingefrorene Username, name der live aufgelöste Klarname.
-export const ServicekraftRefSchema = z.object({
-  userId: z.number().int(),
-  userName: z.string(),
-  name: z.string(),
-})
-export type ServicekraftRef = z.infer<typeof ServicekraftRefSchema>
 
 export const StornierungPositionSchema = z.object({
   produktName: z.string(),
@@ -132,10 +129,7 @@ export const OffeneArbeitTischSchema = z.object({
 export type OffeneArbeitTisch = z.infer<typeof OffeneArbeitTischSchema>
 
 // erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
-export const ServicekraftLiveSchema = z.object({
-  userId: z.number().int(),
-  userName: z.string(),
-  name: z.string(),
+export const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
   kassiertCents: z.number().int(),
   ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),

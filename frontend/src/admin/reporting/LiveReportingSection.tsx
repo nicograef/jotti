@@ -26,6 +26,7 @@ import { formatEuro } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StatusDot } from '../components/StatusDot'
+import { AbrechnungAufschluesselung } from './AbrechnungAufschluesselung'
 import { StornoItem } from './StornoItem'
 import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
@@ -238,12 +239,7 @@ export function LiveReportingSection({
                         </span>
                       )}
                       {(sk.ruecknahmenCents !== 0 || sk.pfandCents !== 0) && (
-                        <span className="text-xs text-muted-foreground">
-                          Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
-                          {formatEuro(sk.ruecknahmenCents)}
-                          {sk.pfandCents !== 0 &&
-                            ` · Pfand ${formatEuro(sk.pfandCents)}`}
-                        </span>
+                        <AbrechnungAufschluesselung {...sk} />
                       )}
                       {sk.anzahlStornierungen > 0 && (
                         <StornoMarker anzahl={sk.anzahlStornierungen} />
