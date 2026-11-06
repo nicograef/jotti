@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
 
+import type { PfandZurueckgeben } from '../pfand/Pfand'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
@@ -127,6 +128,56 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     })
     expect(direktverkaufTaetigen).not.toHaveBeenCalled()
     expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
+  })
+
+  it('renews the rueckgabeId when the Pfand selection changes after a failed payout', async () => {
+    const user = userEvent.setup()
+    const pfandZurueckgeben = vi
+      .fn<(rueckgabe: PfandZurueckgeben) => Promise<void>>()
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValue(undefined)
+    render(
+      <DirektverkaufAbschluss
+        variant="spalte"
+        backend={{ direktverkaufTaetigen: vi.fn() }}
+        pfandBackend={{ pfandZurueckgeben }}
+        pfandProdukte={[pfandProdukt]}
+        receiptItems={[]}
+        positionen={[]}
+        totalCents={0}
+        verkaufAbgeschlossen={vi.fn()}
+        pfandAusgezahlt={vi.fn()}
+      />,
+    )
+    const hinzufuegen = () =>
+      screen.getByRole('button', { name: 'Variante hinzufügen' })
+    const auszahlen = () =>
+      screen.getByRole('button', { name: 'Pfand auszahlen' })
+
+    await user.click(hinzufuegen())
+    await user.click(auszahlen())
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+    await user.click(auszahlen())
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(2)
+    })
+    await user.click(hinzufuegen())
+    await user.click(auszahlen())
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(3)
+    })
+
+    const [erster, wiederholt, geaendert] = pfandZurueckgeben.mock.calls.map(
+      ([rueckgabe]) => rueckgabe,
+    )
+    expect(wiederholt.rueckgabeId).toBe(erster.rueckgabeId)
+    expect(geaendert.rueckgabeId).not.toBe(erster.rueckgabeId)
+    expect(geaendert.positionen).toEqual([
+      { produktId: 9, varianteId: 19, menge: 2 },
+    ])
   })
 
   it('rechnet das Rückgeld aus dem erhaltenen Betrag', async () => {

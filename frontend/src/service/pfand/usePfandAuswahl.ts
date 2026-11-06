@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 import { type MengenSteuerung, useMengen } from '@/hooks/use-mengen'
 import type { Produkt } from '@/lib/produktSchemas'
@@ -13,9 +13,10 @@ export interface PfandAuswahl {
   rueckgabeId: string
 }
 
-// Eine rueckgabeId je Vorgang: Sie wechselt, wenn eine Auswahl aus dem Leeren
-// beginnt; ein Wiederholversuch behält sie. Solange `gesperrt` gilt, wird eine
-// Auswahl im Render verworfen.
+// Die rueckgabeId gehört zu genau einer Auswahl: Jede Änderung erneuert sie,
+// nur ein unveränderter Wiederholversuch behält sie. Sonst bucht der Server
+// nach einem Timeout die alte Menge, während die neue bar ausgezahlt wird.
+// Solange `gesperrt` gilt, wird eine Auswahl im Render verworfen.
 export function usePfandAuswahl(
   pfandProdukte: Produkt[],
   gesperrt: boolean,
@@ -25,24 +26,25 @@ export function usePfandAuswahl(
     pfandProdukte,
     steuerung.mengen,
   )
-  const leer = inputItems.length === 0
-  if (gesperrt && !leer) {
+  if (gesperrt && inputItems.length > 0) {
     steuerung.reset()
   }
 
-  const [rueckgabeId, setRueckgabeId] = useState(() => crypto.randomUUID())
-  const warLeerRef = useRef(leer)
-  useEffect(() => {
-    if (warLeerRef.current && !leer) {
-      setRueckgabeId(crypto.randomUUID())
-    }
-    warLeerRef.current = leer
-  }, [leer])
+  const auswahlKey = inputItems
+    .map((p) => `${p.varianteId.toString()}:${p.menge.toString()}`)
+    .join(',')
+  const [vorgang, setVorgang] = useState(() => ({
+    auswahlKey,
+    rueckgabeId: crypto.randomUUID(),
+  }))
+  if (vorgang.auswahlKey !== auswahlKey) {
+    setVorgang({ auswahlKey, rueckgabeId: crypto.randomUUID() })
+  }
 
   return {
     steuerung,
     positionen: inputItems,
     summeCents: calculateTotalPrice(receiptItems),
-    rueckgabeId,
+    rueckgabeId: vorgang.rueckgabeId,
   }
 }
