@@ -26,12 +26,11 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] `JOTTI_DOMAIN` bei jedem Compose-Befehl des Public-Stacks: Folge der Entscheidung Option A —
       jeder Compose-Befehl mit `docker-compose.prod.yml` (auch `make prod-down`, `make prod-logs`)
       verlangt die Variable. Option A (hinnehmen) laut statt still bestätigen.
-- [ ] Gläserpfand: Vereine fragen nach Pfandrückgabe. Kein Preis darf negativ sein, deshalb geht keine
-      Rückgabe. `docs/prds/prd-pfandrueckgabe.md` beschreibt den Weg samt Umsatzsteuer und DSFinV-K;
-      Rabatt und Gutschrift klammert es aus. Offen: Freigabe des PRD.
-- [ ] Auto-Pfand je Variante: Die Pfandrückgabe kommt mit manuell getipptem Pfand. Nach ihrer
-      Auslieferung ein PRD schreiben. Darin verknüpft eine Produktvariante eine Pfand-Variante, und
-      die Bestellung fügt das Pfand automatisch hinzu.
+- [ ] Rabatt und Gutschrift: Ein Verein fragt danach. Eine Gutschrift für ein reklamiertes Getränk deckt
+      die Stornierung ab. Ein Rabatt bräuchte eine negative Positionszeile vom Typ „Rabatt" je Steuersatz
+      (DSFinV-K Tz. 4.2.4) und Folgeversionen der Zahlungs-Events. Offen: nur bei weiterer Nachfrage.
+- [ ] Auto-Pfand je Variante: Pfand tippt die Servicekraft als eigene Position. Offen: ein PRD, in dem
+      eine Produktvariante eine Pfand-Variante verknüpft und die Bestellung das Pfand automatisch hinzufügt.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
