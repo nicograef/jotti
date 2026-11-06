@@ -42,8 +42,8 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// The fake answers downloads at once; a held promise keeps the export running
-// until the test settles it.
+// The fake answers no download; a held promise keeps the export running until
+// the test settles it.
 function haltenderDownload(fake: FakeBackend, archiv: Promise<DownloadResult>) {
   vi.spyOn(fake, 'download').mockReturnValue(archiv)
 }

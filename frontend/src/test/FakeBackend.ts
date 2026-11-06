@@ -20,7 +20,6 @@ export interface Call {
  */
 export class FakeBackend implements BackendClient {
   private readonly handlers = new Map<string, Handler>()
-  private readonly downloads = new Map<string, () => DownloadResult>()
   public readonly calls: Call[] = []
 
   /** A function response receives the request body and may throw or be a vi.fn. */
@@ -40,11 +39,6 @@ export class FakeBackend implements BackendClient {
     return this.respond(endpoint, () => {
       throw error
     })
-  }
-
-  public respondDownload(endpoint: string, result: DownloadResult): this {
-    this.downloads.set(endpoint, () => result)
-    return this
   }
 
   public bodies(endpoint: string): unknown[] {
@@ -78,15 +72,9 @@ export class FakeBackend implements BackendClient {
     return data
   }
 
-  public async download(
-    endpoint: string,
-    body: unknown,
-  ): Promise<DownloadResult> {
+  // Answers no download; a test spies on download() to supply one.
+  public download(endpoint: string, body: unknown): Promise<DownloadResult> {
     this.calls.push({ endpoint, body })
-    const download = this.downloads.get(endpoint)
-    if (!download) {
-      throw new BackendError(404, 'kein_fake', endpoint)
-    }
-    return Promise.resolve(download())
+    return Promise.reject(new BackendError(404, 'kein_fake', endpoint))
   }
 }
