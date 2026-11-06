@@ -20,7 +20,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
-import { BackendError } from '@/lib/Backend'
 
 import { checkTSESetup, useTSEEinrichtung, useTSEKonfiguration } from './hooks'
 import {
@@ -44,8 +43,7 @@ function istUebernehmbar(tss: TSSBefund): boolean {
 // privilegierte fiskaly-Operation und damit keine Admin-PIN.
 function istEinsatzbereit(tss: TSSBefund): boolean {
   return (
-    tss.state === 'INITIALIZED' &&
-    tss.passenderClient?.state === 'REGISTERED'
+    tss.state === 'INITIALIZED' && tss.passenderClient?.state === 'REGISTERED'
   )
 }
 
@@ -305,6 +303,13 @@ function UebernahmeSchritt({
       tse_einrichtung_fehlgeschlagen:
         'Die Übernahme ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    // Die Sackgasse „PIN unbekannt" wird unten als bleibende Meldung mit
+    // Auswegen gezeigt, nicht als flüchtiger Toast.
+    onCode: {
+      tse_setup_pin_unbekannt: () => {
+        setPinUnbekannt(true)
+      },
+    },
   })
 
   const pinErforderlich = brauchtPin(tss)
@@ -314,28 +319,15 @@ function UebernahmeSchritt({
   const handleUebernehmen = async () => {
     setPinUnbekannt(false)
     await run(async () => {
-      try {
-        onUebernommen(
-          await uebernimmTSE({
-            apiKey,
-            apiSecret,
-            umgebung,
-            tssId: tss.id,
-            pin,
-          }),
-        )
-      } catch (error) {
-        // Die Sackgasse „PIN unbekannt" wird unten als bleibende Meldung mit
-        // Auswegen gezeigt, nicht als flüchtiger Toast.
-        if (
-          error instanceof BackendError &&
-          error.code === 'tse_setup_pin_unbekannt'
-        ) {
-          setPinUnbekannt(true)
-          return
-        }
-        throw error
-      }
+      onUebernommen(
+        await uebernimmTSE({
+          apiKey,
+          apiSecret,
+          umgebung,
+          tssId: tss.id,
+          pin,
+        }),
+      )
     })
   }
 
@@ -471,6 +463,13 @@ function PukReset({
       tse_einrichtung_fehlgeschlagen:
         'Das Zurücksetzen ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    // Der falsche PUK bleibt als bleibende Meldung mit Ausweg stehen, nicht
+    // als flüchtiger Toast.
+    onCode: {
+      tse_setup_puk_unbekannt: () => {
+        setPukUnbekannt(true)
+      },
+    },
   })
 
   const pukFehlt = puk.trim() === ''
@@ -478,29 +477,16 @@ function PukReset({
   const handleReset = async () => {
     setPukUnbekannt(false)
     await run(async () => {
-      try {
-        onUebernommen(
-          await uebernimmTSE({
-            apiKey,
-            apiSecret,
-            umgebung,
-            tssId,
-            pin: '',
-            puk,
-          }),
-        )
-      } catch (error) {
-        // Der falsche PUK bleibt als bleibende Meldung mit Ausweg stehen, nicht
-        // als flüchtiger Toast.
-        if (
-          error instanceof BackendError &&
-          error.code === 'tse_setup_puk_unbekannt'
-        ) {
-          setPukUnbekannt(true)
-          return
-        }
-        throw error
-      }
+      onUebernommen(
+        await uebernimmTSE({
+          apiKey,
+          apiSecret,
+          umgebung,
+          tssId,
+          pin: '',
+          puk,
+        }),
+      )
     })
   }
 

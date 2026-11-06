@@ -1,10 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
 import type { UseFormReturn } from 'react-hook-form'
 import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { BackendError } from '@/lib/Backend'
-import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import { useFormActionSubmit } from './use-form-action-submit'
 
@@ -17,19 +16,6 @@ function createFormMock() {
     setError: vi.fn(),
   } as unknown as UseFormReturn
 }
-
-// Submit, der erst auf Kommando endet — nur so ist „läuft noch" prüfbar.
-function steuerbarerSubmit() {
-  let scheitern!: (fehler: Error) => void
-  const lauf = new Promise<void>((_resolve, reject) => {
-    scheitern = reject
-  })
-  return { lauf: () => lauf, scheitern }
-}
-
-beforeEach(() => {
-  VorgangsRegisterSingleton.zuruecksetzen()
-})
 
 afterEach(() => {
   vi.clearAllMocks()
@@ -107,49 +93,5 @@ describe('useFormActionSubmit', () => {
     expect(toast.error).toHaveBeenCalledWith(
       'Bitte die Eingaben prüfen und erneut versuchen.',
     )
-  })
-
-  it('calls onSuccess on successful execution without setting errors or showing toast', async () => {
-    const form = createFormMock()
-    const onSuccess = vi.fn()
-    const { result } = renderHook(() =>
-      useFormActionSubmit({
-        form,
-        actionLabel: 'Speichern',
-        onSuccess,
-      }),
-    )
-
-    await act(async () => {
-      await result.current.run(() => Promise.resolve())
-    })
-
-    expect(onSuccess).toHaveBeenCalledTimes(1)
-    expect(form.setError).not.toHaveBeenCalled()
-    expect(toast.error).not.toHaveBeenCalled()
-  })
-})
-
-describe('useFormActionSubmit im Vorgangs-Register', () => {
-  it('meldet den laufenden Submit und gibt ihn nach einem Fehlschlag frei', async () => {
-    const submit = steuerbarerSubmit()
-    const { result } = renderHook(() =>
-      useFormActionSubmit({
-        form: createFormMock(),
-        actionLabel: 'Speichern',
-      }),
-    )
-
-    let lauf!: Promise<void>
-    act(() => {
-      lauf = result.current.run(submit.lauf)
-    })
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
-
-    await act(async () => {
-      submit.scheitern(new Error('Netzabbruch'))
-      await lauf
-    })
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })

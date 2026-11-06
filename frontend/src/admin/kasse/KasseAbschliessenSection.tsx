@@ -20,9 +20,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
 import { cn, formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand } from './hooks'
@@ -90,7 +89,6 @@ export function KasseAbschliessenSection({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [zaehlhilfeOpen, setZaehlhilfeOpen] = useState(false)
   const [istBestandCents, setIstBestandCents] = useState<number | null>(null)
-  const [loading, setLoading] = useState(false)
 
   const form = useForm<FormData>({
     defaultValues: { istBestandCents: 0 },
@@ -98,9 +96,27 @@ export function KasseAbschliessenSection({
     mode: 'onTouched',
   })
 
-  // Submit-Zustand von Hand: Ist-Bestand, offene Rückfrage und laufender
-  // Abschluss laufen an den generischen Trägern vorbei.
-  useOffenerVorgang(form.formState.isDirty || dialogOpen || loading)
+  // Eingetippter Ist-Bestand und offene Rückfrage sind offene Vorgänge; den
+  // laufenden Abschluss meldet useActionSubmit.
+  useOffenerVorgang(form.formState.isDirty || dialogOpen)
+
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Kasse abschließen',
+    // Gate-Block bei noch ausstehenden Signaturen (409): der Dialog bleibt
+    // offen, derselbe Button fordert den Abschluss erneut an.
+    onCode: {
+      signaturen_ausstehend: (error) => {
+        const details = SignaturenAusstehendDetailsSchema.safeParse(
+          error.details,
+        )
+        toast.warning(
+          signaturenAusstehendMeldung(
+            details.success ? details.data.anzahl : 0,
+          ),
+        )
+      },
+    },
+  })
 
   const sollBestandCents = kassenbestand?.sollBestandCents ?? null
   // Live-Rechnung mit dem aktuell eingetippten Wert; useWatch ist memoisierbar
@@ -132,38 +148,14 @@ export function KasseAbschliessenSection({
 
   const handleAbschliessen = async () => {
     if (istBestandCents === null) return
-    setLoading(true)
-    try {
+    await run(async () => {
       const ergebnis = await kasseBackend.kasseAbschliessen(istBestandCents)
       toast.success(abschlussErfolgMeldung(ergebnis))
       setDialogOpen(false)
       form.reset()
       setIstBestandCents(null)
       onSuccess()
-    } catch (error: unknown) {
-      // Gate-Block bei noch ausstehenden Signaturen (409): der Dialog bleibt
-      // offen, derselbe Button fordert den Abschluss erneut an.
-      if (
-        error instanceof BackendError &&
-        error.code === 'signaturen_ausstehend'
-      ) {
-        const details = SignaturenAusstehendDetailsSchema.safeParse(
-          error.details,
-        )
-        toast.warning(
-          signaturenAusstehendMeldung(
-            details.success ? details.data.anzahl : 0,
-          ),
-        )
-        return
-      }
-      console.error(error)
-      toast.error(
-        getActionErrorMessage({ actionLabel: 'Kasse abschließen', error }),
-      )
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   return (

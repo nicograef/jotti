@@ -1,67 +1,41 @@
-import { useState } from 'react'
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
-import { toast } from 'sonner'
 
-import { BackendError } from '@/lib/Backend'
-import { getActionErrorMessage } from '@/lib/errorMessages'
+import {
+  type UseActionSubmitOptions,
+  useActionSubmit,
+} from './use-action-submit'
 
-import { useOffenerVorgang } from './use-offener-vorgang'
-
-interface UseFormActionSubmitOptions<TFieldValues extends FieldValues> {
+interface UseFormActionSubmitOptions<
+  TFieldValues extends FieldValues,
+> extends Omit<UseActionSubmitOptions, 'onCode' | 'onError'> {
   form: UseFormReturn<TFieldValues>
-  actionLabel: string
-  byCode?: Record<string, string>
   fieldErrorsByCode?: Partial<
     Record<string, Partial<Record<Path<TFieldValues>, string>>>
   >
-  onSuccess?: () => void
 }
 
+// useActionSubmit, das bekannte Fehlercodes als Feldfehler ins Formular
+// schreibt statt als Toast.
 export function useFormActionSubmit<TFieldValues extends FieldValues>({
   form,
-  actionLabel,
-  byCode,
-  fieldErrorsByCode,
-  onSuccess,
+  fieldErrorsByCode = {},
+  ...optionen
 }: UseFormActionSubmitOptions<TFieldValues>): {
   loading: boolean
   run: (fn: () => Promise<void>) => Promise<void>
 } {
-  const [loading, setLoading] = useState(false)
-
-  // Ein laufender Submit ist ein offener Vorgang: Ein Reload mitten im Flug
-  // ließe das Formular ohne Antwort zurück.
-  useOffenerVorgang(loading)
-
-  const run = async (fn: () => Promise<void>) => {
-    setLoading(true)
-
-    try {
-      await fn()
-      onSuccess?.()
-    } catch (error: unknown) {
-      console.error(error)
-
-      if (error instanceof BackendError && fieldErrorsByCode) {
-        const fieldMessages = fieldErrorsByCode[error.code]
-        if (fieldMessages) {
-          for (const field of Object.keys(
-            fieldMessages,
-          ) as Path<TFieldValues>[]) {
-            const message = fieldMessages[field]
-            if (typeof message === 'string' && message.length > 0) {
-              form.setError(field, { message })
-            }
-          }
-          return
+  const onCode: UseActionSubmitOptions['onCode'] = {}
+  for (const [code, feldMeldungen] of Object.entries(fieldErrorsByCode)) {
+    if (!feldMeldungen) continue
+    onCode[code] = () => {
+      for (const field of Object.keys(feldMeldungen) as Path<TFieldValues>[]) {
+        const message = feldMeldungen[field]
+        if (typeof message === 'string' && message.length > 0) {
+          form.setError(field, { message })
         }
       }
-
-      toast.error(getActionErrorMessage({ actionLabel, error, byCode }))
-    } finally {
-      setLoading(false)
     }
   }
 
-  return { loading, run }
+  return useActionSubmit({ ...optionen, onCode })
 }

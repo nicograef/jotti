@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
 import { useActionSubmit } from './use-action-submit'
@@ -28,6 +29,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.clearAllMocks()
   vi.restoreAllMocks()
 })
 
@@ -96,5 +98,28 @@ describe('useActionSubmit im Vorgangs-Register', () => {
       await lauf
     })
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+})
+
+describe('useActionSubmit mit onCode', () => {
+  it('übergibt einen abgefangenen Code an seinen Handler statt an Toast und onError', async () => {
+    const handler = vi.fn()
+    const onError = vi.fn()
+    const fehler = new BackendError(409, 'signaturen_ausstehend')
+    const { result } = renderHook(() =>
+      useActionSubmit({
+        actionLabel: 'Kasse abschließen',
+        onCode: { signaturen_ausstehend: handler },
+        onError,
+      }),
+    )
+
+    await act(async () => {
+      await result.current.run(() => Promise.reject(fehler))
+    })
+
+    expect(handler).toHaveBeenCalledWith(fehler)
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(onError).not.toHaveBeenCalled()
   })
 })
