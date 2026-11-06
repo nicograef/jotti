@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -72,5 +73,32 @@ func TestPfandZurueckgeben_SchreibtVersion1InEigenenStream(t *testing.T) {
 	}
 	if data.GesamtbetragCents != 400 || data.TischID != 0 || data.Kommentar != "zwei Gläser" {
 		t.Errorf("data = %+v", data)
+	}
+}
+
+func TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent(t *testing.T) {
+	rueckgabeID := uuid.New().String()
+	subject := kasse.PfandrueckgabeSubject(testKassensitzungNr, rueckgabeID)
+	glas := kasse.Position{VarianteID: 2, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "sonstiges", Steuersatz: "regel", EinzelpreisCents: 200, Menge: 2}
+	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(subject, rueckgabeID, 3, 1, "Test", []kasse.Position{glas}, "")
+	if err != nil {
+		t.Fatalf("rueckgabe event: %v", err)
+	}
+	rueckgabe.Version = 1
+	var data kasse.PfandZurueckgegebenV1Data
+	if err := json.Unmarshal(rueckgabe.Data, &data); err != nil {
+		t.Fatalf("rueckgabe data: %v", err)
+	}
+
+	spy := &spyEventRepo{streamEvents: []event.Event{rueckgabe}}
+	cmd := newPfandCommand(spy)
+
+	refs := []kasse.PositionRef{{PositionID: data.Positionen[0].PositionID, Menge: 3}}
+	err = cmd.PfandrueckgabeStornieren(context.Background(), 2, "Leitung", uuid.New().String(), rueckgabeID, refs, "zu viele")
+	if !errors.Is(err, ErrPositionNichtStornierbar) {
+		t.Fatalf("erwartet ErrPositionNichtStornierbar, bekam %v", err)
+	}
+	if len(spy.written) != 0 {
+		t.Errorf("erwartet kein Event, geschrieben: %d", len(spy.written))
 	}
 }

@@ -17,6 +17,8 @@ var ErrTischNichtAktiv = errors.New("tisch nicht aktiv")
 
 var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 
+var ErrRueckgabeNichtGefunden = errors.New("pfandrueckgabe nicht gefunden")
+
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 // ErrConflict is deliberately per-context, not a shared kernel: the HTTP layer maps 409 via
