@@ -1,18 +1,16 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
+import type { QueryResult } from '@/lib/queryClient'
 
 import { type AktiveProdukte, ProduktBackend } from './ProduktBackend'
 
 const produktBackend = new ProduktBackend(BackendSingleton)
 
-interface AktiveProdukteResult {
+interface AktiveProdukteResult extends QueryResult<AktiveProdukte> {
   produkte: Produkt[]
   pfandProdukte: Produkt[]
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<AktiveProdukte>['refetch']
 }
 
 const leer: AktiveProdukte = { produkte: [], pfandProdukte: [] }

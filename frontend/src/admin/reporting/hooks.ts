@@ -9,6 +9,7 @@ import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { BackendSingleton } from '@/lib/Backend'
 import { triggerBrowserDownload } from '@/lib/download'
 import { getActionErrorMessage } from '@/lib/errorMessages'
+import type { QueryResult } from '@/lib/queryClient'
 
 import { ReportingBackend } from './ReportingBackend'
 import type {
@@ -24,12 +25,9 @@ export const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY =
 export const REPORT_KEY = 'report'
 export const LIVE_REPORTING_KEY = 'live-reporting'
 
-export function useAbgeschlosseneKassensitzungen(): {
-  kassensitzungen: AbgeschlosseneSitzung[]
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<AbgeschlosseneSitzung[]>['refetch']
-} {
+export function useAbgeschlosseneKassensitzungen(): QueryResult<
+  AbgeschlosseneSitzung[]
+> & { kassensitzungen: AbgeschlosseneSitzung[] } {
   const {
     data: kassensitzungen = [] as AbgeschlosseneSitzung[],
     isPending,
@@ -42,12 +40,9 @@ export function useAbgeschlosseneKassensitzungen(): {
   return { kassensitzungen, isPending, isError, refetch }
 }
 
-export function useReport(kassensitzungNr: number | null): {
-  result: ReportingData | null
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<ReportingData>['refetch']
-} {
+export function useReport(
+  kassensitzungNr: number | null,
+): QueryResult<ReportingData> & { result: ReportingData | null } {
   const {
     data: result = null as ReportingData | null,
     isPending,

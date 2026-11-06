@@ -1,8 +1,19 @@
-import { QueryCache, QueryClient } from '@tanstack/react-query'
+import {
+  QueryCache,
+  QueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { BackendError, ResponseBodyError } from './Backend'
 import { appendReferenz } from './errorMessages'
+
+// Lade- und Fehlerzustand, den jeder Query-Hook neben seinen Daten zurückgibt.
+export interface QueryResult<T> {
+  isPending: boolean
+  isError: boolean
+  refetch: UseQueryResult<T>['refetch']
+}
 
 // Danach ist die Störung dauerhaft genug, um sie der Helferin zu melden.
 const MAX_WIEDERHOLUNGEN = 2

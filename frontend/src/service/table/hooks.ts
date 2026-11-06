@@ -1,6 +1,7 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { QueryResult } from '@/lib/queryClient'
 
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
@@ -15,12 +16,6 @@ import type { Umbuchung } from './Umbuchung'
 import type { Zahlung } from './Zahlung'
 
 export const tischBackend = new TischBackend(BackendSingleton)
-
-interface QueryResult<T> {
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<T>['refetch']
-}
 
 type TischHistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 
@@ -78,11 +73,10 @@ export function useTischState(
 }
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
-export function useAktiveTischeMitFavoriten(): {
-  tische: AktiverTischMitFavorit[]
-  isError: boolean
-  refetch: UseQueryResult<AktiverTischMitFavorit[]>['refetch']
-} {
+export function useAktiveTischeMitFavoriten(): Omit<
+  QueryResult<AktiverTischMitFavorit[]>,
+  'isPending'
+> & { tische: AktiverTischMitFavorit[] } {
   const {
     data: tische = [],
     isError,

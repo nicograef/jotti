@@ -1,4 +1,6 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
+
+import type { QueryResult } from '@/lib/queryClient'
 
 import type { PfandrueckgabeHistorieEintrag } from './Pfand'
 import { pfandBackend } from './PfandBackend'
@@ -6,16 +8,11 @@ import { pfandBackend } from './PfandBackend'
 // Die Seiten invalidieren diesen Schlüssel nach jedem erfolgreichen Vorgang.
 export const PFANDRUECKGABE_HISTORIE_KEY = 'pfandrueckgabe-historie'
 
-interface PfandrueckgabeHistorieResult {
+export function usePfandrueckgabeHistorie(tischId: number): QueryResult<
+  PfandrueckgabeHistorieEintrag[]
+> & {
   historie: PfandrueckgabeHistorieEintrag[]
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<PfandrueckgabeHistorieEintrag[]>['refetch']
-}
-
-export function usePfandrueckgabeHistorie(
-  tischId: number,
-): PfandrueckgabeHistorieResult {
+} {
   const {
     data: historie = [],
     isPending,

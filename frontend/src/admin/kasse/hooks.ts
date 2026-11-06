@@ -1,6 +1,7 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { QueryResult } from '@/lib/queryClient'
 
 import { type AktiveKassensitzung, KasseBackend } from './KasseBackend'
 import {
@@ -15,13 +16,10 @@ export const kasseBackend = new KasseBackend(BackendSingleton)
 export const KASSENBESTAND_KEY = 'kassenbestand'
 export const GELDTRANSIT_LISTE_KEY = 'geldtransit-liste'
 
-interface AktiveKassensitzungResult {
+interface AktiveKassensitzungResult extends QueryResult<AktiveKassensitzung | null> {
   kassensitzung: AktiveKassensitzung | null
   // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen).
   abschlussUnterbrochen: boolean
-  isPending: boolean
-  isError: boolean
-  refetch: UseQueryResult<AktiveKassensitzung | null>['refetch']
 }
 
 export function useAktiveKassensitzung(): AktiveKassensitzungResult {
