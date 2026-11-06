@@ -72,6 +72,7 @@ function backend(produkte: Produkt[] = []): FakeBackend {
       historie: getTischHistorie(),
     }))
     .respond('service/get-aktive-produkte', { produkte, pfandProdukte: [] })
+    .respond('service/get-pfandrueckgabe-historie', { historie: [] })
     .respond('serviceleitung/stornierung-erteilen', {})
 }
 

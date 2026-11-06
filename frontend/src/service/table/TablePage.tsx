@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 import { useParams } from 'react-router'
 
@@ -12,7 +13,9 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
+import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
+import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
@@ -101,10 +104,14 @@ export function TablePage() {
 
   const animierterSaldo = useCountUp(state.saldoCents)
 
+  const queryClient = useQueryClient()
   const reload = useCallback(() => {
     void reloadState()
     void reloadHistorie()
-  }, [reloadState, reloadHistorie])
+    void queryClient.invalidateQueries({
+      queryKey: [PFANDRUECKGABE_HISTORIE_KEY],
+    })
+  }, [reloadState, reloadHistorie, queryClient])
 
   // Der nachgelagerte Refetch (reload) läuft erst beim Schließen des Pops, damit
   // sichtbare Statuswechsel (Saldo, Badge, Listen) dem Pop folgen.
@@ -260,13 +267,16 @@ export function TablePage() {
     />
   )
   const historieInhalt = !stateLoading && (
-    <TischHistorie
-      historie={historie}
-      historieLoading={historieLoading}
-      tisch={tisch}
-      backend={tischBackend}
-      onErfolg={zeigeErfolg}
-    />
+    <>
+      <TischHistorie
+        historie={historie}
+        historieLoading={historieLoading}
+        tisch={tisch}
+        backend={tischBackend}
+        onErfolg={zeigeErfolg}
+      />
+      <PfandrueckgabenAbschnitt tischId={tisch.id} onErfolg={zeigeErfolg} />
+    </>
   )
 
   return (
