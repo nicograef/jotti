@@ -196,6 +196,8 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 				t.Errorf("Direktverkauf %d ohne Sammel-Abholbon", evt.ID)
 			}
 		case kasse.EventTypeDirektverkaufStorniertV1,
+			kasse.EventTypePfandZurueckgegebenV1,
+			kasse.EventTypePfandrueckgabeStorniertV1,
 			kasse.EventTypeKassensitzungEroeffnetV1,
 			kasse.EventTypeGeldtransitGebuchtV1,
 			kasse.EventTypeKassensturzDurchgefuehrtV1,
