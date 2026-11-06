@@ -1210,3 +1210,99 @@ func TestKassenbelegDrucken_DirektverkaufStorno_NichtGefunden(t *testing.T) {
 		t.Errorf("expected ErrStornierungNichtGefunden, got %v", err)
 	}
 }
+
+// pfandBelegFixture stores a Rückgabe of two glasses (event ID 1) and the cancellation of one (event ID 2).
+func pfandBelegFixture(t *testing.T) (cmd Command, auftragMock *mockDruckauftragRepo, rueckgabeID, stornierungID string) {
+	t.Helper()
+	rueckgabeID = uuid.New().String()
+	stornierungID = uuid.New().String()
+	subject := kasse.PfandrueckgabeSubject(testKassensitzungNr, rueckgabeID)
+
+	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(subject, rueckgabeID, 0, 1, "Test User", []kasse.Position{{
+		VarianteID: 2, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "sonstiges", Steuersatz: "regel", EinzelpreisCents: 200, Menge: 2,
+	}}, "")
+	if err != nil {
+		t.Fatalf("rueckgabe event: %v", err)
+	}
+	var rueckgabeData kasse.PfandZurueckgegebenV1Data
+	if err := json.Unmarshal(rueckgabe.Data, &rueckgabeData); err != nil {
+		t.Fatalf("rueckgabe data: %v", err)
+	}
+	glas := kasse.PositionFromEventData(rueckgabeData.Positionen[0])
+	glas.Menge = 1
+	storno, err := kasse.NewPfandrueckgabeStorniertEvent(subject, stornierungID, rueckgabeID, 0, 2, "Leitung", []kasse.Position{glas}, 200, "Falsch gezählt")
+	if err != nil {
+		t.Fatalf("storno event: %v", err)
+	}
+
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	eventMock.AddEvent(rueckgabe)
+	eventMock.AddEvent(storno)
+
+	auftragMock = &mockDruckauftragRepo{}
+	cmd = Command{
+		EventRepo:           eventMock,
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+		BetreiberRepo:       belegTestBetreiberMock(),
+		DruckauftragRepo:    auftragMock,
+		TSERepo:             &mockTSEAuftragRepo{},
+	}
+	return cmd, auftragMock, rueckgabeID, stornierungID
+}
+
+func pfandBelegPayload(t *testing.T, auftragMock *mockDruckauftragRepo) string {
+	t.Helper()
+	if len(auftragMock.enqueued) != 1 {
+		t.Fatalf("erwartet 1 Druckauftrag, eingereiht: %d", len(auftragMock.enqueued))
+	}
+	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+	if err != nil {
+		t.Fatalf("payload: %v", err)
+	}
+	return string(payload)
+}
+
+func TestKassenbelegDrucken_Pfandrueckgabe_NegativeBetraege(t *testing.T) {
+	cmd, auftragMock, rueckgabeID, _ := pfandBelegFixture(t)
+
+	if _, err := cmd.KassenbelegDrucken(context.Background(), KassenbelegDruckenCommand{RueckgabeID: rueckgabeID}); err != nil {
+		t.Fatalf("KassenbelegDrucken: %v", err)
+	}
+
+	got := pfandBelegPayload(t, auftragMock)
+	if auftragMock.enqueued[0].Referenz != "pfand-zurueckgegeben:1" {
+		t.Errorf("referenz = %q", auftragMock.enqueued[0].Referenz)
+	}
+	for _, check := range []string{"KASSENBELEG", "Bon-Nr: 1", "-2,00 x 2 = -4,00 EUR", "GESAMT: -4,00 EUR"} {
+		if !strings.Contains(got, check) {
+			t.Errorf("erwartet %q im Pfandbeleg, bekam:\n%q", check, got)
+		}
+	}
+	for _, absent := range []string{"STORNOBELEG", "Storno zu Bon-Nr"} {
+		if strings.Contains(got, absent) {
+			t.Errorf("Pfandbeleg enthält %q:\n%q", absent, got)
+		}
+	}
+}
+
+func TestKassenbelegDrucken_PfandStorno_DruckbarAlsStornobeleg(t *testing.T) {
+	cmd, auftragMock, rueckgabeID, stornierungID := pfandBelegFixture(t)
+
+	if _, err := cmd.KassenbelegDrucken(context.Background(), KassenbelegDruckenCommand{RueckgabeID: rueckgabeID, StornierungID: stornierungID}); err != nil {
+		t.Fatalf("KassenbelegDrucken: %v", err)
+	}
+
+	got := pfandBelegPayload(t, auftragMock)
+	if auftragMock.enqueued[0].Referenz != "pfandrueckgabe-storniert:2" {
+		t.Errorf("referenz = %q", auftragMock.enqueued[0].Referenz)
+	}
+	for _, check := range []string{"STORNOBELEG", "Bon-Nr: 2", "Storno zu Bon-Nr: 1", "2,00 x 1 = 2,00 EUR", "GESAMT: 2,00 EUR"} {
+		if !strings.Contains(got, check) {
+			t.Errorf("erwartet %q im Stornobeleg, bekam:\n%q", check, got)
+		}
+	}
+	if strings.Contains(got, "-2,00") {
+		t.Errorf("Stornobeleg zur Rückgabe enthält negative Beträge:\n%q", got)
+	}
+}

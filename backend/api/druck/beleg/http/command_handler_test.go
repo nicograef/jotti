@@ -204,3 +204,50 @@ func TestKassenbelegDruckenHandler_StornierungOhneVerkaufValidationError(t *test
 		t.Errorf("expected status 400, got %d", rec.Code)
 	}
 }
+
+func TestKassenbelegDruckenHandler_PfandFormen(t *testing.T) {
+	const rueckgabeID = "44444444-4444-4444-4444-444444444444"
+	const stornierungID = "33333333-3333-3333-3333-333333333333"
+	for _, tc := range []struct {
+		name          string
+		body          string
+		stornierungID string
+	}{
+		{name: "Pfandbeleg", body: `{"rueckgabeId":"` + rueckgabeID + `"}`},
+		{name: "Stornobeleg", body: `{"rueckgabeId":"` + rueckgabeID + `","stornierungId":"` + stornierungID + `"}`, stornierungID: stornierungID},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockCommand{}
+			handler := &CommandHandler{Command: mock}
+
+			req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200, got %d", rec.Code)
+			}
+			want := application.KassenbelegDruckenCommand{RueckgabeID: rueckgabeID, StornierungID: tc.stornierungID}
+			if mock.last != want {
+				t.Errorf("command = %+v, want %+v", mock.last, want)
+			}
+		})
+	}
+}
+
+func TestKassenbelegDruckenHandler_RueckgabeNichtGefunden(t *testing.T) {
+	handler := &CommandHandler{Command: &mockCommand{err: application.ErrRueckgabeNichtGefunden}}
+
+	body := `{"rueckgabeId":"44444444-4444-4444-4444-444444444444"}`
+	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "rueckgabe_not_found") {
+		t.Errorf("expected 404 rueckgabe_not_found, got %d %s", rec.Code, rec.Body.String())
+	}
+}

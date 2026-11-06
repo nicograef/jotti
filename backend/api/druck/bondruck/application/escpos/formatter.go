@@ -32,7 +32,7 @@ type KassenbelegData struct {
 	TSEVermerk               TSEBelegvermerk
 	GesamtbetragCents        int
 	Zahlungsart              string
-	// Stornobeleg switches the title to STORNOBELEG; amounts are expected pre-negated.
+	// Stornobeleg switches the title to STORNOBELEG; the amounts arrive with their final sign.
 	Stornobeleg         bool
 	StornoZuBelegnummer string
 }

@@ -18,6 +18,8 @@ var ErrZahlungNichtGefunden = errors.New("zahlung nicht gefunden")
 
 var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 
+var ErrRueckgabeNichtGefunden = errors.New("pfandrueckgabe nicht gefunden")
+
 var ErrStornierungNichtGefunden = errors.New("stornierung nicht gefunden")
 
 var ErrKassenbelegDruckerNichtKonfiguriert = errors.New("kassenbeleg drucker nicht konfiguriert")

@@ -123,6 +123,42 @@ func findDirektverkaufStorniertEvent(events []event.Event, stornierungID string)
 	return event.Event{}, kasse.DirektverkaufStorniertV1Data{}, ErrStornierungNichtGefunden
 }
 
+func findPfandZurueckgegebenEvent(events []event.Event, rueckgabeID string) (event.Event, kasse.PfandZurueckgegebenV1Data, error) {
+	for _, evt := range events {
+		if evt.Type != string(kasse.EventTypePfandZurueckgegebenV1) {
+			continue
+		}
+
+		var data kasse.PfandZurueckgegebenV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return event.Event{}, kasse.PfandZurueckgegebenV1Data{}, err
+		}
+		if data.RueckgabeID == rueckgabeID {
+			return evt, data, nil
+		}
+	}
+
+	return event.Event{}, kasse.PfandZurueckgegebenV1Data{}, ErrRueckgabeNichtGefunden
+}
+
+func findPfandrueckgabeStorniertEvent(events []event.Event, stornierungID string) (event.Event, kasse.PfandrueckgabeStorniertV1Data, error) {
+	for _, evt := range events {
+		if evt.Type != string(kasse.EventTypePfandrueckgabeStorniertV1) {
+			continue
+		}
+
+		var data kasse.PfandrueckgabeStorniertV1Data
+		if err := json.Unmarshal(evt.Data, &data); err != nil {
+			return event.Event{}, kasse.PfandrueckgabeStorniertV1Data{}, err
+		}
+		if data.StornierungID == stornierungID {
+			return evt, data, nil
+		}
+	}
+
+	return event.Event{}, kasse.PfandrueckgabeStorniertV1Data{}, ErrStornierungNichtGefunden
+}
+
 // BelegStatus ist die Beleg-Abruf-Antwort: eingereiht (Druckauftrag angelegt)
 // oder ausstehend (TSE-Signatur liegt noch nicht vor, kein Druckauftrag — die
 // UI ruft denselben Endpunkt erneut auf).
@@ -204,15 +240,19 @@ type KassenbelegDruckenCommand struct {
 	TischID       int
 	ZahlungID     string
 	VerkaufID     string
+	RueckgabeID   string
 	StornierungID string
 }
 
+// belegQuelle: Positionen and GesamtbetragCents are positive; Negativ negates them with the
+// Steuermatrix on the Beleg. Stornobeleg only sets the title and the "Storno zu Bon-Nr" line.
 type belegQuelle struct {
 	Event                    event.Event
 	Positionen               []kasse.Position
 	GesamtbetragCents        int
 	Referenz                 string
 	ErsteBestellungZeitpunkt *time.Time
+	Negativ                  bool
 	Stornobeleg              bool
 	StornoZuBelegnummer      string
 }
@@ -263,10 +303,12 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	}
 
 	positionen := quelle.Positionen
+	gesamtbetragCents := quelle.GesamtbetragCents
 	steuermatrix := steuer.Steuermatrix(toSteuermatrixPositionen(positionen))
-	if quelle.Stornobeleg {
+	if quelle.Negativ {
 		steuermatrix = negiereAufteilungen(steuermatrix)
 		positionen = negierePositionen(positionen)
+		gesamtbetragCents = -gesamtbetragCents
 	}
 
 	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
@@ -282,7 +324,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 		Steuermatrix:             steuermatrix,
 		TSE:                      tseAbschnitt,
 		TSEVermerk:               tseVermerk,
-		GesamtbetragCents:        quelle.GesamtbetragCents,
+		GesamtbetragCents:        gesamtbetragCents,
 		Zahlungsart:              "bar",
 		Stornobeleg:              quelle.Stornobeleg,
 		StornoZuBelegnummer:      quelle.StornoZuBelegnummer,
@@ -296,16 +338,20 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	}
 
 	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
-		log.Error("Failed to enqueue kassenbeleg", "error", err, "tisch_id", cmd.TischID, "zahlung_id", cmd.ZahlungID, "verkauf_id", cmd.VerkaufID)
+		log.Error("Failed to enqueue kassenbeleg", "error", err, "tisch_id", cmd.TischID, "zahlung_id", cmd.ZahlungID, "verkauf_id", cmd.VerkaufID, "rueckgabe_id", cmd.RueckgabeID)
 		return "", ErrDatabase
 	}
 
-	log.Info("Kassenbeleg queued", "tisch_id", cmd.TischID, "verkauf_id", cmd.VerkaufID, "event_id", quelle.Event.ID)
+	log.Info("Kassenbeleg queued", "tisch_id", cmd.TischID, "verkauf_id", cmd.VerkaufID, "rueckgabe_id", cmd.RueckgabeID, "event_id", quelle.Event.ID)
 	return BelegStatusEingereiht, nil
 }
 
 func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung, cmd KassenbelegDruckenCommand) (belegQuelle, error) {
 	switch {
+	case cmd.RueckgabeID != "" && cmd.StornierungID != "":
+		return c.resolvePfandStornobeleg(ctx, ks, cmd.RueckgabeID, cmd.StornierungID)
+	case cmd.RueckgabeID != "":
+		return c.resolvePfandbeleg(ctx, ks, cmd.RueckgabeID)
 	case cmd.VerkaufID != "" && cmd.StornierungID != "":
 		return c.resolveDirektverkaufStornobeleg(ctx, ks, cmd.VerkaufID, cmd.StornierungID)
 	case cmd.StornierungID != "":
@@ -350,10 +396,81 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 	return belegQuelle{
 		Event:               stornoEvent,
 		Positionen:          toKassePositionen(stornoData.Positionen),
-		GesamtbetragCents:   -stornoData.GesamtStornierungCents,
+		GesamtbetragCents:   stornoData.GesamtStornierungCents,
 		Referenz:            fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID),
+		Negativ:             true,
 		Stornobeleg:         true,
 		StornoZuBelegnummer: fmt.Sprintf("%d", verkaufEvent.ID),
+	}, nil
+}
+
+// resolvePfandbeleg: the Pfandbeleg is a Kassenbeleg with negative amounts, without Storno title.
+func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID string) (belegQuelle, error) {
+	log := logging.FromContext(ctx)
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ks.ZNr, rueckgabeID))
+	if err != nil {
+		log.Error("Failed to read pfandrueckgabe events for kassenbeleg", "error", err, "rueckgabe_id", rueckgabeID)
+		return belegQuelle{}, ErrDatabase
+	}
+
+	rueckgabeEvent, rueckgabeData, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
+	if err != nil {
+		if errors.Is(err, ErrRueckgabeNichtGefunden) {
+			log.Warn("Pfandrückgabe not found for kassenbeleg", "rueckgabe_id", rueckgabeID)
+			return belegQuelle{}, ErrRueckgabeNichtGefunden
+		}
+		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:             rueckgabeEvent,
+		Positionen:        toKassePositionen(rueckgabeData.Positionen),
+		GesamtbetragCents: rueckgabeData.GesamtbetragCents,
+		Referenz:          fmt.Sprintf("pfand-zurueckgegeben:%d", rueckgabeEvent.ID),
+		Negativ:           true,
+	}, nil
+}
+
+// resolvePfandStornobeleg: cancelling a Rückgabe books money back in, so its Stornobeleg carries
+// positive amounts and points to the Rückgabe's Bon-Nr.
+func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID, stornierungID string) (belegQuelle, error) {
+	log := logging.FromContext(ctx)
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ks.ZNr, rueckgabeID))
+	if err != nil {
+		log.Error("Failed to read pfandrueckgabe events for stornobeleg", "error", err, "rueckgabe_id", rueckgabeID)
+		return belegQuelle{}, ErrDatabase
+	}
+
+	rueckgabeEvent, _, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
+	if err != nil {
+		if errors.Is(err, ErrRueckgabeNichtGefunden) {
+			log.Warn("Pfandrückgabe not found for stornobeleg", "rueckgabe_id", rueckgabeID)
+			return belegQuelle{}, ErrRueckgabeNichtGefunden
+		}
+		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
+		return belegQuelle{}, ErrDatabase
+	}
+
+	stornoEvent, stornoData, err := findPfandrueckgabeStorniertEvent(events, stornierungID)
+	if err != nil {
+		if errors.Is(err, ErrStornierungNichtGefunden) {
+			log.Warn("Stornierung not found for pfand stornobeleg", "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
+			return belegQuelle{}, ErrStornierungNichtGefunden
+		}
+		log.Error("Failed to decode pfandrueckgabe storno event data", "error", err, "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
+		return belegQuelle{}, ErrDatabase
+	}
+
+	return belegQuelle{
+		Event:               stornoEvent,
+		Positionen:          toKassePositionen(stornoData.Positionen),
+		GesamtbetragCents:   stornoData.GesamtStornierungCents,
+		Referenz:            fmt.Sprintf("pfandrueckgabe-storniert:%d", stornoEvent.ID),
+		Stornobeleg:         true,
+		StornoZuBelegnummer: fmt.Sprintf("%d", rueckgabeEvent.ID),
 	}, nil
 }
 
@@ -391,8 +508,9 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 	return belegQuelle{
 		Event:               stornoEvent,
 		Positionen:          toKassePositionen(stornoData.Positionen),
-		GesamtbetragCents:   -stornoData.GesamtStornierungCents,
+		GesamtbetragCents:   stornoData.GesamtStornierungCents,
 		Referenz:            fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID),
+		Negativ:             true,
 		Stornobeleg:         true,
 		StornoZuBelegnummer: fmt.Sprintf("%d", zahlungEvent.ID),
 	}, nil
