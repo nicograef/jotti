@@ -27,25 +27,38 @@ export const LIVE_REPORTING_KEY = 'live-reporting'
 export function useAbgeschlosseneKassensitzungen(): {
   kassensitzungen: AbgeschlosseneSitzung[]
   isPending: boolean
+  isError: boolean
+  refetch: UseQueryResult<AbgeschlosseneSitzung[]>['refetch']
 } {
-  const { data: kassensitzungen = [] as AbgeschlosseneSitzung[], isPending } =
-    useQuery({
-      queryKey: [ABGESCHLOSSENE_KASSENSITZUNGEN_KEY],
-      queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
-    })
-  return { kassensitzungen, isPending }
+  const {
+    data: kassensitzungen = [] as AbgeschlosseneSitzung[],
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: [ABGESCHLOSSENE_KASSENSITZUNGEN_KEY],
+    queryFn: () => reportingBackend.getAbgeschlosseneKassensitzungen(),
+  })
+  return { kassensitzungen, isPending, isError, refetch }
 }
 
 export function useReport(kassensitzungNr: number | null): {
   result: ReportingData | null
   isPending: boolean
+  isError: boolean
+  refetch: UseQueryResult<ReportingData>['refetch']
 } {
-  const { data: result = null as ReportingData | null, isPending } = useQuery({
+  const {
+    data: result = null as ReportingData | null,
+    isPending,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: [REPORT_KEY, kassensitzungNr],
     queryFn: () => reportingBackend.getReporting(kassensitzungNr ?? 0),
     enabled: kassensitzungNr !== null,
   })
-  return { result, isPending }
+  return { result, isPending, isError, refetch }
 }
 
 interface LiveReportingResult {

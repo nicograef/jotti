@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router'
 
 import { useAktiveKassensitzung } from '@/admin/kasse/hooks'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -54,8 +55,12 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
 }
 
 export function KassenberichtePage() {
-  const { kassensitzungen, isPending: listLoading } =
-    useAbgeschlosseneKassensitzungen()
+  const {
+    kassensitzungen,
+    isPending: listLoading,
+    isError: listFehler,
+    refetch: listNeuLaden,
+  } = useAbgeschlosseneKassensitzungen()
   const { kassensitzung: aktiveSitzung, abschlussUnterbrochen } =
     useAktiveKassensitzung()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
@@ -63,7 +68,12 @@ export function KassenberichtePage() {
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
   const selectedSitzung =
     kassensitzungen.find((k) => k.zNr === effectiveNr) ?? null
-  const { result, isPending: reportLoading } = useReport(effectiveNr)
+  const {
+    result,
+    isPending: reportLoading,
+    isError: reportFehler,
+    refetch: reportNeuLaden,
+  } = useReport(effectiveNr)
 
   return (
     <>
@@ -75,7 +85,14 @@ export function KassenberichtePage() {
         />
       </div>
 
-      {!listLoading && kassensitzungen.length === 0 ? (
+      {/* Ohne Liste wäre der Leer-Zustand eine falsche Aussage über die Z-Bons. */}
+      {listFehler ? (
+        <LadefehlerAlert
+          titel="Kassenberichte konnten nicht geladen werden"
+          onErneutVersuchen={() => void listNeuLaden()}
+          className="mt-6"
+        />
+      ) : !listLoading && kassensitzungen.length === 0 ? (
         <Empty className="mt-6">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -107,7 +124,12 @@ export function KassenberichtePage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            {reportLoading || !result || !selectedSitzung ? (
+            {reportFehler ? (
+              <LadefehlerAlert
+                titel="Tagesbericht konnte nicht geladen werden"
+                onErneutVersuchen={() => void reportNeuLaden()}
+              />
+            ) : reportLoading || !result || !selectedSitzung ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="size-6 animate-spin text-muted-foreground" />
               </div>

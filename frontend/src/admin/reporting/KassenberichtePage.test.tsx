@@ -160,4 +160,31 @@ describe('KassenberichtePage', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/läuft/)).not.toBeInTheDocument()
   })
+
+  it('zeigt bei fehlgeschlagener Sitzungsliste einen Ladefehler statt des Leer-Zustands', async () => {
+    renderWithBackend(
+      <KassenberichtePage />,
+      backend().fail('admin/get-abgeschlossene-kassensitzungen'),
+    )
+
+    expect(
+      await screen.findByText('Kassenberichte konnten nicht geladen werden'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('Noch keine abgeschlossene Kassensitzung'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('zeigt bei fehlgeschlagenem Tagesbericht einen Ladefehler statt des Spinners', async () => {
+    renderWithBackend(
+      <KassenberichtePage />,
+      backend({ kassensitzungen: [sommerfestTag1] }).fail(
+        'admin/get-abrechnung',
+      ),
+    )
+
+    expect(
+      await screen.findByText('Tagesbericht konnte nicht geladen werden'),
+    ).toBeInTheDocument()
+  })
 })
