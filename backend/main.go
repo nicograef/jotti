@@ -84,6 +84,13 @@ func run(cfg config.Config, db *sql.DB) error {
 		}
 	}()
 
+	// A migration may empty tisch_sessions (03 does); without the rebuild a table would lose its open positions.
+	count, err := kassenjournal_repo.NewRepository(db).RebuildAllProjections(context.Background())
+	if err != nil {
+		return fmt.Errorf("rebuild projections: %w", err)
+	}
+	slog.Info("Projections rebuilt", "subjects", count)
+
 	// Der Klartext-Code des Einmalpassworts landet im Log-Strom.
 	repo := user_repo.NewRepository(db)
 	res, err := bootstrap.EnsureInitialAdmin(context.Background(), repo)

@@ -484,7 +484,7 @@ jobs:
 
   # Upgrade-path harness: a database migrated and filled with the previous
   # release's images must survive the upgrade to the current checkout (migrate
-  # up, boot, rebuild-projections), and its backup must restore. The previous
+  # up, boot with its projection rebuild), and its backup must restore. The previous
   # release is the latest published GitHub release (release.yml publishes it only
   # after its images are on GHCR); the job is the mandatory gate for
   # schema changes. Details: database/migrations/README.md.
@@ -590,9 +590,6 @@ jobs:
           done
           echo "Backend did not become healthy."
           exit 1
-
-      - name: Rebuild projections on previous version's data
-        run: /tmp/jotti rebuild-projections
 
       # The rollback of a forward-only migration is a backup restore. The dump is taken
       # like scripts/prod-backup.sh takes it; prod-backup-verify.sh needs a .env.

@@ -23,7 +23,7 @@ Neue Änderungen kommen als `NN_<name>.up.sql`, fortlaufend nummeriert, additiv 
    - `migrate … force <vorherige Version>` — die Version, auf der das Schema tatsächlich steht, **nicht** die fehlgeschlagene Zielversion. Das löscht das `dirty`-Flag; danach die Migration korrigieren und `up` wiederholen. `force` fasst nur `schema_migrations` an, nie das Schema.
    - Ist das Schema in einem unklaren Zustand (Migration ohne `BEGIN/COMMIT`, die teilweise durchlief), ist der Rückweg der Backup-Restore statt `force`. Beim Betreiber ist das `jotti-restore.cmd`: Ein Doppelklick spielt das automatische Backup von vor dem Update zurück. Im Repo ist es `make prod-restore`.
 
-4. Nach jeder Migration muss `make rebuild-projections` fehlerfrei durchlaufen (Projektionen werden aus Events neu gebaut).
+4. Nach jeder Migration muss der Backend-Start fehlerfrei durchlaufen: Er baut die Projektionen aus den Events neu auf und bricht bei einem Fehler ab.
 
 ## ENUM vs. TEXT+CHECK
 
@@ -37,7 +37,7 @@ jotti verwendet für Status- und Kategorie-Spalten TEXT+CHECK statt PostgreSQL-E
 ## Testen
 
 - **Frischinstallation:** `migrate ... up` auf leerer DB (deckt der Integrationstest `scripts/test-integration.sh` ab).
-- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach Boot + `make rebuild-projections`. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test. Automatisiert im CI-Job `upgrade-path` (`.github/workflows/ci.yml`): Migrationen und Seed-Daten kommen mit den Release-Images der Vorversion. Danach laufen Migration, Boot und `rebuild-projections` mit dem aktuellen Checkout.
+- **Upgrade-Pfad:** `up` auf einer mit Vorversions-Daten befüllten DB, danach der Boot samt Projektions-Neuaufbau. Das ist der Pfad, der auf echten Instanzen läuft, und der wichtigste Migrations-Test. Automatisiert im CI-Job `upgrade-path` (`.github/workflows/ci.yml`): Migrationen und Seed-Daten kommen mit den Release-Images der Vorversion. Danach laufen Migration und Boot mit dem aktuellen Checkout.
 
 ## Vorversion und Restore-Drill (CI-Job `upgrade-path`)
 
