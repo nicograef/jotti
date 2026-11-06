@@ -417,11 +417,11 @@ describe('TablePage', () => {
     testState.tischId = '2'
     rerender(<TablePage />)
 
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('button', { name: 'Pfand auszahlen' }),
-      ).not.toBeInTheDocument()
-    })
+    // Erst den geladenen Tisch 2 abwarten: während des Ladens fehlt der Button ohnehin.
+    await screen.findByRole('heading', { name: 'Stammtisch', level: 1 })
+    expect(
+      screen.queryByRole('button', { name: 'Pfand auszahlen' }),
+    ).not.toBeInTheDocument()
   })
 
   // Tischwechsel: TablePage bleibt gemountet und setzt den Korb nur zurück. Ein
