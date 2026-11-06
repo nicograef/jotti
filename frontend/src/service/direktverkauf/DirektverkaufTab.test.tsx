@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { setViewportWidth } from '@/test/render'
@@ -58,6 +59,18 @@ const testProdukt: Produkt = {
   ],
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z',
+}
+
+const pfandProdukt: Produkt = {
+  ...testProdukt,
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  varianten: [
+    { ...testProdukt.varianten[0], id: 19, name: 'Glas', preisCents: 200 },
+  ],
 }
 
 function renderDirektverkauf() {
@@ -124,6 +137,67 @@ describe('DirektverkaufTab', () => {
       expect(dialog).not.toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
+  })
+
+  // Ein verrechneter Verkauf, dessen Antwort verloren ging, weicht beim Wiederholen mit anderem
+  // Pfand ab. Mit stehendem Korb und alter verkaufId würde jeder weitere Versuch abgewiesen.
+  it('leert nach pfandrueckgabe_abweichend den Korb, der nächste Verkauf trägt eine neue verkaufId', async () => {
+    setViewportWidth(1024)
+    const user = userEvent.setup()
+    const direktverkaufTaetigen = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new BackendError(409, 'pfandrueckgabe_abweichend')
+      })
+      .mockReturnValue({})
+    const fake = new FakeBackend().respond(
+      'service/direktverkauf-taetigen',
+      direktverkaufTaetigen,
+    )
+    render(
+      <DirektverkaufTabHarness
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[pfandProdukt]}
+        backend={new DirektverkaufBackend(fake)}
+        products={[testProdukt]}
+        productsLoading={false}
+        onErfolg={vi.fn()}
+      />,
+    )
+
+    const [bratwurst, glas] = screen.getAllByRole('button', {
+      name: 'Variante hinzufügen',
+    }) as [HTMLElement, HTMLElement]
+    await user.click(bratwurst)
+    await user.click(glas)
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Verkauf abschließen' }),
+      ).toBeDisabled()
+    })
+
+    await user.click(
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[0]!,
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+    await waitFor(() => {
+      expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(2)
+    })
+
+    const [erster, zweiter] = fake.bodies('service/direktverkauf-taetigen') as [
+      { verkaufId: string },
+      { verkaufId: string; positionen: unknown; pfand?: unknown },
+    ]
+    expect(zweiter.verkaufId).not.toBe(erster.verkaufId)
+    expect(zweiter.positionen).toEqual([
+      { produktId: 1, varianteId: 1, menge: 1 },
+    ])
+    expect(zweiter.pfand).toBeUndefined()
   })
 
   it('rendert ab lg die feste Abschluss-Spalte statt Dock und Drawer', async () => {

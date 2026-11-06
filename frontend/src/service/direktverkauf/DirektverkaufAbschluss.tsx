@@ -35,6 +35,8 @@ interface DirektverkaufAbschlussProps {
   positionen: VerkaufPositionInput[]
   totalCents: number
   verkaufAbgeschlossen: () => void
+  // Leert den Korb ohne Erfolgsmeldung, damit der nächste Versuch eine neue verkaufId zieht.
+  verkaufVerworfen: () => void
   pfandAusgezahlt: () => void
   variant: 'sheet' | 'spalte'
 }
@@ -83,16 +85,24 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     parseCents(zielbetragEuro),
   )
 
-  // Die verkaufId bleibt: weicht der gebuchte Verkauf ab, buchte eine neue ID ihn doppelt.
   const pfandVerwerfen = (error: unknown) => {
     if (istPfandrueckgabeAbweichend(error)) {
       pfand.steuerung.reset()
     }
   }
 
+  // Der Korb bleibt sonst stehen: mit derselben verkaufId wiese der Server jeden Versuch erneut ab.
+  // Schon gebuchte Ware steht in der Historie, ihr erneutes Erfassen ist eine bewusste Handlung.
+  const verkaufVerwerfen = (error: unknown) => {
+    if (istPfandrueckgabeAbweichend(error)) {
+      pfand.steuerung.reset()
+      props.verkaufVerworfen()
+    }
+  }
+
   const verkauf = useActionSubmit({
     actionLabel: 'Verkauf abschließen',
-    onError: pfandVerwerfen,
+    onError: verkaufVerwerfen,
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')

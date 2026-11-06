@@ -21,6 +21,7 @@ interface DirektverkaufDrawerProps {
   anzahl: number
   totalCents: number
   verkaufAbgeschlossen: () => void
+  verkaufVerworfen: () => void
   pfandAusgezahlt: () => void
 }
 
@@ -59,6 +60,10 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
         verkaufAbgeschlossen={() => {
           setOpen(false)
           props.verkaufAbgeschlossen()
+        }}
+        verkaufVerworfen={() => {
+          setOpen(false)
+          props.verkaufVerworfen()
         }}
         pfandAusgezahlt={() => {
           setOpen(false)

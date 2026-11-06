@@ -72,6 +72,7 @@ function renderSpalte(
       positionen={positionen}
       totalCents={700}
       verkaufAbgeschlossen={verkaufAbgeschlossen}
+      verkaufVerworfen={vi.fn()}
     />,
   )
   return { direktverkaufTaetigen, verkaufAbgeschlossen }
@@ -90,6 +91,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         positionen={[]}
         totalCents={0}
         verkaufAbgeschlossen={vi.fn()}
+        verkaufVerworfen={vi.fn()}
       />,
     )
 
@@ -114,6 +116,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         positionen={[]}
         totalCents={0}
         verkaufAbgeschlossen={vi.fn()}
+        verkaufVerworfen={vi.fn()}
         pfandAusgezahlt={pfandAusgezahlt}
       />,
     )
@@ -150,6 +153,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         positionen={positionen}
         totalCents={700}
         verkaufAbgeschlossen={vi.fn()}
+        verkaufVerworfen={vi.fn()}
         pfandAusgezahlt={vi.fn()}
       />,
     )
@@ -257,6 +261,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
             verkaufAbgeschlossen={vi.fn()}
+            verkaufVerworfen={vi.fn()}
           />
         </>
       )
@@ -307,6 +312,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
             verkaufAbgeschlossen={vi.fn()}
+            verkaufVerworfen={vi.fn()}
           />
         </>
       )

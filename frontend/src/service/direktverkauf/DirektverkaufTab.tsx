@@ -76,6 +76,7 @@ export function DirektverkaufTab({
             positionen={inputItems}
             totalCents={total}
             verkaufAbgeschlossen={verkaufAbgeschlossen}
+            verkaufVerworfen={reset}
             pfandAusgezahlt={pfandAusgezahlt}
           />
         }
@@ -95,6 +96,7 @@ export function DirektverkaufTab({
         anzahl={anzahl}
         totalCents={total}
         verkaufAbgeschlossen={verkaufAbgeschlossen}
+        verkaufVerworfen={reset}
         pfandAusgezahlt={pfandAusgezahlt}
       />
       {productList}
