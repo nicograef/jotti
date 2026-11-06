@@ -1095,33 +1095,72 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
-func TestBestellungUmbuchen_Conflict(t *testing.T) {
+// A UNIQUE violation and a deadlock (opposite Umbuchungen lock the two streams in reverse order)
+// are both a retryable 409.
+func TestBestellungUmbuchen_WriteConflict(t *testing.T) {
+	for _, writeErr := range []error{db.ErrAlreadyExists, db.ErrConflict} {
+		t.Run(writeErr.Error(), func(t *testing.T) {
+			ctx := context.Background()
+			quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
+			zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
+
+			eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, writeErr)
+			quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+			quellPositionID := uuid.New().String()
+			eventMock.SetTischSession(quellSubject, kasse.TischSession{
+				UnbezahltePositionen: []kasse.Position{{
+					PositionID:   quellPositionID,
+					VarianteID:   1,
+					ProduktName:  "Cola",
+					VarianteName: "0,5l",
+					Kategorie:    "getraenk", Steuersatz: "regel",
+					EinzelpreisCents: 350,
+					Menge:            1,
+				}},
+			})
+
+			command := Command{
+				TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
+				EventRepo:           eventMock,
+				KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+			}
+
+			err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
+			if !errors.Is(err, ErrConflict) {
+				t.Errorf("expected ErrConflict, got %v", err)
+			}
+		})
+	}
+}
+
+func TestStornierungErteilen_DeadlockMapsToConflict(t *testing.T) {
 	ctx := context.Background()
-	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
-	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+	orderEvent, err := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+		[]kasse.Position{
+			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
+		}, "")
+	if err != nil {
+		t.Fatalf("bestellung event: %v", err)
+	}
+	var orderData struct {
+		Positionen []struct {
+			PositionID string `json:"positionId"`
+		} `json:"positionen"`
+	}
+	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
+		t.Fatalf("expected no unmarshal error, got %v", err)
+	}
 
-	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrAlreadyExists)
-	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
-	quellPositionID := uuid.New().String()
-	eventMock.SetTischSession(quellSubject, kasse.TischSession{
-		UnbezahltePositionen: []kasse.Position{{
-			PositionID:   quellPositionID,
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk", Steuersatz: "regel",
-			EinzelpreisCents: 350,
-			Menge:            1,
-		}},
-	})
-
+	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrConflict)
+	eventMock.AddEvent(orderEvent)
 	command := Command{
-		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
+	err = command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: orderData.Positionen[0].PositionID, Menge: 1}}, "Falsch getippt")
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("expected ErrConflict, got %v", err)
 	}

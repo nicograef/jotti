@@ -25,7 +25,6 @@ type tischRepo interface {
 }
 
 type eventRepo interface {
-	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
 	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
@@ -86,22 +85,29 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 	e.Version = expectedVersion + 1
 
 	if _, err := write(e); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			logging.FromContext(ctx).Warn("OCC conflict", "version", e.Version, "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, db.ErrConflict) {
-			logging.FromContext(ctx).Warn("Deadlock on event write", "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			logging.FromContext(ctx).Warn("Kassensitzung nicht mehr offen", "subject", subject)
-			return ErrKasseNichtGeoeffnet
-		}
-		return err
+		return fromWriteError(ctx, err, "subject", subject, "version", e.Version)
 	}
-
 	return nil
+}
+
+// fromWriteError maps an event-write error: a UNIQUE(subject, version) violation or a deadlock is a
+// retryable ErrConflict, a Kassensitzung closed since reading is ErrKasseNichtGeoeffnet.
+func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
+	log := logging.FromContext(ctx)
+	switch {
+	case errors.Is(err, db.ErrAlreadyExists):
+		log.Warn("OCC conflict", logArgs...)
+		return ErrConflict
+	case errors.Is(err, db.ErrConflict):
+		log.Warn("Deadlock on event write", logArgs...)
+		return ErrConflict
+	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
+		log.Warn("Kassensitzung nicht mehr offen", logArgs...)
+		return ErrKasseNichtGeoeffnet
+	default:
+		log.Error("Failed to write events", append([]any{"error", err}, logArgs...)...)
+		return ErrDatabase
+	}
 }
 
 // loadTischState returns subject, kassensitzungNr, tisch name and the projected TischSession.
@@ -193,12 +199,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 			}
 			return ErrConflict
 		}
-		// Kassensitzung zwischen Lesen und Schreiben geschlossen — 409, kein Datenbankfehler.
-		if errors.Is(err, ErrKasseNichtGeoeffnet) {
-			return err
-		}
-		log.Error("Failed to write bestellung aufgenommen event to database", "error", err, "tisch_id", tischID)
-		return ErrDatabase
+		return err
 	}
 
 	log.Info("Bestellung aufgenommen", "tisch_id", tischID)
@@ -296,19 +297,8 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellEvent.Version = quellState.LastEventVersion + 1
 	zielEvent.Version = zielMaxVersion + 1
 
-	err = c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr)
-	if err != nil {
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn("Kassensitzung nicht mehr offen", "quell_tisch_id", quellTischID)
-			return ErrKasseNichtGeoeffnet
-		}
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn("OCC conflict bei Bestellung umbuchen", "quell_version", quellEvent.Version, "ziel_version", zielEvent.Version, "quell_subject", quellSubject, "ziel_subject", zielSubject)
-			return ErrConflict
-		}
-
-		log.Error("Failed to write umbuchung", "error", err, "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
-		return ErrDatabase
+	if err := c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr); err != nil {
+		return fromWriteError(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
 	}
 
 	log.Info("Bestellung umgebucht", "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
@@ -389,12 +379,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 			}
 			return ErrConflict
 		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn("Kassensitzung nicht mehr offen", "tisch_id", tischID)
-			return ErrKasseNichtGeoeffnet
-		}
-		log.Error("Failed to write zahlung", "error", err, "tisch_id", tischID)
-		return ErrDatabase
+		return fromWriteError(ctx, err, "subject", subject)
 	}
 
 	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
@@ -533,30 +518,16 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int) error {
 	log := logging.FromContext(ctx)
 
-	events := make([]event.Event, 0, len(stornoEvents))
+	neueEvents := make([]kassenjournal_repo.NeuesEvent, 0, len(stornoEvents))
 	for i, evt := range stornoEvents {
 		evt.Version = expectedVersion + 1 + i
-		events = append(events, evt)
-	}
-
-	neueEvents := make([]kassenjournal_repo.NeuesEvent, 0, len(events))
-	for _, evt := range events {
 		neueEvents = append(neueEvents, kassenjournal_repo.NeuesEvent{Event: evt, StreamType: kasse.StreamTypeTischSession})
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, neueEvents); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn("OCC conflict bei Stornierung", "tisch_id", tischID, "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn("Kassensitzung nicht mehr offen", "tisch_id", tischID)
-			return ErrKasseNichtGeoeffnet
-		}
-		log.Error("Failed to write stornierung events", "error", err, "tisch_id", tischID)
-		return ErrDatabase
+		return fromWriteError(ctx, err, "subject", subject)
 	}
 
-	log.Info("Stornierung erteilt", "tisch_id", tischID, "anzahl_events", len(events))
+	log.Info("Stornierung erteilt", "tisch_id", tischID, "anzahl_events", len(neueEvents))
 	return nil
 }

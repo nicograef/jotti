@@ -204,6 +204,7 @@ func insertPfandVariante(t *testing.T, db *sql.DB) (produktID, varianteID int) {
 type zahlungsFall struct {
 	ctx                   context.Context
 	cmd                   Command
+	journal               kassenjournal_repo.Repository
 	userID, ksNr, tischID int
 	refs                  func(menge int) []kasse.PositionRef
 	pfand                 func(menge int) *enrichment.PfandEingabe
@@ -235,7 +236,7 @@ func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 				t.Fatalf("Rückgabe-Event: %v", err)
 			}
 			rueckgabe.Version = 1
-			_, err = f.cmd.EventRepo.WriteEvent(f.ctx, rueckgabe, kasse.StreamTypePfandrueckgabe, f.ksNr)
+			_, err = f.journal.WriteEvent(f.ctx, rueckgabe, kasse.StreamTypePfandrueckgabe, f.ksNr)
 			return err
 		}},
 	}
@@ -255,7 +256,7 @@ func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 			positionID := session.UnbezahltePositionen[0].PositionID
 			rueckgabeID := uuid.New().String()
 			f := zahlungsFall{
-				ctx: ctx, cmd: cmd, userID: userID, ksNr: ksNr, tischID: tischID,
+				ctx: ctx, cmd: cmd, journal: kassenjournal_repo.NewRepository(db), userID: userID, ksNr: ksNr, tischID: tischID,
 				refs: func(menge int) []kasse.PositionRef {
 					return []kasse.PositionRef{{PositionID: positionID, Menge: menge}}
 				},
