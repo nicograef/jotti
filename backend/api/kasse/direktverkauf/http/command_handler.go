@@ -57,7 +57,11 @@ var direktverkaufTaetigenSchema = z.Struct(z.Shape{
 	"Positionen": z.Slice(verkaufPositionInputSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
 	"Pfand":      z.Ptr(pfandRequestSchema),
-})
+}).TestFunc(func(val any, _ z.Ctx) bool {
+	body, ok := val.(*direktverkaufTaetigenRequest)
+	// Beide IDs werden BON_ID im DSFinV-K-Export desselben Kassenabschlusses.
+	return ok && (body.Pfand == nil || body.Pfand.RueckgabeID != body.VerkaufID)
+}, z.Message("Rückgabe-ID muss sich von der Verkaufs-ID unterscheiden"))
 
 func toPfandEingabe(pfand *pfandRequest) *enrichment.PfandEingabe {
 	if pfand == nil {
