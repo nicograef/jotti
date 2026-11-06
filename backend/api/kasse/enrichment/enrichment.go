@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/internal/logging"
@@ -77,12 +78,12 @@ func enrich(ctx context.Context, repo produktRepo, inputs []PositionInput, nurPf
 	variantenByID, err := repo.GetVariantenByIDs(ctx, varianteIDs)
 	if err != nil {
 		log.Error("Failed to batch-fetch variants for position enrichment", "error", err)
-		return nil, ErrProduktNotFound
+		return nil, db.ErrDatabase
 	}
 	produkteByID, err := repo.GetProdukteByIDs(ctx, produktIDs)
 	if err != nil {
 		log.Error("Failed to batch-fetch products for position enrichment", "error", err)
-		return nil, ErrProduktNotFound
+		return nil, db.ErrDatabase
 	}
 
 	positionen := make([]kasse.Position, 0, len(inputs))
