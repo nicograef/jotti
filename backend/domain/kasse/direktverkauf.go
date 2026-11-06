@@ -37,10 +37,9 @@ func ComputeNichtStornierteVerkaufPositionen(events []e.Event) ([]Position, erro
 	return nichtStorniert, nil
 }
 
-// DirektverkaufHistorieEintrag is one Direktverkauf replayed from its stream.
+// VorgangHistorieEintrag holds what Direktverkauf and Pfandrückgabe entries share.
 // OffenePositionen are the not-yet-cancelled positions — the candidates for a stornierung.
-type DirektverkaufHistorieEintrag struct {
-	VerkaufID            string
+type VorgangHistorieEintrag struct {
 	UserID               int
 	UserName             string
 	GetaetigtAm          time.Time
@@ -49,54 +48,90 @@ type DirektverkaufHistorieEintrag struct {
 	Kommentar            string
 	OffenePositionen     []Position
 	GesamtStorniertCents int
-	Stornierungen        []DirektverkaufStornierung
+	Stornierungen        []VorgangStornierung
 }
 
-// DirektverkaufStornierung is one cancellation within a Direktverkauf; its StornierungID
-// identifies the Stornobeleg that can be printed for it.
-type DirektverkaufStornierung struct {
+// VorgangStornierung is one cancellation within a Vorgang; its StornierungID identifies the
+// Stornobeleg that can be printed for it.
+type VorgangStornierung struct {
 	StornierungID          string
 	StorniertAm            time.Time
 	GesamtStornierungCents int
 }
 
-func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieEintrag, error) {
-	eintrag := DirektverkaufHistorieEintrag{}
+// DirektverkaufHistorieEintrag is one Direktverkauf replayed from its stream.
+type DirektverkaufHistorieEintrag struct {
+	VorgangHistorieEintrag
+	VerkaufID string
+}
+
+type vorgangKern struct {
+	Positionen        []PositionEventData
+	GesamtbetragCents int
+	Kommentar         string
+}
+
+type stornoKern struct {
+	StornierungID          string
+	Positionen             []PositionEventData
+	GesamtStornierungCents int
+}
+
+// replayVorgang replays one stream of a Vorgang (V) and its cancellations (S); it returns the
+// Vorgang's data so the caller reads its own ID fields.
+func replayVorgang[V any, S any](events []e.Event, vorgangTyp, stornoTyp EventType, vorgang func(V) vorgangKern, storno func(S) stornoKern) (VorgangHistorieEintrag, V, error) {
+	eintrag := VorgangHistorieEintrag{}
+	var vorgangData V
 
 	for _, evt := range events {
 		switch evt.Type {
-		case string(EventTypeDirektverkaufGetaetigtV1):
-			var data DirektverkaufGetaetigtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return DirektverkaufHistorieEintrag{}, fmt.Errorf("unmarshal direktverkauf getaetigt data: %w", err)
+		case string(vorgangTyp):
+			if err := json.Unmarshal(evt.Data, &vorgangData); err != nil {
+				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", vorgangTyp, err)
 			}
-			positionen := fromPositionenEventData(data.Positionen)
-			eintrag.VerkaufID = data.VerkaufID
+			kern := vorgang(vorgangData)
+			positionen := fromPositionenEventData(kern.Positionen)
 			eintrag.UserID = evt.UserID
 			eintrag.UserName = evt.UserName
 			eintrag.GetaetigtAm = evt.Time
 			eintrag.Positionen = positionen
-			eintrag.GesamtbetragCents = data.GesamtbetragCents
-			eintrag.Kommentar = data.Kommentar
+			eintrag.GesamtbetragCents = kern.GesamtbetragCents
+			eintrag.Kommentar = kern.Kommentar
 			eintrag.OffenePositionen = accumulatePositionen(nil, positionen)
 
-		case string(EventTypeDirektverkaufStorniertV1):
-			var data DirektverkaufStorniertV1Data
+		case string(stornoTyp):
+			var data S
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return DirektverkaufHistorieEintrag{}, fmt.Errorf("unmarshal direktverkauf storniert data: %w", err)
+				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", stornoTyp, err)
 			}
-			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, fromPositionenEventData(data.Positionen))
-			eintrag.GesamtStorniertCents += data.GesamtStornierungCents
-			eintrag.Stornierungen = append(eintrag.Stornierungen, DirektverkaufStornierung{
-				StornierungID:          data.StornierungID,
+			kern := storno(data)
+			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, fromPositionenEventData(kern.Positionen))
+			eintrag.GesamtStorniertCents += kern.GesamtStornierungCents
+			eintrag.Stornierungen = append(eintrag.Stornierungen, VorgangStornierung{
+				StornierungID:          kern.StornierungID,
 				StorniertAm:            evt.Time,
-				GesamtStornierungCents: data.GesamtStornierungCents,
+				GesamtStornierungCents: kern.GesamtStornierungCents,
 			})
 
 		default:
-			return DirektverkaufHistorieEintrag{}, fmt.Errorf("unknown event type: %s", evt.Type)
+			return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unknown event type: %s", evt.Type)
 		}
 	}
 
-	return eintrag, nil
+	return eintrag, vorgangData, nil
+}
+
+func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieEintrag, error) {
+	eintrag, data, err := replayVorgang(events, EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufStorniertV1,
+		func(d DirektverkaufGetaetigtV1Data) vorgangKern {
+			return vorgangKern{Positionen: d.Positionen, GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
+		},
+		func(d DirektverkaufStorniertV1Data) stornoKern {
+			return stornoKern{StornierungID: d.StornierungID, Positionen: d.Positionen, GesamtStornierungCents: d.GesamtStornierungCents}
+		},
+	)
+	if err != nil {
+		return DirektverkaufHistorieEintrag{}, err
+	}
+	return DirektverkaufHistorieEintrag{VorgangHistorieEintrag: eintrag, VerkaufID: data.VerkaufID}, nil
 }

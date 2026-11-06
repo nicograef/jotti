@@ -71,7 +71,7 @@ type getDirektverkaufHistorieResponse struct {
 	Historie []direktverkaufHistorieEintrag `json:"historie"`
 }
 
-func toStornierungen(stornierungen []kasse.DirektverkaufStornierung) []direktverkaufStornierung {
+func toStornierungen(stornierungen []kasse.VorgangStornierung) []direktverkaufStornierung {
 	out := make([]direktverkaufStornierung, 0, len(stornierungen))
 	for _, s := range stornierungen {
 		out = append(out, direktverkaufStornierung{
