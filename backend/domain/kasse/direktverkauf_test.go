@@ -31,7 +31,7 @@ func mengeOf(positionen []Position, positionID string) int {
 	return 0
 }
 
-func TestComputeNichtStornierteVerkaufPositionen_PartialThenFullStorno(t *testing.T) {
+func TestBuildDirektverkaufHistorieEintrag_PartialThenFullStorno(t *testing.T) {
 	verkaufID := uuid.New().String()
 	subject := DirektverkaufSubject(1, verkaufID)
 	getaetigt, err := NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "User", []Position{
@@ -50,10 +50,11 @@ func TestComputeNichtStornierteVerkaufPositionen_PartialThenFullStorno(t *testin
 		t.Fatalf("failed to create storno1 event: %v", err)
 	}
 
-	rest, err := ComputeNichtStornierteVerkaufPositionen([]e.Event{getaetigt, storno1})
+	eintrag, err := BuildDirektverkaufHistorieEintrag([]e.Event{getaetigt, storno1})
 	if err != nil {
-		t.Fatalf("failed to compute remaining positionen: %v", err)
+		t.Fatalf("failed to replay direktverkauf: %v", err)
 	}
+	rest := eintrag.OffenePositionen
 	if got := mengeOf(rest, beerID); got != 1 {
 		t.Errorf("expected 1 Beer remaining after partial storno, got %d", got)
 	}
@@ -66,10 +67,11 @@ func TestComputeNichtStornierteVerkaufPositionen_PartialThenFullStorno(t *testin
 		t.Fatalf("failed to create storno2 event: %v", err)
 	}
 
-	rest2, err := ComputeNichtStornierteVerkaufPositionen([]e.Event{getaetigt, storno1, storno2})
+	eintrag2, err := BuildDirektverkaufHistorieEintrag([]e.Event{getaetigt, storno1, storno2})
 	if err != nil {
-		t.Fatalf("failed to compute remaining positionen: %v", err)
+		t.Fatalf("failed to replay direktverkauf: %v", err)
 	}
+	rest2 := eintrag2.OffenePositionen
 	if len(rest2) != 0 {
 		t.Errorf("expected empty remaining after full storno, got %+v", rest2)
 	}

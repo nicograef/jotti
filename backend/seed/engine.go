@@ -359,11 +359,11 @@ func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	if len(b.verkaufEvents[a.VerkaufID]) == 0 {
 		return fmt.Errorf("direktverkauf %s nicht im Drehbuch", a.VerkaufID)
 	}
-	kandidaten, err := kasse.ComputeNichtStornierteVerkaufPositionen(b.verkaufEvents[a.VerkaufID])
+	eintrag, err := kasse.BuildDirektverkaufHistorieEintrag(b.verkaufEvents[a.VerkaufID])
 	if err != nil {
 		return err
 	}
-	auswahl, err := selectPositionen(kandidaten, a.Posten)
+	auswahl, err := selectPositionen(eintrag.OffenePositionen, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Positionen: %w", err)
 	}

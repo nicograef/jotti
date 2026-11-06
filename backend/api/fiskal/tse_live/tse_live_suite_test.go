@@ -446,11 +446,11 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	if err != nil || len(dvSession) == 0 {
 		t.Fatalf("Direktverkauf-Events lesen: %v", err)
 	}
-	nichtStorniert, err := kasse.ComputeNichtStornierteVerkaufPositionen(dvSession)
+	dvEintrag, err := kasse.BuildDirektverkaufHistorieEintrag(dvSession)
 	if err != nil {
-		t.Fatalf("nicht-stornierte Positionen: %v", err)
+		t.Fatalf("Direktverkauf replay: %v", err)
 	}
-	dvStornoRefs := []kasse.PositionRef{{PositionID: nichtStorniert[0].PositionID, Menge: 1}}
+	dvStornoRefs := []kasse.PositionRef{{PositionID: dvEintrag.OffenePositionen[0].PositionID, Menge: 1}}
 	if err := u.direkt.DirektverkaufStornieren(ctx, u.userID, "test", verkaufID, dvStornoRefs, "Rücknahme"); err != nil {
 		t.Fatalf("DirektverkaufStornieren: %v", err)
 	}

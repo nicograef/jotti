@@ -9,35 +9,6 @@ import (
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
-// ComputeNichtStornierteVerkaufPositionen replays a single Direktverkauf stream on demand
-// (there is no projection for Direktverkauf) to the positions sold but not yet cancelled.
-func ComputeNichtStornierteVerkaufPositionen(events []e.Event) ([]Position, error) {
-	var nichtStorniert []Position
-
-	for _, evt := range events {
-		switch evt.Type {
-		case string(EventTypeDirektverkaufGetaetigtV1), string(EventTypeDirektverkaufGetaetigtV2):
-			var data DirektverkaufGetaetigtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal direktverkauf getaetigt data: %w", err)
-			}
-			nichtStorniert = accumulatePositionen(nichtStorniert, fromPositionenEventData(data.Positionen))
-
-		case string(EventTypeDirektverkaufStorniertV1):
-			var data DirektverkaufStorniertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal direktverkauf storniert data: %w", err)
-			}
-			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
-
-		default:
-			return nil, fmt.Errorf("unknown event type: %s", evt.Type)
-		}
-	}
-
-	return nichtStorniert, nil
-}
-
 // VorgangHistorieEintrag holds what Direktverkauf and Pfandrückgabe entries share.
 // OffenePositionen are the not-yet-cancelled positions — the candidates for a stornierung.
 type VorgangHistorieEintrag struct {

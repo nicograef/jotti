@@ -174,11 +174,12 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return ErrVerkaufNichtGefunden
 	}
 
-	nichtStorniert, err := kasse.ComputeNichtStornierteVerkaufPositionen(events)
+	eintrag, err := kasse.BuildDirektverkaufHistorieEintrag(events)
 	if err != nil {
-		log.Error("Failed to compute nicht-stornierte Positionen", "error", err, "verkauf_id", verkaufID)
+		log.Error("Failed to replay direktverkauf", "error", err, "verkauf_id", verkaufID)
 		return ErrDatabase
 	}
+	nichtStorniert := eintrag.OffenePositionen
 
 	if !kasse.ValidatePositionRefs(nichtStorniert, positionen) {
 		log.Warn("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar", "verkauf_id", verkaufID)
