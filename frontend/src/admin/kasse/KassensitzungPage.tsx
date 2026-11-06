@@ -177,43 +177,56 @@ export function KassensitzungPage() {
       {header}
 
       <div className="mt-6 flex max-w-4xl flex-col gap-4">
-        {kassensitzung ? (
-          <>
-            <StepperRow
-              nummer={1}
-              state="done"
-              markerAnimiert={geradeEroeffnet}
-            >
-              <EroeffnetKarte
-                kassensitzung={kassensitzung}
-                anfangsbestandCents={kassenbestand?.anfangsbestandCents ?? null}
-                animieren={geradeEroeffnet}
-              />
-            </StepperRow>
+        <StepperRow
+          nummer={1}
+          state={kassensitzung ? 'done' : 'active'}
+          markerAnimiert={geradeEroeffnet}
+        >
+          {kassensitzung ? (
+            <EroeffnetKarte
+              kassensitzung={kassensitzung}
+              anfangsbestandCents={kassenbestand?.anfangsbestandCents ?? null}
+              animieren={geradeEroeffnet}
+            />
+          ) : (
+            <EroeffnenSection onSuccess={() => void refetch()} />
+          )}
+        </StepperRow>
 
-            <StepperRow nummer={2} state="active">
-              <Card>
-                <CardHeader>
-                  <CardTitle>2 · Laufender Betrieb</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <LaufenderBetriebSection
-                    kassensitzungNr={kassensitzung.zNr}
-                    buchenMoeglich={!abschlussUnterbrochen}
-                    onBuchung={invalidateKasse}
-                  />
-                </CardContent>
-              </Card>
-            </StepperRow>
+        <StepperRow nummer={2} state={kassensitzung ? 'active' : 'inactive'}>
+          <Card>
+            <CardHeader>
+              <CardTitle>2 · Laufender Betrieb</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {kassensitzung ? (
+                <LaufenderBetriebSection
+                  kassensitzungNr={kassensitzung.zNr}
+                  buchenMoeglich={!abschlussUnterbrochen}
+                  onBuchung={invalidateKasse}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sobald die Kasse eröffnet ist, erscheinen hier der
+                  Soll-Bestand und die heutigen Kassenbewegungen.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </StepperRow>
 
-            <StepperRow nummer={3} state="active" istLetzter>
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    3 · Am Ende des Tages: Kasse abschließen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+        <StepperRow
+          nummer={3}
+          state={kassensitzung ? 'active' : 'inactive'}
+          istLetzter
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>3 · Am Ende des Tages: Kasse abschließen</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {kassensitzung ? (
+                <>
                   {abschlussUnterbrochen && (
                     <WarnKarte className="mb-4">
                       Abschluss unterbrochen — erneut abschließen
@@ -223,47 +236,16 @@ export function KassensitzungPage() {
                     kassensitzungNr={kassensitzung.zNr}
                     onSuccess={() => void refetch()}
                   />
-                </CardContent>
-              </Card>
-            </StepperRow>
-          </>
-        ) : (
-          <>
-            <StepperRow nummer={1} state="active">
-              <EroeffnenSection onSuccess={() => void refetch()} />
-            </StepperRow>
-
-            <StepperRow nummer={2} state="inactive">
-              <Card>
-                <CardHeader>
-                  <CardTitle>2 · Laufender Betrieb</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Sobald die Kasse eröffnet ist, erscheinen hier der
-                    Soll-Bestand und die heutigen Kassenbewegungen.
-                  </p>
-                </CardContent>
-              </Card>
-            </StepperRow>
-
-            <StepperRow nummer={3} state="inactive" istLetzter>
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    3 · Am Ende des Tages: Kasse abschließen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Am Ende des Tages werden hier Kassensturz und Tagesabschluss
-                    (Z-Bon) in einem Schritt gebucht.
-                  </p>
-                </CardContent>
-              </Card>
-            </StepperRow>
-          </>
-        )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Am Ende des Tages werden hier Kassensturz und Tagesabschluss
+                  (Z-Bon) in einem Schritt gebucht.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </StepperRow>
       </div>
     </>
   )
