@@ -6,15 +6,18 @@ import (
 )
 
 // ensureFirewall setzt idempotent die eingehende Freigabe fuer TCP 80/443. Ein
-// Fehlschlag ist kein Abbruchgrund — nur eine Warnung mit manuellem Hinweis.
-func ensureFirewall() {
+// Fehlschlag ist kein Abbruchgrund — nur eine Warnung mit manuellem Hinweis. Meldet,
+// ob die Regel danach besteht.
+func ensureFirewall() bool {
 	if firewallRuleExists() {
-		return
+		return true
 	}
 	if err := addFirewallRule(); err != nil {
 		fmt.Printf("WARNUNG: Firewall-Regel konnte nicht automatisch gesetzt werden (%v). "+
 			"Bitte eingehende Verbindungen auf TCP 80 und 443 manuell erlauben.\n", err)
+		return false
 	}
+	return true
 }
 
 func firewallRuleExists() bool {

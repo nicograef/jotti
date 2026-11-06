@@ -50,6 +50,7 @@ func run() int {
 	}
 	envPath := filepath.Join(stateDir, ".env")
 
+	firewallOK := false
 	if runtime.GOOS == "windows" {
 		// Reihenfolge bewusst: ensureDocker zuerst, weil der Secret-Read aus dem
 		// Volume einen laufenden Daemon braucht; danach die Host-.env spiegeln,
@@ -70,7 +71,7 @@ func run() int {
 			fmt.Println(msg)
 			return 1
 		}
-		ensureFirewall()
+		firewallOK = ensureFirewall()
 	} else {
 		// Linux-Dev-Lauf: ohne Daemon-Garantie und ohne Volume bleibt die .env ordnerlokal.
 		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
@@ -115,7 +116,7 @@ func run() int {
 		fmt.Printf("Hinweis: Versionsmarker konnte nicht geschrieben werden (%v).\n", err)
 	}
 
-	printSuccess()
+	printSuccess(firewallOK)
 
 	printAdminCode(composePath)
 
@@ -193,12 +194,12 @@ func fileExists(path string) (bool, error) {
 
 // printSuccess verweist auf die Status-Seite statt auf eine eigene URL: der Starter
 // kennt die Install-ID nicht.
-func printSuccess() {
+func printSuccess(firewallOK bool) {
 	fmt.Println()
 	fmt.Printf("jotti Starter %s - jotti laeuft.\n\n", version)
 	fmt.Println("Status & Zugangsadresse: http://localhost:8484")
 	fmt.Println("  Dort stehen die Zugangsadresse fuers WLAN und ein QR-Code fuer die Helfer-Handys.")
-	if runtime.GOOS == "windows" {
+	if firewallOK {
 		fmt.Println("Firewall-Freigabe fuers lokale Netzwerk ist eingerichtet.")
 	}
 	fmt.Println()
