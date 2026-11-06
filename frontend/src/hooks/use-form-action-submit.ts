@@ -1,8 +1,8 @@
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
 
 import {
-  type UseActionSubmitOptions,
   useActionSubmit,
+  type UseActionSubmitOptions,
 } from './use-action-submit'
 
 interface UseFormActionSubmitOptions<

@@ -390,7 +390,7 @@ export function TextField<TField extends FieldValues>({
           <FieldLabel htmlFor={id}>{label}</FieldLabel>
           <Input
             {...field}
-            value={(field.value as string | null) ?? ''}
+            value={typeof field.value === 'string' ? field.value : ''}
             id={id}
             type={type}
             aria-invalid={fieldState.invalid}

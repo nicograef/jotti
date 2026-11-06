@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 
-import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
 import { StatusDot } from '@/admin/components/StatusDot'
+import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
 import { cn, formatEuro } from '@/lib/utils'
 
 import type { AbgeschlosseneSitzung } from './types'
