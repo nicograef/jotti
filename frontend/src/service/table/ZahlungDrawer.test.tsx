@@ -39,6 +39,9 @@ function renderDrawer(
   render(
     <ServiceDock leiste={null}>
       <ZahlungDrawer
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
+        pfandAusgezahlt={vi.fn()}
         backend={{ zahlungKassieren }}
         tisch={tisch}
         unbezahltePositionen={[position]}

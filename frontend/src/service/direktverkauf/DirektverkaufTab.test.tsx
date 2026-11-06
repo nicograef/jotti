@@ -58,6 +58,8 @@ function renderDirektverkauf() {
   render(
     <ServiceDock leiste={null}>
       <DirektverkaufTab
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
         backend={new DirektverkaufBackend(fake)}
         products={[testProdukt]}
         productsLoading={false}
@@ -121,6 +123,8 @@ describe('DirektverkaufTab', () => {
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
     render(
       <DirektverkaufTab
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
         backend={new DirektverkaufBackend(backend())}
         products={[testProdukt]}
         productsLoading={false}

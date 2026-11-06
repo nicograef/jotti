@@ -13,6 +13,7 @@ import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
+import type { Produkt } from '@/lib/produktSchemas'
 import {
   cn,
   formatAlleAuswaehlenLabel,
@@ -20,6 +21,7 @@ import {
   formatPositionName,
 } from '@/lib/utils'
 
+import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import type { Position } from './Bestellung'
@@ -31,6 +33,8 @@ import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungTabProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
+  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
+  pfandProdukte: Produkt[]
   tisch: Tisch
   positionen: Position[]
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
@@ -42,6 +46,8 @@ interface ZahlungTabProps {
 export function ZahlungTab({
   tisch,
   backend,
+  pfandBackend,
+  pfandProdukte,
   positionen,
   mengenSteuerung,
   onErfolg,
@@ -131,6 +137,10 @@ export function ZahlungTab({
     onErfolg('Zahlung erfolgreich.')
   }
 
+  const pfandAusgezahlt = () => {
+    onErfolg('Pfand ausgezahlt.')
+  }
+
   const auswahl = (
     <div className="my-4 space-y-3">
       {meinePositionen.length > 0 && (
@@ -205,11 +215,14 @@ export function ZahlungTab({
           <ZahlungAbschluss
             variant="spalte"
             backend={backend}
+            pfandBackend={pfandBackend}
+            pfandProdukte={pfandProdukte}
             tisch={tisch}
             positionenToPay={positionenToPay}
             totalCents={auswahlSumme}
             restNachZahlungCents={restNachZahlung}
             zahlungKassiert={zahlungKassiert}
+            pfandAusgezahlt={pfandAusgezahlt}
           />
         }
       />
@@ -220,11 +233,14 @@ export function ZahlungTab({
     <>
       <ZahlungDrawer
         backend={backend}
+        pfandBackend={pfandBackend}
+        pfandProdukte={pfandProdukte}
         tisch={tisch}
         unbezahltePositionen={positionen}
         mengen={mengen}
         restNachZahlungCents={restNachZahlung}
         zahlungKassiert={zahlungKassiert}
+        pfandAusgezahlt={pfandAusgezahlt}
       />
       {auswahl}
     </>

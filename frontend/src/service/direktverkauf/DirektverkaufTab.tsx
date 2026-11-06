@@ -2,6 +2,7 @@ import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
@@ -11,14 +12,18 @@ import { DirektverkaufDrawer } from './DirektverkaufDrawer'
 
 interface DirektverkaufTabProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
+  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   products: Produkt[]
+  pfandProdukte: Produkt[]
   productsLoading: boolean
   onErfolg: (nachricht: string) => void
 }
 
 export function DirektverkaufTab({
   backend,
+  pfandBackend,
   products,
+  pfandProdukte,
   productsLoading,
   onErfolg,
 }: DirektverkaufTabProps) {
@@ -36,6 +41,10 @@ export function DirektverkaufTab({
   const verkaufAbgeschlossen = () => {
     reset()
     onErfolg('Verkauf abgeschlossen.')
+  }
+
+  const pfandAusgezahlt = () => {
+    onErfolg('Pfand ausgezahlt.')
   }
 
   const productList = (
@@ -56,10 +65,13 @@ export function DirektverkaufTab({
           <DirektverkaufAbschluss
             variant="spalte"
             backend={backend}
+            pfandBackend={pfandBackend}
+            pfandProdukte={pfandProdukte}
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={total}
             verkaufAbgeschlossen={verkaufAbgeschlossen}
+            pfandAusgezahlt={pfandAusgezahlt}
           />
         }
       />
@@ -70,11 +82,14 @@ export function DirektverkaufTab({
     <>
       <DirektverkaufDrawer
         backend={backend}
+        pfandBackend={pfandBackend}
+        pfandProdukte={pfandProdukte}
         receiptItems={receiptItems}
         positionen={inputItems}
         anzahl={anzahl}
         totalCents={total}
         verkaufAbgeschlossen={verkaufAbgeschlossen}
+        pfandAusgezahlt={pfandAusgezahlt}
       />
       {productList}
     </>

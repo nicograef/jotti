@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/button'
 import { DrawerBody, DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import type { Produkt } from '@/lib/produktSchemas'
 import { parseCents } from '@/lib/utils'
 
+import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
+import type { PfandBackend } from '../pfand/PfandBackend'
+import { usePfandAuswahl } from '../pfand/usePfandAuswahl'
 import { AbschlussContainer } from '../table/AbschlussContainer'
 import { AbschlussHeader } from '../table/AbschlussHeader'
 import { AbschlussLeer } from '../table/AbschlussLeer'
@@ -19,10 +23,13 @@ import type { DirektverkaufBackend } from './DirektverkaufBackend'
 
 interface DirektverkaufAbschlussProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
+  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
+  pfandProdukte: Produkt[]
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   totalCents: number
   verkaufAbgeschlossen: () => void
+  pfandAusgezahlt: () => void
   variant: 'sheet' | 'spalte'
 }
 
@@ -33,6 +40,9 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
 
   const noPositionenSelected = props.positionen.length === 0
+  const pfandAngebot = props.pfandProdukte.length > 0
+  const pfand = usePfandAuswahl(props.pfandProdukte, !noPositionenSelected)
+  const nurPfand = noPositionenSelected && pfand.summeCents > 0
 
   // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
   // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
@@ -55,7 +65,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     parseCents(zielbetragEuro),
   )
 
-  const { loading, run } = useActionSubmit({
+  const verkauf = useActionSubmit({
     actionLabel: 'Verkauf abschließen',
     onSuccess: () => {
       setErhaltenEuro('')
@@ -65,9 +75,18 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       props.verkaufAbgeschlossen()
     },
   })
+  const pfandAuszahlung = useActionSubmit({
+    actionLabel: 'Pfand auszahlen',
+    onSuccess: () => {
+      pfand.steuerung.reset()
+      setKommentar('')
+      props.pfandAusgezahlt()
+    },
+  })
+  const loading = verkauf.loading || pfandAuszahlung.loading
 
   const onSubmit = async () => {
-    await run(async () => {
+    await verkauf.run(async () => {
       await props.backend.direktverkaufTaetigen({
         verkaufId,
         positionen: props.positionen,
@@ -75,6 +94,28 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       })
     })
   }
+
+  const onPfandSubmit = async () => {
+    await pfandAuszahlung.run(async () => {
+      await props.pfandBackend.pfandZurueckgeben({
+        rueckgabeId: pfand.rueckgabeId,
+        tischId: 0,
+        positionen: pfand.positionen,
+        kommentar,
+      })
+    })
+  }
+
+  const kommentarFeld = (
+    <div className="px-4 pt-3">
+      <KommentarField
+        value={kommentar}
+        onChange={(value) => {
+          setKommentar(value)
+        }}
+      />
+    </div>
+  )
 
   const inhalt = (
     <>
@@ -86,7 +127,9 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       />
       <DrawerBody className="mx-auto w-full max-w-sm">
         {noPositionenSelected ? (
-          <AbschlussLeer>Produkte auswählen, um zu kassieren.</AbschlussLeer>
+          !pfandAngebot && (
+            <AbschlussLeer>Produkte auswählen, um zu kassieren.</AbschlussLeer>
+          )
         ) : (
           <>
             <Receipt
@@ -104,25 +147,28 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
               rueckgeldCents={rueckgeldCents}
               trinkgeldCents={trinkgeldCents}
             />
-            <div className="px-4 pt-3">
-              <KommentarField
-                value={kommentar}
-                onChange={(value) => {
-                  setKommentar(value)
-                }}
-              />
-            </div>
+            {kommentarFeld}
           </>
         )}
+        {pfandAngebot && (
+          <PfandAbschnitt
+            pfandProdukte={props.pfandProdukte}
+            steuerung={pfand.steuerung}
+            summeCents={pfand.summeCents}
+            disabled={!noPositionenSelected}
+          />
+        )}
+        {nurPfand && kommentarFeld}
       </DrawerBody>
       <DrawerFooter className="mx-auto w-full max-w-sm">
         <Button
-          disabled={loading || noPositionenSelected}
+          disabled={loading || (noPositionenSelected && !nurPfand)}
           onClick={() => {
-            void onSubmit()
+            void (nurPfand ? onPfandSubmit() : onSubmit())
           }}
         >
-          {loading ? <Spinner /> : null} Verkauf abschließen
+          {loading ? <Spinner /> : null}{' '}
+          {nurPfand ? 'Pfand auszahlen' : 'Verkauf abschließen'}
         </Button>
         {props.variant === 'sheet' && (
           <DrawerClose asChild>

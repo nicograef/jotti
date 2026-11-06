@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import { ErfolgsPop } from '../ErfolgsPop'
+import { pfandBackend } from '../pfand/PfandBackend'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { DirektverkaufHistorie } from './DirektverkaufHistorie'
@@ -15,6 +16,7 @@ export function DirektverkaufPage() {
   const isMobile = useIsMobile()
   const {
     produkte,
+    pfandProdukte,
     isPending,
     isError: produkteError,
     refetch: reloadProdukte,
@@ -60,7 +62,9 @@ export function DirektverkaufPage() {
   ) : (
     <DirektverkaufTab
       backend={direktverkaufBackend}
+      pfandBackend={pfandBackend}
       products={produkte}
+      pfandProdukte={pfandProdukte}
       productsLoading={isPending}
       onErfolg={zeigeErfolg}
     />

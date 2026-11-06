@@ -2,6 +2,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { Produkt } from '@/lib/produktSchemas'
+
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
@@ -15,6 +17,29 @@ afterEach(() => {
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
+
+const pfandProdukt: Produkt = {
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  status: 'active',
+  varianten: [
+    {
+      id: 19,
+      name: 'Glas',
+      preisCents: 200,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const position: Position = {
   positionId: '00000000-0000-0000-0000-000000000001',
@@ -37,6 +62,9 @@ function renderSpalte(
   const zahlungKassiert = vi.fn()
   render(
     <ZahlungAbschluss
+      pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+      pfandProdukte={[]}
+      pfandAusgezahlt={vi.fn()}
       variant="spalte"
       backend={{ zahlungKassieren }}
       tisch={tisch}
@@ -53,6 +81,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
     render(
       <ZahlungAbschluss
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
+        pfandAusgezahlt={vi.fn()}
         variant="spalte"
         backend={{ zahlungKassieren: vi.fn() }}
         tisch={tisch}
@@ -65,6 +96,51 @@ describe('ZahlungAbschluss (Spalte)', () => {
 
     expect(screen.getByText(/Positionen auswählen/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Kassieren' })).toBeDisabled()
+  })
+
+  it('sends only the Pfand return with the table id', async () => {
+    const user = userEvent.setup()
+    const zahlungKassieren = vi.fn()
+    const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
+    const pfandAusgezahlt = vi.fn()
+    render(
+      <ZahlungAbschluss
+        variant="spalte"
+        backend={{ zahlungKassieren }}
+        pfandBackend={{ pfandZurueckgeben }}
+        pfandProdukte={[pfandProdukt]}
+        tisch={tisch}
+        positionenToPay={[]}
+        totalCents={0}
+        restNachZahlungCents={900}
+        zahlungKassiert={vi.fn()}
+        pfandAusgezahlt={pfandAusgezahlt}
+      />,
+    )
+
+    expect(screen.getByText('Pfand zurück')).toBeInTheDocument()
+    expect(screen.queryByText(/Positionen auswählen/)).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Zwei Gläser')
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+    expect(pfandZurueckgeben).toHaveBeenCalledWith({
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
+      rueckgabeId: expect.stringMatching(UUID),
+      tischId: 1,
+      positionen: [{ produktId: 9, varianteId: 19, menge: 2 }],
+      kommentar: 'Zwei Gläser',
+    })
+    expect(zahlungKassieren).not.toHaveBeenCalled()
+    expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
   })
 
   it('zeigt die Restbetrag-Zeile in der Spalte', () => {
@@ -121,6 +197,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
     render(
       <ZahlungAbschluss
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
+        pfandAusgezahlt={vi.fn()}
         variant="spalte"
         backend={{ zahlungKassieren }}
         tisch={tisch}

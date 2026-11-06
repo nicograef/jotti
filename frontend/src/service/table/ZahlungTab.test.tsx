@@ -86,6 +86,8 @@ function renderZahlung(positionen: Position[] = [position]) {
   render(
     <ServiceDock leiste={null}>
       <ZahlungHarness
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
         backend={tischBackend()}
         tisch={tisch}
         positionen={positionen}
@@ -102,6 +104,8 @@ describe('ZahlungTab feste Spalte (ab lg)', () => {
     // Kein ServiceDock: die feste Spalte trägt Aktionsbutton und Restbetrag.
     render(
       <ZahlungHarness
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
         backend={tischBackend()}
         tisch={tisch}
         positionen={[position]}

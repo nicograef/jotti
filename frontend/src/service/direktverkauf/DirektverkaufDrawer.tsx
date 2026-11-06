@@ -1,7 +1,9 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
+import type { Produkt } from '@/lib/produktSchemas'
 
+import type { PfandBackend } from '../pfand/PfandBackend'
 import { DockActionButton } from '../table/DockActionButton'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { VerkaufPositionInput } from './Direktverkauf'
@@ -10,11 +12,14 @@ import type { DirektverkaufBackend } from './DirektverkaufBackend'
 
 interface DirektverkaufDrawerProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
+  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
+  pfandProdukte: Produkt[]
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   anzahl: number
   totalCents: number
   verkaufAbgeschlossen: () => void
+  pfandAusgezahlt: () => void
 }
 
 // Handy-Container (unter lg); ab lg rendert Direktverkauf stattdessen die feste
@@ -22,30 +27,39 @@ interface DirektverkaufDrawerProps {
 export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
   const [open, setOpen] = useState(false)
   const noPositionenSelected = props.positionen.length === 0
+  // Ohne Auswahl öffnet der Drawer nur für die Pfandrückgabe.
+  const nurPfand = noPositionenSelected && props.pfandProdukte.length > 0
+  const gesperrt = noPositionenSelected && !nurPfand
 
   const onOpenChange = (isOpen: boolean) => {
-    setOpen(noPositionenSelected ? false : isOpen)
+    setOpen(gesperrt ? false : isOpen)
   }
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <DockActionButton
-          label="Kassieren"
+          label={nurPfand ? 'Pfand zurück' : 'Kassieren'}
           anzahl={props.anzahl}
           summeCents={props.totalCents}
-          disabled={noPositionenSelected}
+          disabled={gesperrt}
         />
       </DrawerTrigger>
       <DirektverkaufAbschluss
         variant="sheet"
         backend={props.backend}
+        pfandBackend={props.pfandBackend}
+        pfandProdukte={props.pfandProdukte}
         receiptItems={props.receiptItems}
         positionen={props.positionen}
         totalCents={props.totalCents}
         verkaufAbgeschlossen={() => {
           setOpen(false)
           props.verkaufAbgeschlossen()
+        }}
+        pfandAusgezahlt={() => {
+          setOpen(false)
+          props.pfandAusgezahlt()
         }}
       />
     </Drawer>

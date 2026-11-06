@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
+import { pfandBackend } from '../pfand/PfandBackend'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
@@ -88,6 +89,7 @@ export function TablePage() {
     isPending: produkteLoading,
     isError: produkteError,
     produkte,
+    pfandProdukte,
     refetch: reloadProdukte,
   } = useAktiveProdukte()
   const {
@@ -249,6 +251,8 @@ export function TablePage() {
   const kassierenInhalt = !stateLoading && (
     <ZahlungTab
       backend={tischBackend}
+      pfandBackend={pfandBackend}
+      pfandProdukte={pfandProdukte}
       tisch={tisch}
       positionen={state.unbezahltePositionen}
       mengenSteuerung={kassierenAuswahl}

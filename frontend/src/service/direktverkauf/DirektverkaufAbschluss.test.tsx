@@ -32,6 +32,9 @@ function renderSpalte(
   const verkaufAbgeschlossen = vi.fn()
   render(
     <DirektverkaufAbschluss
+      pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+      pfandProdukte={[]}
+      pfandAusgezahlt={vi.fn()}
       variant="spalte"
       backend={{ direktverkaufTaetigen }}
       receiptItems={receiptItems}
@@ -47,6 +50,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
     render(
       <DirektverkaufAbschluss
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
+        pfandAusgezahlt={vi.fn()}
         variant="spalte"
         backend={{ direktverkaufTaetigen: vi.fn() }}
         receiptItems={[]}
@@ -126,6 +132,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             toggle
           </button>
           <DirektverkaufAbschluss
+            pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+            pfandProdukte={[]}
+            pfandAusgezahlt={vi.fn()}
             variant="spalte"
             backend={{ direktverkaufTaetigen: vi.fn() }}
             receiptItems={leer ? [] : receiptItems}
@@ -173,6 +182,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             toggle
           </button>
           <DirektverkaufAbschluss
+            pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+            pfandProdukte={[]}
+            pfandAusgezahlt={vi.fn()}
             variant="spalte"
             backend={{ direktverkaufTaetigen }}
             receiptItems={leer ? [] : receiptItems}

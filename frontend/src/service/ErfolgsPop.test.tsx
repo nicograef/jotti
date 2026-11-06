@@ -120,6 +120,8 @@ function DirektverkaufMitPop({
   return (
     <ServiceDock leiste={null}>
       <DirektverkaufTab
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[]}
         backend={backend}
         products={[testProdukt]}
         productsLoading={false}
