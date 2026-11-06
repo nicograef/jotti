@@ -232,7 +232,7 @@ rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) �
 	docker compose -f docker-compose.rocks.yml up -d --build
 
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (Zertifikate bleiben erhalten) — nur Demo/Staging
-	./scripts/reset-and-seed.sh rocks --yes
+	./scripts/reset-and-seed.sh --yes
 
 rocks-backup: ## acme-dns-Datenbank vom VPS sichern, vom Laptop aus (DEST=<Verzeichnis>)
 	./scripts/rocks-backup.sh "$(DEST)"

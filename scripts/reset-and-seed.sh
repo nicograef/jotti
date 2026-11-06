@@ -2,7 +2,7 @@
 # reset-and-seed.sh — resets the jotti.rocks demo database and re-seeds it
 #
 # Usage:
-#   make rocks-reset-and-seed   # or: ./scripts/reset-and-seed.sh rocks [--yes]
+#   make rocks-reset-and-seed   # or: ./scripts/reset-and-seed.sh [--yes]
 #
 # Deletes the demo stack's database volume, restarts the stack and runs
 # `jotti seed`; the certificate volume stays. NOT for self-hosted production.
@@ -14,13 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/reset-and-seed.sh rocks [--yes]
+Usage: ./scripts/reset-and-seed.sh [--yes]
 
-Resets the jotti.rocks demo stack's DB data and reloads seed data without
-touching its TLS/SSL volumes.
-
-Stack:
-  rocks    jotti.rocks demo/staging (docker-compose.rocks.yml); certificate volume preserved
+Resets the jotti.rocks demo stack's DB data (docker-compose.rocks.yml) and
+reloads seed data; the certificate volume stays.
 
 Options:
   --yes    Skip interactive confirmation prompt
@@ -29,14 +26,9 @@ Options:
 EOF
 }
 
-STACK=""
 ASSUME_YES="false"
 for arg in "$@"; do
   case "$arg" in
-    rocks)
-      [[ -z "$STACK" ]] || fatal "Stack already set to '$STACK'; unexpected argument: $arg"
-      STACK="$arg"
-      ;;
     --yes)
       ASSUME_YES="true"
       ;;
@@ -50,33 +42,24 @@ for arg in "$@"; do
   esac
 done
 
-[[ -n "$STACK" ]] || { usage; fatal "Missing required stack argument (rocks)"; }
-
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.rocks.yml}"
 DB_VOLUME="${DB_VOLUME:-jotti_postgres-data}"
-STACK_LABEL="jotti.rocks demo"
-TLS_NOTE="The certificate volume (caddy-data) is NOT touched."
-
-PG_SERVICE="${PG_SERVICE:-postgres}"
 BACKEND_SERVICE="${BACKEND_SERVICE:-backend}"
 
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-[[ -f "$COMPOSE_FILE" ]] || fatal "Missing compose file: $COMPOSE_FILE"
-
-command -v docker >/dev/null 2>&1 || fatal "docker not found in PATH"
-docker compose version >/dev/null 2>&1 || fatal "docker compose (v2) is not available"
+require_docker_stack "$COMPOSE_FILE"
 
 if [[ "$ASSUME_YES" != "true" ]]; then
   echo ""
-  warn "This will DELETE all $STACK_LABEL DB data in volume: $DB_VOLUME"
-  warn "$TLS_NOTE"
+  warn "This will DELETE all jotti.rocks demo DB data in volume: $DB_VOLUME"
+  warn "The certificate volume (caddy-data) is NOT touched."
   read -r -p "Continue? Type 'yes' to proceed: " answer
   [[ "$answer" == "yes" ]] || fatal "Aborted by user"
 fi
 
-info "Stopping $STACK_LABEL stack..."
+info "Stopping jotti.rocks demo stack..."
 docker compose -f "$COMPOSE_FILE" down
 
 if docker volume inspect "$DB_VOLUME" >/dev/null 2>&1; then
@@ -86,24 +69,14 @@ else
   warn "Database volume $DB_VOLUME not found; continuing"
 fi
 
-info "Starting $STACK_LABEL stack..."
+# The backend waits for a healthy postgres and the finished migrate service, so
+# `up -d` returns only once the seed can run.
+info "Starting jotti.rocks demo stack..."
 docker compose -f "$COMPOSE_FILE" up -d --build
-
-info "Waiting for postgres service to become healthy..."
-status=""
-for _ in $(seq 1 60); do
-  status="$(docker compose -f "$COMPOSE_FILE" ps --format json "$PG_SERVICE" | sed -n 's/.*"Health":"\([^"]*\)".*/\1/p')"
-  if [[ "$status" == "healthy" ]]; then
-    break
-  fi
-  sleep 2
-done
-
-[[ "$status" == "healthy" ]] || fatal "Postgres is not healthy (status: ${status:-unknown})"
 
 info "Seeding demo data via seed subcommand (guard + projection rebuild included)..."
 docker compose -f "$COMPOSE_FILE" exec -T "$BACKEND_SERVICE" jotti seed
 
 echo ""
-info "Done. $STACK_LABEL DB reset + seed completed."
-info "$TLS_NOTE"
+info "Done. jotti.rocks demo DB reset + seed completed."
+info "The certificate volume (caddy-data) is NOT touched."
