@@ -1,6 +1,6 @@
 ---
 title: Steuerrecht Gastronomie
-description: 'Umsatzsteuerrecht der Gastronomie ab 2026: Steuersätze für Speisen und Getränke, Ausnahmen, Kombi-Angebote und Belegpflichtangaben.'
+description: 'Umsatzsteuerrecht der Gastronomie ab 2026: Steuersätze für Speisen und Getränke, Ausnahmen, Kombi-Angebote, Belegpflichtangaben und Pfand.'
 ---
 
 Mit dem Steueränderungsgesetz 2025 (Bundesrat-Zustimmung 19. Dezember 2025) wurde § 12 Abs. 2 Nr. 15 UStG zeitlich unbefristet eingeführt. Seit dem 1. Januar 2026 gilt: Speisen 7 %, Getränke 19 %.
@@ -75,3 +75,32 @@ Formel: Netto = Brutto / (1 + Satz); USt = Brutto − Netto.
 ## 4. Belegausweis und Pflichtangaben
 
 Die Pflichtangaben des Kassenbelegs regelt § 6 Satz 1 KassenSichV; bis 250 € brutto ist der Beleg zugleich Kleinbetragsrechnung (§ 33 UStDV). Rechnet ein Beleg über Leistungen zu verschiedenen Steuersätzen ab, sind die Summen je Steuersatz anzugeben (Abschn. 14.6 Abs. 1 Satz 2 UStAE). jotti weist deshalb pro Position ein Steuerkennzeichen aus (z. B. `A` für 19 %, `B` für 7 %). Der Belegfuß trägt eine Steuermatrix: Netto, Steuerbetrag und Brutto je Steuersatz. Eine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung gibt es nicht. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md#52-pflichtangaben-auf-dem-beleg).
+
+## 5. Pfand
+
+Quellen: Abschn. 3.10 Abs. 5a und 10.1 Abs. 8 UStAE sowie das [BMF-Schreiben vom 20.10.2014](rechtsquellen/verwaltung-bmf/BMF-Transportbehaeltnisse-2014-10-20.txt).
+
+- Pfand für eine Warenumschließung, bei jedem Verkauf berechnet, ist Teil des Entgelts (Abschn. 10.1 Abs. 8 Satz 1 UStAE).
+- Rückgabe und Rückzahlung sind eine Entgeltminderung (Abschn. 10.1 Abs. 8 Satz 2 UStAE; BMF 20.10.2014, I. Nr. 2).
+- Bei einer Warenumschließung gilt für die Minderung der Steuersatz der vorherigen Hauptleistung (BMF 20.10.2014, I. Nr. 2).
+- Bei einem Transporthilfsmittel gelten für Hingabe und Rückgabe 19 % (ebd.).
+
+### 5.1 Abgrenzung
+
+| Art                  | Merkmal (BMF 20.10.2014, I. Nr. 1)                                                                            | Beispiele im Schreiben                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Transporthilfsmittel | Dient Transport, Lagerung und Logistik zwischen Handelsstufen; geht grundsätzlich nicht an den Endverbraucher | Paletten, Kisten, Rollcontainer               |
+| Warenumschließung    | Notwendig oder üblich, damit die Ware für den Endverbraucher verkaufsfähig ist                                | Flaschen (notwendig), Getränkekasten (üblich) |
+
+### 5.2 Folge für das Vereinsfest
+
+Festglas und Pfandteller gehen mit Getränk oder Speise an den Endverbraucher. Sie sind deshalb Warenumschließungen.
+
+- Glaspfand zum Getränk: 19 %.
+- Tellerpfand zur Speise: 7 % (§ 12 Abs. 2 Nr. 15 UStG).
+
+Das Schreiben nennt Flaschen, keine Gläser oder Teller. Die Einordnung ist aus seinen Kriterien abgeleitet.
+
+### 5.3 Kassenexport und Berichtigungszeitraum
+
+Die DSFinV-K 2.4 führt Pfand als Geschäftsvorfalltyp `Pfand`, die Rückgabe als `PfandRueckzahlung` (Anhang C, S. 49–50). Das Schreiben verortet den Berichtigungszeitraum in § 17 Abs. 1 Satz 7 UStG. Im geltenden UStG steht diese Regel in Satz 8.
