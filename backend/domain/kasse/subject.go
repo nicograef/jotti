@@ -22,15 +22,6 @@ func PfandrueckgabeSubject(zNr int, rueckgabeID string) string {
 	return KassensitzungSubject(zNr) + "/pfandrueckgabe-" + rueckgabeID
 }
 
-func ParseVerkaufIDFromSubject(subject string) (string, error) {
-	const marker = "/direktverkauf-"
-	idx := strings.LastIndex(subject, marker)
-	if idx < 0 {
-		return "", fmt.Errorf("invalid direktverkauf subject format: %s", subject)
-	}
-	return subject[idx+len(marker):], nil
-}
-
 func ParseTischIDFromSubject(subject string) (int, error) {
 	const marker = "/tisch-"
 	idx := strings.LastIndex(subject, marker)

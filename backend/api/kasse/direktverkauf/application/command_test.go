@@ -180,12 +180,8 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 		t.Errorf("expected kassensitzungNr %d, got %d", testKassensitzungNr, got.kassensitzungNr)
 	}
 
-	verkaufID, err := kasse.ParseVerkaufIDFromSubject(got.event.Subject)
-	if err != nil {
-		t.Fatalf("expected a direktverkauf subject, got %q (%v)", got.event.Subject, err)
-	}
-	if verkaufID == "" {
-		t.Error("expected a non-empty verkaufId in the subject")
+	if want := "kassensitzung-1/direktverkauf-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"; got.event.Subject != want {
+		t.Errorf("expected subject %q, got %q", want, got.event.Subject)
 	}
 
 	var data struct {
