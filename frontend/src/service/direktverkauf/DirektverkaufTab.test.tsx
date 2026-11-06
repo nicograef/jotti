@@ -7,6 +7,7 @@ import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
@@ -47,27 +48,6 @@ afterEach(() => {
 
 function backend(): FakeBackend {
   return new FakeBackend().respond('service/direktverkauf-taetigen', {})
-}
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
 }
 
 const pfandProdukt: Produkt = {

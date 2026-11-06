@@ -6,9 +6,9 @@ import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testPosition } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
-import type { Position } from './Bestellung'
 import { TableSelectionPage } from './TableSelectionPage'
 import type { AktiverTischMitFavorit, TischSession } from './Tisch'
 
@@ -17,18 +17,7 @@ vi.mock('react-router', () => ({
   useNavigate: () => navigate,
 }))
 
-const offenePosition: Position = {
-  positionId: '00000000-0000-4000-8000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 500,
-  menge: 1,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+const offenePosition = testPosition({ einzelpreisCents: 500 })
 
 function tischSession(
   tischId: number,

@@ -2,6 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { signIn, signOut } from '@/test/auth'
+import { testPosition } from '@/test/fixtures'
 
 import type { Position } from './Bestellung'
 import { MeinTischCard } from './MeinTischCard'
@@ -21,18 +22,7 @@ afterEach(() => {
 })
 
 function position(positionId: string, bestellerUserId: number): Position {
-  return {
-    positionId,
-    varianteId: 1,
-    produktName: 'Bratwurst',
-    varianteName: 'Normal',
-    kategorie: 'essen',
-    steuersatz: 'regel',
-    einzelpreisCents: 350,
-    menge: 1,
-    bestellerUserId,
-    bestellerName: 'Tester',
-  }
+  return testPosition({ positionId, bestellerUserId })
 }
 
 function tischSession(overrides: Partial<TischSession>): TischSession {

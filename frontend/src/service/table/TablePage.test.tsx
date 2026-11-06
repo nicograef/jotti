@@ -7,6 +7,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testPosition, testProdukt } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import type { Position } from './Bestellung'
@@ -15,39 +16,9 @@ import type { TischSession } from './Tisch'
 
 // Position ids are UUIDs; `nr` keeps them apart.
 function position(nr: number): Position {
-  return {
+  return testPosition({
     positionId: `00000000-0000-4000-8000-${String(nr).padStart(12, '0')}`,
-    varianteId: 1,
-    produktName: 'Bratwurst',
-    varianteName: 'Normal',
-    kategorie: 'essen',
-    steuersatz: 'regel',
-    einzelpreisCents: 350,
-    menge: 1,
-    bestellerUserId: 1,
-    bestellerName: 'Tester',
-  }
-}
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
+  })
 }
 
 const pfandProdukt: Produkt = {

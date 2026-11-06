@@ -4,9 +4,9 @@ import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
-import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
@@ -69,27 +69,6 @@ function beobachteBreakpoint(): (px: number) => void {
 }
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
-}
 
 describe('BestellungTab Aktionsleiste', () => {
   it('ist ohne Auswahl deaktiviert und zeigt nach Auswahl Anzahl und Summe', async () => {

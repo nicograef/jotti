@@ -11,9 +11,9 @@ import { type ComponentProps, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
-import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { setViewportWidth } from '@/test/render'
 
 import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
@@ -102,27 +102,6 @@ describe('ErfolgsPop', () => {
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
-}
 
 // Spiegelt die Verdrahtung der Buchungsseiten: Der Erfolg öffnet den Pop, der
 // Refetch (hier `reload`) läuft erst beim Schließen.

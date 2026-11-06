@@ -12,8 +12,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
+import { testPosition } from '@/test/fixtures'
 
-import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
 import type { ZahlungKassieren } from './Zahlung'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
@@ -58,18 +58,10 @@ const pfandProdukt: Produkt = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
-const position: Position = {
+const position = testPosition({
   positionId: '00000000-0000-0000-0000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 350,
   menge: 2,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+})
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.

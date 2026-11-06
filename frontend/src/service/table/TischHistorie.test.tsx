@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testPosition } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung } from './Bestellung'
@@ -42,18 +43,7 @@ afterEach(() => {
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
 function position() {
-  return {
-    positionId: '00000000-0000-4000-8000-0000000000a1',
-    varianteId: 1,
-    produktName: 'Bratwurst',
-    varianteName: 'Normal',
-    kategorie: 'essen' as const,
-    steuersatz: 'regel' as const,
-    einzelpreisCents: 350,
-    menge: 1,
-    bestellerUserId: 1,
-    bestellerName: 'Tester',
-  }
+  return testPosition({ positionId: '00000000-0000-4000-8000-0000000000a1' })
 }
 
 function bestellung(overrides: Partial<Bestellung> = {}): Bestellung {

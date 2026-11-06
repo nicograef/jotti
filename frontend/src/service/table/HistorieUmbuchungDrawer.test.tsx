@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testPosition } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung, Position } from './Bestellung'
@@ -46,18 +47,7 @@ async function zielTischeGeladen(): Promise<void> {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
-const position: Position = {
-  positionId: '00000000-0000-4000-8000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 350,
-  menge: 2,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+const position = testPosition({ menge: 2 })
 
 const quelle: Bestellung = {
   art: 'bestellung',

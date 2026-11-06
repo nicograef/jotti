@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { Produkt } from '@/lib/produktSchemas'
+import { testProdukt } from '@/test/fixtures'
 
 import { ServiceDock } from '../ServiceDock'
 import { BestellungDrawer } from './BestellungDrawer'
@@ -22,27 +22,6 @@ afterEach(() => {
 })
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
-}
 
 // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
 // Drawer hier in ein Dock eingebettet (leiste bleibt leer).

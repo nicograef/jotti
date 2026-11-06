@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { DirektverkaufPage } from './DirektverkaufPage'
@@ -12,27 +13,6 @@ import { DirektverkaufPage } from './DirektverkaufPage'
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
-
-const testProdukt: Produkt = {
-  id: 1,
-  name: 'Bratwurst',
-  kategorie: 'essen',
-  steuersatz: 'ermaessigt',
-  pfand: false,
-  status: 'active',
-  varianten: [
-    {
-      id: 1,
-      name: 'Normal',
-      preisCents: 350,
-      status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
-    },
-  ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
-}
 
 // Handy-Pfad: der Fehlerzustand ist in beiden Layouts derselbe.
 beforeEach(() => {

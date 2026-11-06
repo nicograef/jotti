@@ -4,9 +4,9 @@ import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
+import { testPosition } from '@/test/fixtures'
 
 import { ServiceDock } from '../ServiceDock'
-import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
@@ -27,18 +27,10 @@ afterEach(() => {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
-const position: Position = {
+const position = testPosition({
   positionId: '00000000-0000-0000-0000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 350,
   menge: 2,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+})
 
 function renderDrawer(
   zahlungKassieren: () => Promise<void> = vi.fn().mockResolvedValue(undefined),

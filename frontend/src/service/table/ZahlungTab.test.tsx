@@ -7,6 +7,7 @@ import { useMengen } from '@/hooks/use-mengen'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testPosition } from '@/test/fixtures'
 import { setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
@@ -65,18 +66,7 @@ function tischBackend(): TischBackend {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
 
-const position: Position = {
-  positionId: '00000000-0000-4000-8000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 350,
-  menge: 2,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+const position = testPosition({ menge: 2 })
 
 // Position einer anderen Servicekraft (bestellerUserId ≠ 1).
 const fremdePosition: Position = {

@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { testPosition } from '@/test/fixtures'
 
-import type { Bestellung, Position } from './Bestellung'
+import type { Bestellung } from './Bestellung'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import type { Tisch } from './Tisch'
 
@@ -22,18 +23,10 @@ afterEach(() => {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
-const position: Position = {
+const position = testPosition({
   positionId: '00000000-0000-0000-0000-000000000001',
-  varianteId: 1,
-  produktName: 'Bratwurst',
-  varianteName: 'Normal',
-  kategorie: 'essen',
-  steuersatz: 'regel',
-  einzelpreisCents: 350,
   menge: 2,
-  bestellerUserId: 1,
-  bestellerName: 'Tester',
-}
+})
 
 const quelle: Bestellung = {
   art: 'bestellung',
