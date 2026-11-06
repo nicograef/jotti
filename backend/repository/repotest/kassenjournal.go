@@ -124,8 +124,8 @@ func (m *KassenjournalRepo) WriteEventsAtomic(_ context.Context, _ int, events [
 		if m.versionConflict(neu.Event) {
 			return db.ErrAlreadyExists
 		}
-		for _, frueher := range events[:i] {
-			if frueher.Event.Subject == neu.Event.Subject && frueher.Event.Version == neu.Event.Version {
+		for _, vorgaenger := range events[:i] {
+			if vorgaenger.Event.Subject == neu.Event.Subject && vorgaenger.Event.Version == neu.Event.Version {
 				return db.ErrAlreadyExists
 			}
 		}
