@@ -29,6 +29,18 @@ ab3f48e0d2a683a1be0e6306c2df7bc241fba33ef8c737cbcbc3f1b08c0f0c57  ./technik-spez
 23e2f4e2b95ab682f5baf735e2cc0259da1bbf3abba942d099cecef9f90eaa39  ./technik-spezifikationen/DSFinV-K-2.4/20241205_DSFinV_K_Anlage2_UStSchluessel.pdf
 c5cdbdaa60845591fdac55cd313e0561711a532893ff9cd5be398b8c13886021  ./technik-spezifikationen/DSFinV-K-2.4/Anhang_G_Uebersicht.xlsx
 efd6816f95d86d773015c38e8a80fd0c9eca1bc2bba9968b900cfd9564e7b1a7  ./technik-spezifikationen/DSFinV-K-2.4.zip
+578e4293199120fb650221b4d56a72bdc859f333099a752fc7482beeb37cccd4  ./technik-spezifikationen/DSFinV-K-3.0/01_rechtliche Grundlagen/AEAO_§_146a_2029.pdf
+42d2fd4ee618e65fa51a51417418c5fe3813a8c5b5b6e61ac595542c00df9527  ./technik-spezifikationen/DSFinV-K-3.0/01_rechtliche Grundlagen/BMF-Schreiben zu Technischen Richtlinien vom 10. Juli 2025.pdf
+7beff1adc79fe3d0d3ecdbb3e18c5e467c7cebe8e43157f9d4f13a0c414e2e22  ./technik-spezifikationen/DSFinV-K-3.0/01_rechtliche Grundlagen/BMF-Schreiben zu Technischen Richtlinien vom 29. Dezember 2023.pdf
+1ac36aa27cfbb0dff7734c0fe7862966a357f74c62c5021ef2c3f891ad2fce9f  ./technik-spezifikationen/DSFinV-K-3.0/01_rechtliche Grundlagen/BMF-Schreiben zu Technischen Richtlinien vom 29. Juni 2023.pdf
+af3d4c5a19e991f2d8c53995bc708680bbd7ff9326fde539c55b7e2c63f848a2  ./technik-spezifikationen/DSFinV-K-3.0/02_index.xml/gdpdu-01-09-2004.dtd
+34e8390c110aeb3228254879a2673582ab25939dddccec6f39cb237a8ac1c0ce  ./technik-spezifikationen/DSFinV-K-3.0/02_index.xml/index.xml
+97541f1380e06d18931560e045b3921f1cade9cb0a8689f74b48c3f889a8452a  ./technik-spezifikationen/DSFinV-K-3.0/03_Beispiele/20261026_DSFinV-K_Beispiele.xlsx
+e7dbaf30f526dcc01f766e58cc74d52efddd9699fd658e5328c782b0f2743f04  ./technik-spezifikationen/DSFinV-K-3.0/20261026_DSFinV-K_3.0.pdf
+03a3a9a0c79e765f5d1342ed907e1ef919098e7792ec894b1057695f1657395c  ./technik-spezifikationen/DSFinV-K-3.0/20261026_DSFinV-K_Anlage_1_(DSFinV_K_Anlage1_Änderungsnachweis).pdf
+d0487ce318f28ae553931fb20a9cddac3dba02b68fd054cafeba0a2939a80294  ./technik-spezifikationen/DSFinV-K-3.0/20261026_DSFinV-K_Anlage 2 - Übersicht der zu verwendenden Umsatzsteuerschlüssel.pdf
+d7a4f5df2d635a60d298c16798c79aa37aec5de5dd7d1dce5555ce73b7dd2229  ./technik-spezifikationen/DSFinV-K-3.0/Anhang_G_Uebersicht.xlsx
+ef0f41b7c7df2d4cbf611bb25372ce1118299bb80270ae44e408400cd833ab07  ./technik-spezifikationen/DSFinV-K-3.0.zip
 af3d4c5a19e991f2d8c53995bc708680bbd7ff9326fde539c55b7e2c63f848a2  ./technik-spezifikationen/gdpdu-01-09-2004.dtd
 f84ba946be42265a50bf1d6cc2b985cbb6897afbe0bc7572baba953729123e1f  ./verwaltung-bmf/AEAO-zu-146-146a-147-Aenderung-2025-09-01.pdf
 de5d247f2c9cbac72cfd15be9f27317cac6d38e332a3a7cd00870a132a6dfc2b  ./verwaltung-bmf/AEAO-zu-146a-2023-06-30.pdf
@@ -36,6 +48,7 @@ d82605c0ef70723071ea700799fa0168eafdce5458436298ebb6c8cde43929a5  ./verwaltung-b
 3c4714dd822359a8cee7b09f22e1d4dfa1a52d0066e3605f29c1d40a4df10ed9  ./verwaltung-bmf/AEAO-zu-146a-Aenderung-2026-03-17.pdf
 edb1930ce4d4d711fac4e7da16e04207d1fbd190d60259dbeee8eb47a06c8c83  ./verwaltung-bmf/AEAO-zu-51-bis-67a-Aenderung-2026-07-02.pdf
 b2e9aa5154fd38ec9adccf0b384f90a75c8398395d72de83637932c05f6c3385  ./verwaltung-bmf/BMF-Transportbehaeltnisse-2014-10-20.txt
+dccc0383bd2e023e983fc721039c841182831290ca49fceefa94c51b8700757e  ./verwaltung-bmf/DSFinV-K-3.0-Bekanntmachung-BMF-2026-10-30.pdf
 00a0b809d35b094a84afcbc6041ccac8a3d75f79eaf0fc46401fdd675bbf85af  ./verwaltung-bmf/GoBD-Aenderung-2024-03-11.pdf
 142386fb87ac9c090cf6f678b612f7188a3850b410c53947da92fb3295a81e0b  ./verwaltung-bmf/GoBD-Aenderung-2025-07-14.pdf
 7beee42798678eb57498240b4e4b883904d843045895f63a3a04a9f54cee2098  ./verwaltung-bmf/Kassenmeldepflicht-BMF-2024-06-28.pdf
