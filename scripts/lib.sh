@@ -89,6 +89,12 @@ wait_for_healthy() {
   return 1
 }
 
+# wait_https_ok URL TRIES — true once URL answers 2xx, after at most TRIES
+# attempts 3 s apart.
+wait_https_ok() {
+  curl -fs -o /dev/null --max-time 5 --retry "$(($2 - 1))" --retry-delay 3 --retry-all-errors "$1"
+}
+
 resolve_backup_dir() {
   BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
   [[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"

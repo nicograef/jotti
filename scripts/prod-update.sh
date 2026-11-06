@@ -121,14 +121,7 @@ DOMAIN="$(read_env JOTTI_DOMAIN)"
 https_ok=false
 if [[ -n "$DOMAIN" ]]; then
   info "Verifying https://$DOMAIN/api/health ..."
-  for _ in $(seq 1 10); do
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://$DOMAIN/api/health" 2>/dev/null || echo 000)"
-    if [[ "$code" == "200" ]]; then
-      https_ok=true
-      break
-    fi
-    sleep 3
-  done
+  wait_https_ok "https://$DOMAIN/api/health" 10 && https_ok=true
 fi
 
 echo ""
@@ -140,7 +133,7 @@ echo "  Version: $RUNNING_VERSION -> $TARGET_VERSION"
 if [[ -n "$DOMAIN" ]]; then
   echo "  Domain:  https://$DOMAIN"
   if [[ "$https_ok" == true ]]; then
-    info "HTTPS check: OK (/api/health returned 200)"
+    info "HTTPS check: OK (/api/health answered)"
   else
     warn "HTTPS did not return 200 yet — re-check in a minute or follow logs:"
     warn "  docker compose -f $COMPOSE_FILE logs -f reverse-proxy"

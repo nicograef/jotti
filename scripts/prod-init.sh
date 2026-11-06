@@ -110,14 +110,7 @@ info "Backend healthy."
 
 info "Waiting for HTTPS / certificate issuance (this can take a moment)..."
 https_ok=false
-for _ in $(seq 1 30); do
-  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "https://$DOMAIN/api/health" 2>/dev/null || echo 000)"
-  if [[ "$code" == "200" ]]; then
-    https_ok=true
-    break
-  fi
-  sleep 3
-done
+wait_https_ok "https://$DOMAIN/api/health" 30 && https_ok=true
 
 HTTP_STATUS="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "http://$DOMAIN" 2>/dev/null || echo 000)"
 
@@ -128,7 +121,7 @@ echo "=========================================="
 echo ""
 echo "  Domain:  https://$DOMAIN"
 if [[ "$https_ok" == true ]]; then
-  info "HTTPS check: OK (/api/health returned 200)"
+  info "HTTPS check: OK (/api/health answered)"
 else
   warn "HTTPS did not return 200 yet — the certificate may still be issuing."
   warn "Re-check in a minute, or follow logs: docker compose -f $COMPOSE_FILE logs -f reverse-proxy"
