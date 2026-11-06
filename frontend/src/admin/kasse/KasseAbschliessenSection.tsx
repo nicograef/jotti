@@ -170,8 +170,8 @@ export function KasseAbschliessenSection({
         <WarnKarte className="mt-4">
           <span>
             <strong className="text-destructive">{warnungText}</strong> Erst
-            abrechnen lassen, dann abschließen — sonst landen die Beträge als
-            offene Posten im Bericht.
+            abrechnen lassen — solange Tische offen sind, lehnt jotti den
+            Abschluss ab.
           </span>
         </WarnKarte>
       )}
