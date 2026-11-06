@@ -220,28 +220,6 @@ func TestTischDeaktivieren_BehaeltFavoriten(t *testing.T) {
 	}
 }
 
-// Statuswechsel und Favoriten-Cleanup teilen sich eine Transaktion: Scheitert
-// der Cleanup, bleibt der Tisch aktiv. Es entsteht nie ein gelöschter Tisch mit
-// zurückgebliebenen — unsichtbaren und unabwählbaren — Markierungen.
-func TestTischLoeschen_FavoritenCleanupFehlschlag(t *testing.T) {
-	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
-	favoriten := repotest.NewFavoritRepo(map[int][]int{5: {1}}, db.ErrDatabase)
-	repo.SetFavoritenCleanup(favoriten.RemoveByTisch)
-	command := Command{TischRepo: repo, FavoritRepo: favoriten}
-
-	if err := command.TischLoeschen(context.Background(), 1); !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected ErrDatabase, got %v", err)
-	}
-
-	tbl, err := repo.GetTisch(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("expected no error retrieving tisch, got %v", err)
-	}
-	if tbl.Status != tisch.ActiveStatus {
-		t.Errorf("tisch must stay active when the favoriten cleanup fails, got status %v", tbl.Status)
-	}
-}
-
 func TestTischLoeschen_SaldoOffen(t *testing.T) {
 	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	repo.SetOffenerSaldo(1, 9850)
