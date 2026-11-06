@@ -10,6 +10,7 @@
 #      .partial file in BACKUP_DIR, mode 600.
 #   2. Checks the archive with gzip -t, then promotes it to jotti-<timestamp>.sql.gz.
 #   3. Keeps the newest BACKUP_KEEP dumps and pings BACKUP_PING_URL when set.
+#   4. Prints the new dump's path as the only line on stdout; logs go to stderr.
 # Mirrors the Windows pre-update backup (windows/starter/backup.go).
 set -euo pipefail
 
@@ -103,5 +104,6 @@ if [[ -n "$BACKUP_PING_URL" ]]; then
   fi
 fi
 
-echo ""
+echo "" >&2
 info "Done. Copy backups off this server regularly (10-year retention; see docs/leitfaden/datenaufbewahrung.md)."
+printf '%s\n' "$OUTFILE"

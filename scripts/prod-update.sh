@@ -59,17 +59,12 @@ else
   info "Updating: $RUNNING_VERSION -> $TARGET_VERSION"
 fi
 
-# Locate the dump prod-backup.sh just wrote so it can be offered for rollback.
-resolve_backup_dir
-
+# prod-backup.sh prints the dump it wrote, which is offered for rollback.
 info "Taking a pre-update backup..."
-"$SCRIPT_DIR/prod-backup.sh"
-
-NEWEST_DUMP="$(find "$BACKUP_DIR" -maxdepth 1 -type f -name 'jotti-*.sql.gz' -printf '%f\n' 2>/dev/null | sort | tail -n1)"
-if [[ -z "$NEWEST_DUMP" ]]; then
-  fatal "Pre-update backup did not produce a dump in $BACKUP_DIR. Aborting before any change."
+PRE_UPDATE_DUMP="$("$SCRIPT_DIR/prod-backup.sh")"
+if [[ -z "$PRE_UPDATE_DUMP" ]]; then
+  fatal "Pre-update backup did not report a dump. Aborting before any change."
 fi
-PRE_UPDATE_DUMP="$BACKUP_DIR/$NEWEST_DUMP"
 info "Pre-update backup ready: $PRE_UPDATE_DUMP"
 
 rollback_guidance() {

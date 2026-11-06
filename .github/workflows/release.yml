@@ -146,10 +146,9 @@ jobs:
       - name: Smoke-Test — Backup ziehen
         id: backup
         run: |
-          COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup.sh
-          dump="$(find backups -maxdepth 1 -type f -name 'jotti-*.sql.gz' -printf '%f\n' | sort | tail -n1)"
+          dump="$(COMPOSE_FILE=docker-compose.release.yml ./scripts/prod-backup.sh)"
           [ -n "$dump" ] || { echo "Kein Dump erzeugt."; exit 1; }
-          echo "dump=backups/$dump" >> "$GITHUB_OUTPUT"
+          echo "dump=$dump" >> "$GITHUB_OUTPUT"
 
       - name: Smoke-Test — Backup verifizieren
         env:
