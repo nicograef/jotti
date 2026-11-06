@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Default ist der lokale Dev-Stack; CI und E2E-Stack setzen E2E_BASE_URL auf
-// ihre gemappte Adresse (z. B. http://localhost:8081).
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost'
+// Default ist der docker-compose.e2e.yml-Stack auf seinem Standard-Port; nur er
+// schaltet die Test-API frei. scripts/e2e-stack.sh setzt E2E_BASE_URL selbst.
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8080'
 
 // isCI schaltet nur Reporter und forbidOnly um; retries: 0 gilt auch lokal,
 // damit Flakiness sichtbar bleibt.

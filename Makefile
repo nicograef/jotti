@@ -62,8 +62,14 @@ test-tse-live-setup: ## Voller TSE-Setup-Durchlauf gegen fiskaly-TEST (ACHTUNG: 
 
 test-all: test test-frontend ## Alle Unit-Tests (Backend + Frontend)
 
-test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL (Default Dev-Stack http://localhost)
-	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium && pnpm test
+test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL oder einen eigenen docker-compose.e2e.yml-Stack
+	@# Nur der e2e-Stack setzt JOTTI_ENABLE_TEST_API=1, das der Seed jeder Spec braucht.
+	cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium
+	@if [ -n "$$E2E_BASE_URL" ]; then \
+	  cd e2e && pnpm test; \
+	else \
+	  ./scripts/e2e-stack.sh pnpm --dir e2e test; \
+	fi
 
 fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 	cd backend && go test -run='^$$' -fuzz='FuzzApplyEvent$$' -fuzztime=90s ./domain/kasse/
