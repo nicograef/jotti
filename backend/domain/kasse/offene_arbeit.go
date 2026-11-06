@@ -33,9 +33,8 @@ func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAn
 }
 
 type OffeneArbeitTisch struct {
-	TischID     int
-	AnzahlOffen int
-	OffenCents  int
+	TischID    int
+	OffenCents int
 }
 
 type OffeneArbeitRollup struct {
@@ -52,9 +51,8 @@ func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeit
 			continue
 		}
 		offeneTische = append(offeneTische, OffeneArbeitTisch{
-			TischID:     session.TischID,
-			AnzahlOffen: arbeit.AnzahlOffen,
-			OffenCents:  arbeit.OffenCents,
+			TischID:    session.TischID,
+			OffenCents: arbeit.OffenCents,
 		})
 	}
 

@@ -629,14 +629,10 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if len(anna.OffeneTische) != 1 {
 		t.Fatalf("expected Anna offen an genau einem Tisch, got %+v", anna.OffeneTische)
 	}
-	if anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" || anna.OffeneTische[0].AnzahlOffen != 1 {
+	if anna.OffeneTische[0].TischID != 3 || anna.OffeneTische[0].TischName != "Tisch 3" {
 		t.Errorf("expected Anna offen an Tisch 3, got %+v", anna.OffeneTische)
 	}
-	// OffenCents comes from the domain: 2 × 375 = 750 cents.
-	if anna.OffeneTische[0].OffenCents != 750 {
-		t.Errorf("expected Anna OffenCents 750, got %d", anna.OffeneTische[0].OffenCents)
-	}
-	// The open amount is summed over the staff member's tables.
+	// The open amount is summed over the staff member's tables: 2 × 375 = 750 cents.
 	if anna.OffenCents != 750 {
 		t.Errorf("expected Anna Servicekraft-OffenCents 750, got %d", anna.OffenCents)
 	}
@@ -654,11 +650,8 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 	if len(bert.OffeneTische) != 1 {
 		t.Fatalf("expected Bert offen an genau einem Tisch, got %+v", bert.OffeneTische)
 	}
-	if bert.OffeneTische[0].TischID != 1 || bert.OffeneTische[0].AnzahlOffen != 1 {
+	if bert.OffeneTische[0].TischID != 1 {
 		t.Errorf("expected Bert offen an Tisch 1, got %+v", bert.OffeneTische)
-	}
-	if bert.OffeneTische[0].OffenCents != 300 {
-		t.Errorf("expected Bert OffenCents 300, got %d", bert.OffeneTische[0].OffenCents)
 	}
 	if bert.OffenCents != 300 {
 		t.Errorf("expected Bert Servicekraft-OffenCents 300, got %d", bert.OffenCents)

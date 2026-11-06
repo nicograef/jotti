@@ -191,7 +191,7 @@ type ServicekraftLive struct {
 	AnzahlStornierungen int
 	PfandCents          int
 	AbzugebenCents      int
-	// OffenCents ist die Summe über OffeneTische.OffenCents.
+	// OffenCents ist der offene (unbezahlte) Betrag der eigenen Positionen über alle OffeneTische.
 	OffenCents int
 	// OffeneTische sind die Tische mit offener eigener Arbeit, aufsteigend nach Tisch-ID.
 	OffeneTische []OffeneArbeitTisch
@@ -199,11 +199,8 @@ type ServicekraftLive struct {
 }
 
 type OffeneArbeitTisch struct {
-	TischID     int
-	TischName   string
-	AnzahlOffen int
-	// OffenCents ist der offene (unbezahlte) Betrag der eigenen Positionen hier.
-	OffenCents int
+	TischID   int
+	TischName string
 }
 
 // EigeneUebersicht counts Rücknahmen by Storno-Zuordnung: those taken back from this Servicekraft's Zahlungen.

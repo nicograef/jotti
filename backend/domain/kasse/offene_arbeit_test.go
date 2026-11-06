@@ -141,9 +141,6 @@ func TestComputeOffeneArbeitRollup(t *testing.T) {
 				if rollup.OffeneTische[i].TischID != wantID {
 					t.Errorf("OffeneTische[%d].TischID = %d, want %d", i, rollup.OffeneTische[i].TischID, wantID)
 				}
-				if rollup.OffeneTische[i].AnzahlOffen != 1 {
-					t.Errorf("OffeneTische[%d] unexpected counts: %+v", i, rollup.OffeneTische[i])
-				}
 			}
 		})
 	}
