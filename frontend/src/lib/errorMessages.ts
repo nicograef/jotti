@@ -55,6 +55,8 @@ export const commonErrorMessages: Record<string, string> = {
     'Es gibt bereits eine offene Kassensitzung. Bitte zuerst die aktuelle Kassensitzung abschließen.',
   kassenbeleg_drucker_nicht_konfiguriert:
     'Für Kassenbelege ist kein Drucker konfiguriert. Bitte die Druckstation-Einstellungen prüfen.',
+  kein_pfand_produkt:
+    'Dieses Produkt ist kein Pfand-Produkt mehr. Bitte Seite neu laden.',
   login_throttled:
     'Zu viele Fehlversuche. Bitte kurz warten und dann erneut anmelden.',
   no_password_set:
