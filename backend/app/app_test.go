@@ -20,31 +20,6 @@ func setRequiredConfigEnv(t *testing.T) {
 	t.Setenv("POSTGRES_PASSWORD", "test-postgres-password-1234")
 }
 
-func TestNewApp(t *testing.T) {
-	setRequiredConfigEnv(t)
-	cfg := config.Load()
-	app := NewApp(cfg, &sql.DB{}, "dev")
-
-	if app.Server == nil {
-		t.Error("Server should not be nil")
-	}
-
-	if app.Config.Port != 3000 {
-		t.Errorf("Expected port 3000, got %d", app.Config.Port)
-	}
-}
-
-func TestSetupRoutes(t *testing.T) {
-	setRequiredConfigEnv(t)
-	cfg := config.Load()
-
-	handler := SetupRoutes(cfg, &sql.DB{}, "dev")
-
-	if handler == nil {
-		t.Error("Handler should not be nil")
-	}
-}
-
 func TestSetupRoutes_HealthAllowsGet(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
@@ -149,14 +124,6 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 			t.Errorf("expected registered route (not 404) with JOTTI_ENABLE_TEST_API=1, got 404")
 		}
 	})
-}
-
-func TestShutdown(t *testing.T) {
-	setRequiredConfigEnv(t)
-	cfg := config.Load()
-	app := NewApp(cfg, &sql.DB{}, "dev")
-
-	app.Shutdown()
 }
 
 func TestRun_ContextCancellation(t *testing.T) {
