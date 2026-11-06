@@ -84,7 +84,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 			versionen:      map[string]int{},
 			tischEvents:    map[int][]e.Event{},
 			verkaufEvents:  map[string][]e.Event{},
-			pfandOffen:     map[string]offenePfandrueckgabe{},
+			pfandEvents:    map[string][]e.Event{},
 		}
 		events, err := bauer.buildEvents(start, ende)
 		if err != nil {
@@ -125,7 +125,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 }
 
 // sitzungsBuilder baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
-// Kassenbestand, die Tagessummen und die aufgelaufenen Events je Tisch bzw. Direktverkauf,
+// Kassenbestand, die Tagessummen und die aufgelaufenen Events je Tisch, Direktverkauf und Pfandrückgabe,
 // um Folge-Aktionen (Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
 type sitzungsBuilder struct {
 	sitzung        kassensitzungDrehbuch
@@ -138,7 +138,7 @@ type sitzungsBuilder struct {
 	events          []e.Event
 	tischEvents     map[int][]e.Event
 	verkaufEvents   map[string][]e.Event
-	pfandOffen      map[string]offenePfandrueckgabe
+	pfandEvents     map[string][]e.Event
 	bestandCents    int
 	summen          tagesSummen
 	kassensturzDone bool
@@ -378,12 +378,6 @@ func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	return nil
 }
 
-// offenePfandrueckgabe holds a Rückgabe's table and its not-yet-cancelled positions.
-type offenePfandrueckgabe struct {
-	tischID    int
-	positionen []kasse.Position
-}
-
 // pfandrueckgabe accepts only Pfand variants and a table that exists in the scenario.
 func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	name, err := b.benutzerName(a.User)
@@ -395,7 +389,7 @@ func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 			return err
 		}
 	}
-	if _, ok := b.pfandOffen[a.RueckgabeID]; ok {
+	if len(b.pfandEvents[a.RueckgabeID]) > 0 {
 		return fmt.Errorf("pfandrückgabe %s doppelt im Drehbuch", a.RueckgabeID)
 	}
 	for _, p := range a.Posten {
@@ -416,12 +410,7 @@ func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	if err != nil {
 		return err
 	}
-	b.add(evt)
-	offen := make([]kasse.Position, len(data.Positionen))
-	for i, p := range data.Positionen {
-		offen[i] = kasse.PositionFromEventData(p)
-	}
-	b.pfandOffen[a.RueckgabeID] = offenePfandrueckgabe{tischID: a.Tisch, positionen: offen}
+	b.addPfandrueckgabe(a.RueckgabeID, evt)
 	b.bestandCents -= data.GesamtbetragCents
 	b.summen.PfandrueckgabenCents += data.GesamtbetragCents
 	return nil
@@ -433,42 +422,27 @@ func (b *sitzungsBuilder) pfandStorno(a pfandStorno) error {
 	if err != nil {
 		return err
 	}
-	rueckgabe, ok := b.pfandOffen[a.RueckgabeID]
-	if !ok {
+	if len(b.pfandEvents[a.RueckgabeID]) == 0 {
 		return fmt.Errorf("pfandrückgabe %s nicht im Drehbuch", a.RueckgabeID)
 	}
-	auswahl, err := selectPositionen(rueckgabe.positionen, a.Posten)
+	rueckgabe, err := kasse.BuildPfandrueckgabeHistorieEintrag(b.pfandEvents[a.RueckgabeID])
+	if err != nil {
+		return err
+	}
+	auswahl, err := selectPositionen(rueckgabe.OffenePositionen, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Pfand-Positionen: %w", err)
 	}
 	betrag := summeCents(auswahl)
 	subject := kasse.PfandrueckgabeSubject(b.sitzung.ZNr, a.RueckgabeID)
-	evt, err := kasse.NewPfandrueckgabeStorniertEvent(subject, a.StornierungID, a.RueckgabeID, rueckgabe.tischID, a.User, name, auswahl, betrag, a.Kommentar)
+	evt, err := kasse.NewPfandrueckgabeStorniertEvent(subject, a.StornierungID, a.RueckgabeID, rueckgabe.TischID, a.User, name, auswahl, betrag, a.Kommentar)
 	if err != nil {
 		return err
 	}
-	b.add(evt)
-	rueckgabe.positionen = ohneStornierteMengen(rueckgabe.positionen, auswahl)
-	b.pfandOffen[a.RueckgabeID] = rueckgabe
+	b.addPfandrueckgabe(a.RueckgabeID, evt)
 	b.bestandCents += betrag
 	b.summen.PfandStornosCents += betrag
 	return nil
-}
-
-// ohneStornierteMengen subtracts the cancelled quantities per PositionID and drops used-up positions.
-func ohneStornierteMengen(offen, storniert []kasse.Position) []kasse.Position {
-	abzug := map[string]int{}
-	for _, p := range storniert {
-		abzug[p.PositionID] += p.Menge
-	}
-	var rest []kasse.Position
-	for _, p := range offen {
-		p.Menge -= abzug[p.PositionID]
-		if p.Menge > 0 {
-			rest = append(rest, p)
-		}
-	}
-	return rest
 }
 
 func (b *sitzungsBuilder) geldtransit(a geldtransit) error {
@@ -569,6 +543,10 @@ func (b *sitzungsBuilder) addTisch(tischID int, evt e.Event) {
 
 func (b *sitzungsBuilder) addVerkauf(verkaufID string, evt e.Event) {
 	b.verkaufEvents[verkaufID] = append(b.verkaufEvents[verkaufID], b.add(evt))
+}
+
+func (b *sitzungsBuilder) addPfandrueckgabe(rueckgabeID string, evt e.Event) {
+	b.pfandEvents[rueckgabeID] = append(b.pfandEvents[rueckgabeID], b.add(evt))
 }
 
 // tischState spielt die aufgelaufenen Events des Tischs in den Projektions-Zustand ein.
