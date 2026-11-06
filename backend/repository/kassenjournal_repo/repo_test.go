@@ -638,6 +638,54 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	}
 }
 
+// The second event hits a taken (subject, version); the first one, its Signaturauftrag and its print
+// job must roll back across stream types.
+func TestWriteEventsAtomic_RollsBackBothEvents(t *testing.T) {
+	userID, ksNr, repo, teardown := setup(t)
+	defer teardown(t)
+
+	verkaufSubject := kasse.DirektverkaufSubject(ksNr, "verkauf-1")
+	pfandSubject := kasse.PfandrueckgabeSubject(ksNr, "rueckgabe-1")
+
+	belegt := newTestEvent(userID, "pfand-zurueckgegeben:v1", pfandSubject, 1, validPfandrueckgabeData("rueckgabe-0", 200, 1))
+	if _, err := insertEventRaw(repo.db, belegt, ksNr); err != nil {
+		t.Fatalf("Failed to insert occupying event: %v", err)
+	}
+
+	verkauf := newTestEvent(userID, "direktverkauf-getaetigt:v1", verkaufSubject, 1, validDirektverkaufData("verkauf-1", 900))
+	rueckgabe := newTestEvent(userID, "pfand-zurueckgegeben:v1", pfandSubject, 1, validPfandrueckgabeData("rueckgabe-1", 200, 2))
+
+	err := repo.WriteEventsAtomic(context.Background(), ksNr, []NeuesEvent{
+		{
+			Event:      verkauf,
+			StreamType: kasse.StreamTypeDirektverkauf,
+			BuildAuftraege: func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+				return []druckauftrag_repo.NeuerDruckauftrag{{ZielIP: "192.168.1.50", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: fmt.Sprintf("direktverkauf-getaetigt:%d", stored.ID)}}
+			},
+		},
+		{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe},
+	})
+	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
+		t.Fatalf("Expected ErrAlreadyExists, got %v", err)
+	}
+
+	verkaufEvents, err := repo.ReadEventsBySubject(context.Background(), verkaufSubject)
+	if err != nil {
+		t.Fatalf("Expected no read error, got %v", err)
+	}
+	if len(verkaufEvents) != 0 {
+		t.Errorf("Expected the first event to roll back, found %d events", len(verkaufEvents))
+	}
+
+	var auftraege, druckauftraege int
+	if err := repo.db.QueryRow("SELECT (SELECT COUNT(*) FROM tse_signaturauftraege), (SELECT COUNT(*) FROM druckauftraege)").Scan(&auftraege, &druckauftraege); err != nil {
+		t.Fatalf("Failed to count jobs: %v", err)
+	}
+	if auftraege != 0 || druckauftraege != 0 {
+		t.Errorf("Expected no Signaturauftrag and no Druckauftrag, got %d and %d", auftraege, druckauftraege)
+	}
+}
+
 func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)

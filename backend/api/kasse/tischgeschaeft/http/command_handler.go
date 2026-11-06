@@ -18,7 +18,7 @@ import (
 type command interface {
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error
 	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
-	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error
 	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
 }
 
@@ -118,16 +118,35 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 	}
 }
 
+type pfandRequest struct {
+	RueckgabeID string                 `json:"rueckgabeId"`
+	Positionen  []bestellPositionInput `json:"positionen"`
+}
+
+var pfandRequestSchema = z.Struct(z.Shape{
+	"RueckgabeID": z.String().UUID().Required(),
+	"Positionen":  z.Slice(bestellPositionInputSchema).Min(1).Required(),
+})
+
+func toPfandEingabe(pfand *pfandRequest) *enrichment.PfandEingabe {
+	if pfand == nil {
+		return nil
+	}
+	return &enrichment.PfandEingabe{RueckgabeID: pfand.RueckgabeID, Positionen: toBestellPositionInputs(pfand.Positionen)}
+}
+
 type zahlungKassierenRequest struct {
 	TischID    int                  `json:"tischId"`
 	Positionen []positionRefRequest `json:"positionen"`
 	Kommentar  string               `json:"kommentar"`
+	Pfand      *pfandRequest        `json:"pfand"`
 }
 
 var zahlungKassierenSchema = z.Struct(z.Shape{
 	"TischID":    tisch.TischIDSchema.Required(),
 	"Positionen": z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
+	"Pfand":      z.Ptr(pfandRequestSchema),
 })
 
 func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
@@ -142,7 +161,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar, toPfandEingabe(body.Pfand))
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):
@@ -156,6 +175,9 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
 					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
 					{Err: application.ErrPositionNichtBezahlbar, Code: "position_nicht_bezahlbar"},
+					{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
+					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 				})
 			}
 			return

@@ -15,6 +15,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
@@ -84,6 +85,24 @@ func (s *spyEventRepo) WriteEventWithDruckauftraege(_ context.Context, e event.E
 	return id, nil
 }
 
+func (s *spyEventRepo) WriteEventsAtomic(_ context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error {
+	if s.writeErr != nil {
+		return s.writeErr
+	}
+	for _, neu := range events {
+		id, err := s.WriteEvent(context.Background(), neu.Event, neu.StreamType, kassensitzungNr)
+		if err != nil {
+			return err
+		}
+		if neu.BuildAuftraege != nil {
+			stored := neu.Event
+			stored.ID = id
+			s.druckauftraege = append(s.druckauftraege, neu.BuildAuftraege(stored)...)
+		}
+	}
+	return nil
+}
+
 func (s *spyEventRepo) EventExistsByTypeAndVorgangsID(_ context.Context, _, _, _ string) (bool, error) {
 	// Spy returns false (no duplicate): the idempotency path is not exercised in these unit tests.
 	return false, nil
@@ -131,7 +150,7 @@ var testInputs = []enrichment.PositionInput{
 func TestDirektverkaufTaetigen_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "", nil)
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -141,7 +160,7 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 	spy := &spyEventRepo{}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -202,7 +221,7 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 		{ProduktID: testProduct.ID, VarianteID: inactiveVariant.ID, Menge: 1},
 	}
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", inputs, "", nil)
 	if !errors.Is(err, enrichment.ErrVarianteNichtAktiv) {
 		t.Errorf("expected ErrVarianteNichtAktiv, got %v", err)
 	}
@@ -219,7 +238,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "", nil)
 	if !errors.Is(err, enrichment.ErrProduktNotFound) {
 		t.Errorf("expected ErrProduktNotFound, got %v", err)
 	}
@@ -232,7 +251,7 @@ func TestDirektverkaufTaetigen_Conflict(t *testing.T) {
 	spy := &spyEventRepo{writeErr: db.ErrAlreadyExists}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "", nil)
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("expected ErrConflict, got %v", err)
 	}
@@ -242,7 +261,7 @@ func TestDirektverkaufTaetigen_DeadlockMapsToConflict(t *testing.T) {
 	spy := &spyEventRepo{writeErr: db.ErrConflict}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "", nil)
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("expected ErrConflict, got %v", err)
 	}
@@ -258,7 +277,7 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 		},
 	)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -294,7 +313,7 @@ func TestDirektverkaufTaetigen_AbholbonProStueckQueuesEinenAuftragJeEinheit(t *t
 		},
 	)
 
-	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf")
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "Direktverkauf", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

@@ -15,7 +15,7 @@ import (
 )
 
 type command interface {
-	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []enrichment.PositionInput, kommentar string) error
+	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error
 	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
@@ -29,10 +29,16 @@ type verkaufPositionInput struct {
 	Menge      int `json:"menge"`
 }
 
+type pfandRequest struct {
+	RueckgabeID string                 `json:"rueckgabeId"`
+	Positionen  []verkaufPositionInput `json:"positionen"`
+}
+
 type direktverkaufTaetigenRequest struct {
 	VerkaufID  string                 `json:"verkaufId"`
 	Positionen []verkaufPositionInput `json:"positionen"`
 	Kommentar  string                 `json:"kommentar"`
+	Pfand      *pfandRequest          `json:"pfand"`
 }
 
 var verkaufPositionInputSchema = z.Struct(z.Shape{
@@ -41,11 +47,24 @@ var verkaufPositionInputSchema = z.Struct(z.Shape{
 	"Menge":      kasse.PositionEingabeSchema,
 })
 
+var pfandRequestSchema = z.Struct(z.Shape{
+	"RueckgabeID": z.String().UUID().Required(),
+	"Positionen":  z.Slice(verkaufPositionInputSchema).Min(1).Required(),
+})
+
 var direktverkaufTaetigenSchema = z.Struct(z.Shape{
 	"VerkaufID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(verkaufPositionInputSchema).Min(1).Required(),
 	"Kommentar":  z.String().Max(100),
+	"Pfand":      z.Ptr(pfandRequestSchema),
 })
+
+func toPfandEingabe(pfand *pfandRequest) *enrichment.PfandEingabe {
+	if pfand == nil {
+		return nil
+	}
+	return &enrichment.PfandEingabe{RueckgabeID: pfand.RueckgabeID, Positionen: toVerkaufPositionInputs(pfand.Positionen)}
+}
 
 func toVerkaufPositionInputs(positionen []verkaufPositionInput) []enrichment.PositionInput {
 	out := make([]enrichment.PositionInput, len(positionen))
@@ -72,7 +91,7 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, toVerkaufPositionInputs(body.Positionen), body.Kommentar, toPfandEingabe(body.Pfand))
 		if err != nil {
 			switch {
 			case errors.Is(err, application.ErrConflict):
@@ -83,6 +102,7 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
 			default:
 				helper.MapError(w, err, []helper.ErrorCode{
+					{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
 					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
 					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 				})

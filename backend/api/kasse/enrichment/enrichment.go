@@ -17,6 +17,13 @@ type PositionInput struct {
 	Menge      int
 }
 
+// PfandEingabe is the Pfand return settled within a payment or a Direktverkauf; RueckgabeID is the
+// client's idempotency key of the Rückgabe.
+type PfandEingabe struct {
+	RueckgabeID string
+	Positionen  []PositionInput
+}
+
 type produktRepo interface {
 	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)

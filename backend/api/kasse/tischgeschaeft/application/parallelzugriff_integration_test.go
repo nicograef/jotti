@@ -149,7 +149,7 @@ func kassiere(ctx context.Context, cmd Command, subject string, userID int, user
 		if err != nil || len(refs) == 0 {
 			return err
 		}
-		return cmd.ZahlungKassieren(ctx, userID, userName, tischID, refs, "")
+		return cmd.ZahlungKassieren(ctx, userID, userName, tischID, refs, "", nil)
 	})
 }
 

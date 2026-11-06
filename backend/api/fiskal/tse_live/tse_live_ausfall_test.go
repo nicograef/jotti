@@ -178,7 +178,7 @@ func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 	t.Helper()
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
-	if err := u.direkt.DirektverkaufTaetigen(context.Background(), u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
+	if err := u.direkt.DirektverkaufTaetigen(context.Background(), u.userID, "test", verkaufID, verkaufInputs, "", nil); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)
@@ -267,7 +267,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 	// The close must run before the worker signs the fresh job.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 1}}
-	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
+	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, "", nil); err != nil {
 		t.Fatalf("DirektverkaufTaetigen fuer Gate-Blockade: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)

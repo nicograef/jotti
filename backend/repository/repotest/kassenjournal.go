@@ -111,7 +111,8 @@ func (m *KassenjournalRepo) WriteEventWithDruckauftraege(ctx context.Context, e 
 	return id, nil
 }
 
-func (m *KassenjournalRepo) WriteTischSessionEventsAtomic(_ context.Context, events []event.Event, _ int) error {
+// WriteEventsAtomic stores all events or none, like the transaction of the real repository.
+func (m *KassenjournalRepo) WriteEventsAtomic(_ context.Context, _ int, events []kassenjournal_repo.NeuesEvent) error {
 	if m.writeErr != nil {
 		return m.writeErr
 	}
@@ -119,20 +120,34 @@ func (m *KassenjournalRepo) WriteTischSessionEventsAtomic(_ context.Context, eve
 		return m.err
 	}
 
-	for _, evt := range events {
-		if m.versionConflict(evt) {
+	for i, neu := range events {
+		if m.versionConflict(neu.Event) {
 			return db.ErrAlreadyExists
 		}
-		newID := m.nextEventID()
-		evt.ID = newID
-		m.events[newID] = evt
+		for _, frueher := range events[:i] {
+			if frueher.Event.Subject == neu.Event.Subject && frueher.Event.Version == neu.Event.Version {
+				return db.ErrAlreadyExists
+			}
+		}
+	}
+
+	for _, neu := range events {
+		evt := neu.Event
+		evt.ID = m.nextEventID()
+		m.events[evt.ID] = evt
+		if neu.BuildAuftraege != nil {
+			m.druckauftraege = append(m.druckauftraege, neu.BuildAuftraege(evt)...)
+		}
 	}
 
 	return nil
 }
 
 func (m *KassenjournalRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return m.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
+	return m.WriteEventsAtomic(ctx, kassensitzungNr, []kassenjournal_repo.NeuesEvent{
+		{Event: quellEvent, StreamType: kasse.StreamTypeTischSession},
+		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
+	})
 }
 
 func (m *KassenjournalRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {

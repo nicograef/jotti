@@ -94,11 +94,11 @@ func TestDirektverkaufTaetigen_DuplikatVerkaufId_IdempotenterErfolg(t *testing.T
 	verkaufID := uuid.New().String()
 	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
 
-	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", nil); err != nil {
 		t.Fatalf("erster Aufruf: %v", err)
 	}
 
-	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); err != nil {
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", nil); err != nil {
 		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
 	}
 
@@ -148,7 +148,73 @@ func TestDirektverkaufTaetigen_VersionskonfliktAndereVerkaufId_ErrConflict(t *te
 	}
 
 	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
-	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, ""); !errors.Is(err, ErrConflict) {
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", nil); !errors.Is(err, ErrConflict) {
 		t.Errorf("erwartet ErrConflict, bekam: %v", err)
+	}
+}
+
+// insertPfandVariante legt ein aktives Pfand-Produkt „Pfand" mit der Variante „Glas" zu 200 Cent an.
+func insertPfandVariante(t *testing.T, db *sql.DB) (produktID, varianteID int) {
+	t.Helper()
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfand', 'sonstiges', 'regel', 'active', true, now(), now()) RETURNING id",
+	).Scan(&produktID); err != nil {
+		t.Fatalf("create pfand produkt: %v", err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Glas', 200, 'active', now(), now()) RETURNING id",
+		produktID,
+	).Scan(&varianteID); err != nil {
+		t.Fatalf("create pfand variante: %v", err)
+	}
+	return produktID, varianteID
+}
+
+// TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg: a settled Direktverkauf
+// sent twice stores the sale and the Rückgabe once each, with one Signaturauftrag per Vorgang.
+func TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+	pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+
+	verkaufID := uuid.New().String()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
+	pfand := &enrichment.PfandEingabe{
+		RueckgabeID: uuid.New().String(),
+		Positionen:  []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}},
+	}
+
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", pfand); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", pfand); err != nil {
+		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	var verkaeufe, rueckgaben int
+	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'direktverkauf-getaetigt:v1'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&verkaeufe, &rueckgaben); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if verkaeufe != 1 || rueckgaben != 1 {
+		t.Errorf("erwartet je 1 Verkauf und 1 Rückgabe, gespeichert: %d und %d", verkaeufe, rueckgaben)
+	}
+
+	var rueckgabeData string
+	if err := db.QueryRow("SELECT data::text FROM kassenjournal WHERE type = 'pfand-zurueckgegeben:v1' AND subject = $1 AND version = 1", kasse.PfandrueckgabeSubject(ksNr, pfand.RueckgabeID)).Scan(&rueckgabeData); err != nil {
+		t.Fatalf("Rückgabe im eigenen Stream lesen: %v", err)
+	}
+	var rueckgabe kasse.PfandZurueckgegebenV1Data
+	if err := json.Unmarshal([]byte(rueckgabeData), &rueckgabe); err != nil {
+		t.Fatalf("Rückgabe dekodieren: %v", err)
+	}
+	if rueckgabe.TischID != 0 || rueckgabe.GesamtbetragCents != 400 {
+		t.Errorf("erwartet tischId 0 und 400 Cent, bekam tischId %d und %d Cent", rueckgabe.TischID, rueckgabe.GesamtbetragCents)
+	}
+
+	var auftraegeCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege").Scan(&auftraegeCount); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+	if auftraegeCount != 2 {
+		t.Errorf("erwartet 2 tse_signaturauftraege, vorhanden: %d", auftraegeCount)
 	}
 }

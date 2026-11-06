@@ -11,6 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -123,5 +124,70 @@ func TestBestellungAufnehmen_DuplikatBestellungId_IdempotenterErfolg(t *testing.
 	}
 	if auftraegeCount != 1 {
 		t.Errorf("erwartet 1 tse_signaturauftrag, vorhanden: %d", auftraegeCount)
+	}
+}
+
+// TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg: a settled payment sent twice
+// stores the payment and the Rückgabe once each, with one Signaturauftrag per Vorgang.
+func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+
+	var pfandProduktID, pfandVarianteID int
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfand', 'sonstiges', 'regel', 'active', true, now(), now()) RETURNING id",
+	).Scan(&pfandProduktID); err != nil {
+		t.Fatalf("create pfand produkt: %v", err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Glas', 200, 'active', now(), now()) RETURNING id",
+		pfandProduktID,
+	).Scan(&pfandVarianteID); err != nil {
+		t.Fatalf("create pfand variante: %v", err)
+	}
+
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
+	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.New().String(), tischID, inputs, ""); err != nil {
+		t.Fatalf("Bestellung aufnehmen: %v", err)
+	}
+	session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+	if err != nil {
+		t.Fatalf("Tisch-Session lesen: %v", err)
+	}
+	refs := []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: 2}}
+
+	pfand := &enrichment.PfandEingabe{
+		RueckgabeID: uuid.New().String(),
+		Positionen:  []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}},
+	}
+
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+		t.Fatalf("erster Aufruf: %v", err)
+	}
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
+	}
+
+	var zahlungen, rueckgaben int
+	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'zahlung-kassiert:v1'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&zahlungen, &rueckgaben); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if zahlungen != 1 || rueckgaben != 1 {
+		t.Errorf("erwartet je 1 Zahlung und 1 Rückgabe, gespeichert: %d und %d", zahlungen, rueckgaben)
+	}
+
+	var rueckgabeTischID int
+	if err := db.QueryRow("SELECT (data->>'tischId')::int FROM kassenjournal WHERE type = 'pfand-zurueckgegeben:v1' AND subject = $1 AND version = 1", kasse.PfandrueckgabeSubject(ksNr, pfand.RueckgabeID)).Scan(&rueckgabeTischID); err != nil {
+		t.Fatalf("Rückgabe im eigenen Stream lesen: %v", err)
+	}
+	if rueckgabeTischID != tischID {
+		t.Errorf("erwartet tischId %d an der Rückgabe, bekam %d", tischID, rueckgabeTischID)
+	}
+
+	var auftraegeCount int
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege a JOIN kassenjournal k ON k.id = a.event_id WHERE k.type IN ('zahlung-kassiert:v1', 'pfand-zurueckgegeben:v1')").Scan(&auftraegeCount); err != nil {
+		t.Fatalf("tse_signaturauftraege zählen: %v", err)
+	}
+	if auftraegeCount != 2 {
+		t.Errorf("erwartet 2 tse_signaturauftraege, vorhanden: %d", auftraegeCount)
 	}
 }

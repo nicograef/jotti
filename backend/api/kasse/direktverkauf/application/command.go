@@ -20,6 +20,7 @@ import (
 type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
+	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
@@ -65,10 +66,11 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 	return ks, nil
 }
 
-// DirektverkaufTaetigen writes one immutable event into the sale's own stream, without projection.
-// verkaufID is the client's idempotency key: on an OCC conflict a stored event with that verkaufId
-// means idempotent success (same ID = same operation, payload not compared), none means a real 409.
-func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string) error {
+// DirektverkaufTaetigen writes the sale into its own stream, without projection; with pfand the settled
+// Rückgabe (tischId 0) goes into its own stream in the same transaction. verkaufID is the client's
+// idempotency key: on an OCC conflict a stored event with that verkaufId means idempotent success
+// (same ID = same operation, payload not compared), none means a real 409.
+func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
@@ -88,6 +90,8 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		log.Error("Failed to create direktverkauf getaetigt event", "error", err)
 		return err
 	}
+	// Frischer Stream (client-UUID): das Event ist immer version = 1.
+	evt.Version = 1
 
 	druckstationen, err := c.konfigurierteDruckstationen(ctx)
 	if err != nil {
@@ -99,9 +103,26 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, "")
 	}
 
-	// Frischer Stream (client-UUID): erwartete Version 0, das Event ist immer version = 1.
-	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypeDirektverkauf, subject, 0, ks.ZNr, buildAuftraege); err != nil {
-		if errors.Is(err, ErrConflict) {
+	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeDirektverkauf, BuildAuftraege: buildAuftraege}}
+
+	if pfand != nil {
+		pfandPositionen, err := enrichment.EnrichPfandPositionen(ctx, c.ProduktRepo, pfand.Positionen)
+		if err != nil {
+			return err
+		}
+		// Der Kommentar gehört zum Verkauf; die verrechnete Rückgabe trägt keinen.
+		rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(ks.ZNr, pfand.RueckgabeID), pfand.RueckgabeID, 0, userID, userName, pfandPositionen, "")
+		if err != nil {
+			log.Error("Failed to create pfand zurueckgegeben event", "error", err)
+			return err
+		}
+		rueckgabe.Version = 1
+		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
+	}
+
+	if err := c.EventRepo.WriteEventsAtomic(ctx, ks.ZNr, events); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
+			log.Warn("OCC conflict bei Direktverkauf", "subject", subject)
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
 				log.Error("Failed to lookup direktverkauf idempotency", "error", lookupErr, "verkauf_id", verkaufID)
@@ -113,11 +134,15 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 			}
 			return ErrConflict
 		}
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			log.Warn("Kassensitzung nicht mehr offen", "verkauf_id", verkaufID)
+			return ErrKasseNichtGeoeffnet
+		}
 		log.Error("Failed to write direktverkauf getaetigt event", "error", err)
 		return ErrDatabase
 	}
 
-	log.Info("Direktverkauf getaetigt", "verkauf_id", verkaufID)
+	log.Info("Direktverkauf getaetigt", "verkauf_id", verkaufID, "mit_pfand", pfand != nil)
 	return nil
 }
 

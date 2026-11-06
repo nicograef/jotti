@@ -343,7 +343,7 @@ func restBezahlen(t *testing.T, u *liveTestUmgebung, ksNr, tischID int) {
 	for _, pos := range session.UnbezahltePositionen {
 		refs = append(refs, kasse.PositionRef{PositionID: pos.PositionID, Menge: pos.Menge})
 	}
-	if err := u.tisch.ZahlungKassieren(context.Background(), u.userID, "test", tischID, refs, "Restzahlung"); err != nil {
+	if err := u.tisch.ZahlungKassieren(context.Background(), u.userID, "test", tischID, refs, "Restzahlung", nil); err != nil {
 		t.Fatalf("Restzahlung Tisch %d: %v", tischID, err)
 	}
 }
@@ -385,7 +385,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (3) Partial payment of 1 of 3 units → Kassenbeleg-V1.
 	teilRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 1)
-	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, teilRefs, ""); err != nil {
+	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, teilRefs, "", nil); err != nil {
 		t.Fatalf("Teilzahlung: %v", err)
 	}
 	teilZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
@@ -394,7 +394,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 
 	// (4) Full payment of the remaining 2 units → Kassenbeleg-V1, a second zahlung-kassiert:v1 on the same subject.
 	vollRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 2)
-	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, vollRefs, ""); err != nil {
+	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, vollRefs, "", nil); err != nil {
 		t.Fatalf("Vollzahlung: %v", err)
 	}
 	vollZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
@@ -435,7 +435,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// (8) Direct sale → Kassenbeleg-V1.
 	verkaufID := uuid.NewString()
 	verkaufInputs := []enrichment.PositionInput{{ProduktID: u.produktID, VarianteID: u.varianteID, Menge: 2}}
-	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, ""); err != nil {
+	if err := u.direkt.DirektverkaufTaetigen(ctx, u.userID, "test", verkaufID, verkaufInputs, "", nil); err != nil {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)

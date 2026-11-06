@@ -28,7 +28,7 @@ type eventRepo interface {
 	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
 	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
 	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
-	WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error
+	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
@@ -99,25 +99,6 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 		return err
 	}
 
-	return nil
-}
-
-// persistTischEvent writes the tisch-session event with OCC; aktion is the success log message.
-func (c Command) persistTischEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, tischID int, aktion string) error {
-	log := logging.FromContext(ctx)
-
-	if err := writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeTischSession, kassensitzungNr)
-	}); err != nil {
-		// Beides sind fachliche 409-Antworten (OCC-Konflikt; Kassensitzung zwischen Lesen und
-		// Schreiben geschlossen) — im ErrDatabase-Fallback würden sie zu 500.
-		if errors.Is(err, ErrConflict) || errors.Is(err, ErrKasseNichtGeoeffnet) {
-			return err
-		}
-		log.Error("Failed to write event to database", "error", err, "tisch_id", tischID)
-		return ErrDatabase
-	}
-	log.Info(aktion, "tisch_id", tischID)
 	return nil
 }
 
@@ -332,8 +313,21 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	return nil
 }
 
-func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+// ZahlungKassieren writes the payment and, with pfand, the settled Rückgabe in one transaction. The
+// rueckgabeId makes a payment with Pfand idempotent: a stored Rückgabe with that ID means success
+// without booking, because the retried payment would no longer find its positions unpaid.
+func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
+
+	if pfand != nil {
+		exists, err := c.rueckgabeExistiert(ctx, pfand.RueckgabeID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return nil
+		}
+	}
 
 	subject, kassensitzungNr, _, state, err := c.loadTischState(ctx, tischID)
 	if err != nil {
@@ -352,8 +346,62 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		log.Error("Failed to create zahlung kassiert event", "error", err, "tisch_id", tischID)
 		return err
 	}
+	// OCC against the validated projection: a stream change since reading hits UNIQUE(subject, version).
+	evt.Version = state.LastEventVersion + 1
 
-	return c.persistTischEvent(ctx, evt, subject, state.LastEventVersion, kassensitzungNr, tischID, "Zahlung kassiert")
+	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeTischSession}}
+
+	if pfand != nil {
+		pfandPositionen, err := enrichment.EnrichPfandPositionen(ctx, c.ProduktRepo, pfand.Positionen)
+		if err != nil {
+			return err
+		}
+		// Der Kommentar gehört zur Zahlung; die verrechnete Rückgabe trägt keinen.
+		rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(kassensitzungNr, pfand.RueckgabeID), pfand.RueckgabeID, tischID, userID, userName, pfandPositionen, "")
+		if err != nil {
+			log.Error("Failed to create pfand zurueckgegeben event", "error", err, "tisch_id", tischID)
+			return err
+		}
+		rueckgabe.Version = 1
+		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
+	}
+
+	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, events); err != nil {
+		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
+			log.Warn("OCC conflict bei Zahlung", "tisch_id", tischID, "subject", subject)
+			if pfand != nil {
+				exists, lookupErr := c.rueckgabeExistiert(ctx, pfand.RueckgabeID)
+				if lookupErr != nil {
+					return lookupErr
+				}
+				if exists {
+					return nil
+				}
+			}
+			return ErrConflict
+		}
+		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
+			log.Warn("Kassensitzung nicht mehr offen", "tisch_id", tischID)
+			return ErrKasseNichtGeoeffnet
+		}
+		log.Error("Failed to write zahlung", "error", err, "tisch_id", tischID)
+		return ErrDatabase
+	}
+
+	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
+	return nil
+}
+
+func (c Command) rueckgabeExistiert(ctx context.Context, rueckgabeID string) (bool, error) {
+	exists, err := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypePfandZurueckgegebenV1), rueckgabeID, "rueckgabeId")
+	if err != nil {
+		logging.FromContext(ctx).Error("Failed to lookup pfandrueckgabe idempotency", "error", err, "rueckgabe_id", rueckgabeID)
+		return false, ErrDatabase
+	}
+	if exists {
+		logging.FromContext(ctx).Info("Idempotente Zahlung: rueckgabeId bereits vorhanden", "rueckgabe_id", rueckgabeID)
+	}
+	return exists, nil
 }
 
 // StornierungErteilen splits by payment status: unpaid quantities become one bestellung-korrigiert,
@@ -429,7 +477,12 @@ func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.E
 		events = append(events, evt)
 	}
 
-	if err := c.EventRepo.WriteTischSessionEventsAtomic(ctx, events, kassensitzungNr); err != nil {
+	neueEvents := make([]kassenjournal_repo.NeuesEvent, 0, len(events))
+	for _, evt := range events {
+		neueEvents = append(neueEvents, kassenjournal_repo.NeuesEvent{Event: evt, StreamType: kasse.StreamTypeTischSession})
+	}
+
+	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, neueEvents); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) {
 			log.Warn("OCC conflict bei Stornierung", "tisch_id", tischID, "subject", subject)
 			return ErrConflict

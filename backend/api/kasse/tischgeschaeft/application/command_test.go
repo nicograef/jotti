@@ -193,7 +193,7 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
-		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -341,7 +341,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -368,7 +368,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	}
 
 	// Try to pay again — should fail
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -413,7 +413,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	}
 
 	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
-		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("expected ErrConflict, got %v", err)
 	}
@@ -447,7 +447,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	}
 
 	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
-		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "")
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -586,7 +586,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 		{PositionID: "pos-1", Menge: 2},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -619,7 +619,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "")
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}

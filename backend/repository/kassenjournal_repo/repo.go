@@ -87,17 +87,31 @@ func (r Repository) WriteEventWithDruckauftraege(
 	return id, nil
 }
 
-// WriteTischSessionEventsAtomic writes the given tisch-session events all-or-nothing;
-// each event must already carry its final subject and version.
-func (r Repository) WriteTischSessionEventsAtomic(ctx context.Context, events []event.Event, kassensitzungNr int) error {
+// NeuesEvent is one event of an atomic multi-event write. Event carries its final subject and version;
+// a non-nil BuildAuftraege derives print jobs from the stored event in the same transaction.
+type NeuesEvent struct {
+	Event          event.Event
+	StreamType     kasse.StreamType
+	BuildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag
+}
+
+// WriteEventsAtomic writes the given events across stream types all-or-nothing and triggers the
+// Signatur-Worker once after the commit.
+func (r Repository) WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []NeuesEvent) error {
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		for _, evt := range events {
-			_, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, evt, kasse.StreamTypeTischSession, kassensitzungNr)
+		for _, neu := range events {
+			stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, neu.Event, neu.StreamType, kassensitzungNr)
 			if err != nil {
 				return err
 			}
 			eingereiht = eingereiht || auftragEingereiht
+
+			if neu.BuildAuftraege != nil {
+				if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, neu.BuildAuftraege(stored)); err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -151,7 +165,10 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 // WriteUmbuchung writes the linked source and target events atomically; both must
 // already carry their final subject and version.
 func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return r.WriteTischSessionEventsAtomic(ctx, []event.Event{quellEvent, zielEvent}, kassensitzungNr)
+	return r.WriteEventsAtomic(ctx, kassensitzungNr, []NeuesEvent{
+		{Event: quellEvent, StreamType: kasse.StreamTypeTischSession},
+		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
+	})
 }
 
 // notifySignaturWorker stößt den Worker non-blocking an; der Polling-Tick bleibt Fallback.
