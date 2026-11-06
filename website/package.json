@@ -23,25 +23,25 @@
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.5",
     "@astrojs/react": "^7.1.2",
-    "@astrojs/starlight": "^0.42.7",
-    "@lucide/astro": "1.64.0",
-    "astro": "^7.4.4",
-    "lucide-react": "1.64.0",
+    "@astrojs/starlight": "^0.42.8",
+    "@lucide/astro": "1.67.0",
+    "astro": "^7.4.5",
+    "lucide-react": "1.67.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "oxlint": "^1.90.0",
+    "oxlint": "^1.91.0",
     "oxlint-tsgolint": "^7.0.2005",
     "prettier": "^3.9.10",
-    "tailwindcss": "^4.3.3",
+    "tailwindcss": "^4.3.4",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   },
   "packageManager": "pnpm@12.11.2+sha512.25a51652a196785af5f28bda6dfe8dc582ebefa4ac1d180221ce1390231c5fb76637822ea4b6e4633ce74acdcb0a77f725af11bad38177fdeddaee818a955cb9"
 }
