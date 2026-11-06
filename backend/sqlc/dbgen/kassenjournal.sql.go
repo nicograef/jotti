@@ -130,8 +130,8 @@ type ReadEventsByKassensitzungRow struct {
 	QrCodeData        sql.NullString
 }
 
-// Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
-// Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
+// Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session-, Direktverkauf-
+// und Pfandrückgabe-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
 // Der LEFT JOIN auf die Signaturaufträge liefert je Event den Signatur-Stand:
 // kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr int) ([]ReadEventsByKassensitzungRow, error) {

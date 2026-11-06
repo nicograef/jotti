@@ -14,8 +14,8 @@ WHERE kassensitzung_nr = $1
 ORDER BY id ASC;
 
 -- name: ReadEventsByKassensitzung :many
--- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session- und
--- Direktverkauf-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
+-- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session-, Direktverkauf-
+-- und Pfandrückgabe-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.
 -- Der LEFT JOIN auf die Signaturaufträge liefert je Event den Signatur-Stand:
 -- kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 SELECT k.id, k.user_id, k.user_name, k.version, k.type, k.subject, k.data, k.timestamp,
