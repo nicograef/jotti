@@ -19,19 +19,7 @@ cd "$PROJECT_ROOT"
 TEMPLATE=".env.example"
 ALLOWLIST="scripts/check-env-example.allow"
 
-mapfile -t allow_entries < <(
-  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
-)
-
-allow_names=()
-allow_hits=()
-for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
-  name="$(awk '{print $1}' <<<"$entry")"
-  reason="$(awk '{print $2}' <<<"$entry")"
-  [[ "${reason:0:1}" == "#" ]] || fatal "$ALLOWLIST: reason missing: $entry"
-  allow_names+=("$name")
-  allow_hits+=(0)
-done
+load_allowlist "$ALLOWLIST" name
 
 mapfile -t compose_files < <(git ls-files ':(glob)docker-compose*.yml')
 [[ "${#compose_files[@]}" -gt 0 ]] || fatal "no docker-compose*.yml found."
@@ -62,14 +50,7 @@ for use in "${uses[@]+"${uses[@]}"}"; do
   [[ -n "${seen[$var]:-}" ]] && continue
   seen["$var"]=1
 
-  if [[ "${#allow_names[@]}" -gt 0 ]]; then
-    for i in "${!allow_names[@]}"; do
-      if [[ "$var" == "${allow_names[$i]}" ]]; then
-        allow_hits[i]=$((allow_hits[i] + 1))
-        continue 2
-      fi
-    done
-  fi
+  allowlisted "$var" && continue
 
   if ! grep -qE "^#?[[:space:]]*${var}=" "$TEMPLATE"; then
     error "$loc: \${$var} is missing from $TEMPLATE (add it, commented out if optional)."
@@ -77,14 +58,7 @@ for use in "${uses[@]+"${uses[@]}"}"; do
   fi
 done
 
-if [[ "${#allow_names[@]}" -gt 0 ]]; then
-  for i in "${!allow_names[@]}"; do
-    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
-      error "$ALLOWLIST: no compose file reads ${allow_names[$i]} any more."
-      violations=$((violations + 1))
-    fi
-  done
-fi
+violations=$((violations + $(report_stale_allowlist "no compose file reads %s any more.")))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations compose variable(s) without an entry in $TEMPLATE (see $ALLOWLIST for intended gaps)."

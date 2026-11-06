@@ -41,40 +41,7 @@ link_files() {
 
 # Allowlist: "path  fragment  # reason"; a dead link on a line of path that
 # contains fragment is exempt. An entry that exempts nothing fails the gate.
-mapfile -t allow_entries < <(
-  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
-)
-
-allow_paths=()
-allow_needles=()
-allow_hits=()
-for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
-  path="$(awk '{print $1}' <<<"$entry")"
-  needle="$(awk '{print $2}' <<<"$entry")"
-  reason="$(awk '{print $3}' <<<"$entry")"
-  if [[ -z "$needle" || "${needle:0:1}" == "#" ]]; then
-    fatal "$ALLOWLIST: entry without a line fragment: $entry"
-  fi
-  if [[ "${reason:0:1}" != "#" ]]; then
-    fatal "$ALLOWLIST: line fragment with a space, or reason missing: $entry"
-  fi
-  allow_paths+=("$path")
-  allow_needles+=("$needle")
-  allow_hits+=(0)
-done
-
-# is_allowed FILE LINE — true when an allowlist entry covers LINE of FILE.
-is_allowed() {
-  local file="$1" line="$2" i
-  [[ "${#allow_paths[@]}" -gt 0 ]] || return 1
-  for i in "${!allow_paths[@]}"; do
-    if [[ "$file" == "${allow_paths[$i]}" && "$line" == *"${allow_needles[$i]}"* ]]; then
-      allow_hits[i]=$((allow_hits[i] + 1))
-      return 0
-    fi
-  done
-  return 1
-}
+load_allowlist "$ALLOWLIST" fragment
 
 mapfile -t files < <(link_files)
 
@@ -92,21 +59,14 @@ for file in "${files[@]}"; do
 
     [[ -f "$dir/$link" ]] && continue
     [[ -f "$link" ]] && continue
-    is_allowed "$file" "$(sed -n "${lineno}p" "$file")" && continue
+    allowlisted "$file" "$(sed -n "${lineno}p" "$file")" && continue
 
     error "$file:$lineno: dead link to '$link'"
     violations=$((violations + 1))
   done < <(grep -aonE "$LINK_RE" "$file" 2>/dev/null || true)
 done
 
-if [[ "${#allow_paths[@]}" -gt 0 ]]; then
-  for i in "${!allow_paths[@]}"; do
-    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
-      error "$ALLOWLIST: exception matches nothing any more: ${allow_paths[$i]} ${allow_needles[$i]}"
-      violations=$((violations + 1))
-    fi
-  done
-fi
+violations=$((violations + $(report_stale_allowlist)))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations dead markdown link(s) (see $ALLOWLIST to allow a specific line)."

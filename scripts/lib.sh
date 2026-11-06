@@ -150,3 +150,77 @@ start_throwaway_postgres() {
   info "Running database migrations (forward-only) ..."
   migrate -path "$migrations" -database "postgres://admin:admin@localhost:${port}/jotti?sslmode=disable" up
 }
+
+# load_allowlist FILE KIND — reads a gate's allowlist into ALLOW_KEYS,
+# ALLOW_NEEDLES and ALLOW_HITS, skipping blank and comment lines. KIND is
+# fragment ("path fragment  # reason", the fragment one word), name
+# ("name  # reason") or quote (the text before "#", spaces allowed).
+load_allowlist() {
+  local entry key needle reason entries=()
+  ALLOWLIST_FILE="$1"
+  ALLOW_KIND="$2"
+  ALLOW_KEYS=()
+  ALLOW_NEEDLES=()
+  ALLOW_HITS=()
+  if [[ -f "$ALLOWLIST_FILE" ]]; then
+    mapfile -t entries < <(grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST_FILE")
+  fi
+  for entry in "${entries[@]+"${entries[@]}"}"; do
+    case "$ALLOW_KIND" in
+      fragment)
+        read -r key needle reason _ <<<"$entry"
+        if [[ -z "$needle" || "${needle:0:1}" == "#" ]]; then
+          fatal "$ALLOWLIST_FILE: entry without a fragment: $entry"
+        fi
+        # Without this the field split would cut a fragment at its first space
+        # and exempt more lines than the entry names.
+        [[ "${reason:0:1}" == "#" ]] || fatal "$ALLOWLIST_FILE: fragment with a space, or reason missing: $entry"
+        ;;
+      name)
+        read -r key reason _ <<<"$entry"
+        needle=""
+        [[ "${reason:0:1}" == "#" ]] || fatal "$ALLOWLIST_FILE: name with a space, or reason missing: $entry"
+        ;;
+      quote)
+        key="$(sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//' <<<"$entry")"
+        needle=""
+        ;;
+      *) fatal "load_allowlist: unknown kind $ALLOW_KIND" ;;
+    esac
+    ALLOW_KEYS+=("$key")
+    ALLOW_NEEDLES+=("$needle")
+    ALLOW_HITS+=(0)
+  done
+}
+
+# allowlisted KEY [TEXT] — true when an entry covers KEY (a fragment entry also
+# needs its fragment in TEXT); counts the hit for report_stale_allowlist.
+allowlisted() {
+  local key="$1" text="${2:-}" i
+  for i in "${!ALLOW_KEYS[@]}"; do
+    [[ "$key" == "${ALLOW_KEYS[$i]}" ]] || continue
+    if [[ "$ALLOW_KIND" == fragment && "$text" != *"${ALLOW_NEEDLES[$i]}"* ]]; then
+      continue
+    fi
+    ALLOW_HITS[i]=$((ALLOW_HITS[i] + 1))
+    return 0
+  done
+  return 1
+}
+
+# report_stale_allowlist [FORMAT] — reports every entry that covered nothing,
+# FORMAT a printf format for the entry, and prints their count on stdout.
+report_stale_allowlist() {
+  local format="${1:-exception matches nothing any more: %s}" i label stale=0
+  for i in "${!ALLOW_KEYS[@]}"; do
+    ((ALLOW_HITS[i] == 0)) || continue
+    label="${ALLOW_KEYS[$i]}"
+    if [[ "$ALLOW_KIND" == fragment ]]; then
+      label+=" ${ALLOW_NEEDLES[$i]}"
+    fi
+    # shellcheck disable=SC2059
+    error "$ALLOWLIST_FILE: $(printf "$format" "$label")"
+    stale=$((stale + 1))
+  done
+  printf '%s\n' "$stale"
+}

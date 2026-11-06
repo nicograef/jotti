@@ -22,14 +22,7 @@ cd "$PROJECT_ROOT"
 ALLOWLIST="scripts/check-ui-labels.allow"
 
 # Allowlist: one non-UI quote per line, then "# " and its source.
-mapfile -t allow_quotes < <(
-  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST" |
-    sed -E 's/[[:space:]]*#.*$//; s/[[:space:]]+$//'
-)
-allow_hits=()
-for _ in "${allow_quotes[@]+"${allow_quotes[@]}"}"; do
-  allow_hits+=(0)
-done
+load_allowlist "$ALLOWLIST" quote
 
 mapfile -t files < <(git ls-files ':(glob)docs/leitfaden/**/*.md')
 
@@ -52,17 +45,7 @@ for file in "${files[@]}"; do
   while IFS= read -r quote; do
     [[ -z "$quote" ]] && continue
 
-    allowed=0
-    if [[ "${#allow_quotes[@]}" -gt 0 ]]; then
-      for i in "${!allow_quotes[@]}"; do
-        if [[ "$quote" = "${allow_quotes[$i]}" ]]; then
-          allow_hits[i]=$((allow_hits[i] + 1))
-          allowed=1
-          break
-        fi
-      done
-    fi
-    [[ "$allowed" -eq 1 ]] && continue
+    allowlisted "$quote" && continue
 
     if ! grep -qrF -- "$quote" frontend/src; then
       error "$file: „$quote\" not found in frontend/src (see $ALLOWLIST to allow a non-UI quote)"
@@ -71,14 +54,7 @@ for file in "${files[@]}"; do
   done < <(printf '%s' "$joined" | grep -oE '„[^"]*"' | sed -E 's/^„//; s/"$//')
 done
 
-if [[ "${#allow_quotes[@]}" -gt 0 ]]; then
-  for i in "${!allow_quotes[@]}"; do
-    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
-      error "$ALLOWLIST: entry matches no citation any more: „${allow_quotes[$i]}\""
-      violations=$((violations + 1))
-    fi
-  done
-fi
+violations=$((violations + $(report_stale_allowlist 'entry matches no citation any more: „%s"')))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations UI-label citation issue(s) (see $ALLOWLIST to allow a non-UI quote)."

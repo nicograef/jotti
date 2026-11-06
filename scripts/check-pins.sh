@@ -32,23 +32,7 @@ OWN_IMAGE_PREFIX="ghcr.io/nicograef/jotti-"
 PACKAGE_JSONS=(frontend/package.json website/package.json e2e/package.json)
 TYPESCRIPT_PACKAGE_JSONS=(frontend/package.json e2e/package.json)
 
-mapfile -t allow_entries < <(
-  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
-)
-
-allow_names=()
-allow_hits=()
-for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
-  name="$(printf '%s\n' "$entry" | awk '{print $1}')"
-  reason="$(printf '%s\n' "$entry" | awk '{print $2}')"
-  # Without this an image name carrying a space would be cut at that space by
-  # the field split and exempt a shorter name than the entry spells out.
-  if [[ "${reason:0:1}" != "#" ]]; then
-    fatal "$ALLOWLIST: image name with a space, or reason missing: $entry"
-  fi
-  allow_names+=("$name")
-  allow_hits+=(0)
-done
+load_allowlist "$ALLOWLIST" name
 
 # `:(glob)` makes `**/` mean "zero or more directories", so a Dockerfile in the
 # repository root is matched as well.
@@ -198,17 +182,7 @@ fi
 for name in "${names[@]+"${names[@]}"}"; do
   [[ "${version_count[$name]}" -le 1 ]] && continue
 
-  exempt=0
-  if [[ "${#allow_names[@]}" -gt 0 ]]; then
-    for i in "${!allow_names[@]}"; do
-      if [[ "$name" = "${allow_names[$i]}" ]]; then
-        allow_hits[i]=$((allow_hits[i] + 1))
-        exempt=1
-        break
-      fi
-    done
-  fi
-  [[ "$exempt" -eq 1 ]] && continue
+  allowlisted "$name" && continue
 
   error "$name is pinned to ${version_count[$name]} versions (allow it in $ALLOWLIST):"
   while IFS= read -r line; do
@@ -217,14 +191,7 @@ for name in "${names[@]+"${names[@]}"}"; do
   violations=$((violations + 1))
 done
 
-if [[ "${#allow_names[@]}" -gt 0 ]]; then
-  for i in "${!allow_names[@]}"; do
-    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
-      error "$ALLOWLIST: exception matches nothing any more: ${allow_names[$i]}"
-      violations=$((violations + 1))
-    fi
-  done
-fi
+violations=$((violations + $(report_stale_allowlist)))
 
 # compare_package_field requires one literal value for the JSON key $1 in every
 # package.json that follows it. A missing file is a rename that must turn the

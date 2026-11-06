@@ -21,29 +21,7 @@ cd "$PROJECT_ROOT"
 
 ALLOWLIST="scripts/check-timezone.allow"
 
-mapfile -t allow_entries < <(
-  [[ -f "$ALLOWLIST" ]] && grep -vE '^[[:space:]]*(#|$)' "$ALLOWLIST"
-)
-
-allow_paths=()
-allow_needles=()
-allow_hits=()
-for entry in "${allow_entries[@]+"${allow_entries[@]}"}"; do
-  path="$(printf '%s\n' "$entry" | awk '{print $1}')"
-  needle="$(printf '%s\n' "$entry" | awk '{print $2}')"
-  reason="$(printf '%s\n' "$entry" | awk '{print $3}')"
-  if [[ -z "$needle" ]] || [[ "${needle:0:1}" = "#" ]]; then
-    fatal "$ALLOWLIST: entry without a code fragment: $entry"
-  fi
-  # Without this the awk split would silently cut a fragment at its first space
-  # and exempt more lines than the entry names.
-  if [[ "${reason:0:1}" != "#" ]]; then
-    fatal "$ALLOWLIST: code fragment with a space, or reason missing: $entry"
-  fi
-  allow_paths+=("$path")
-  allow_needles+=("$needle")
-  allow_hits+=(0)
-done
+load_allowlist "$ALLOWLIST" fragment
 
 # `:(glob)` makes `/**/` mean "zero or more directories". Without the magic
 # git matches `**` like a plain `*`, which needs at least one directory.
@@ -76,31 +54,14 @@ for file in "${files[@]}"; do
     lineno="${hit%%:*}"
     code="${hit#*:}"
 
-    exempt=0
-    if [[ "${#allow_paths[@]}" -gt 0 ]]; then
-      for i in "${!allow_paths[@]}"; do
-        if [[ "$file" = "${allow_paths[$i]}" ]] && [[ "$code" == *"${allow_needles[$i]}"* ]]; then
-          allow_hits[i]=$((allow_hits[i] + 1))
-          exempt=1
-          break
-        fi
-      done
-    fi
-    [[ "$exempt" -eq 1 ]] && continue
+    allowlisted "$file" "$code" && continue
 
     error "$file:$lineno: .Format() without .In(zone):${code}"
     violations=$((violations + 1))
   done <<<"$hits"
 done
 
-if [[ "${#allow_paths[@]}" -gt 0 ]]; then
-  for i in "${!allow_paths[@]}"; do
-    if [[ "${allow_hits[$i]}" -eq 0 ]]; then
-      error "$ALLOWLIST: exception matches nothing any more: ${allow_paths[$i]} ${allow_needles[$i]}"
-      violations=$((violations + 1))
-    fi
-  done
-fi
+violations=$((violations + $(report_stale_allowlist)))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations time zone rule violation(s) found (allow one in $ALLOWLIST)."
