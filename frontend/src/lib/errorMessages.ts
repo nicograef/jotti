@@ -125,7 +125,7 @@ export function getActionErrorMessage({
   const fallback = `${actionLabel} fehlgeschlagen. Bitte erneut versuchen.`
 
   if (error instanceof BackendError) {
-    if (Object.prototype.hasOwnProperty.call(byCode, error.code)) {
+    if (Object.hasOwn(byCode, error.code)) {
       return byCode[error.code]
     }
 
@@ -137,7 +137,7 @@ export function getActionErrorMessage({
       return appendReferenz(serverErrorMessage, error.referenz)
     }
 
-    if (Object.prototype.hasOwnProperty.call(commonErrorMessages, error.code)) {
+    if (Object.hasOwn(commonErrorMessages, error.code)) {
       return commonErrorMessages[error.code]
     }
 

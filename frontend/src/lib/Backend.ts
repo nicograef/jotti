@@ -32,16 +32,10 @@ export class BackendError extends Error {
     this.code = code
     this.details = details
     this.referenz = referenz
-    Object.setPrototypeOf(this, BackendError.prototype)
   }
 }
 
-export class ResponseBodyError extends Error {
-  constructor(message: string) {
-    super(message)
-    Object.setPrototypeOf(this, ResponseBodyError.prototype)
-  }
-}
+export class ResponseBodyError extends Error {}
 
 // TokenGetter abstracts token retrieval so Backend can be unit-tested with a test double.
 interface TokenGetter {
