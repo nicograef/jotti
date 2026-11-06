@@ -236,18 +236,3 @@ func TestKassenbelegDruckenHandler_PfandFormen(t *testing.T) {
 		})
 	}
 }
-
-func TestKassenbelegDruckenHandler_RueckgabeNichtGefunden(t *testing.T) {
-	handler := &CommandHandler{Command: &mockCommand{err: application.ErrRueckgabeNichtGefunden}}
-
-	body := `{"rueckgabeId":"44444444-4444-4444-4444-444444444444"}`
-	req := httptest.NewRequest(http.MethodPost, "/beleg-drucken", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.KassenbelegDruckenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "rueckgabe_not_found") {
-		t.Errorf("expected 404 rueckgabe_not_found, got %d %s", rec.Code, rec.Body.String())
-	}
-}

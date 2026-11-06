@@ -1306,3 +1306,24 @@ func TestKassenbelegDrucken_PfandStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		t.Errorf("Stornobeleg zur Rückgabe enthält negative Beträge:\n%q", got)
 	}
 }
+
+func TestKassenbelegDrucken_Pfand_NichtGefunden(t *testing.T) {
+	cmd, _, rueckgabeID, _ := pfandBelegFixture(t)
+
+	tests := []struct {
+		name    string
+		command KassenbelegDruckenCommand
+		want    error
+	}{
+		{"unbekannte Rückgabe", KassenbelegDruckenCommand{RueckgabeID: uuid.New().String()}, ErrRueckgabeNichtGefunden},
+		{"Stornierung zu unbekannter Rückgabe", KassenbelegDruckenCommand{RueckgabeID: uuid.New().String(), StornierungID: uuid.New().String()}, ErrRueckgabeNichtGefunden},
+		{"unbekannte Stornierung", KassenbelegDruckenCommand{RueckgabeID: rueckgabeID, StornierungID: uuid.New().String()}, ErrStornierungNichtGefunden},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := cmd.KassenbelegDrucken(context.Background(), tc.command); !errors.Is(err, tc.want) {
+				t.Errorf("expected %v, got %v", tc.want, err)
+			}
+		})
+	}
+}
