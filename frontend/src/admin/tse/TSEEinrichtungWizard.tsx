@@ -37,20 +37,20 @@ type Umgebung = 'TEST' | 'LIVE'
 const UEBERNEHMBARE_ZUSTAENDE = ['CREATED', 'UNINITIALIZED', 'INITIALIZED']
 
 function istUebernehmbar(tss: TSSBefund): boolean {
-  return UEBERNEHMBARE_ZUSTAENDE.includes(tss.state.toUpperCase())
+  return UEBERNEHMBARE_ZUSTAENDE.includes(tss.state)
 }
 
 // Eine INITIALIZED TSS mit registriertem (REGISTERED) Client braucht keine
 // privilegierte fiskaly-Operation und damit keine Admin-PIN.
 function istEinsatzbereit(tss: TSSBefund): boolean {
   return (
-    tss.state.toUpperCase() === 'INITIALIZED' &&
-    tss.passenderClient?.state.toUpperCase() === 'REGISTERED'
+    tss.state === 'INITIALIZED' &&
+    tss.passenderClient?.state === 'REGISTERED'
   )
 }
 
 function brauchtPin(tss: TSSBefund): boolean {
-  return tss.state.toUpperCase() !== 'CREATED' && !istEinsatzbereit(tss)
+  return tss.state !== 'CREATED' && !istEinsatzbereit(tss)
 }
 
 const ZUGANGSDATEN_FEHLER = {
@@ -215,7 +215,7 @@ function BefundSchritt({
         Number(b.passenderClient !== null) - Number(a.passenderClient !== null),
     )
   const nurDisabledOderLeer = befund.vorhandeneTss.every(
-    (tss) => tss.state.toUpperCase() === 'DISABLED',
+    (tss) => tss.state === 'DISABLED',
   )
   const istTest = befund.umgebung === 'TEST'
 
@@ -868,7 +868,7 @@ function UmgebungAnzeige({ umgebung }: { umgebung: Umgebung }) {
 
 // Der rohe Zustand bleibt daneben als Kennung für den Support sichtbar.
 function tssZustandKlartext(state: string): string {
-  switch (state.toUpperCase()) {
+  switch (state) {
     case 'CREATED':
       return 'neu angelegt'
     case 'UNINITIALIZED':

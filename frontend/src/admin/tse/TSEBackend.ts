@@ -12,10 +12,14 @@ export const TSEKonfigurationSchema = z.object({
 })
 export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
 
+// fiskaly liefert Zustände wie INITIALIZED; normalisiert wird nur hier, damit
+// jeder Vergleich auf Großbuchstaben bauen kann.
+const fiskalyZustand = z.string().trim().toUpperCase()
+
 export const TSEVerbindungStatusSchema = z.object({
   umgebung: z.enum(['TEST', 'LIVE']),
-  tssState: z.string().min(1, 'TSS-Status fehlt'),
-  clientState: z.string().min(1, 'Client-Status fehlt'),
+  tssState: fiskalyZustand.min(1, 'TSS-Status fehlt'),
+  clientState: fiskalyZustand.min(1, 'Client-Status fehlt'),
   clientSerialNumber: z.string().min(1, 'Client-Seriennummer fehlt'),
   seriennummerKorrekt: z.boolean(),
 })
@@ -25,8 +29,8 @@ export function verbindungIstSigniertfaehig(
   status: TSEVerbindungStatus,
 ): boolean {
   return (
-    status.tssState.toUpperCase() === 'INITIALIZED' &&
-    status.clientState.toUpperCase() === 'REGISTERED' &&
+    status.tssState === 'INITIALIZED' &&
+    status.clientState === 'REGISTERED' &&
     status.seriennummerKorrekt
   )
 }
@@ -34,13 +38,13 @@ export function verbindungIstSigniertfaehig(
 export const TSEClientBefundSchema = z.object({
   id: z.string(),
   serialNumber: z.string(),
-  state: z.string(),
+  state: fiskalyZustand,
 })
 export type TSEClientBefund = z.infer<typeof TSEClientBefundSchema>
 
 export const TSSBefundSchema = z.object({
   id: z.string(),
-  state: z.string(),
+  state: fiskalyZustand,
   passenderClient: TSEClientBefundSchema.nullable(),
 })
 export type TSSBefund = z.infer<typeof TSSBefundSchema>
