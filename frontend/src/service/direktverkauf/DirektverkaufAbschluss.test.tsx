@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type { Produkt } from '@/lib/produktSchemas'
+
 import type { ReceiptPosition } from '../table/Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
@@ -21,6 +23,27 @@ const receiptItems: ReceiptPosition[] = [
 const positionen = [{ produktId: 1, varianteId: 1, menge: 2 }]
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
+const pfandProdukt: Produkt = {
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  status: 'active',
+  varianten: [
+    {
+      id: 19,
+      name: 'Glas',
+      preisCents: 200,
+      status: 'active',
+      createdAt: '2025-01-01T00:00:00Z',
+      updatedAt: '2025-01-01T00:00:00Z',
+    },
+  ],
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z',
+}
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
@@ -66,6 +89,44 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     ).toBeDisabled()
+  })
+
+  it('sends the Pfand return with table id 0', async () => {
+    const user = userEvent.setup()
+    const direktverkaufTaetigen = vi.fn()
+    const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
+    const pfandAusgezahlt = vi.fn()
+    render(
+      <DirektverkaufAbschluss
+        variant="spalte"
+        backend={{ direktverkaufTaetigen }}
+        pfandBackend={{ pfandZurueckgeben }}
+        pfandProdukte={[pfandProdukt]}
+        receiptItems={[]}
+        positionen={[]}
+        totalCents={0}
+        verkaufAbgeschlossen={vi.fn()}
+        pfandAusgezahlt={pfandAusgezahlt}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+    expect(pfandZurueckgeben).toHaveBeenCalledWith({
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
+      rueckgabeId: expect.stringMatching(UUID),
+      tischId: 0,
+      positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
+      kommentar: '',
+    })
+    expect(direktverkaufTaetigen).not.toHaveBeenCalled()
+    expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
   })
 
   it('rechnet das Rückgeld aus dem erhaltenen Betrag', async () => {
