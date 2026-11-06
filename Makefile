@@ -82,6 +82,8 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 # goimports is a tool of backend/go.mod; go.work makes it the one pin for every Go module.
 # $(goimports-check) fails when goimports would rewrite a file below the current directory.
 goimports-check = if [ -n "$$(go tool goimports -l .)" ]; then echo "Go files are not properly formatted:"; go tool goimports -l .; exit 1; fi
+# $(go-module-check) is the gate of one Go module beside the backend, run in its directory; CI runs it through the check-* targets.
+go-module-check = go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 lint-backend: ## Backend Linting (go vet + goimports)
 	cd backend && go vet ./... && $(goimports-check)
@@ -305,16 +307,16 @@ check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (
 	cd backend && go tool sqlc diff
 
 check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/relay && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd windows/relay && $(go-module-check)
 
 check-starter: ## Windows-Starter komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd windows/starter && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd windows/starter && $(go-module-check)
 
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd resolver && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd resolver && $(go-module-check)
 
 check-local-proxy: ## Lokales Proxy-Entrypoint-Binary komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
-	cd reverse-proxy && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
+	cd reverse-proxy && $(go-module-check)
 
 check-format: ## Repo-weite Prettier-Formatierung prüfen (ts, tsx, js, mjs, cjs, json, css, md, yml, yaml)
 	frontend/node_modules/.bin/prettier --check $(PRETTIER_GLOB)

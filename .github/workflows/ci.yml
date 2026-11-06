@@ -186,9 +186,6 @@ jobs:
     if: ${{ (needs.changes.outputs.resolver == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ./resolver
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -198,41 +195,19 @@ jobs:
           go-version-file: resolver/go.mod
           cache-dependency-path: resolver/go.sum
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Verify dependencies
-        run: go mod verify
-
-      - name: Check go.mod tidiness
-        run: go mod tidy -diff
-
-      - name: Check format
-        run: |
-          if [ -n "$(go tool goimports -l .)" ]; then
-            echo "Code is not properly formatted:"
-            go tool goimports -l .
-            exit 1
-          fi
-
-      - name: golangci-lint
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
-          working-directory: ./resolver
+          install-only: true
 
-      - name: Vet
-        run: go vet ./...
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -count=1 -v -race ./...
+      - name: Check the module
+        run: make check-resolver
 
       # docker-compose.rocks.yml builds this image on its host; no other job
       # builds it.
       - name: Build image
+        working-directory: ./resolver
         run: docker build .
 
   local-proxy-ci:
@@ -240,9 +215,6 @@ jobs:
     if: ${{ (needs.changes.outputs.proxy == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: ./reverse-proxy
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -252,37 +224,14 @@ jobs:
           go-version-file: reverse-proxy/go.mod
           cache-dependency-path: reverse-proxy/go.sum
 
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Verify dependencies
-        run: go mod verify
-
-      - name: Check go.mod tidiness
-        run: go mod tidy -diff
-
-      - name: Check format
-        run: |
-          if [ -n "$(go tool goimports -l .)" ]; then
-            echo "Code is not properly formatted:"
-            go tool goimports -l .
-            exit 1
-          fi
-
-      - name: golangci-lint
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
-          working-directory: ./reverse-proxy
+          install-only: true
 
-      - name: Vet
-        run: go vet ./...
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -count=1 -v -race ./...
+      - name: Check the module
+        run: make check-local-proxy
 
   windows-ci:
     needs: changes
@@ -301,44 +250,14 @@ jobs:
           go-version-file: windows/${{ matrix.module }}/go.mod
           cache: false
 
-      - name: Download dependencies
-        working-directory: ./windows/${{ matrix.module }}
-        run: go mod download
-
-      - name: Verify dependencies
-        working-directory: ./windows/${{ matrix.module }}
-        run: go mod verify
-
-      - name: Check go.mod tidiness
-        working-directory: ./windows/${{ matrix.module }}
-        run: go mod tidy -diff
-
-      - name: Check format
-        working-directory: ./windows/${{ matrix.module }}
-        run: |
-          if [ -n "$(go tool goimports -l .)" ]; then
-            echo "Code is not properly formatted:"
-            go tool goimports -l .
-            exit 1
-          fi
-
-      - name: golangci-lint
+      - name: Install golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
-          working-directory: ./windows/${{ matrix.module }}
+          install-only: true
 
-      - name: Vet
-        working-directory: ./windows/${{ matrix.module }}
-        run: go vet ./...
-
-      - name: Build
-        working-directory: ./windows/${{ matrix.module }}
-        run: go build -v ./...
-
-      - name: Test
-        working-directory: ./windows/${{ matrix.module }}
-        run: go test -count=1 -v -race ./...
+      - name: Check the module
+        run: make check-${{ matrix.module }}
 
   frontend-ci:
     needs: changes
