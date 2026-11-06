@@ -202,6 +202,57 @@ describe('ZahlungAbschluss (Spalte)', () => {
     })
   })
 
+  it('renews the rueckgabeId when a pure return turns into a settled payment', async () => {
+    const user = userEvent.setup()
+    const zahlungKassieren = vi.fn().mockResolvedValue(undefined)
+    // Die Rückgabe ist gebucht, die Antwort geht verloren: Die Auswahl bleibt.
+    const pfandZurueckgeben = vi
+      .fn()
+      .mockRejectedValue(new Error('Netzwerkfehler'))
+    const props = {
+      variant: 'spalte' as const,
+      backend: { zahlungKassieren },
+      pfandBackend: { pfandZurueckgeben },
+      pfandProdukte: [pfandProdukt],
+      tisch,
+      restNachZahlungCents: 200,
+      zahlungKassiert: vi.fn(),
+      pfandAusgezahlt: vi.fn(),
+    }
+    const { rerender } = render(
+      <ZahlungAbschluss {...props} positionenToPay={[]} totalCents={0} />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+
+    rerender(
+      <ZahlungAbschluss
+        {...props}
+        positionenToPay={[{ ...position, menge: 2 }]}
+        totalCents={700}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Kassieren' }))
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+
+    const [[rueckgabe]] = pfandZurueckgeben.mock.calls as [
+      [{ rueckgabeId: string }],
+    ]
+    const [[zahlung]] = zahlungKassieren.mock.calls as [
+      [{ pfand: { rueckgabeId: string } }],
+    ]
+    expect(zahlung.pfand.rueckgabeId).toMatch(UUID)
+    expect(zahlung.pfand.rueckgabeId).not.toBe(rueckgabe.rueckgabeId)
+  })
+
   it('zeigt die Restbetrag-Zeile in der Spalte', () => {
     renderSpalte()
     expect(screen.getByText('Nach dieser Zahlung noch offen')).toBeVisible()

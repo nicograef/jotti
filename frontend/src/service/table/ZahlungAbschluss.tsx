@@ -53,7 +53,10 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  const pfand = usePfandAuswahl(props.pfandProdukte)
+  const pfand = usePfandAuswahl(
+    props.pfandProdukte,
+    JSON.stringify(toPositionRefs(props.positionenToPay)),
+  )
   const mitPfand = pfand.summeCents > 0
   const nurPfand = noPositionenSelected && mitPfand
   // Mit Pfand ist nur die positive Differenz bar zu kassieren.

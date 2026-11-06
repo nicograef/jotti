@@ -42,7 +42,15 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  const pfand = usePfandAuswahl(props.pfandProdukte)
+  // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
+  // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
+  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
+  const pfand = usePfandAuswahl(
+    props.pfandProdukte,
+    noPositionenSelected
+      ? ''
+      : `${verkaufId}|${JSON.stringify(props.positionen)}`,
+  )
   const mitPfand = pfand.summeCents > 0
   const nurPfand = noPositionenSelected && mitPfand
   // Mit Pfand ist nur die positive Differenz bar zu kassieren.
@@ -57,9 +65,6 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       }
     : {}
 
-  // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
-  // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
-  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {

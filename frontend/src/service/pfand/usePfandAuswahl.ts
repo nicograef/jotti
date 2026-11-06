@@ -13,19 +13,23 @@ export interface PfandAuswahl {
   rueckgabeId: string
 }
 
-// Die rueckgabeId gehört zu genau einer Auswahl: Jede Änderung erneuert sie,
-// nur ein unveränderter Wiederholversuch behält sie. Sonst bucht der Server
-// nach einem Timeout die alte Menge, während die neue bar ausgezahlt wird.
-export function usePfandAuswahl(pfandProdukte: Produkt[]): PfandAuswahl {
+// Die rueckgabeId gehört zu genau einem Vorgang aus Pfand-Auswahl und
+// `vorgangKey`, der Auswahl der Zahlung oder des Verkaufs. Jede Änderung
+// erneuert sie, nur ein unveränderter Wiederholversuch behält sie; sonst meldet
+// der Server nach einem Timeout Erfolg für einen anderen Vorgang.
+export function usePfandAuswahl(
+  pfandProdukte: Produkt[],
+  vorgangKey: string,
+): PfandAuswahl {
   const steuerung = useMengen<number>()
   const { receiptItems, inputItems } = toBestellungData(
     pfandProdukte,
     steuerung.mengen,
   )
 
-  const auswahlKey = inputItems
+  const auswahlKey = `${inputItems
     .map((p) => `${p.varianteId.toString()}:${p.menge.toString()}`)
-    .join(',')
+    .join(',')}|${vorgangKey}`
   const [vorgang, setVorgang] = useState(() => ({
     auswahlKey,
     rueckgabeId: crypto.randomUUID(),
