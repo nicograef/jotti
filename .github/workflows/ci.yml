@@ -70,6 +70,7 @@ jobs:
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
               - '.golangci.yml'
+              - 'Makefile'
             proxy:
               - 'reverse-proxy/**'
               - 'backend/go.mod'
@@ -77,6 +78,7 @@ jobs:
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
               - '.golangci.yml'
+              - 'Makefile'
             windows:
               - 'windows/**'
               - 'backend/go.mod'
@@ -84,6 +86,7 @@ jobs:
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
               - '.golangci.yml'
+              - 'Makefile'
             website:
               - 'website/**'
               - 'docs/**'
