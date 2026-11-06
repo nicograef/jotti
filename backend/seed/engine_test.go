@@ -371,6 +371,36 @@ func TestBuildSeedDaten_DirektverkaufFesteSubjects(t *testing.T) {
 	}
 }
 
+// TestBuildSeedDaten_PfandKennzeichenEingefroren prüft D20: Jede v2-Verkaufsposition trägt
+// das Pfand-Kennzeichen ihres Produkts, obwohl die Bestellung es nicht mitführt.
+func TestBuildSeedDaten_PfandKennzeichenEingefroren(t *testing.T) {
+	s, daten := buildTestDaten(t)
+	pfandVarianten := pfandVariantenIndex(s.Produkte)
+
+	pfandZeilen := 0
+	pruefe := func(evt e.Event, positionen []kasse.PositionV2EventData) {
+		for _, p := range positionen {
+			if p.Pfand != pfandVarianten[p.VarianteID] {
+				t.Errorf("%s %s: Variante %d pfand=%v", evt.Type, evt.Subject, p.VarianteID, p.Pfand)
+			}
+			if p.Pfand {
+				pfandZeilen++
+			}
+		}
+	}
+	for _, ev := range daten.Events {
+		switch ev.event.Type {
+		case string(kasse.EventTypeZahlungKassiertV2):
+			pruefe(ev.event, parseData[kasse.ZahlungKassiertV2Data](t, ev.event).Positionen)
+		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
+			pruefe(ev.event, parseData[kasse.DirektverkaufGetaetigtV2Data](t, ev.event).Positionen)
+		}
+	}
+	if pfandZeilen == 0 {
+		t.Error("keine Pfand-Position in den v2-Verkäufen, erwartet die Gläser von Tisch 18")
+	}
+}
+
 // TestBuildSeedDaten_Kassenfuehrung prüft Geldtransit in beide Richtungen sowie den
 // Kassensturz: Der Soll-Bestand entspricht einer unabhängigen Aggregation der vorherigen
 // Events (Kassenbestand-Formel), die Differenz erzeugt die zugehörige Differenz-Buchung.

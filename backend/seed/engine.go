@@ -230,6 +230,7 @@ func (b *sitzungsBuilder) kassieren(a kassieren) error {
 	if err != nil {
 		return fmt.Errorf("unbezahlte Positionen: %w", err)
 	}
+	auswahl = kasse.MitPfandKennzeichen(auswahl, b.pfandVarianten)
 	betrag := summeCents(auswahl)
 	evt, err := kasse.NewZahlungKassiertEvent(b.tischSubject(a.Tisch), a.User, name, auswahl, betrag, "")
 	if err != nil {
@@ -681,6 +682,7 @@ func variantenIndex(produkte []produkt) map[int]kasse.Position {
 				Kategorie:        string(p.Kategorie),
 				Steuersatz:       string(p.Steuersatz),
 				EinzelpreisCents: v.PreisCents,
+				Pfand:            p.Pfand,
 			}
 		}
 	}
