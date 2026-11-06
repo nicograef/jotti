@@ -46,6 +46,7 @@ Bewusst nicht geplant.
 | K-24 | Direktverkauf           | Bestellen, zahlen und ausgeben in einem Schritt, ohne Tisch; mit Historie/Storno.                                                                     |
 | K-25 | Druckstationen          | Konfiguration der Ausgabestationen; Zuordnung von Produktkategorien; Bonmodus pro Position, pro Bestellung, am Abholbon auch pro Stück oder kein Bon. |
 | K-26 | Druckauftrag-Verwaltung | Druckaufträge per Relay abrufen; fehlgeschlagene erneut versuchen/verwerfen.                                                                          |
+| K-27 | Pfandrückgabe           | Pfand bar auszahlen oder beim Kassieren und im Direktverkauf verrechnen; positionsgenaue Stornierung durch Serviceleitung/Admin.                      |
 
 ### Stammdaten (Supporting Domain)
 

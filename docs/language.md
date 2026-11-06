@@ -99,6 +99,19 @@ Nachträgliche Aufhebung bestellter Positionen, nur durch Serviceleitung oder Ad
 
 **Storno-Zuordnung:** Ein Storno zählt im Reporting für die Servicekraft, deren Vorgang er rückgängig macht. Er zählt nicht für den **Akteur**, der ihn ausgelöst hat. Auflösung und Rückfall auf den Akteur → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting). Go `StornierungDetail.Akteur`, `StornierungDetail.Betroffene []ServicekraftRef` · JSON/TS `akteur`, `betroffene`.
 
+### Pfand
+
+Pfand tippt die Servicekraft beim Verkauf als eigene Position eines Pfand-Produkts. Zurück fließt es als eigener, kassenwirksamer Vorgang → [handbuch.md §3.3](handbuch.md#33-subject-design-hierarchische-subjects).
+
+| Begriff                   | Bedeutung                                                                                                                 | Zu vermeiden                             | Code-Mapping                                                                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Pfand-Produkt             | Produkt mit Pfand-Kennzeichen, dessen Varianten die Pfandrückgabe anbietet und das sich sonst wie jedes Produkt verkauft. | Pfandartikel, Leergut                    | Go `Produkt.Pfand` · JSON/TS `pfand`, `pfandProdukte` · DB `produkte.pfand`                                       |
+| Pfandrückgabe             | Kassenwirksamer Vorgang, in dem ein Gast Pfandgut zurückgibt und den Pfandbetrag bar oder verrechnet erhält.              | Pfandrücknahme, Pfand-Storno, Gutschrift | Event `pfand-zurueckgegeben:v1` · JSON `rueckgabeId` · API `/service/pfand-zurueckgeben`                          |
+| Verrechnung               | Pfandrückgabe im selben Abschluss wie eine Zahlung oder ein Direktverkauf; bar fließt nur die Differenz.                  | Guthaben, Gutschrift, Pfandabzug         | Go `enrichment.PfandEingabe` · JSON `pfand` in `/service/zahlung-kassieren` und `/service/direktverkauf-taetigen` |
+| Pfandrückgabe-Stornierung | Positionsgenaue Korrektur einer irrtümlichen Pfandrückgabe durch Serviceleitung oder Admin, mit Pflichtkommentar.         | Rückgabe-Storno, Pfand-Korrektur         | Event `pfandrueckgabe-storniert:v1` · JSON `stornierungId` · API `/serviceleitung/pfandrueckgabe-stornieren`      |
+
+„Gutschrift" bleibt aus Code und Oberfläche fern. Im Umsatzsteuerrecht ist sie eine Rechnung, die der Leistungsempfänger ausstellt (§ 14 Abs. 2 Satz 2 UStG).
+
 ### Weitere Typen und Felder (Kasse)
 
 | Begriff              | Bedeutung                                                                                                                                                                                                                                                    | Code-Mapping                                                                                                                                                              |
