@@ -29,10 +29,10 @@ type Command struct {
 	ProduktRepo produktRepo
 }
 
-func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) (int, error) {
+func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz, pfand bool) (int, error) {
 	log := logging.FromContext(ctx)
 
-	produkt, err := produkt.NewProdukt(name, kategorie, steuersatz)
+	produkt, err := produkt.NewProdukt(name, kategorie, steuersatz, pfand)
 	if err != nil {
 		log.Warn("Invalid produkt data", "error", err, "produkt_name", name)
 		return 0, ErrInvalidProduktData
@@ -52,7 +52,7 @@ func (c Command) CreateProdukt(ctx context.Context, name string, kategorie produ
 	return produktID, nil
 }
 
-func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz) error {
+func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, kategorie produkt.Kategorie, steuersatz steuer.Steuersatz, pfand bool) error {
 	log := logging.FromContext(ctx)
 
 	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
@@ -65,7 +65,7 @@ func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, 
 		return ErrDatabase
 	}
 
-	err = produkt.UpdateDetails(name, kategorie, steuersatz)
+	err = produkt.UpdateDetails(name, kategorie, steuersatz, pfand)
 	if err != nil {
 		log.Warn("Invalid produkt data for update", "error", err, "produkt_id", produktID)
 		return ErrInvalidProduktData

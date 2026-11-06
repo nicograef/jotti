@@ -32,6 +32,7 @@ type Produkt struct {
 	Name       string
 	Kategorie  Kategorie
 	Steuersatz steuer.Steuersatz
+	Pfand      bool // steuert nur, welche Varianten die Pfandrückgabe anbietet
 	Status     Status
 	Varianten  []Variante
 	CreatedAt  time.Time
@@ -79,7 +80,7 @@ func (p Produkt) Validate() error {
 }
 
 // NewProdukt assigns no ID; the persistence layer sets it.
-func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) (Produkt, error) {
+func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz, pfand bool) (Produkt, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Produkt{}, fmt.Errorf("invalid name")
 	}
@@ -96,6 +97,7 @@ func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) 
 		Name:       name,
 		Kategorie:  kategorie,
 		Steuersatz: steuersatz,
+		Pfand:      pfand,
 		Status:     ActiveStatus,
 		Varianten:  []Variante{},
 		CreatedAt:  time.Now().UTC(),
@@ -105,7 +107,7 @@ func NewProdukt(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) 
 	return produkt, nil
 }
 
-func (p *Produkt) UpdateDetails(name string, kategorie Kategorie, steuersatz steuer.Steuersatz) error {
+func (p *Produkt) UpdateDetails(name string, kategorie Kategorie, steuersatz steuer.Steuersatz, pfand bool) error {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return fmt.Errorf("invalid name")
 	}
@@ -121,6 +123,7 @@ func (p *Produkt) UpdateDetails(name string, kategorie Kategorie, steuersatz ste
 	p.Name = name
 	p.Kategorie = kategorie
 	p.Steuersatz = steuersatz
+	p.Pfand = pfand
 	p.UpdatedAt = time.Now().UTC()
 
 	return nil

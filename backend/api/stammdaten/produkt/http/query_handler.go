@@ -32,6 +32,7 @@ type produkt struct {
 	Name       string     `json:"name"`
 	Kategorie  string     `json:"kategorie"`
 	Steuersatz string     `json:"steuersatz"`
+	Pfand      bool       `json:"pfand"`
 	Status     string     `json:"status"`
 	Varianten  []variante `json:"varianten"`
 	CreatedAt  time.Time  `json:"createdAt"`
@@ -64,6 +65,7 @@ func toProdukt(p dom.Produkt) produkt {
 		Name:       p.Name,
 		Kategorie:  string(p.Kategorie),
 		Steuersatz: string(p.Steuersatz),
+		Pfand:      p.Pfand,
 		Status:     string(p.Status),
 		Varianten:  varianten,
 		CreatedAt:  p.CreatedAt,

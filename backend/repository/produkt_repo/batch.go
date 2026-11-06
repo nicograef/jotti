@@ -72,7 +72,7 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 
 	ids32 := toInt32Slice(ids)
 
-	const query = `SELECT id, name, kategorie, steuersatz, status
+	const query = `SELECT id, name, kategorie, steuersatz, pfand, status
 		FROM produkte
 		WHERE id = ANY($1) AND status != 'deleted'`
 
@@ -89,9 +89,10 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 			name       string
 			kategorie  string
 			steuersatz string
+			pfand      bool
 			status     string
 		)
-		if err := rows.Scan(&id, &name, &kategorie, &steuersatz, &status); err != nil {
+		if err := rows.Scan(&id, &name, &kategorie, &steuersatz, &pfand, &status); err != nil {
 			return nil, db.Error(err)
 		}
 		result[id] = produkt.Produkt{
@@ -99,6 +100,7 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 			Name:       name,
 			Kategorie:  produkt.Kategorie(kategorie),
 			Steuersatz: steuer.Steuersatz(steuersatz),
+			Pfand:      pfand,
 			Status:     produkt.Status(status),
 		}
 	}

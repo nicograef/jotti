@@ -20,7 +20,7 @@ type mockCommand struct {
 	err error
 }
 
-func (m *mockCommand) UpdateProdukt(context.Context, int, string, dom.Kategorie, steuer.Steuersatz) error {
+func (m *mockCommand) UpdateProdukt(context.Context, int, string, dom.Kategorie, steuer.Steuersatz, bool) error {
 	return m.err
 }
 

@@ -12,8 +12,8 @@ import (
 )
 
 type command interface {
-	CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) (int, error)
-	UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz) error
+	CreateProdukt(ctx context.Context, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz, pfand bool) (int, error)
+	UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz, pfand bool) error
 	DeleteProdukt(ctx context.Context, produktID int) error
 	VerschiebeProdukt(ctx context.Context, produktID int, richtung dom.Richtung) error
 	CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error)
@@ -33,12 +33,14 @@ type createProduktRequest struct {
 	Name       string            `json:"name"`
 	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
+	Pfand      bool              `json:"pfand"`
 }
 
 var createProduktSchema = z.Struct(z.Shape{
 	"Name":       dom.NameSchema.Required(),
 	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
+	"Pfand":      z.Bool(),
 })
 
 type createProduktResponse struct {
@@ -52,7 +54,7 @@ func (h *CommandHandler) CreateProduktHandler() http.HandlerFunc {
 			return
 		}
 
-		id, err := h.Command.CreateProdukt(r.Context(), body.Name, body.Kategorie, body.Steuersatz)
+		id, err := h.Command.CreateProdukt(r.Context(), body.Name, body.Kategorie, body.Steuersatz, body.Pfand)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrProduktAlreadyExists, Code: "produkt_already_exists"},
@@ -70,6 +72,7 @@ type updateProduktRequest struct {
 	Name       string            `json:"name"`
 	Kategorie  dom.Kategorie     `json:"kategorie"`
 	Steuersatz steuer.Steuersatz `json:"steuersatz"`
+	Pfand      bool              `json:"pfand"`
 }
 
 var updateProduktSchema = z.Struct(z.Shape{
@@ -77,6 +80,7 @@ var updateProduktSchema = z.Struct(z.Shape{
 	"Name":       dom.NameSchema.Required(),
 	"Kategorie":  dom.KategorieSchema.Required(),
 	"Steuersatz": steuer.SteuersatzSchema.Required(),
+	"Pfand":      z.Bool(),
 })
 
 func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
@@ -86,7 +90,7 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.UpdateProdukt(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz)
+		err := h.Command.UpdateProdukt(r.Context(), body.ID, body.Name, body.Kategorie, body.Steuersatz, body.Pfand)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},

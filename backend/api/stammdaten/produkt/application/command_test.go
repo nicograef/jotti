@@ -27,7 +27,7 @@ func TestCreateProdukt(t *testing.T) {
 	repo := repotest.NewProduktRepo(nil, nil)
 	cmd := Command{ProduktRepo: repo}
 
-	id, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	id, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz, false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -40,7 +40,7 @@ func TestCreateProdukt_AlreadyExists(t *testing.T) {
 	repo := repotest.NewProduktRepo(nil, db.ErrAlreadyExists)
 	cmd := Command{ProduktRepo: repo}
 
-	_, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	_, err := cmd.CreateProdukt(context.Background(), "Bier", produkt.GetraenkKategorie, steuer.RegelSteuersatz, false)
 	if !errors.Is(err, ErrProduktAlreadyExists) {
 		t.Errorf("expected ErrProduktAlreadyExists, got %v", err)
 	}
@@ -50,7 +50,7 @@ func TestUpdateProdukt(t *testing.T) {
 	repo := repotest.NewProduktRepo([]produkt.Produkt{testProdukt}, nil)
 	cmd := Command{ProduktRepo: repo}
 
-	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz, false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -68,7 +68,7 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	repo := repotest.NewProduktRepo(nil, db.ErrNotFound)
 	cmd := Command{ProduktRepo: repo}
 
-	err := cmd.UpdateProdukt(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	err := cmd.UpdateProdukt(context.Background(), 999, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz, false)
 	if !errors.Is(err, ErrProduktNotFound) {
 		t.Errorf("expected ErrProduktNotFound, got %v", err)
 	}
@@ -79,7 +79,7 @@ func TestUpdateProdukt_AlreadyExists(t *testing.T) {
 	repo.SetUpdateProduktError(db.ErrAlreadyExists)
 	cmd := Command{ProduktRepo: repo}
 
-	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz)
+	err := cmd.UpdateProdukt(context.Background(), 1, "Fanta", produkt.GetraenkKategorie, steuer.RegelSteuersatz, false)
 	if !errors.Is(err, ErrProduktAlreadyExists) {
 		t.Errorf("expected ErrProduktAlreadyExists, got %v", err)
 	}

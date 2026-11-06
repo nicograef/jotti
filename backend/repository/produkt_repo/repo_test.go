@@ -188,6 +188,88 @@ func TestCreateProdukt(t *testing.T) {
 	}
 }
 
+// Every read path carries the flag: the admin list, the service list, the single
+// read and the batch read that enrichment uses.
+func TestCreateProdukt_StoresPfand(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	p := newProdukt("Pfand", produkt.GetraenkKategorie)
+	p.Pfand = true
+	produktID, err := repo.CreateProdukt(ctx, p)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	_, _ = repo.CreateVariante(ctx, produktID, newVariante("Glas", 200, produkt.ActiveStatus))
+	_, _ = repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+
+	einzeln, err := repo.GetProdukt(ctx, produktID)
+	if err != nil {
+		t.Fatalf("GetProdukt: %v", err)
+	}
+	if !einzeln.Pfand {
+		t.Error("GetProdukt: expected Pfand true")
+	}
+
+	alle, err := repo.GetAllProdukte(ctx)
+	if err != nil {
+		t.Fatalf("GetAllProdukte: %v", err)
+	}
+	pfandProNamen := map[string]bool{}
+	for i := range alle {
+		pfandProNamen[alle[i].Name] = alle[i].Pfand
+	}
+	if !pfandProNamen["Pfand"] || pfandProNamen["Bier"] {
+		t.Errorf("GetAllProdukte: expected Pfand only on \"Pfand\", got %v", pfandProNamen)
+	}
+
+	aktive, err := repo.GetActiveProdukte(ctx)
+	if err != nil {
+		t.Fatalf("GetActiveProdukte: %v", err)
+	}
+	if len(aktive) != 1 || !aktive[0].Pfand {
+		t.Errorf("GetActiveProdukte: expected one Pfand-Produkt, got %+v", aktive)
+	}
+
+	batch, err := repo.GetProdukteByIDs(ctx, []int{produktID})
+	if err != nil {
+		t.Fatalf("GetProdukteByIDs: %v", err)
+	}
+	if !batch[produktID].Pfand {
+		t.Error("GetProdukteByIDs: expected Pfand true")
+	}
+}
+
+// Setting and clearing both persist, so the update writes the flag instead of
+// keeping the stored value.
+func TestUpdateProdukt_StoresPfand(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	p := newProdukt("Pfand", produkt.GetraenkKategorie)
+	produktID, err := repo.CreateProdukt(ctx, p)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	p.ID = produktID
+
+	for _, want := range []bool{true, false} {
+		p.Pfand = want
+		if err := repo.UpdateProdukt(ctx, p); err != nil {
+			t.Fatalf("UpdateProdukt(Pfand=%v): %v", want, err)
+		}
+		updated, err := repo.GetProdukt(ctx, produktID)
+		if err != nil {
+			t.Fatalf("GetProdukt: %v", err)
+		}
+		if updated.Pfand != want {
+			t.Errorf("Expected Pfand %v, got %v", want, updated.Pfand)
+		}
+	}
+}
+
 func TestUpdateProdukt(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)

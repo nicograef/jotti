@@ -69,6 +69,7 @@ func produktRowToDomain(row dbgen.GetProduktRow) (produkt.Produkt, error) {
 		Name:       row.Name,
 		Kategorie:  produkt.Kategorie(row.Kategorie),
 		Steuersatz: steuer.Steuersatz(row.Steuersatz),
+		Pfand:      row.Pfand,
 		Status:     produkt.Status(row.Status),
 		Varianten:  varianten,
 		CreatedAt:  row.CreatedAt,
