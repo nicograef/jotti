@@ -17,7 +17,7 @@ auf Handy A geht, auf Handy B aber nicht  # eigene Umschreibung eines Symptoms, 
 Nachsigniert am …  # Text auf dem gedruckten Kassenbeleg, backend/api/druck/bondruck/application/escpos/formatter.go:285
 Neue Version verfügbar  # Starter-Konsolenausgabe (paraphrasiert; ASCII-Original "verfuegbar"), windows/starter/update.go:33
 jotti laeuft  # Starter-Konsolenausgabe, windows/starter/main.go:198
-Wiederherstellung abgeschlossen.  # Konsolenausgabe von packaging/windows/jotti-restore.cmd:39
+Wiederherstellung abgeschlossen.  # Konsolenausgabe von packaging/windows/jotti-restore.cmd
 Diese Version … ist aelter als die zuletzt gestartete …  # Starter-Konsolenausgabe, windows/starter/main.go:88
 Zwei Minuten Pause, bitte keine neue Bestellung anfangen.  # Vorschlag für eine mündliche Ansage an die Servicekräfte, kein zitiertes Bedienelement
 Bondruck einrichten  # eigene Abschnittsüberschrift weiter unten in derselben Datei, kein zitiertes Bedienelement
