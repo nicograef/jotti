@@ -154,6 +154,32 @@ func TestGetTSEStatus_NutztLeichtenUmgebungsPfad(t *testing.T) {
 	}
 }
 
+// The environment of a key pair never changes: only the first status request authenticates at fiskaly.
+func TestGetTSEStatus_MerktSichDieUmgebung(t *testing.T) {
+	anmeldungen := 0
+	q := Query{
+		TSERepo: stubTSERepo{konfiguration: konfiguriert()},
+		NewTSEConnectionTester: func(tse.Credentials) (tse.ConnectionTester, error) {
+			anmeldungen++
+			return tsetest.FakeClient{UmgebungResponse: tse.UmgebungLive}, nil
+		},
+		Umgebungen: &UmgebungsCache{},
+	}
+
+	for range 2 {
+		status, err := q.GetTSEStatus(context.Background())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if status.Umgebung != "LIVE" {
+			t.Errorf("expected LIVE environment, got %q", status.Umgebung)
+		}
+	}
+	if anmeldungen != 1 {
+		t.Errorf("expected 1 fiskaly authentication, got %d", anmeldungen)
+	}
+}
+
 func TestTestTSEVerbindung_SeriennummerAbweichung(t *testing.T) {
 	seriennummer := uuid.New()
 	q := Query{

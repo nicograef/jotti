@@ -22,6 +22,7 @@ type Query struct {
 	TSERepo                tseQueryRepo
 	NewTSEConnectionTester NewTSEConnectionTester
 	NewTSESetupClient      NewTSESetupClient
+	Umgebungen             *UmgebungsCache
 }
 
 type TSEStatus struct {
@@ -180,7 +181,12 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 	if !status.IstKonfiguriert {
 		return status, nil
 	}
-	tester, err := q.NewTSEConnectionTester(conf.Credentials())
+	credentials := conf.Credentials()
+	if umgebung, ok := q.Umgebungen.lies(credentials); ok {
+		status.Umgebung = string(umgebung)
+		return status, nil
+	}
+	tester, err := q.NewTSEConnectionTester(credentials)
 	if err != nil {
 		log.Warn("Failed to create TSE connection tester for status", "error", err)
 		return status, nil
@@ -193,6 +199,7 @@ func (q Query) GetTSEStatus(ctx context.Context) (TSEStatus, error) {
 		return status, nil
 	}
 
+	q.Umgebungen.merke(credentials, umgebung)
 	status.Umgebung = string(umgebung)
 	return status, nil
 }

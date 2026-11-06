@@ -130,6 +130,7 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 		TSERepo:                deps.TSERepo,
 		NewTSEConnectionTester: deps.NewTSEConnectionTester,
 		NewTSESetupClient:      deps.NewTSESetupClient,
+		Umgebungen:             &fiskalSetupApp.UmgebungsCache{},
 	}}
 	r.HandleFunc("/get-kassenidentitaet", sq.GetKassenidentitaetHandler())
 	r.HandleFunc("/get-tse-konfiguration", sq.GetTSEKonfigurationHandler())
