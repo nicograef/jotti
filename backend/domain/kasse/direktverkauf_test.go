@@ -14,7 +14,7 @@ func verkaufPositionen(t *testing.T, evt e.Event) []Position {
 	if err := e.ParseData(evt, &data, direktverkaufGetaetigtV1DataSchema); err != nil {
 		t.Fatalf("failed to parse getaetigt event data: %v", err)
 	}
-	return fromPositionenEventData(data.Positionen)
+	return PositionenFromEventData(data.Positionen)
 }
 
 func stornoPosition(p Position, menge int) Position {

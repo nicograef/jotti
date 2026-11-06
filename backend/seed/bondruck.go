@@ -219,7 +219,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}
-		positionen = zuPositionen(data.Positionen)
+		positionen = kasse.PositionenFromEventData(data.Positionen)
 		gesamtbetragCents = data.GesamtZahlungCents
 		referenz = fmt.Sprintf("zahlung-kassiert:%d", evt.ID)
 		if t, ok := b.ersteBestellung[evt.Subject]; ok {
@@ -231,7 +231,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}
-		positionen = zuPositionen(data.Positionen)
+		positionen = kasse.PositionenFromEventData(data.Positionen)
 		gesamtbetragCents = data.GesamtbetragCents
 		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
 
@@ -302,14 +302,6 @@ func parseEventData[T any](evt e.Event) (T, error) {
 }
 
 // zuPositionen wandelt die persistierte Positions-Darstellung zurück in Domain-Positionen.
-func zuPositionen(eventPositionen []kasse.PositionEventData) []kasse.Position {
-	positionen := make([]kasse.Position, len(eventPositionen))
-	for i, p := range eventPositionen {
-		positionen[i] = kasse.PositionFromEventData(p)
-	}
-	return positionen
-}
-
 func zuSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {
 	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
 	for _, p := range positionen {

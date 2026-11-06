@@ -29,7 +29,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
 		}
-		neuePositionen := tagBesteller(fromPositionenEventData(data.Positionen), evt.UserID, evt.UserName)
+		neuePositionen := tagBesteller(PositionenFromEventData(data.Positionen), evt.UserID, evt.UserName)
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
 		setErsteBestellungLogTime(&state, evt.Time)
@@ -40,7 +40,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
 		}
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
-		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, PositionenFromEventData(data.Positionen))
 		if err != nil {
 			return state, fmt.Errorf("zahlung %s: %w", evt.Subject, err)
 		}
@@ -60,7 +60,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
 		}
-		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, fromPositionenEventData(data.Positionen))
+		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, PositionenFromEventData(data.Positionen))
 		if err != nil {
 			return state, fmt.Errorf("korrektur %s: %w", evt.Subject, err)
 		}
@@ -75,7 +75,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err != nil {
 			return state, err
 		}
-		positionen := fromPositionenEventData(data.Positionen)
+		positionen := PositionenFromEventData(data.Positionen)
 		if tischID == data.QuellTischID {
 			// Abgang: die Positionen verlassen den Quelltisch.
 			unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, positionen)
@@ -137,21 +137,21 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
 			}
-			nichtStorniert = accumulatePositionen(nichtStorniert, fromPositionenEventData(data.Positionen))
+			nichtStorniert = accumulatePositionen(nichtStorniert, PositionenFromEventData(data.Positionen))
 
 		case string(EventTypeStornierungErteiltV1):
 			var data StornierungErteiltV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
 			}
-			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
+			nichtStorniert = reduceByPosition(nichtStorniert, PositionenFromEventData(data.Positionen))
 
 		case string(EventTypeBestellungKorrigiertV1):
 			var data BestellungKorrigiertV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal korrektur data: %w", err)
 			}
-			nichtStorniert = reduceByPosition(nichtStorniert, fromPositionenEventData(data.Positionen))
+			nichtStorniert = reduceByPosition(nichtStorniert, PositionenFromEventData(data.Positionen))
 
 		case string(EventTypeBestellungUmgebuchtV1):
 			var data BestellungUmgebuchtV1Data
@@ -162,7 +162,7 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 			if err != nil {
 				return nil, err
 			}
-			positionen := fromPositionenEventData(data.Positionen)
+			positionen := PositionenFromEventData(data.Positionen)
 			if tischID == data.QuellTischID {
 				nichtStorniert = reduceByPosition(nichtStorniert, positionen)
 			} else {

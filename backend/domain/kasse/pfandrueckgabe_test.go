@@ -20,7 +20,7 @@ func TestBuildPfandrueckgabeHistorieEintrag_AggregatesStornos(t *testing.T) {
 	if err := e.ParseData(rueckgabe, &data, pfandZurueckgegebenV1DataSchema); err != nil {
 		t.Fatalf("rueckgabe data: %v", err)
 	}
-	glas := fromPositionenEventData(data.Positionen)[0]
+	glas := PositionenFromEventData(data.Positionen)[0]
 
 	storno1, err := NewPfandrueckgabeStorniertEvent(subject, uuid.New().String(), rueckgabeID, 7, 2, "Leitung", []Position{stornoPosition(glas, 1)}, 200, "Vertippt")
 	if err != nil {

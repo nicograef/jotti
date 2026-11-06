@@ -99,9 +99,9 @@ func toPositionenEventData(positionen []Position) []PositionEventData {
 	return out
 }
 
-// fromPositionenEventData leaves the Besteller fields zero; they are tagged from the event
+// PositionenFromEventData leaves the Besteller fields zero; they are tagged from the event
 // envelope when the bestellung-aufgenommen event is applied.
-func fromPositionenEventData(positionen []PositionEventData) []Position {
+func PositionenFromEventData(positionen []PositionEventData) []Position {
 	out := make([]Position, len(positionen))
 	for i, p := range positionen {
 		out[i] = PositionFromEventData(p)

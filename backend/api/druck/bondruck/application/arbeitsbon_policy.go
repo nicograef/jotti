@@ -187,10 +187,5 @@ func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
 		return arbeitsbonDaten{}, false
 	}
 
-	positionen := make([]kasse.Position, 0, len(data.Positionen))
-	for _, pos := range data.Positionen {
-		positionen = append(positionen, kasse.PositionFromEventData(pos))
-	}
-
-	return arbeitsbonDaten{Positionen: positionen, Kommentar: data.Kommentar}, true
+	return arbeitsbonDaten{Positionen: kasse.PositionenFromEventData(data.Positionen), Kommentar: data.Kommentar}, true
 }

@@ -25,14 +25,14 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return bestellungVorgang(fromPositionenEventData(data.Positionen), 1)
+		return bestellungVorgang(PositionenFromEventData(data.Positionen), 1)
 
 	case EventTypeBestellungKorrigiertV1:
 		data, err := parseProjektionsData[BestellungKorrigiertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return bestellungVorgang(fromPositionenEventData(data.Positionen), -1)
+		return bestellungVorgang(PositionenFromEventData(data.Positionen), -1)
 
 	case EventTypeBestellungUmgebuchtV1:
 		// Abgang (Quelltisch) negativ, Zugang (Zieltisch) positiv — sonst erschiene die Ware
@@ -49,35 +49,35 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		if tischID == data.QuellTischID {
 			faktor = -1
 		}
-		return bestellungVorgang(fromPositionenEventData(data.Positionen), faktor)
+		return bestellungVorgang(PositionenFromEventData(data.Positionen), faktor)
 
 	case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
 		data, err := parseProjektionsData[ZahlungKassiertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), data.GesamtZahlungCents, 1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), data.GesamtZahlungCents, 1)
 
 	case EventTypeStornierungErteiltV1:
 		data, err := parseProjektionsData[StornierungErteiltV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtStornierungCents, -1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), -data.GesamtStornierungCents, -1)
 
 	case EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2:
 		data, err := parseProjektionsData[DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), data.GesamtbetragCents, 1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), data.GesamtbetragCents, 1)
 
 	case EventTypeDirektverkaufStorniertV1:
 		data, err := parseProjektionsData[DirektverkaufStorniertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtStornierungCents, -1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), -data.GesamtStornierungCents, -1)
 
 	case EventTypePfandZurueckgegebenV1:
 		// Auszahlung: negative Bruttobeträge am Satz des Pfand-Produkts, negative Barzahlung.
@@ -85,14 +85,14 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtbetragCents, -1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), -data.GesamtbetragCents, -1)
 
 	case EventTypePfandrueckgabeStorniertV1:
 		data, err := parseProjektionsData[PfandrueckgabeStorniertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), data.GesamtStornierungCents, 1)
+		return kassenbelegVorgang(PositionenFromEventData(data.Positionen), data.GesamtStornierungCents, 1)
 
 	case EventTypeKassensitzungEroeffnetV1:
 		data, err := parseProjektionsData[KassensitzungEroeffnetV1Data](evt)

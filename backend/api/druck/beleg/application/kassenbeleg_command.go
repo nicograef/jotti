@@ -19,14 +19,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
-func toKassePositionen(positionen []kasse.PositionEventData) []kasse.Position {
-	out := make([]kasse.Position, 0, len(positionen))
-	for _, pos := range positionen {
-		out = append(out, kasse.PositionFromEventData(pos))
-	}
-	return out
-}
-
 func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.SteuermatrixPosition {
 	matrixPositionen := make([]steuer.SteuermatrixPosition, 0, len(positionen))
 	for _, position := range positionen {
@@ -395,7 +387,7 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 
 	return belegQuelle{
 		Event:               stornoEvent,
-		Positionen:          toKassePositionen(stornoData.Positionen),
+		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
 		Referenz:            fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID),
 		Negativ:             true,
@@ -426,7 +418,7 @@ func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung,
 
 	return belegQuelle{
 		Event:             rueckgabeEvent,
-		Positionen:        toKassePositionen(rueckgabeData.Positionen),
+		Positionen:        kasse.PositionenFromEventData(rueckgabeData.Positionen),
 		GesamtbetragCents: rueckgabeData.GesamtbetragCents,
 		Referenz:          fmt.Sprintf("pfand-zurueckgegeben:%d", rueckgabeEvent.ID),
 		Negativ:           true,
@@ -466,7 +458,7 @@ func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensi
 
 	return belegQuelle{
 		Event:               stornoEvent,
-		Positionen:          toKassePositionen(stornoData.Positionen),
+		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
 		Referenz:            fmt.Sprintf("pfandrueckgabe-storniert:%d", stornoEvent.ID),
 		Stornobeleg:         true,
@@ -507,7 +499,7 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 
 	return belegQuelle{
 		Event:               stornoEvent,
-		Positionen:          toKassePositionen(stornoData.Positionen),
+		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
 		Referenz:            fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID),
 		Negativ:             true,
@@ -538,7 +530,7 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 
 	return belegQuelle{
 		Event:             verkaufEvent,
-		Positionen:        toKassePositionen(verkaufData.Positionen),
+		Positionen:        kasse.PositionenFromEventData(verkaufData.Positionen),
 		GesamtbetragCents: verkaufData.GesamtbetragCents,
 		Referenz:          fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID),
 	}, nil
@@ -572,7 +564,7 @@ func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassen
 
 	return belegQuelle{
 		Event:                    zahlungEvent,
-		Positionen:               toKassePositionen(zahlungData.Positionen),
+		Positionen:               kasse.PositionenFromEventData(zahlungData.Positionen),
 		GesamtbetragCents:        zahlungData.GesamtZahlungCents,
 		Referenz:                 fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID),
 		ErsteBestellungZeitpunkt: state.ErsteBestellungLogTime,

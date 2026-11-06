@@ -62,7 +62,7 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", evt.Type, err)
 			}
 			kern := vorgang(vorgangData)
-			positionen := fromPositionenEventData(kern.Positionen)
+			positionen := PositionenFromEventData(kern.Positionen)
 			eintrag.UserID = evt.UserID
 			eintrag.UserName = evt.UserName
 			eintrag.GetaetigtAm = evt.Time
@@ -77,7 +77,7 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", stornoTyp, err)
 			}
 			kern := storno(data)
-			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, fromPositionenEventData(kern.Positionen))
+			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, PositionenFromEventData(kern.Positionen))
 			eintrag.GesamtStorniertCents += kern.GesamtStornierungCents
 			eintrag.Stornierungen = append(eintrag.Stornierungen, VorgangStornierung{
 				StornierungID:          kern.StornierungID,
