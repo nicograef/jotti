@@ -46,11 +46,11 @@ Der Bestellkommentar bleibt der Standard für Hinweise zur ganzen Bestellung.
 
 ### Abgewogene Ansätze
 
-| Ansatz                                                                         | Aufwand                                                                                                                                | Risiko                                                                         | Umkehrbarkeit                                                        |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| A: optionales Feld `kommentar` in den Positionen der zwei v1-Erfassungs-Events | klein: ein Event-Format, Arbeitsbon, Historie, API, zwei Abschlüsse                                                                    | gering: Alt-Events byte-identisch, SQL unberührt                               | Feature entfernbar, geschriebene Felder bleiben wirkungslos          |
-| B: Version v2 von `bestellung-aufgenommen` und `direktverkauf-getaetigt`       | groß: 15 Go-Dateien, 24 SQL-Literale (19 in den Queries, 5 in `01_initial`), zwei SQL-Funktionen, zwei Idempotenz-Indexe per Migration | hoch: ein übersehenes Literal fehlt still im Soll-Bestand und Tagesabschluss   | v2 bleibt für immer lesepflichtig, jede Abfrage kennt zwei Versionen |
-| C: Bestellkommentar einer Kategorie zuordnen                                   | mittel: ebenfalls ein Event-Feld plus Kategorie-Auswahl                                                                                | Fehlzuordnung bleibt bei Bonmodus „pro Position" und innerhalb einer Kategorie | wie A                                                                |
+| Ansatz                                                                      | Aufwand                                                                                                                               | Risiko                                                                         | Umkehrbarkeit                                                                          |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| A: optionales Feld `kommentar` in den Positionen der zwei Erfassungs-Events | klein: zwei Positionsformen, Arbeitsbon, Historie, API, zwei Abschlüsse                                                               | gering: Alt-Events byte-identisch, SQL unberührt                               | Feature entfernbar, geschriebene Felder bleiben wirkungslos                            |
+| B: `bestellung-aufgenommen:v2` und `direktverkauf-getaetigt:v3`             | groß: jedes SQL-Literal der Erfassungs-Events in Queries und Migrationen, beide SQL-Funktionen, beide Idempotenz-Indexe per Migration | hoch: ein übersehenes Literal fehlt still im Soll-Bestand und Tagesabschluss   | jede neue Version bleibt für immer lesepflichtig, jede Abfrage kennt eine Version mehr |
+| C: Bestellkommentar einer Kategorie zuordnen                                | mittel: ebenfalls ein Event-Feld plus Kategorie-Auswahl                                                                               | Fehlzuordnung bleibt bei Bonmodus „pro Position" und innerhalb einer Kategorie | wie A                                                                                  |
 
 Gewählt ist A.
 
@@ -63,12 +63,14 @@ Gewählt ist A.
 
 ### Event-Format
 
-- Die Positionen von `bestellung-aufgenommen:v1` und `direktverkauf-getaetigt:v1` erhalten das optionale Feld `kommentar`.
+- Die Positionen von `bestellung-aufgenommen:v1` und `direktverkauf-getaetigt:v2` erhalten das optionale Feld `kommentar`.
+- Das Feld ist additiv in den bestehenden Versionen, keine neue Version; das ist die Freeze-Ausnahme aus Ansatz A.
 - Ist es leer, fehlt der Schlüssel im JSON; solche Events sind byte-identisch zum Bestandsformat.
 - Ein Alt-Event liest sich mit leerem Positionskommentar; nichts wird migriert oder umgedeutet.
-- Das Feld steht in einer eigenen Event-Form der Bestellposition, nur in diesen zwei Events.
-- Die geteilte Positionsform von Zahlung, Stornierung, Korrektur und Umbuchung bleibt unberührt.
-- So kann der Positionskommentar nie in kassenwirksame Events wandern.
+- `direktverkauf-getaetigt:v1` schreibt niemand mehr; es bleibt unverändert und liest sich mit leerem Positionskommentar.
+- Jedes der zwei Events bekommt eine eigene Positionsform: die Basisform plus `kommentar`, beim Direktverkauf die Form mit `pfand` plus `kommentar`.
+- Die geteilten Positionsformen bleiben unberührt: die Basisform aller übrigen Events und die Form mit `pfand` von `zahlung-kassiert:v2`.
+- So wandert der Positionskommentar nie in Zahlung, Stornierung, Korrektur oder Umbuchung.
 - Das Event-Schema prüft das Feld optional mit höchstens 100 Zeichen, wie den Bestellkommentar.
 
 ### API
@@ -173,7 +175,7 @@ Vorgeschlagener Eintrag für `docs/language.md`:
 
 Offene Entscheidungen für den Owner:
 
-1. Freigabe des additiven Felds in den zwei v1-Events als Ausnahme vom Event-Freeze. Empfohlen; Rückfall ist Ansatz B.
+1. Freigabe des additiven Felds in `bestellung-aufgenommen:v1` und `direktverkauf-getaetigt:v2` als Ausnahme vom Event-Freeze. Empfohlen; Rückfall ist Ansatz B.
 2. DSFinV-K: Positionskommentar nicht exportieren (empfohlen) oder an `BON_NOTIZ` anhängen, mit Kürzung auf 255 Zeichen.
 3. Abholbon „pro Stück": Kommentar auf jedem Stückbon (empfohlen, einfach) oder nur auf dem ersten.
 
