@@ -91,7 +91,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
         <DialogHeader className="mb-4">
           <DialogTitle>{props.product.name}</DialogTitle>
           <DialogDescription>
-            Du kannst Name und Kategorie des Produkts ändern.
+            Du kannst Name, Kategorie, Steuersatz und Pfand des Produkts ändern.
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
