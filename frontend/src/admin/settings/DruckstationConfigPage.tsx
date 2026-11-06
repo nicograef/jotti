@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { WarnKarte } from '../components/WarnKarte'
+import { formatLocalTime } from '../reporting/utils'
 import {
   beschreibeFehlBons,
   type Bonmodus,
@@ -344,11 +345,8 @@ function FehlgeschlagenerDruckauftragRow({
           {formatDruckauftragReferenz(auftrag.referenz)} → {auftrag.zielIp}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {new Date(auftrag.erstelltAm).toLocaleTimeString('de-DE', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}{' '}
-          Uhr · {formatDruckfehler(auftrag.letzterFehler)} · {auftrag.versuche}{' '}
+          {formatLocalTime(auftrag.erstelltAm)} Uhr ·{' '}
+          {formatDruckfehler(auftrag.letzterFehler)} · {auftrag.versuche}{' '}
           Versuche
         </div>
       </div>

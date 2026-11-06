@@ -9,7 +9,7 @@ import { formatEuro } from '@/lib/utils'
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
 import { UebersichtStatusZeile } from './UebersichtStatusZeile'
-import { formatStand } from './utils'
+import { formatLocalTime } from './utils'
 
 export function AdminDashboardPage() {
   const {
@@ -54,7 +54,7 @@ export function AdminDashboardPage() {
   // Teil (kein hängendes „seit " ohne Zeit).
   const kasseTeile = [
     kassensitzung &&
-      `Kassentag seit ${formatStand(new Date(kassensitzung.eroeffnetAm).getTime())}`,
+      `Kassentag seit ${formatLocalTime(kassensitzung.eroeffnetAm)}`,
     kassenbestand !== null &&
       `Soll-Bestand ${formatEuro(kassenbestand.sollBestandCents)}`,
   ].filter((teil): teil is string => typeof teil === 'string')

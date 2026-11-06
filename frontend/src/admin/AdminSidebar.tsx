@@ -39,6 +39,7 @@ import { AuthSingleton } from '@/lib/Auth'
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
 import { useAktiveKassensitzung } from './kasse/hooks'
 import { KassensitzungStatus } from './kasse/Kassensitzung'
+import { formatLocalTime } from './reporting/utils'
 
 interface NavItem {
   title: string
@@ -176,9 +177,7 @@ export function AdminSidebar() {
   const kasseStatusText = abschlussUnterbrochen
     ? 'Abschluss unterbrochen — erneut abschließen'
     : kasseAktiv
-      ? `Kasse offen · seit ${new Date(
-          kassensitzung.eroeffnetAm,
-        ).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+      ? `Kasse offen · seit ${formatLocalTime(kassensitzung.eroeffnetAm)}`
       : 'Kasse geschlossen'
 
   const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {
