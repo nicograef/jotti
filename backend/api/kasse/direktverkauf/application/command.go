@@ -23,7 +23,9 @@ type eventRepo interface {
 	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
-	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
+	ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
+	ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungNr int, tischID int) ([]event.Event, error)
+	GetDirektverkauf(ctx context.Context, verkaufID string) (event.Event, bool, error)
 	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
 }
 
@@ -69,9 +71,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 
 // DirektverkaufTaetigen writes the sale into its own stream, without projection; with pfand the settled
 // Rückgabe (tischId 0) goes into its own stream in the same transaction. verkaufID is the client's
-// idempotency key: on an OCC conflict a stored event with that verkaufId means idempotent success
-// (same ID = same operation, payload not compared), none means a real 409. With pfand the stored
-// pair must match the request, see pruefeVerrechnetenVerkauf.
+// idempotency key: on an OCC conflict a stored Verkauf with that verkaufId means idempotent success,
+// none means a real 409. Without pfand the stored Verkauf must be unsettled (payload not compared),
+// with pfand the stored pair must match the request, see pruefeVerrechnetenVerkauf.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
@@ -129,16 +131,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 			if pfand != nil {
 				return c.pruefeVerrechnetenVerkauf(ctx, verkaufID, inputs, pfand)
 			}
-			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
-			if lookupErr != nil {
-				log.Error("Failed to lookup direktverkauf idempotency", "error", lookupErr, "verkauf_id", verkaufID)
-				return ErrDatabase
-			}
-			if exists {
-				log.Info("Idempotenter Direktverkauf: verkaufId bereits vorhanden", "verkauf_id", verkaufID)
-				return nil
-			}
-			return ErrConflict
+			return c.pruefeUnverrechnetenVerkauf(ctx, verkaufID)
 		}
 		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
 			log.Warn("Kassensitzung nicht mehr offen", "verkauf_id", verkaufID)

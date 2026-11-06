@@ -532,6 +532,19 @@ func (r Repository) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr
 	return events, nil
 }
 
+// GetDirektverkauf returns the sale event of verkaufID from any Kassensitzung; false means none is
+// stored.
+func (r Repository) GetDirektverkauf(ctx context.Context, verkaufID string) (event.Event, bool, error) {
+	row, err := r.q.GetDirektverkauf(ctx, verkaufID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return event.Event{}, false, nil
+	}
+	if err != nil {
+		return event.Event{}, false, db.Error(err)
+	}
+	return eventFromReadRow(dbgen.ReadEventsBySubjectRow(row)), true, nil
+}
+
 // ReadEventsByKassensitzung returns all events of the Kassensitzung ordered by ID
 // ascending, each with its Signaturauftrag-Stand (kein Auftrag = nicht
 // signaturpflichtig). Read side of the DSFinV-K export.

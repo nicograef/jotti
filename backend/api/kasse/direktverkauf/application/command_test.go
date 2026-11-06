@@ -103,9 +103,17 @@ func (s *spyEventRepo) WriteEventsAtomic(_ context.Context, kassensitzungNr int,
 	return nil
 }
 
-func (s *spyEventRepo) EventExistsByTypeAndVorgangsID(_ context.Context, _, _, _ string) (bool, error) {
-	// Spy returns false (no duplicate): the idempotency path is not exercised in these unit tests.
-	return false, nil
+// The lookups find nothing: the idempotency path is not exercised in these unit tests.
+func (s *spyEventRepo) ReadDirektverkaufEvents(_ context.Context, _ int) ([]event.Event, error) {
+	return nil, nil
+}
+
+func (s *spyEventRepo) ReadPfandrueckgabeEvents(_ context.Context, _, _ int) ([]event.Event, error) {
+	return nil, nil
+}
+
+func (s *spyEventRepo) GetDirektverkauf(_ context.Context, _ string) (event.Event, bool, error) {
+	return event.Event{}, false, nil
 }
 
 func (s *spyEventRepo) GetPfandrueckgabe(_ context.Context, _ string) (event.Event, bool, error) {

@@ -36,11 +36,11 @@ func Verrechne(rueckgabe e.Event, partner e.Event) e.Event {
 	return rueckgabe
 }
 
-// VerrechnungsPartner returns the event of typ among events that was written with the settled
-// Rückgabe: same timestamp, same user.
-func VerrechnungsPartner(rueckgabe e.Event, events []e.Event, typ EventType) (e.Event, bool) {
+// VerrechnungsPartner returns the event of typ among events that was written with anker: same
+// timestamp, same user. The pairing is symmetric: anker is the settled Rückgabe or its Zahlung or Verkauf.
+func VerrechnungsPartner(anker e.Event, events []e.Event, typ EventType) (e.Event, bool) {
 	for _, evt := range events {
-		if evt.Type == string(typ) && evt.UserID == rueckgabe.UserID && evt.Time.Equal(rueckgabe.Time) {
+		if evt.Type == string(typ) && evt.UserID == anker.UserID && evt.Time.Equal(anker.Time) {
 			return evt, true
 		}
 	}

@@ -13,6 +13,14 @@ WHERE kassensitzung_nr = $1
   AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
 ORDER BY id ASC;
 
+-- name: GetDirektverkauf :one
+-- Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id
+-- hält ihn eindeutig.
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'direktverkauf-getaetigt:v1'
+  AND data->>'verkaufId' = sqlc.arg(verkauf_id)::text;
+
 -- name: ReadPfandrueckgabeEvents :many
 -- Rückgaben und ihre Stornierungen eines Tisches; tischId 0 ist der Direktverkauf.
 -- Beide Event-Typen tragen tischId selbst.

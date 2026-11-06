@@ -219,8 +219,8 @@ func TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t
 	}
 }
 
-// verrechnungsFall carries what a case of TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent
-// needs to book its first Vorgang.
+// verrechnungsFall carries what a case of the Abweichend tests needs to book its first Vorgang and
+// its retry.
 type verrechnungsFall struct {
 	ctx                    context.Context
 	cmd                    Command
@@ -229,27 +229,41 @@ type verrechnungsFall struct {
 	verkauf, pfand         func(menge int) []enrichment.PositionInput
 }
 
-// TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent: a settled Direktverkauf whose verkaufId or
-// rueckgabeId is booked with other content, or without its partner, is refused with
-// ErrPfandrueckgabeAbweichend and books nothing.
+// TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent: a Direktverkauf whose verkaufId or
+// rueckgabeId is booked with other content, or with or without a partner the retry lacks or has, is
+// refused with ErrPfandrueckgabeAbweichend and books nothing.
 func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
-	// Each case books a first Vorgang; then follows the sale (Menge 2) with Pfand (Menge 2) under both IDs.
+	mitPfand := func(f verrechnungsFall, pfandMenge int) error {
+		return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(pfandMenge)})
+	}
+	// Each case books a first Vorgang, then retries under the same IDs; the sale has Menge 2.
 	tests := []struct {
-		name string
-		erst func(f verrechnungsFall) error
+		name        string
+		erst, retry func(f verrechnungsFall) error
 	}{
-		{"andere Pfand-Menge", func(f verrechnungsFall) error {
-			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(3)})
-		}},
-		{"anderer Verkauf", func(f verrechnungsFall) error {
-			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(1), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
-		}},
-		{"Verkauf ohne Rückgabe", func(f verrechnungsFall) error {
-			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", nil)
-		}},
-		{"Rückgabe ohne Verkauf", func(f verrechnungsFall) error {
-			return f.cmd.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(2), "")
-		}},
+		{"andere Pfand-Menge",
+			func(f verrechnungsFall) error { return mitPfand(f, 3) },
+			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
+		{"anderer Verkauf",
+			func(f verrechnungsFall) error {
+				return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(1), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
+			},
+			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
+		{"Verkauf ohne Rückgabe",
+			func(f verrechnungsFall) error {
+				return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", nil)
+			},
+			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
+		{"Rückgabe ohne Verkauf",
+			func(f verrechnungsFall) error {
+				return f.cmd.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(2), "")
+			},
+			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
+		{"Verkauf mit Rückgabe, Wiederholung ohne Pfand",
+			func(f verrechnungsFall) error { return mitPfand(f, 2) },
+			func(f verrechnungsFall) error {
+				return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", nil)
+			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -274,8 +288,7 @@ func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 				t.Fatalf("kassenjournal zählen: %v", err)
 			}
 
-			err := cmd.DirektverkaufTaetigen(ctx, userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
-			if !errors.Is(err, ErrPfandrueckgabeAbweichend) {
+			if err := tt.retry(f); !errors.Is(err, ErrPfandrueckgabeAbweichend) {
 				t.Errorf("erwartet ErrPfandrueckgabeAbweichend, bekam: %v", err)
 			}
 

@@ -12,6 +12,42 @@ import (
 	"time"
 )
 
+const getDirektverkauf = `-- name: GetDirektverkauf :one
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'direktverkauf-getaetigt:v1'
+  AND data->>'verkaufId' = $1::text
+`
+
+type GetDirektverkaufRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id
+// hält ihn eindeutig.
+func (q *Queries) GetDirektverkauf(ctx context.Context, verkaufID string) (GetDirektverkaufRow, error) {
+	row := q.db.QueryRowContext(ctx, getDirektverkauf, verkaufID)
+	var i GetDirektverkaufRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserName,
+		&i.Version,
+		&i.Type,
+		&i.Subject,
+		&i.Data,
+		&i.Timestamp,
+	)
+	return i, err
+}
+
 const getDistinctTischSessionSubjects = `-- name: GetDistinctTischSessionSubjects :many
 SELECT DISTINCT subject FROM kassenjournal WHERE subject LIKE '%/tisch-%' ORDER BY subject ASC
 `
