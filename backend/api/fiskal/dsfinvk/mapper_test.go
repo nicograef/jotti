@@ -988,6 +988,132 @@ func TestMapDirektverkaufUndStorno(t *testing.T) {
 	}
 }
 
+const (
+	pfandRueckgabeTischBonID  = "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1"
+	pfandStornoBonID          = "b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2"
+	pfandRueckgabeThekeBonID  = "c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3"
+	pfandRueckgabeTischNummer = 42
+)
+
+func pfandPosition(positionID string, menge int) kasse.PositionEventData {
+	return kasse.PositionEventData{PositionID: positionID, VarianteID: 909, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 200, Menge: menge}
+}
+
+func pfandEvent(t *testing.T, id int, typ kasse.EventType, subject string, version int, userID int, userName string, minute int, data any) event.Event {
+	t.Helper()
+
+	raw, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal %s data: %v", typ, err)
+	}
+
+	return event.Event{
+		ID:       id,
+		UserID:   userID,
+		UserName: userName,
+		Type:     string(typ),
+		Time:     time.Date(2026, 6, 16, 15, minute, 0, 0, time.UTC),
+		Subject:  subject,
+		Version:  version,
+		Data:     raw,
+	}
+}
+
+// TestMapPfandrueckgabeUndStorno guards the Pfand return as a negative Bar Beleg with GV_TYP
+// "PfandRueckzahlung" without reference, and its Storno as a positive one referencing the
+// Rückgabe. Both take the Abrechnungskreis from their own tischId; tischId 0 has none.
+func TestMapPfandrueckgabeUndStorno(t *testing.T) {
+	snapshot := testSnapshot()
+	snapshot.Tischnamen = map[int]string{pfandRueckgabeTischNummer: "Stehtisch Bar"}
+
+	tischSubject := kasse.PfandrueckgabeSubject(3, pfandRueckgabeTischBonID)
+	events := []event.Event{
+		direktverkaufEvent(t),
+		pfandEvent(t, 2, kasse.EventTypePfandZurueckgegebenV1, tischSubject, 1, 7, "anna", 0, kasse.PfandZurueckgegebenV1Data{
+			RueckgabeID:       pfandRueckgabeTischBonID,
+			TischID:           pfandRueckgabeTischNummer,
+			Positionen:        []kasse.PositionEventData{pfandPosition("pf1", 2)},
+			GesamtbetragCents: 400,
+			Kommentar:         "Zwei Gläser",
+		}),
+		pfandEvent(t, 3, kasse.EventTypePfandrueckgabeStorniertV1, tischSubject, 2, 9, "lea", 5, kasse.PfandrueckgabeStorniertV1Data{
+			StornierungID:          pfandStornoBonID,
+			RueckgabeID:            pfandRueckgabeTischBonID,
+			TischID:                pfandRueckgabeTischNummer,
+			Positionen:             []kasse.PositionEventData{pfandPosition("pf1", 1)},
+			GesamtStornierungCents: 200,
+			Kommentar:              "Ein Glas zu viel",
+		}),
+		pfandEvent(t, 4, kasse.EventTypePfandZurueckgegebenV1, kasse.PfandrueckgabeSubject(3, pfandRueckgabeThekeBonID), 1, 7, "anna", 10, kasse.PfandZurueckgegebenV1Data{
+			RueckgabeID:       pfandRueckgabeThekeBonID,
+			TischID:           0,
+			Positionen:        []kasse.PositionEventData{pfandPosition("pf2", 1)},
+			GesamtbetragCents: 200,
+		}),
+	}
+
+	archive, err := Map(snapshot, events, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	const erstellung = "2026-06-16T14:30:00Z"
+	leer8 := []string{"", "", "", "", "", "", "", ""}
+	bonkopf := func(bonID, bonNr, start, bedienerID, bedienerName, umsBrutto, notiz string) []string {
+		row := []string{testSerial, erstellung, "3", bonID, bonNr, "Beleg", "", "", "0", start, start, bedienerID, bedienerName, umsBrutto}
+		row = append(row, leer8...)
+		return append(row, notiz)
+	}
+
+	wantRecords := map[string][][]string{
+		"transactions.csv": {
+			bonkopf(direktverkaufBonID, "1", "2026-06-16T14:00:00Z", "7", "anna", "4,50", ""),
+			bonkopf(pfandRueckgabeTischBonID, "2", "2026-06-16T15:00:00Z", "7", "anna", "-4,00", "Zwei Gläser"),
+			bonkopf(pfandStornoBonID, "3", "2026-06-16T15:05:00Z", "9", "lea", "2,00", "Ein Glas zu viel"),
+			bonkopf(pfandRueckgabeThekeBonID, "4", "2026-06-16T15:10:00Z", "7", "anna", "-2,00", ""),
+		},
+		"lines.csv": {
+			{testSerial, erstellung, "3", direktverkaufBonID, "1", "", "Bier 0,5l", "", "Umsatz", "", "", "0", "0", "101", "", "getraenk", "getraenk", "1,000", "", "", "4,50"},
+			{testSerial, erstellung, "3", pfandRueckgabeTischBonID, "1", "", "Pfand Glas", "", "PfandRueckzahlung", "", "", "0", "0", "909", "", "getraenk", "getraenk", "-2,000", "", "", "2,00"},
+			{testSerial, erstellung, "3", pfandStornoBonID, "1", "", "Pfand Glas", "", "PfandRueckzahlung", "", "", "0", "0", "909", "", "getraenk", "getraenk", "1,000", "", "", "2,00"},
+			{testSerial, erstellung, "3", pfandRueckgabeThekeBonID, "1", "", "Pfand Glas", "", "PfandRueckzahlung", "", "", "0", "0", "909", "", "getraenk", "getraenk", "-1,000", "", "", "2,00"},
+		},
+		// Only the Storno references; the Rückgabe stands without a reference.
+		"references.csv": {
+			{testSerial, erstellung, "3", pfandStornoBonID, "", "Transaktion", "", erstellung, testSerial, "3", pfandRueckgabeTischBonID},
+		},
+		// The Storno carries the table name from its own tischId; the counter return has none.
+		"allocation_groups.csv": {
+			{testSerial, erstellung, "3", pfandRueckgabeTischBonID, "Stehtisch Bar"},
+			{testSerial, erstellung, "3", pfandStornoBonID, "Stehtisch Bar"},
+		},
+		// 19 %: sale 4,50 = 3,78 + 0,72; Pfand −4,00 + 2,00 − 2,00 = −4,00 = −3,36 − 0,64.
+		"businesscases.csv": {
+			{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "4,50", "3,78", "0,72"},
+			{testSerial, erstellung, "3", "PfandRueckzahlung", "", "0", "1", "-4,00", "-3,36", "-0,64"},
+		},
+		"datapayment.csv": {
+			{testSerial, erstellung, "3", direktverkaufBonID, "Bar", "Bar", "EUR", "4,50", "4,50"},
+			{testSerial, erstellung, "3", pfandRueckgabeTischBonID, "Bar", "Bar", "EUR", "-4,00", "-4,00"},
+			{testSerial, erstellung, "3", pfandStornoBonID, "Bar", "Bar", "EUR", "2,00", "2,00"},
+			{testSerial, erstellung, "3", pfandRueckgabeThekeBonID, "Bar", "Bar", "EUR", "-2,00", "-2,00"},
+		},
+	}
+
+	for file, want := range wantRecords {
+		table := tableByFile(t, archive, file)
+		if !reflect.DeepEqual(table.Records, want) {
+			t.Errorf("%s records =\n%#v\nwant\n%#v", file, table.Records, want)
+		}
+	}
+
+	// Cash: 4,50 − 4,00 + 2,00 − 2,00.
+	closing := tableByFile(t, archive, "cashpointclosing.csv")
+	if got := field(t, closing, 0, "Z_SE_BARZAHLUNGEN"); got != "0,50" {
+		t.Errorf("Z_SE_BARZAHLUNGEN = %q, want 0,50", got)
+	}
+}
+
 // eroeffnetEvent opens the session with an Anfangsbestand of 100,00 €.
 func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	t.Helper()

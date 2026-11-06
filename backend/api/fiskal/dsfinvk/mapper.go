@@ -23,6 +23,9 @@ const (
 	bonTypBestellung = "AVBestellung" // Anhang B: order as "anderer Vorgang", cash-neutral
 	bonTypSonstige   = "AVSonstige"   // Anhang B: other "anderer Vorgang" (Tagesabschluss), cash-neutral
 	gvTypUmsatz      = "Umsatz"       // Anhang C: realised revenue at line level
+	// Anhang C: Pfand paid out to the guest, a negative Entgeltminderung at the Pfand
+	// product's VAT rate (Tz. 4.2.5); the Pfand sale itself stays "Umsatz".
+	gvTypPfandRueckzahlung = "PfandRueckzahlung"
 	// Anhang C GV types that only move the cash balance; jotti records them as
 	// BON_TYP "Beleg" with one non-taxable line (see docs/compliance.md §6.8).
 	gvTypAnfangsbestand   = "Anfangsbestand"   // cash at session start (opening event)
@@ -60,15 +63,15 @@ type beleg struct {
 	bonID            string
 	bonNr            int
 	bonTyp           string   // BON_TYP: "Beleg", "AVBestellung" or "AVSonstige"
-	gvTyp            string   // GV_TYP of the lines: "Umsatz" or a cash GV type
+	gvTyp            string   // GV_TYP of the lines: "Umsatz", "PfandRueckzahlung" or a cash GV type
 	zahlart          string   // ZAHLART_TYP: "Bar"; empty for the cash-neutral AVBestellung
 	abrechnungskreis string   // ABRECHNUNGSKREIS (table name); empty without a table (e.g. Direktverkauf)
-	storno           bool     // negative Beleg (Warenrücknahme, Korrektur): flips the sign; BON_STORNO stays 0
+	storno           bool     // negative Beleg (Warenrücknahme, Korrektur, Pfand return): flips the sign; BON_STORNO stays 0
 	barabfluss       bool     // reduces the cash balance (Geldtransit withdrawal, shortfall); flips the sign like storno
 	geldneutral      bool     // AVBestellung or AVSonstige: TSE-signed, lines informative only; no revenue, VAT, Zahlart or cash effect
 	nichtSteuerbar   bool     // cash movement without VAT: one line with UST_SCHLUESSEL 5 instead of a tax split
 	artikeltext      string   // ARTIKELTEXT of the synthetic line (nichtSteuerbar only)
-	refBonIDs        []string // REF_BON_ID per origin Bon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchung Zugang → Abgang)
+	refBonIDs        []string // REF_BON_ID per origin Bon (Warenrücknahme → Zahlung, Korrektur → Bestellung, Umbuchung Zugang → Abgang, Pfand-Storno → Rückgabe)
 	start            string
 	ende             string
 	bedienerID       int
@@ -349,6 +352,55 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:        data.Kommentar,
 			})
 
+		case string(kasse.EventTypePfandZurueckgegebenV1):
+			var data kasse.PfandZurueckgegebenV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal pfand-zurueckgegeben (event %d): %w", ev.ID, err)
+			}
+			// Pfand paid out in cash: a negative Beleg without reference, since a Pfand return
+			// reduces the consideration independently of the sale (Abschn. 10.1 Abs. 8 Satz 3 UStAE).
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.RueckgabeID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBeleg,
+				gvTyp:            gvTypPfandRueckzahlung,
+				zahlart:          zahlartBar,
+				storno:           true,
+				abrechnungskreis: abrechnungskreisFuerTisch(data.TischID, tischnamen),
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtbetragCents,
+				notiz:            data.Kommentar,
+			})
+
+		case string(kasse.EventTypePfandrueckgabeStorniertV1):
+			var data kasse.PfandrueckgabeStorniertV1Data
+			if err := json.Unmarshal(ev.Data, &data); err != nil {
+				return nil, fmt.Errorf("unmarshal pfandrueckgabe-storniert (event %d): %w", ev.ID, err)
+			}
+			// Cancelling a Pfand return is a positive Beleg referencing the Rückgabe.
+			bonNr++
+			belege = append(belege, beleg{
+				bonID:            data.StornierungID,
+				bonNr:            bonNr,
+				bonTyp:           bonTypBeleg,
+				gvTyp:            gvTypPfandRueckzahlung,
+				zahlart:          zahlartBar,
+				abrechnungskreis: abrechnungskreisFuerTisch(data.TischID, tischnamen),
+				refBonIDs:        []string{data.RueckgabeID},
+				start:            zeit(ev),
+				ende:             zeit(ev),
+				bedienerID:       ev.UserID,
+				bedienerName:     ev.UserName,
+				positionen:       data.Positionen,
+				bruttoCents:      data.GesamtStornierungCents,
+				notiz:            data.Kommentar,
+			})
+
 		case string(kasse.EventTypeKassensitzungEroeffnetV1):
 			var data kasse.KassensitzungEroeffnetV1Data
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
@@ -478,12 +530,21 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	return fallback
 }
 
-// abrechnungskreis names the subject's Tisch-Session (F-06) from the table master data,
-// truncated to the field length; subjects without a table get none. The fallback
-// "Tisch N" is only right while table ID and name happen to coincide.
+// abrechnungskreis names the subject's Tisch-Session (F-06); subjects without a table
+// get none.
 func abrechnungskreis(subject string, tischnamen map[int]string) string {
 	tischID, err := kasse.ParseTischIDFromSubject(subject)
 	if err != nil {
+		return ""
+	}
+	return abrechnungskreisFuerTisch(tischID, tischnamen)
+}
+
+// abrechnungskreisFuerTisch names a table from the master data, truncated to the field
+// length; table ID 0 (Direktverkauf) gets none. The fallback "Tisch N" is only right
+// while table ID and name happen to coincide.
+func abrechnungskreisFuerTisch(tischID int, tischnamen map[int]string) string {
+	if tischID == 0 {
 		return ""
 	}
 	if name, ok := tischnamen[tischID]; ok {
@@ -990,13 +1051,14 @@ var businesscasesColumns = []string{
 	"Z_UMS_BRUTTO", "Z_UMS_NETTO", "Z_UST",
 }
 
-// gvTypReihenfolge orders GV types for a stable businesscases.csv (Umsatz before
-// the cash movements).
+// gvTypReihenfolge orders GV types for a stable businesscases.csv (Umsatz and
+// PfandRueckzahlung before the cash movements).
 var gvTypReihenfolge = map[string]int{
-	gvTypUmsatz:           0,
-	gvTypAnfangsbestand:   1,
-	gvTypGeldtransit:      2,
-	gvTypDifferenzSollIst: 3,
+	gvTypUmsatz:            0,
+	gvTypPfandRueckzahlung: 1,
+	gvTypAnfangsbestand:    2,
+	gvTypGeldtransit:       3,
+	gvTypDifferenzSollIst:  4,
 }
 
 // gvUstSchluessel is the businesscases.csv aggregation key: one GV type per VAT key.
@@ -1134,8 +1196,8 @@ func truncateRunes(wert string, maxLength int) string {
 	return string(runen[:maxLength])
 }
 
-// barbestand sums the Bar Belege with sign: sales and Anfangsbestand add, withdrawals
-// and Warenrücknahmen subtract, AVBestellungen carry no Bar. It feeds
+// barbestand sums the Bar Belege with sign: sales and Anfangsbestand add, withdrawals,
+// Warenrücknahmen and Pfand returns subtract, AVBestellungen carry no Bar. It feeds
 // Z_SE_(BAR)ZAHLUNGEN and cash_per_currency.csv.
 func barbestand(belege []beleg) int {
 	bar := 0
