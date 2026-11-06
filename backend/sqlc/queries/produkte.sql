@@ -5,6 +5,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -29,6 +30,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -53,6 +55,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -65,8 +68,8 @@ ORDER BY p.kategorie, p.reihenfolge, p.id;
 -- name: CreateProdukt :one
 -- Neue Produkte landen ans Ende ihrer Kategorie. Die Reihenfolge wird in der
 -- Datenbank berechnet, damit zwischen Lesen und Schreiben keine Lücke entsteht.
-INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
-VALUES ($1, $2, $3, $4, $5, $6,
+INSERT INTO produkte (name, kategorie, steuersatz, pfand, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $7, $4, $5, $6,
     COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkte WHERE kategorie = $2), 1))
 RETURNING id;
 
@@ -78,6 +81,7 @@ UPDATE produkte p SET
     name = $1,
     kategorie = $2,
     steuersatz = $3,
+    pfand = $7,
     status = $4,
     updated_at = $5,
     reihenfolge = CASE

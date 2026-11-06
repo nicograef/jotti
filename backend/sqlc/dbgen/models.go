@@ -373,6 +373,8 @@ type Produkte struct {
 	UpdatedAt time.Time
 	// Anzeigereihenfolge innerhalb der Kategorie (aufsteigend, Tiebreaker id)
 	Reihenfolge int
+	// Pfand-Produkt: seine Varianten bietet die Pfandrückgabe an. Bestellung, Arbeitsbon und Kategorie bleiben davon unberührt.
+	Pfand bool
 }
 
 // Per-user favourite tables; each service user can mark tables they are responsible for.

@@ -13,8 +13,8 @@ import (
 )
 
 const createProdukt = `-- name: CreateProdukt :one
-INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at, reihenfolge)
-VALUES ($1, $2, $3, $4, $5, $6,
+INSERT INTO produkte (name, kategorie, steuersatz, pfand, status, created_at, updated_at, reihenfolge)
+VALUES ($1, $2, $3, $7, $4, $5, $6,
     COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkte WHERE kategorie = $2), 1))
 RETURNING id
 `
@@ -26,6 +26,7 @@ type CreateProduktParams struct {
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	Pfand      bool
 }
 
 // Neue Produkte landen ans Ende ihrer Kategorie. Die Reihenfolge wird in der
@@ -38,6 +39,7 @@ func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (i
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Pfand,
 	)
 	var id int
 	err := row.Scan(&id)
@@ -87,6 +89,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -102,6 +105,7 @@ type GetAktiveProdukteRow struct {
 	Name       string
 	Kategorie  Produktkategorie
 	Steuersatz Steuersatz
+	Pfand      bool
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -125,6 +129,7 @@ func (q *Queries) GetAktiveProdukte(ctx context.Context) ([]GetAktiveProdukteRow
 			&i.Name,
 			&i.Kategorie,
 			&i.Steuersatz,
+			&i.Pfand,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -155,6 +160,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -170,6 +176,7 @@ type GetAlleProdukteRow struct {
 	Name       string
 	Kategorie  Produktkategorie
 	Steuersatz Steuersatz
+	Pfand      bool
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -190,6 +197,7 @@ func (q *Queries) GetAlleProdukte(ctx context.Context) ([]GetAlleProdukteRow, er
 			&i.Name,
 			&i.Kategorie,
 			&i.Steuersatz,
+			&i.Pfand,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -214,6 +222,7 @@ SELECT
     p.name,
     p.kategorie,
     p.steuersatz,
+    p.pfand,
     p.status,
     p.created_at,
     p.updated_at,
@@ -232,6 +241,7 @@ type GetProduktRow struct {
 	Name       string
 	Kategorie  Produktkategorie
 	Steuersatz Steuersatz
+	Pfand      bool
 	Status     Entitystatus
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
@@ -247,6 +257,7 @@ func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error)
 		&i.Name,
 		&i.Kategorie,
 		&i.Steuersatz,
+		&i.Pfand,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -532,6 +543,7 @@ UPDATE produkte p SET
     name = $1,
     kategorie = $2,
     steuersatz = $3,
+    pfand = $7,
     status = $4,
     updated_at = $5,
     reihenfolge = CASE
@@ -548,6 +560,7 @@ type UpdateProduktParams struct {
 	Status     Entitystatus
 	UpdatedAt  time.Time
 	ID         int
+	Pfand      bool
 }
 
 // Wechselt das Produkt die Kategorie, hängt es sich ans Ende der neuen an:
@@ -561,6 +574,7 @@ func (q *Queries) UpdateProdukt(ctx context.Context, arg UpdateProduktParams) (s
 		arg.Status,
 		arg.UpdatedAt,
 		arg.ID,
+		arg.Pfand,
 	)
 }
 
