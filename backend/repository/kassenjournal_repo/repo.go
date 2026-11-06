@@ -34,23 +34,11 @@ func NewRepository(database *sql.DB) Repository {
 // WriteEvent stores the event and, in the same transaction, updates the entity or
 // projection streamType routes to (Direktverkauf: none).
 func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
-	var id int
-	eingereiht := false
-	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
-		if err != nil {
-			return err
-		}
-		id = stored.ID
-		eingereiht = auftragEingereiht
-		return nil
-	})
+	ids, err := r.writeAtomic(ctx, kassensitzungNr, []NeuesEvent{{Event: e, StreamType: streamType}})
 	if err != nil {
 		return 0, err
 	}
-
-	notifySignaturWorker(eingereiht)
-	return id, nil
+	return ids[0], nil
 }
 
 // WriteEventWithDruckauftraege writes the event and its derived print jobs in one
@@ -63,28 +51,11 @@ func (r Repository) WriteEventWithDruckauftraege(
 	kassensitzungNr int,
 	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
 ) (int, error) {
-	var id int
-	eingereiht := false
-	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		stored, auftragEingereiht, err := r.writeEventInTx(ctx, qtx, e, streamType, kassensitzungNr)
-		if err != nil {
-			return err
-		}
-
-		if err := druckauftrag_repo.InsertDruckauftraege(ctx, qtx, buildAuftraege(stored)); err != nil {
-			return err
-		}
-
-		id = stored.ID
-		eingereiht = auftragEingereiht
-		return nil
-	})
+	ids, err := r.writeAtomic(ctx, kassensitzungNr, []NeuesEvent{{Event: e, StreamType: streamType, BuildAuftraege: buildAuftraege}})
 	if err != nil {
 		return 0, err
 	}
-
-	notifySignaturWorker(eingereiht)
-	return id, nil
+	return ids[0], nil
 }
 
 // NeuesEvent is one event of an atomic multi-event write. Event carries its final subject and version;
@@ -98,6 +69,13 @@ type NeuesEvent struct {
 // WriteEventsAtomic writes the given events across stream types all-or-nothing and triggers the
 // Signatur-Worker once after the commit.
 func (r Repository) WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []NeuesEvent) error {
+	_, err := r.writeAtomic(ctx, kassensitzungNr, events)
+	return err
+}
+
+// writeAtomic returns the stored event IDs in the order of events.
+func (r Repository) writeAtomic(ctx context.Context, kassensitzungNr int, events []NeuesEvent) ([]int, error) {
+	ids := make([]int, 0, len(events))
 	eingereiht := false
 	err := db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for _, neu := range events {
@@ -112,16 +90,16 @@ func (r Repository) WriteEventsAtomic(ctx context.Context, kassensitzungNr int, 
 					return err
 				}
 			}
+			ids = append(ids, stored.ID)
 		}
-
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	notifySignaturWorker(eingereiht)
-	return nil
+	return ids, nil
 }
 
 // EroeffneKassensitzung legt Entität und Eröffnungs-Event in EINER Transaktion an —
