@@ -144,10 +144,7 @@ step_install() {
   local start end duration
   start="$(date +%s)"
   local otp
-  otp="$(docker compose -f "$COMPOSE_FILE" logs --since "$since" backend 2>/dev/null \
-    | grep -a "ADMIN-EINMALPASSWORT" \
-    | grep -aoE 'code=[0-9]{6}' \
-    | tail -n1 | cut -d= -f2 || true)"
+  otp="$(admin_otp_from_logs "$COMPOSE_FILE" "$since")"
   end="$(date +%s)"; duration=$((end - start))
   if [[ -z "$otp" ]]; then
     fail_step "parse-admin-otp" "ADMIN-EINMALPASSWORT marker not found in backend logs"

@@ -138,11 +138,7 @@ echo "    make prod-down   — Stop all services"
 echo "    make prod-logs   — Follow logs"
 echo ""
 # Admin one-time login code from the backend logs (like the Windows starter).
-# The marker sits inside the msg field of a JSON log line: match the substring, newest match wins.
-otp_code="$(docker compose -f "$COMPOSE_FILE" logs backend 2>/dev/null \
-  | grep -a "ADMIN-EINMALPASSWORT" \
-  | grep -aoE 'code=[0-9]{6}' \
-  | tail -n1 | cut -d= -f2 || true)"
+otp_code="$(admin_otp_from_logs "$COMPOSE_FILE")"
 if [[ -n "$otp_code" ]]; then
   info "First-time setup — admin one-time login code (user 'admin'): $otp_code"
   echo "    Log in as 'admin' with this code, then set your own password."

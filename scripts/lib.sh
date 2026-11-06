@@ -95,6 +95,16 @@ wait_https_ok() {
   curl -fs -o /dev/null --max-time 5 --retry "$(($2 - 1))" --retry-delay 3 --retry-all-errors "$1"
 }
 
+# admin_otp_from_logs COMPOSE_FILE [SINCE] — prints the newest admin one-time
+# login code from the backend logs (since SINCE when given), or nothing. The
+# marker sits inside the msg field of a JSON log line, so the substring is matched.
+admin_otp_from_logs() {
+  docker compose -f "$1" logs ${2:+--since "$2"} backend 2>/dev/null |
+    grep -a "ADMIN-EINMALPASSWORT" |
+    grep -aoE 'code=[0-9]{6}' |
+    tail -n1 | cut -d= -f2 || true
+}
+
 resolve_backup_dir() {
   BACKUP_DIR="${BACKUP_DIR:-$(read_env BACKUP_DIR)}"
   [[ -n "$BACKUP_DIR" ]] || BACKUP_DIR="./backups"
