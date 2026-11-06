@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -23,12 +23,12 @@ func NewRepository(db *sql.DB) Repository {
 // jsonVariante spiegelt die Feldliste der View produkt_varianten_json
 // (database/migrations/09_produkt_varianten_json.up.sql).
 type jsonVariante struct {
-	ID         int         `json:"id"`
-	Name       string      `json:"name"`
-	PreisCents int         `json:"preisCents"`
-	Status     string      `json:"status"`
-	CreatedAt  db.NullTime `json:"createdAt"`
-	UpdatedAt  db.NullTime `json:"updatedAt"`
+	ID         int       `json:"id"`
+	Name       string    `json:"name"`
+	PreisCents int       `json:"preisCents"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 func (jv *jsonVariante) toDomain() produkt.Variante {
@@ -37,8 +37,8 @@ func (jv *jsonVariante) toDomain() produkt.Variante {
 		Name:       jv.Name,
 		PreisCents: jv.PreisCents,
 		Status:     produkt.Status(jv.Status),
-		CreatedAt:  jv.CreatedAt.Time,
-		UpdatedAt:  jv.UpdatedAt.Time,
+		CreatedAt:  jv.CreatedAt,
+		UpdatedAt:  jv.UpdatedAt,
 	}
 }
 
