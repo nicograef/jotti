@@ -43,14 +43,14 @@ jotti ist ein self-hosted Kassensystem (mobile Point of Sale) für Vereinsfeste.
 
 **Bounded Contexts:** Das System ist in sechs fachliche Bereiche gegliedert (Details → [handbuch.md §2](handbuch.md#2-bounded-contexts)).
 
-| Bereich        | Aufgabe                                                                                                                                 | Persistenz                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Kasse          | Alle finanziellen Geschäftsvorfälle: Bestellen, Bezahlen/Kassieren, Stornieren, Umbuchen, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
-| Fiskalisierung | TSE-Signierung, DSFinV-K-Export, TSE-Einrichtung und Kassenidentität                                                                    | Outbox + CRUD                  |
-| Druck/Ausgabe  | Arbeitsbons und Kassenbelege drucken, Druckstationen konfigurieren                                                                      | Outbox (Druckaufträge) + CRUD  |
-| Stammdaten     | Produkte, Tische, Benutzer, Betreiber-Stammdaten                                                                                        | CRUD mit Soft-Delete           |
-| Reporting      | Live-Auswertung und Abrechnung, direkt aus dem Kassenjournal aggregiert                                                                 | kein eigener Store             |
-| Auth           | Login, Logout, Passwort, Token                                                                                                          | Infrastruktur                  |
+| Bereich        | Aufgabe                                                                                                                                                | Persistenz                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| Kasse          | Alle finanziellen Geschäftsvorfälle: Bestellen, Bezahlen/Kassieren, Stornieren, Umbuchen, Pfandrückgabe, Kassenbewegungen, Kassensturz, Tagesabschluss | Event-Sourcing (Kassenjournal) |
+| Fiskalisierung | TSE-Signierung, DSFinV-K-Export, TSE-Einrichtung und Kassenidentität                                                                                   | Outbox + CRUD                  |
+| Druck/Ausgabe  | Arbeitsbons und Kassenbelege drucken, Druckstationen konfigurieren                                                                                     | Outbox (Druckaufträge) + CRUD  |
+| Stammdaten     | Produkte, Tische, Benutzer, Betreiber-Stammdaten                                                                                                       | CRUD mit Soft-Delete           |
+| Reporting      | Live-Auswertung und Abrechnung, direkt aus dem Kassenjournal aggregiert                                                                                | kein eigener Store             |
+| Auth           | Login, Logout, Passwort, Token                                                                                                                         | Infrastruktur                  |
 
 **Betriebsumgebung dieser Instanz:** «Beschreibt hier, wo jotti läuft. Beispiel Standardweg: ein Windows-Rechner im Vereinsheim wird zum Kassenrechner, die Helfer bedienen jotti im selben WLAN. Beispiel Experten-Weg: jotti läuft auf einem VPS bei «Anbieter» unter der Domain «kasse-musterverein.de» mit HTTPS.»
 
@@ -64,7 +64,7 @@ Vollständige Architektur-Referenz: [handbuch.md §1 und §2](handbuch.md#1-übe
 
 **Einfrieren der Bezugsdaten (Fat Events):** Eine Bestellung speichert Produktname, Variante, Kategorie, Steuersatz und Einzelpreis so, wie sie im Moment der Bestellung galten. Spätere Preis- oder Stammdaten-Änderungen wirken nur auf künftige Bestellungen und verändern historische Buchungen nicht.
 
-**Strukturierung (Subjects):** Die Ereignisse sind nach Betriebstag (Kassensitzung) und Abrechnungseinheit geordnet: jeder Tisch innerhalb einer Kassensitzung sowie jeder Theken-Direktverkauf bildet einen eigenen, lückenlos versionierten Ereignis-Strom. Das ergibt pro Tisch und pro Betriebstag einen geschlossenen Abrechnungskreis.
+**Strukturierung (Subjects):** Die Ereignisse sind nach Betriebstag (Kassensitzung) und Abrechnungseinheit geordnet: jeder Tisch innerhalb einer Kassensitzung sowie jeder Theken-Direktverkauf bildet einen eigenen, lückenlos versionierten Ereignis-Strom. Das ergibt pro Tisch und pro Betriebstag einen geschlossenen Abrechnungskreis. Jede Pfandrückgabe bildet wie ein Theken-Direktverkauf einen eigenen Strom; ihre Stornierungen folgen im selben Strom.
 
 **Geldbeträge:** Alle Beträge sind ganzzahlige Cent-Werte. Es werden keine Fließkommazahlen verwendet.
 
@@ -78,11 +78,11 @@ jotti unterliegt nach § 146a AO der Pflicht, jeden Geschäftsvorfall durch eine
 
 **Absicherung jedes Vorgangs:** Jeder relevante Vorgang wird über das anbieter-agnostische `TSEClient`-Interface signiert. jotti folgt dem atomaren Festzelt-Muster: Jeder Vorgang ist eine eigene, sofort geschlossene TSE-Transaktion. Die Zuordnung der TSE-Vorgangsarten:
 
-| jotti-Vorgang                                                                                                                                                                          | TSE-Vorgangsart (processType) |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung                                                                                                                                | `Bestellung-V1`               |
-| Zahlung, Warenrücknahme (kassenwirksamer Storno), Anfangsbestand bei Sitzungseröffnung (Bareinlage, entfällt bei Betrag 0), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno) | `Kassenbeleg-V1`              |
-| Tagesabschluss (Z-Bon)                                                                                                                                                                 | `SonstigerVorgang`            |
+| jotti-Vorgang                                                                                                                                                                                                             | TSE-Vorgangsart (processType) |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Bestellung aufnehmen, geldneutrale Korrektur, Umbuchung                                                                                                                                                                   | `Bestellung-V1`               |
+| Zahlung, Warenrücknahme (kassenwirksamer Storno), Anfangsbestand bei Sitzungseröffnung (Bareinlage, entfällt bei Betrag 0), Geldtransit, Kassendifferenz, Direktverkauf (inkl. Storno), Pfandrückgabe (inkl. Stornierung) | `Kassenbeleg-V1`              |
+| Tagesabschluss (Z-Bon)                                                                                                                                                                                                    | `SonstigerVorgang`            |
 
 **Signaturablauf und Persistenz:** Die Signierung ist vom Kassiervorgang entkoppelt, das Buchen wartet nie auf die TSE. Jeder signaturpflichtige Vorgang schreibt im selben Datenbank-Commit wie das Ereignis genau einen Signaturauftrag (transaktionale Outbox `tse_signaturauftraege`); ein Signatur-Worker signiert asynchron über das `TSEClient`-Interface und speichert die von der TSE gelieferten Signaturdaten (Transaktionsnummer, Signaturzähler, Signatur, Zeitstempel, Seriennummer) direkt am Auftrag. Beleg und DSFinV-K-Export lesen genau diese eine Quelle. Im Regelbetrieb liegt die Signatur binnen Sekunden vor (angestrebte Latenz: p95 unter fünf Sekunden). Der Signatur-Worker signiert seriell; ein Rückstand baut sich mit derselben Rate wieder ab und hält den Betrieb nicht auf.
 

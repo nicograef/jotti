@@ -84,6 +84,8 @@ Die `processType`-Werte sind in der DSFinV-K, Anhang I, festgelegt; der AEAO zu 
 | `zahlung-kassiert:v1`           | `Kassenbeleg-V1`   | Tisch-Teilzahlung oder Vollzahlung                                                           |
 | `direktverkauf-getaetigt:v1`    | `Kassenbeleg-V1`   | Atomar, keine vorgelagerte `Bestellung-V1`, da Bestellung und Zahlung zeitgleich stattfinden |
 | `direktverkauf-storniert:v1`    | `Kassenbeleg-V1`   | Stornobeleg mit negativem Betrag, `REF_BON_ID` auf den Ursprungsverkauf                      |
+| `pfand-zurueckgegeben:v1`       | `Kassenbeleg-V1`   | Pfandrückgabe mit negativen Beträgen am Satz des Pfand-Produkts, ohne Referenz               |
+| `pfandrueckgabe-storniert:v1`   | `Kassenbeleg-V1`   | Stornierung einer Pfandrückgabe mit positiven Beträgen, `REF_BON_ID` auf die Rückgabe        |
 | `stornierung-erteilt:v1`        | `Kassenbeleg-V1`   | Warenrücknahme bezahlter Positionen, negative Beträge, `REF_BON_ID` auf die Zahlung          |
 | `bestellung-korrigiert:v1`      | `Bestellung-V1`    | Geldneutrale Korrektur unbezahlter Positionen, ohne Zahlungszeile                            |
 | `bestellung-umgebucht:v1`       | `Bestellung-V1`    | Geldneutrale Umbuchung unbezahlter Positionen zwischen Tischen, ohne Zahlungszeile           |
@@ -343,7 +345,7 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `lines.csv`             | Bonpos               | Einzelne Artikel: `POS_ZEILE`, `ART_NR`, `MENGE`, `EINHEIT`, `STK_BR` (Stückpreis brutto)                                        |
 | `lines_vat.csv`         | Bonpos_USt           | USt-Aufschlüsselung pro Artikelzeile                                                                                             |
 | `itemamounts.csv`       | Bonpos_Preisfindung  | Preisfindung je Position (Rabatte, Zu-/Abschläge). Für jotti gegenstandslos, header-only exportiert                              |
-| `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position (z. B. Pfand). Für jotti gegenstandslos, header-only exportiert                                  |
+| `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position. Für jotti gegenstandslos, header-only exportiert                                                |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
 #### C. Kassenabschlussmodul (Z-Bon)
@@ -367,6 +369,7 @@ Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft
 - **Vergabe:** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`), intern Subject `kassensitzung-{nr}/tisch-{id}`. Das Format erlaubt beliebige Strings bis 50 Zeichen; `Tisch {Name}` ist eine jotti-interne Konvention. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
 - **Mehrere Gästegruppen am selben Tisch:** teilen sich einen Abrechnungskreis — zulässig, solange alle Bons korrekt verknüpft sind.
 - **Direktverkauf:** sofort geschlossene Transaktion ohne Tisch, im Export ohne `ABRECHNUNGSKREIS` (das Feld ist optional). Keine `Bestellung-V1` nötig, direkt als `Kassenbeleg-V1` abgesichert.
+- **Pfandrückgabe:** Rückgabe und Stornierung tragen den Tischnamen aus der `tischId` ihres eigenen Events. Mit `tischId` 0 (Theke) bleibt `ABRECHNUNGSKREIS` leer.
 
 ### 6.6 Storno-Handling in DSFinV-K
 
@@ -376,7 +379,8 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 - **Bon-Storno (nach Zahlung):** neuer Bon mit negativem Gesamtbetrag, `REF_BON_ID` auf den Original-Zahlungsbeleg, eigene `Kassenbeleg-V1`-Transaktion.
 - **`BON_STORNO`:** bleibt in allen Fällen `0`. jotti nutzt die zulässige Negativ-Darstellung, das Vorzeichen des neuen Bons trägt die Korrektur. `BON_STORNO = 1` kennzeichnet die vollständige Aufhebung eines ganzen Belegs; diesen Vorgang gibt es in jotti nicht.
 - **Direktverkauf:** `direktverkauf-getaetigt:v1` (positiver Geschäftsvorfall) und `direktverkauf-storniert:v1` (negativer Geschäftsvorfall) sind je eigene Belegvorgänge. Jedes Event wird 1:1 auf einen Belegvorgang abgebildet. Der Storno verweist per `REF_BON_ID` auf den Ursprungsverkauf.
-- **Abgrenzung:** Ein Storno ist ein negativer `Beleg`-Bon mit `GV_TYP = Umsatz` in `lines.csv`. Negative Bargeldabflüsse (`GV_TYP = Geldtransit` oder `DifferenzSollIst`) sind keine Stornos und brauchen keine Referenz.
+- **Pfandrückgabe:** Die Rückgabe ist ein negativer `Beleg` ohne Referenz. Pfandrückgaben mindern das Entgelt unabhängig vom Verkauf (Abschn. 10.1 Abs. 8 Satz 3 UStAE). Ihre Stornierung ist ein positiver `Beleg` mit `REF_BON_ID` auf die Rückgabe.
+- **Abgrenzung:** Ein Storno ist ein negativer `Beleg`-Bon mit `GV_TYP = Umsatz` in `lines.csv`. Negative Bargeldabflüsse (`GV_TYP = Geldtransit` oder `DifferenzSollIst`) und Pfandrückgaben (`PfandRueckzahlung`) sind keine Stornos und brauchen keine Referenz.
 - **Rechtsgrundlage:** Warenrücknahme und Positionskorrektur folgen der Negativ-Darstellung nach DSFinV-K Tz. 4.2.5 und Tz. 4.2.3. Die Korrektur negiert `MENGE`, statt `P_STORNO` zu setzen. Die Referenz auf den Ursprungsbon folgt Tz. 4.2.2.
 - **Umbuchung:** Abgang und Zugang sind je ein geldneutraler `AVBestellung`-Bon. Der Abgang trägt die `umbuchungId` als `BON_ID`, der Zugang verweist per `REF_BON_ID` darauf.
 - **`references.csv`:** `REF_TYP` ist `Transaktion`, `POS_ZEILE` bleibt leer (Verweis aus dem Bonkopf). Ursprung und Verweis liegen in derselben Kassensitzung. Daher tragen `REF_DATUM`, `REF_Z_KASSE_ID` und `REF_Z_NR` die Werte dieses Abschlusses.
@@ -397,8 +401,9 @@ Produkte erhalten einen konfigurierbaren Steuersatz-Schlüssel. Bei `kombi`-Posi
 ### 6.8 Bontypen und Geschäftsvorfälle
 
 - **Umsatz bei Zahlung:** Umsatz entsteht erst mit der Zahlung (DSFinV-K Tz. 2.7.2, Durchbedienen mit Bestell-Absicherung).
-- **`BON_TYP` (Anhang B):** Zahlung, Warenrücknahme, Direktverkauf samt Storno und Bargeldbewegungen sind `Beleg`. Bestellung, Korrektur und Umbuchung sind `AVBestellung`. Der Tagesabschluss ist `AVSonstige`.
+- **`BON_TYP` (Anhang B):** Zahlung, Warenrücknahme, Direktverkauf samt Storno, Pfandrückgabe samt Stornierung und Bargeldbewegungen sind `Beleg`. Bestellung, Korrektur und Umbuchung sind `AVBestellung`. Der Tagesabschluss ist `AVSonstige`.
 - **Geldneutrale Bons:** `AVBestellung` und `AVSonstige` sind TSE-gesichert, tragen aber keinen Umsatz (`UMS_BRUTTO` 0,00). Sie haben weder USt- noch Zahlart- noch Kassenbestandswirkung. Die Positionen einer `AVBestellung` stehen informativ in `lines.csv`, ohne `GV_TYP`. Sonst wiese eine Summe der Bonpos je `GV_TYP` mehr Umsatz aus als der Kassenabschluss.
+- **`PfandRueckzahlung` (Anhang C):** Pfandrückgabe und deren Stornierung tragen diesen `GV_TYP`, mit Zahlart Bar. Die Rückgabe negiert `MENGE` und Beträge je USt-Schlüssel (Tz. 4.2.5). `businesscases.csv` summiert `PfandRueckzahlung` je USt-Schlüssel; der Pfand-Verkauf bleibt `Umsatz`.
 - **Bargeldbewegungen (Anhang C):** Anfangsbestand, Geldtransit und `DifferenzSollIst` sind `Beleg` mit genau einer Position. `ARTIKELTEXT` und `GV_TYP` tragen den GV-Typ, `UST_SCHLUESSEL` ist 5 (nicht steuerbar). Sie haben keinen `ABRECHNUNGSKREIS`. Ein Anfangsbestand von 0 erzeugt keinen Bon (Anhang C: Erfassung nicht zwingend).
 - **Tagesabschluss:** Der Tagesabschluss ist ein `AVSonstige`-Bon ohne Positionen mit `BON_NAME` „Tagesabschluss“. Bei `AVSonstige` ist `BON_NAME` Pflicht (Anhang B, Tz. 4.1.2). Er steht im Export, damit seine TSE-Signatur eine Zeile in `transactions_tse.csv` erhält. So geht der Abgleich TSE ↔ Export je Kassensitzung auf.
 
