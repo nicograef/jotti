@@ -1,0 +1,53 @@
+BMF v. 20.10.2014 - IV D 2 - S 7200/07/10022 :002
+BStBl 2014 I S. 1372
+
+Umsatzsteuerrechtliche Behandlung der Hin- und Rückgabe von Transportbehältnissen
+Rückgabe von Transporthilfsmitteln (Änderung der Verwaltungsauffassung)
+
+Bezug: BMF, Schreiben v. 5. 11. 2013 – IV D 2 – S 7200/07/10022: 002 (2013/0961371) – BStBl 2013 I S. 1386
+
+Im Groß- und Einzelhandel werden für die Belieferung mit Waren Transportbehältnisse (sog. Transporthilfsmittel, auch Lademittel und Packmittel genannt, und Warenumschließungen) aller Art eingesetzt. Die Überlassung der Behältnisse erfolgt entweder gegen ein gesondert vereinbartes Pfandgeld oder im Rahmen reiner Tauschsysteme. Für die umsatzsteuerrechtliche Behandlung von Transportbehältnissen gilt unter Bezugnahme auf das Ergebnis der Erörterungen mit den obersten Finanzbehörden der Länder Folgendes:
+
+I. Überlassung von Transportbehältnissen gegen ein gesondert vereinbartes Pfandgeld
+
+1. Abgrenzung Transporthilfsmittel zu Warenumschließungen
+
+Bei der Hingabe eines Transportbehältnisses gegen ein gesondert vereinbartes Pfandgeld ist für die umsatzsteuerrechtliche Behandlung zu unterscheiden, ob es sich bei dem Behältnis um ein (selbständiges) Transporthilfsmittel oder lediglich um eine Warenumschließung handelt. Transporthilfsmittel dienen grundsätzlich der Vereinfachung des Warentransports und der Lagerung und werden u. U. auch im Einzelhandel zur Warenpräsentation genutzt. Transporthilfsmittel sind z. B. Getränke-Paletten, H1-Kunststoffpaletten, Kisten (z. B. Ernteboxen), Steigen und Container für Blumen, Obst und Gemüse, Rollcontainer, Fleischkästen, Fischtransportkisten, Shipper-Boxen für Kartoffeln und Zwiebeln, Quattro-Boxen etc. Diesen Transporthilfsmitteln ist gemeinsam, dass sie für logistische Aktivitäten innerhalb des Unternehmens, aber auch beim Durchlaufen von Handelsstufen, an denen mehrere Unternehmer beteiligt sind (Hersteller – Großhändler – Einzelhändler), eingesetzt werden. Sie werden grundsätzlich nicht an den Endverbraucher geliefert.
+
+Im Gegensatz hierzu liegen lediglich Warenumschließungen vor, wenn aufgrund der Eigenart einer Ware eine bestimmte Umschließung erforderlich ist, um diese für den Endverbraucher verkaufs- und absatzfähig zu machen. Hierbei handelt es sich überwiegend um innere und äußere Behältnisse, Aufmachungen, Umhüllungen und Unterlagen, welche für die Lieferbarkeit von Waren an den Endverbraucher notwendig (z. B. Flaschen) oder üblich (z. B. Getränkekasten) sind oder unabhängig von ihrer Verwendung als Verpackung keinen dauernden selbständigen Gebrauchswert haben. Ob der Gebrauchswert geringfügig ist oder nicht, ist ohne Bedeutung.
+
+2. Art der Leistungen
+
+Die Hingabe des Transporthilfsmittels gegen Pfandgeld stellt eine eigenständige Lieferung dar, die dem Regelsteuersatz nach § 12 Absatz 1 UStG unterliegt. Warenumschließungen teilen im Gegensatz hierzu weiterhin stets das Schicksal der Hauptleistung und unterliegen somit den steuerlichen Regelungen der eigentlichen Hauptleistung.
+
+Bei Rückgabe und Rückzahlung des Pfandgeldes liegen sowohl bei Transporthilfsmitteln als auch bei Warenumschließungen Entgeltminderungen vor. Im Unterschied zur Rückgabe eines Transporthilfsmittels (Anwendung des Regelsteuersatzes) muss die Entgeltminderung bei der Rückgabe der Warenumschließung dem für die vorherige Hauptleistung geltenden Steuersatz zugeordnet werden. Der leistende Unternehmer hat bei Rückgabe die aus der ursprünglichen Hingabe des Transportbehältnisses geschuldete Umsatzsteuer nach § 17 Abs. 1 Satz 1 UStG zu berichtigen. Die Berichtigung ist nach § 17 Abs. 1 Satz 7 UStG für den Besteuerungszeitraum vorzunehmen, in dem die Änderung der Bemessungsgrundlage eingetreten ist. Auf die Anwendung der Vereinfachungsregelung nach Abschnitt 10.1 Abs. 8 UStAE wird hingewiesen. Zur Vorsteuerkorrektur vgl. I. Nr. 3.
+
+Die Einordnung des Transportbehältnisses anhand der in I. Nr. 1 dargestellten Abgrenzungskriterien hat auf allen Handelsstufen (Pfandbetreiber – Hersteller – Großhändler – Einzelhändler) einheitlich zu erfolgen. Wird danach das Transportbehältnis als Transporthilfsmittel eingeordnet und dieses gegen ein Pfandgeld überlassen, handelt es sich bei der Hingabe um eine entgeltliche Lieferung. Eine spätere Umqualifizierung in der Lieferkette als (unselbständige) Warenumschließung oder umgekehrt findet nicht statt. Dem steht nicht entgegen, dass das Transporthilfsmittel beispielsweise in der ersten Stufe gegen ein Pfandgeld (entgeltliche Lieferung) überlassen und in einer späteren Stufe der Lieferkette in ein Tauschsystem integriert wird und somit den in II. des BMF-Schreibens vom 5. November 2013 (a. a. O.) aufgeführten Regelungen unterliegt.
+
+3. Vorsteuerabzug
+
+Dem Unternehmer steht unter den weiteren Voraussetzungen des § 15 UStG aus der Lieferung des Transporthilfsmittels oder aus der Lieferung der Ware unter Verwendung einer Warenumschließung an ihn der Vorsteuerabzug zu. Bei Rückgabe des Transportbehältnisses gegen Rückzahlung des Pfandgeldes ist der Vorsteuerabzug aus der ursprünglichen Lieferung an den Unternehmer nach § 17 Absatz 1 Satz 2 UStG entsprechend zu berichtigen.
+
+4. Anwendung der Durchschnittssatzbesteuerung nach § 24 UStG
+
+Im Anwendungsbereich der Durchschnittssatzbesteuerung nach § 24 UStG unterliegen die Lieferungen von Transporthilfsmitteln grundsätzlich der Regelbesteuerung (vgl. I. Nr. 2). Derartige Lieferungen können jedoch aus Vereinfachungsgründen wie die Umsätze mit Gegenständen des land- und forstwirtschaftlichen Unternehmensvermögens (z. B. gebrauchter landwirtschaftlicher Geräte) der Durchschnittssatzbesteuerung unterliegen, wenn die Transporthilfsmittel zu mindestens 95 % für Umsätze verwendet worden sind, die den Vorsteuerabzug nach § 24 Absatz 1 Satz 4 UStG ausschließen (vgl. Abschnitt 24.2 Absatz 6 Satz 3 UStAE). Auch die gesonderte Anwendung der Vereinfachungsregelung nach Abschnitt 24.6 UStAE ist möglich.
+
+II. Überlassung von Transporthilfsmitteln im Rahmen reiner Tauschsysteme
+
+Erfolgt die Überlassung von Transporthilfsmitteln im Rahmen reiner Tauschsysteme, gelten die in II. des BMF-Schreibens vom 5. November 2013 (a. a. O.) dargestellten Grundsätze.
+
+III. Änderung des Umsatzsteuer-Anwendungserlasses
+
+Unter Bezugnahme auf das Ergebnis der Erörterungen mit den obersten Finanzbehörden der Länder wird der Umsatzsteuer-Anwendungserlass vom 1. Oktober 2010, BStBl 2010 I S. 846, der zuletzt durch BMF-Schreiben vom 17. Oktober 2014 – IV D 3 – S 7359/07/10009 (2014/0927860), BStBl 2014 I S. 1369, geändert worden ist, wie folgt geändert:
+
+Abschnitt 3.10 Abs. 5a wird wie folgt gefasst:
+
+„(5a) 1 Die Hingabe des Transporthilfsmittels gegen Pfandgeld ist als eigenständige Lieferung zu beurteilen. 2 Warenumschließungen teilen im Gegensatz hierzu stets das Schicksal der Hauptleistung. 3 Bei Rückgabe und Rückzahlung des Pfandgeldes liegen sowohl bei Transporthilfsmitteln als auch bei Warenumschließungen Entgeltminderungen vor. 4 Zur Anwendung der Vereinfachungsregelung bei Rückgabe von Transporthilfsmitteln bzw. Warenumschließungen vgl. Abschnitt 10.1 Abs. 8 UStAE. 5 Zur Abgrenzung zwischen Transporthilfsmitteln und Warenumschließungen vgl. BMF-Schreiben vom 20.10.2014, BStBl I S. 1372 und zur Überlassung des Transporthilfsmittels im Rahmen reiner Tauschsysteme vgl. Abschnitt 3.5 Abs. 3 Nr. 18.”
+
+In Abschnitt 10.1 Abs. 8 wird der bisherige Satz 9 durch die folgenden Sätze 9 und 10 ersetzt:
+
+„9 Die dargestellten Vereinfachungsregelungen gelten sinngemäß auch für die Hin- und Rückgabe von Transporthilfsmitteln. 10 Zur Behandlung von Transporthilfsmitteln vgl. Abschnitt 3.10 Abs. 5a und zur Abgrenzung zwischen Transporthilfsmitteln und Warenumschließungen vgl. BMF-Schreiben vom 20. 10. 2014, BStBl I S. 1372.”
+
+IV. Anwendungsregelung
+
+Die Grundsätze dieses Schreibens sind in allen offenen Fällen anzuwenden. Abschnitt I. des BMF-Schreibens vom 5. November 2013 (a. a. O.) wird aufgehoben, soweit er den Grundsätzen dieses Schreibens widerspricht. Es wird jedoch nicht beanstandet, wenn für Umsätze, die vor dem 1. Juli 2015 getätigt werden, in den unter I. dargestellten Sachverhalten die Beteiligten unter Berufung auf das BMF-Schreiben vom 5. November 2013 (a. a. O.) nach den dort aufgestellten Grundsätzen verfahren sind.

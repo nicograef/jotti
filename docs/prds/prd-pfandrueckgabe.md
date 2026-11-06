@@ -210,8 +210,8 @@ Steuerlich ist „Umsatz" korrekt: gleicher Satz, gleiches Entgelt (Abschn. 10.1
 
 ### Prüfpunkte vor der Umsetzung
 
-- Ob Festgläser Warenumschließungen oder Transporthilfsmittel sind, regelt das BMF-Schreiben vom 20.10.2014. Es liegt nicht in den Rechtsquellen.
-- Die Einordnung als Warenumschließung ist eine Folgerung aus DSFinV-K Anhang C („Flaschen"), kein Zitat.
+- Ob Festgläser Warenumschließungen oder Transporthilfsmittel sind, regelt das BMF-Schreiben vom 20.10.2014 (I. Nr. 1).
+- Das Schreiben nennt Flaschen, keine Gläser oder Teller. Die Einordnung als Warenumschließung ist eine Folgerung aus seinen Kriterien, kein Zitat.
 - Die DSFinV-K zitiert § 17 Abs. 1 Satz 7 UStG. Nach dem vorliegenden Gesetzestext steht die Zeitraumregel in Satz 8.
 - Die Dateitabelle des DSFinV-K-Exports in der Compliance-Doku nennt Pfand als Beispiel für die Zusatzinfo. Die Spezifikation stützt das nicht.
 
