@@ -52,13 +52,18 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/favorit-hinzufuegen", stc.FavoritHinzufuegenHandler())
 	r.HandleFunc("/favorit-entfernen", stc.FavoritEntfernenHandler())
 
-	dc := direktverkaufHTTP.CommandHandler{Command: direktverkaufApp.Command{
+	dvCommand := direktverkaufApp.Command{
 		EventRepo:           deps.KassenjournalRepo,
 		ProduktRepo:         deps.ProduktRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
-	}}
+		TischRepo:           deps.TischRepo,
+	}
+	dc := direktverkaufHTTP.CommandHandler{Command: dvCommand}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
+
+	pc := direktverkaufHTTP.PfandCommandHandler{Command: dvCommand}
+	r.HandleFunc("/pfand-zurueckgeben", pc.PfandZurueckgebenHandler())
 
 	dq := direktverkaufHTTP.QueryHandler{Query: direktverkaufApp.Query{
 		EventRepo:           deps.KassenjournalRepo,

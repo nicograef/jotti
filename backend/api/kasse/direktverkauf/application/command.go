@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -33,6 +34,10 @@ type produktRepo interface {
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
+type tischRepo interface {
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+}
+
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
@@ -42,9 +47,10 @@ type Command struct {
 	ProduktRepo         produktRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
+	TischRepo           tischRepo
 }
 
-// getOffeneKassensitzungOderFehler rejects the Direktverkauf before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
+// getOffeneKassensitzungOderFehler rejects the Direktverkauf or Pfandrückgabe before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
@@ -94,7 +100,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	// Frischer Stream (client-UUID): erwartete Version 0, das Event ist immer version = 1.
-	if err := c.persistVerkaufEvent(ctx, evt, subject, 0, ks.ZNr, buildAuftraege); err != nil {
+	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypeDirektverkauf, subject, 0, ks.ZNr, buildAuftraege); err != nil {
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
@@ -164,7 +170,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	if err := c.persistVerkaufEvent(ctx, evt, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
+	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypeDirektverkauf, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return ErrConflict
 		}
@@ -203,13 +209,13 @@ func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedV
 
 // persistVerkaufEvent: mit nicht-nil buildAuftraege entstehen die Druckaufträge in derselben
 // Transaktion; der Signaturauftrag des Events entsteht in jedem Fall im selben Commit.
-func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
+func (c Command) persistVerkaufEvent(ctx context.Context, evt event.Event, streamType kasse.StreamType, subject string, expectedVersion int, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) error {
 	if buildAuftraege != nil {
 		return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr, buildAuftraege)
+			return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, streamType, kassensitzungNr, buildAuftraege)
 		})
 	}
 	return writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return c.EventRepo.WriteEvent(ctx, versioned, kasse.StreamTypeDirektverkauf, kassensitzungNr)
+		return c.EventRepo.WriteEvent(ctx, versioned, streamType, kassensitzungNr)
 	})
 }

@@ -27,7 +27,19 @@ var ErrProduktNotFound = errors.New("produkt not found")
 // ErrVarianteNichtAktiv covers a deactivated variant or product; ErrProduktNotFound covers deleted or unknown IDs.
 var ErrVarianteNichtAktiv = errors.New("variante nicht aktiv")
 
+// ErrKeinPfandProdukt: a Pfand position references a product without the Pfand flag.
+var ErrKeinPfandProdukt = errors.New("kein pfand produkt")
+
+// EnrichPfandPositionen enriches like EnrichPositionen and accepts only variants of Pfand products.
+func EnrichPfandPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {
+	return enrich(ctx, repo, inputs, true)
+}
+
 func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {
+	return enrich(ctx, repo, inputs, false)
+}
+
+func enrich(ctx context.Context, repo produktRepo, inputs []PositionInput, nurPfand bool) ([]kasse.Position, error) {
 	log := logging.FromContext(ctx)
 
 	varianteIDs := make([]int, 0, len(inputs))
@@ -82,6 +94,11 @@ func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionIn
 		if variante.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
 			log.Warn("Variant or product not active", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
 			return nil, ErrVarianteNichtAktiv
+		}
+
+		if nurPfand && !prod.Pfand {
+			log.Warn("Product is no Pfand product", "produkt_id", input.ProduktID)
+			return nil, ErrKeinPfandProdukt
 		}
 
 		positionen = append(positionen, kasse.Position{

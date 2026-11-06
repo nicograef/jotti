@@ -228,8 +228,8 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 			return event.Event{}, false, err
 		}
 
-	case kasse.StreamTypeDirektverkauf:
-		// Direktverkauf lives entirely in the kassenjournal — no projection to update.
+	case kasse.StreamTypeDirektverkauf, kasse.StreamTypePfandrueckgabe:
+		// Direktverkauf and Pfandrückgabe live entirely in the kassenjournal — no projection to update.
 
 	default:
 		return event.Event{}, false, fmt.Errorf("unknown stream type: %s", streamType)
