@@ -2,8 +2,8 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -38,6 +38,21 @@ type CommandHandler struct {
 	Command tseSetupCommand
 }
 
+// setupFehlerKopf opens the Einrichtung and Übernahme tables. 409, not 400: the request is valid,
+// another path just holds the setup lock.
+var setupFehlerKopf = []helper.ErrorCode{
+	{Err: application.ErrTSESetupLaeuftBereits, Code: "tse_setup_laeuft_bereits", Status: http.StatusConflict},
+	{Err: application.ErrTSESetupZugangsdaten, Code: "tse_setup_zugangsdaten_ungueltig"},
+	{Err: application.ErrTSESetupUmgebungAbweichung, Code: "tse_setup_umgebung_abweichung"},
+	{Err: application.ErrTSEKonfigurationKassensitzungOffen, Code: "tse_konfiguration_kassensitzung_offen"},
+}
+
+// setupFehlerSchluss closes them: any other failure of the fiskaly lifecycle.
+var setupFehlerSchluss = []helper.ErrorCode{
+	{Err: application.ErrTSEEinrichtung, Code: "tse_einrichtung_fehlgeschlagen"},
+	{Err: application.ErrTSEVerbindungFehlgeschlagen, Code: "tse_einrichtung_fehlgeschlagen"},
+}
+
 type updateTSEKonfigurationRequest struct {
 	ApiKey    string `json:"apiKey"`
 	ApiSecret string `json:"apiSecret"`
@@ -52,6 +67,13 @@ var updateTSEKonfigurationSchema = z.Struct(z.Shape{
 	"ClientID":  z.String().Max(255, z.Message("Client-ID darf höchstens 255 Zeichen lang sein")).Optional(),
 })
 
+// The credential and environment fields shared by the Einrichtung and the Übernahme.
+var (
+	setupApiKeySchema    = z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required()
+	setupApiSecretSchema = z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required()
+	setupUmgebungSchema  = z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required()
+)
+
 type tseEinrichtenRequest struct {
 	ApiKey                     string `json:"apiKey"`
 	ApiSecret                  string `json:"apiSecret"`
@@ -61,9 +83,9 @@ type tseEinrichtenRequest struct {
 
 // NeuAnlegenTrotzVorhandener bypasses the existing-TSS lock in TEST only; LIVE ignores it.
 var tseEinrichtenSchema = z.Struct(z.Shape{
-	"ApiKey":                     z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
-	"ApiSecret":                  z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
-	"Umgebung":                   z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+	"ApiKey":                     setupApiKeySchema,
+	"ApiSecret":                  setupApiSecretSchema,
+	"Umgebung":                   setupUmgebungSchema,
 	"NeuAnlegenTrotzVorhandener": z.Bool().Optional(),
 })
 
@@ -79,9 +101,9 @@ type tseUebernehmenRequest struct {
 // Pin is the stored admin PIN, needed from UNINITIALIZED on.
 // Puk is set only for a PIN reset after the PIN was lost or locked.
 var tseUebernehmenSchema = z.Struct(z.Shape{
-	"ApiKey":    z.String().Min(1, z.Message("API-Key ist erforderlich")).Max(500, z.Message("API-Key darf höchstens 500 Zeichen lang sein")).Required(),
-	"ApiSecret": z.String().Min(1, z.Message("API-Secret ist erforderlich")).Max(500, z.Message("API-Secret darf höchstens 500 Zeichen lang sein")).Required(),
-	"Umgebung":  z.String().OneOf([]string{string(tse.UmgebungTest), string(tse.UmgebungLive)}, z.Message("Ungültige Umgebung")).Required(),
+	"ApiKey":    setupApiKeySchema,
+	"ApiSecret": setupApiSecretSchema,
+	"Umgebung":  setupUmgebungSchema,
 	"TssID":     z.String().Min(1, z.Message("TSS-ID ist erforderlich")).Max(255, z.Message("TSS-ID darf höchstens 255 Zeichen lang sein")).Required(),
 	"Pin":       z.String().Max(50, z.Message("Admin-PIN darf höchstens 50 Zeichen lang sein")).Optional(),
 	"Puk":       z.String().Max(100, z.Message("Admin-PUK darf höchstens 100 Zeichen lang sein")).Optional(),
@@ -110,15 +132,11 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 		}
 
 		if err := h.Command.UpdateTSEKonfiguration(r.Context(), conf); err != nil {
-			switch {
 			// 409: this path shares the setup lock with RichteTSEEin and UebernimmTSE.
-			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
-				helper.SendConflict(w, "tse_setup_laeuft_bereits")
-			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
-				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTSESetupLaeuftBereits, Code: "tse_setup_laeuft_bereits", Status: http.StatusConflict},
+				{Err: application.ErrTSEKonfigurationKassensitzungOffen, Code: "tse_konfiguration_kassensitzung_offen"},
+			})
 			return
 		}
 
@@ -152,26 +170,10 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
-			switch {
-			// 409, not 400: the request is valid, another path is just writing the configuration.
-			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
-				helper.SendConflict(w, "tse_setup_laeuft_bereits")
-			case errors.Is(err, application.ErrTSESetupZugangsdaten):
-				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
-			case errors.Is(err, application.ErrTSESetupUmgebungAbweichung):
-				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
-			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
-				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
-			case errors.Is(err, application.ErrTSEBereitsEingerichtet):
-				helper.SendClientError(w, "tse_bereits_eingerichtet", nil)
-			case errors.Is(err, application.ErrTSESetupTSSLimitErreicht):
-				helper.SendClientError(w, "tse_setup_tss_limit_erreicht", nil)
-			case errors.Is(err, application.ErrTSEEinrichtung),
-				errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
-				helper.SendClientError(w, "tse_einrichtung_fehlgeschlagen", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
+				{Err: application.ErrTSEBereitsEingerichtet, Code: "tse_bereits_eingerichtet"},
+				{Err: application.ErrTSESetupTSSLimitErreicht, Code: "tse_setup_tss_limit_erreicht"},
+			}, setupFehlerSchluss))
 			return
 		}
 
@@ -212,32 +214,13 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
-			switch {
-			// 409: shares the setup lock with RichteTSEEin.
-			case errors.Is(err, application.ErrTSESetupLaeuftBereits):
-				helper.SendConflict(w, "tse_setup_laeuft_bereits")
-			case errors.Is(err, application.ErrTSESetupZugangsdaten):
-				helper.SendClientError(w, "tse_setup_zugangsdaten_ungueltig", nil)
-			case errors.Is(err, application.ErrTSESetupUmgebungAbweichung):
-				helper.SendClientError(w, "tse_setup_umgebung_abweichung", nil)
-			case errors.Is(err, application.ErrTSEKonfigurationKassensitzungOffen):
-				helper.SendClientError(w, "tse_konfiguration_kassensitzung_offen", nil)
-			case errors.Is(err, application.ErrTSESetupTSSNichtGefunden):
-				helper.SendClientError(w, "tse_setup_tss_nicht_gefunden", nil)
-			case errors.Is(err, application.ErrTSESetupPINErforderlich):
-				helper.SendClientError(w, "tse_setup_pin_erforderlich", nil)
-			case errors.Is(err, application.ErrTSESetupPINUnbekannt):
-				helper.SendClientError(w, "tse_setup_pin_unbekannt", nil)
-			case errors.Is(err, application.ErrTSESetupPUKUnbekannt):
-				helper.SendClientError(w, "tse_setup_puk_unbekannt", nil)
-			case errors.Is(err, application.ErrTSESetupUebernahmeNichtMoeglich):
-				helper.SendClientError(w, "tse_setup_uebernahme_nicht_moeglich", nil)
-			case errors.Is(err, application.ErrTSEEinrichtung),
-				errors.Is(err, application.ErrTSEVerbindungFehlgeschlagen):
-				helper.SendClientError(w, "tse_einrichtung_fehlgeschlagen", nil)
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
+				{Err: application.ErrTSESetupTSSNichtGefunden, Code: "tse_setup_tss_nicht_gefunden"},
+				{Err: application.ErrTSESetupPINErforderlich, Code: "tse_setup_pin_erforderlich"},
+				{Err: application.ErrTSESetupPINUnbekannt, Code: "tse_setup_pin_unbekannt"},
+				{Err: application.ErrTSESetupPUKUnbekannt, Code: "tse_setup_puk_unbekannt"},
+				{Err: application.ErrTSESetupUebernahmeNichtMoeglich, Code: "tse_setup_uebernahme_nicht_moeglich"},
+			}, setupFehlerSchluss))
 			return
 		}
 
