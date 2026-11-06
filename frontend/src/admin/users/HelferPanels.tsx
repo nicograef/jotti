@@ -27,7 +27,7 @@ export function HelferPanels() {
           <strong className="text-foreground">Einmalpasswort</strong>.
         </OnboardingSchritt>
         <OnboardingSchritt nummer={2}>
-          Passwort dem Helfer zeigen (oder QR-Code scannen lassen).
+          Passwort dem Helfer zeigen.
         </OnboardingSchritt>
         <OnboardingSchritt nummer={3}>
           Helfer meldet sich am eigenen Handy an und wählt ein eigenes Passwort.
