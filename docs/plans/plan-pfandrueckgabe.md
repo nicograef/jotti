@@ -520,11 +520,11 @@ Demo: Den Samstag exportieren. `lines.csv` hat Zeilen „PfandRueckzahlung" mit 
 
 ### Acceptance criteria
 
-- [ ] Rückgabe und Stornierung ergeben die erwarteten Zeilen in Bonkopf, Positionen, Referenzen, Abrechnungskreis und Geschäftsvorfällen, auch den Tischnamen der Stornierung (`TestMapPfandrueckgabeUndStorno` in `backend/api/fiskal/dsfinvk/mapper_test.go`): `cd backend && go test ./api/fiskal/dsfinvk/ -run '^TestMapPfandrueckgabeUndStorno$' -v | grep -- '--- PASS: TestMapPfandrueckgabeUndStorno '`
-- [ ] Umsatz je Steuersatz und „Umsatz" plus „PfandRueckzahlung" stimmen je USt-Schlüssel überein (Fixture von `TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases` in `backend/api/reporting/application/query_export_konsistenz_test.go` um Rückgabe und Stornierung erweitert): `cd backend && grep -q 'EventTypePfandZurueckgegebenV1' api/reporting/application/query_export_konsistenz_test.go && go test ./api/reporting/application/ -run '^TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases$' -v | grep -- '--- PASS: TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases '`
-- [ ] Das Szenario enthält Rückgaben und eine Stornierung, und die Seed-Engine hält Soll, Z-Bon-Summe und Tisch-Salden ein: `cd backend && grep -q 'pfandrueckgabe{' seed/szenario.go && grep -q 'pfandStorno{' seed/szenario.go && go test ./seed/`
-- [ ] Der Export aller Seed-Sitzungen ist befundfrei, samt Pfand-Bons (`TestSeedExportBefundfrei`): `TEST_PG_CONTAINER=jotti-pg-p6 TEST_PG_PORT=5436 TEST_PKG=./dsfinvkpruefung/ TEST_RUN='^TestSeedExportBefundfrei$' make check-integration | grep -- '--- PASS: TestSeedExportBefundfrei '`
-- [ ] Prosa-Gate grün: `./scripts/check-prose.sh`
+- [x] Rückgabe und Stornierung ergeben die erwarteten Zeilen in Bonkopf, Positionen, Referenzen, Abrechnungskreis und Geschäftsvorfällen, auch den Tischnamen der Stornierung (`TestMapPfandrueckgabeUndStorno` in `backend/api/fiskal/dsfinvk/mapper_test.go`): `cd backend && go test ./api/fiskal/dsfinvk/ -run '^TestMapPfandrueckgabeUndStorno$' -v | grep -- '--- PASS: TestMapPfandrueckgabeUndStorno '`
+- [x] Umsatz je Steuersatz und „Umsatz" plus „PfandRueckzahlung" stimmen je USt-Schlüssel überein (Fixture von `TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases` in `backend/api/reporting/application/query_export_konsistenz_test.go` um Rückgabe und Stornierung erweitert): `cd backend && grep -q 'EventTypePfandZurueckgegebenV1' api/reporting/application/query_export_konsistenz_test.go && go test ./api/reporting/application/ -run '^TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases$' -v | grep -- '--- PASS: TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases '`
+- [x] Das Szenario enthält Rückgaben und eine Stornierung, und die Seed-Engine hält Soll, Z-Bon-Summe und Tisch-Salden ein: `cd backend && grep -q 'pfandrueckgabe{' seed/szenario.go && grep -q 'pfandStorno{' seed/szenario.go && go test ./seed/`
+- [x] Der Export aller Seed-Sitzungen ist befundfrei, samt Pfand-Bons (`TestSeedExportBefundfrei`): `TEST_PG_CONTAINER=jotti-pg-p6 TEST_PG_PORT=5436 TEST_PKG=./dsfinvkpruefung/ TEST_RUN='^TestSeedExportBefundfrei$' make check-integration | grep -- '--- PASS: TestSeedExportBefundfrei '`
+- [x] Prosa-Gate grün: `./scripts/check-prose.sh`
 
 ## Phase 7: Ende-zu-Ende und Dokumentation
 
