@@ -319,6 +319,22 @@ func (m *KassenjournalRepo) GetPfandrueckgabe(_ context.Context, rueckgabeID str
 	return event.Event{}, false, nil
 }
 
+func (m *KassenjournalRepo) GetPfandrueckgabeStornierung(_ context.Context, stornierungID string) (event.Event, bool, error) {
+	if m.err != nil {
+		return event.Event{}, false, m.err
+	}
+	for _, e := range m.events {
+		if e.Type != string(kasse.EventTypePfandrueckgabeStorniertV1) {
+			continue
+		}
+		var data kasse.PfandrueckgabeStorniertV1Data
+		if err := json.Unmarshal(e.Data, &data); err == nil && data.StornierungID == stornierungID {
+			return e, true, nil
+		}
+	}
+	return event.Event{}, false, nil
+}
+
 func (m *KassenjournalRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
 	if m.kassensitzungEventsErr != nil {
 		return nil, m.kassensitzungEventsErr

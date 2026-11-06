@@ -39,6 +39,14 @@ FROM kassenjournal
 WHERE type = 'pfand-zurueckgegeben:v1'
   AND data->>'rueckgabeId' = sqlc.arg(rueckgabe_id)::text;
 
+-- name: GetPfandrueckgabeStornierung :one
+-- Die Pfandrückgabe-Stornierung zu einer stornierungId über alle Kassensitzungen;
+-- idx_kassenjournal_pfand_stornierung_id hält sie eindeutig.
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'pfandrueckgabe-storniert:v1'
+  AND data->>'stornierungId' = sqlc.arg(stornierung_id)::text;
+
 -- name: ReadEventsByKassensitzung :many
 -- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session-, Direktverkauf-
 -- und Pfandrückgabe-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.

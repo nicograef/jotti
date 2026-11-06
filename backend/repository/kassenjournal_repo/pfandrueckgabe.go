@@ -38,3 +38,16 @@ func (r Repository) GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (
 	}
 	return eventFromReadRow(dbgen.ReadEventsBySubjectRow(row)), true, nil
 }
+
+// GetPfandrueckgabeStornierung returns the cancellation event of stornierungID from any
+// Kassensitzung; false means none is stored.
+func (r Repository) GetPfandrueckgabeStornierung(ctx context.Context, stornierungID string) (event.Event, bool, error) {
+	row, err := r.q.GetPfandrueckgabeStornierung(ctx, stornierungID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return event.Event{}, false, nil
+	}
+	if err != nil {
+		return event.Event{}, false, db.Error(err)
+	}
+	return eventFromReadRow(dbgen.ReadEventsBySubjectRow(row)), true, nil
+}

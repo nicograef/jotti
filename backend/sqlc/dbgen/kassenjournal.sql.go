@@ -123,6 +123,42 @@ func (q *Queries) GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (Ge
 	return i, err
 }
 
+const getPfandrueckgabeStornierung = `-- name: GetPfandrueckgabeStornierung :one
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'pfandrueckgabe-storniert:v1'
+  AND data->>'stornierungId' = $1::text
+`
+
+type GetPfandrueckgabeStornierungRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Die Pfandrückgabe-Stornierung zu einer stornierungId über alle Kassensitzungen;
+// idx_kassenjournal_pfand_stornierung_id hält sie eindeutig.
+func (q *Queries) GetPfandrueckgabeStornierung(ctx context.Context, stornierungID string) (GetPfandrueckgabeStornierungRow, error) {
+	row := q.db.QueryRowContext(ctx, getPfandrueckgabeStornierung, stornierungID)
+	var i GetPfandrueckgabeStornierungRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserName,
+		&i.Version,
+		&i.Type,
+		&i.Subject,
+		&i.Data,
+		&i.Timestamp,
+	)
+	return i, err
+}
+
 const readDirektverkaufEvents = `-- name: ReadDirektverkaufEvents :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal

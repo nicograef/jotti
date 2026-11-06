@@ -150,3 +150,66 @@ func TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg(t *te
 		t.Errorf("erwartet 2 tse_signaturauftraege (Rückgabe und Stornierung), vorhanden: %d", auftraegeCount)
 	}
 }
+
+// TestPfandrueckgabeStornieren_AbweichendeStornierungId_KeinEvent: a stornierungId booked for one
+// Rückgabe and reused for another Rückgabe, or for other quantities, is refused with
+// ErrPfandrueckgabeAbweichend and books nothing; it would duplicate a BON_ID or skip a Storno.
+func TestPfandrueckgabeStornieren_AbweichendeStornierungId_KeinEvent(t *testing.T) {
+	tests := []struct {
+		name            string
+		andereRueckgabe bool
+		menge           int
+	}{
+		{"andere Rückgabe", true, 1},
+		{"andere Menge", false, 2},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cmd, db, userID, ksNr, _, _ := setupDVIntegration(t)
+			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+			inputs := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}}
+
+			zurueckgeben := func() (string, string) {
+				rueckgabeID := uuid.New().String()
+				if err := cmd.PfandZurueckgeben(ctx, userID, "test", rueckgabeID, 0, inputs, ""); err != nil {
+					t.Fatalf("Rückgabe: %v", err)
+				}
+				events, err := cmd.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ksNr, rueckgabeID))
+				if err != nil {
+					t.Fatalf("Stream lesen: %v", err)
+				}
+				eintrag, err := kasse.BuildPfandrueckgabeHistorieEintrag(events)
+				if err != nil {
+					t.Fatalf("Replay: %v", err)
+				}
+				return rueckgabeID, eintrag.OffenePositionen[0].PositionID
+			}
+
+			rueckgabeID, positionID := zurueckgeben()
+			stornierungID := uuid.New().String()
+			if err := cmd.PfandrueckgabeStornieren(ctx, userID, "test", stornierungID, rueckgabeID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Falsch gezählt"); err != nil {
+				t.Fatalf("erste Stornierung: %v", err)
+			}
+			if tt.andereRueckgabe {
+				rueckgabeID, positionID = zurueckgeben()
+			}
+			var vorher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&vorher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+
+			err := cmd.PfandrueckgabeStornieren(ctx, userID, "test", stornierungID, rueckgabeID, []kasse.PositionRef{{PositionID: positionID, Menge: tt.menge}}, "Falsch gezählt")
+			if !errors.Is(err, ErrPfandrueckgabeAbweichend) {
+				t.Errorf("erwartet ErrPfandrueckgabeAbweichend, bekam: %v", err)
+			}
+
+			var nachher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&nachher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+			if nachher != vorher {
+				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+			}
+		})
+	}
+}

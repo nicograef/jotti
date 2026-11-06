@@ -120,6 +120,10 @@ func (s *spyEventRepo) GetPfandrueckgabe(_ context.Context, _ string) (event.Eve
 	return event.Event{}, false, nil
 }
 
+func (s *spyEventRepo) GetPfandrueckgabeStornierung(_ context.Context, _ string) (event.Event, bool, error) {
+	return event.Event{}, false, nil
+}
+
 type mockDruckstationRepo struct {
 	konfig map[string]druckstation.Druckstation
 	err    error

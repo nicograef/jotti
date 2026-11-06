@@ -122,10 +122,10 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 
 **Pfand-Events** (Subject `kassensitzung-{nr}/pfandrueckgabe-{rueckgabeId}`):
 
-| Event                         | Semantik                                                           | Tragende Constraints                                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `pfand-zurueckgegeben:v1`     | Pfandrückgabe: der Gast erhält den Pfandbetrag bar oder verrechnet | Immer `version = 1`; nur Varianten eines Pfand-Produkts; `rueckgabeId` vom Client, eindeutig im Kassenjournal; Kommentar optional |
-| `pfandrueckgabe-storniert:v1` | Positionsgenaue Stornierung einer Pfandrückgabe                    | Folge-Version im selben Stream; `stornierungId` vom Client; `tischId` aus der Rückgabe; Kommentar Pflicht (min. 3 Zeichen)        |
+| Event                         | Semantik                                                           | Tragende Constraints                                                                                                                                   |
+| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pfand-zurueckgegeben:v1`     | Pfandrückgabe: der Gast erhält den Pfandbetrag bar oder verrechnet | Immer `version = 1`; nur Varianten eines Pfand-Produkts; `rueckgabeId` vom Client, eindeutig im Kassenjournal; Kommentar optional                      |
+| `pfandrueckgabe-storniert:v1` | Positionsgenaue Stornierung einer Pfandrückgabe                    | Folge-Version im selben Stream; `stornierungId` vom Client, eindeutig im Kassenjournal; `tischId` aus der Rückgabe; Kommentar Pflicht (min. 3 Zeichen) |
 
 Beide Summen sind positiv; das Vorzeichen „Auszahlung" trägt der Event-Typ. Eine Verrechnung schreibt Zahlung oder Direktverkauf und Rückgabe in einer Transaktion, jedes Event mit eigener TSE-Transaktion.
 

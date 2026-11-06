@@ -72,15 +72,33 @@ func GleicheZahlung(zahlung e.Event, refs []PositionRef) (bool, error) {
 	if err := e.ParseData(zahlung, &data, zahlungKassiertV1DataSchema); err != nil {
 		return false, err
 	}
-	gezahlt := make(map[string]int, len(data.Positionen))
-	for _, p := range data.Positionen {
-		gezahlt[p.PositionID] += p.Menge
+	return maps.Equal(mengenJePosition(data.Positionen), mengenJeRef(refs)), nil
+}
+
+// GleicheStornierung reports whether the stored Stornierung cancels exactly the referenced
+// quantities of rueckgabeID.
+func GleicheStornierung(stornierung e.Event, rueckgabeID string, refs []PositionRef) (bool, error) {
+	data := PfandrueckgabeStorniertV1Data{}
+	if err := e.ParseData(stornierung, &data, pfandrueckgabeStorniertV1DataSchema); err != nil {
+		return false, err
 	}
-	angefragt := make(map[string]int, len(refs))
+	return data.RueckgabeID == rueckgabeID && maps.Equal(mengenJePosition(data.Positionen), mengenJeRef(refs)), nil
+}
+
+func mengenJePosition(positionen []PositionEventData) map[string]int {
+	mengen := make(map[string]int, len(positionen))
+	for _, p := range positionen {
+		mengen[p.PositionID] += p.Menge
+	}
+	return mengen
+}
+
+func mengenJeRef(refs []PositionRef) map[string]int {
+	mengen := make(map[string]int, len(refs))
 	for _, ref := range refs {
-		angefragt[ref.PositionID] += ref.Menge
+		mengen[ref.PositionID] += ref.Menge
 	}
-	return maps.Equal(gezahlt, angefragt), nil
+	return mengen
 }
 
 func mengenJeVariante(positionen []PositionEventData) map[int]int {

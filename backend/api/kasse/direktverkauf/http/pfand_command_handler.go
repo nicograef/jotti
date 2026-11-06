@@ -92,7 +92,11 @@ var pfandrueckgabeStornierenSchema = z.Struct(z.Shape{
 	"RueckgabeID":   z.String().UUID().Required(),
 	"Positionen":    z.Slice(positionRefRequestSchema).Min(1).Required(),
 	"Kommentar":     z.String().Min(3).Max(100).Required(),
-})
+}).TestFunc(func(val any, _ z.Ctx) bool {
+	body, ok := val.(*pfandrueckgabeStornierenRequest)
+	// Beide IDs werden BON_ID im DSFinV-K-Export desselben Kassenabschlusses.
+	return ok && body.StornierungID != body.RueckgabeID
+}, z.Message("Stornierungs-ID muss sich von der Rückgabe-ID unterscheiden"))
 
 func (h *PfandCommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +124,8 @@ func (h *PfandCommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc
 				helper.SendNotFound(w, "rueckgabe_not_found")
 			case errors.Is(err, application.ErrPositionNichtStornierbar):
 				helper.SendConflict(w, "position_nicht_stornierbar")
+			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
+				helper.SendConflict(w, "pfandrueckgabe_abweichend")
 			default:
 				helper.SendServerError(w)
 			}

@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"errors"
-	"slices"
 
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/db"
@@ -90,13 +89,17 @@ func (c Command) pruefeReineRueckgabe(ctx context.Context, rueckgabeID string, t
 }
 
 // PfandrueckgabeStornieren appends a cancellation to the Rückgabe's stream; it carries the
-// Rückgabe's tischId. stornierungID is the client's idempotency key: a replay that already holds it
-// answers success without booking.
+// Rückgabe's tischId. stornierungID is the client's idempotency key, unique across all Rückgaben:
+// see pruefeGebuchteStornierung.
 func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userName string, stornierungID string, rueckgabeID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := logging.FromContext(ctx)
 
 	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
 	if err != nil {
+		return err
+	}
+
+	if gebucht, err := c.pruefeGebuchteStornierung(ctx, stornierungID, rueckgabeID, positionen); gebucht || err != nil {
 		return err
 	}
 
@@ -108,10 +111,6 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 	}
 	if len(events) == 0 {
 		return ErrRueckgabeNichtGefunden
-	}
-	if enthaeltStornierung(eintrag, stornierungID) {
-		log.Info("Idempotente Pfandrückgabe-Stornierung: stornierungId bereits vorhanden", "stornierung_id", stornierungID)
-		return nil
 	}
 
 	if !kasse.ValidatePositionRefs(eintrag.OffenePositionen, positionen) {
@@ -129,13 +128,8 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 
 	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, events[len(events)-1].Version, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
-			_, aktuell, readErr := c.readPfandrueckgabe(ctx, subject)
-			if readErr != nil {
-				return readErr
-			}
-			if enthaeltStornierung(aktuell, stornierungID) {
-				log.Info("Idempotente Pfandrückgabe-Stornierung nach OCC-Konflikt", "stornierung_id", stornierungID)
-				return nil
+			if gebucht, err := c.pruefeGebuchteStornierung(ctx, stornierungID, rueckgabeID, positionen); gebucht || err != nil {
+				return err
 			}
 			return ErrConflict
 		}
@@ -148,6 +142,33 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 
 	log.Info("Pfandrückgabe storniert", "rueckgabe_id", rueckgabeID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
+}
+
+// pruefeGebuchteStornierung reports whether stornierungID is already booked. A booked one answers
+// success only if it cancels the same quantities of the same Rückgabe, else
+// ErrPfandrueckgabeAbweichend: a reused ID would otherwise skip or duplicate a Storno.
+func (c Command) pruefeGebuchteStornierung(ctx context.Context, stornierungID string, rueckgabeID string, positionen []kasse.PositionRef) (bool, error) {
+	log := logging.FromContext(ctx)
+
+	gespeichert, found, err := c.EventRepo.GetPfandrueckgabeStornierung(ctx, stornierungID)
+	if err != nil {
+		log.Error("Failed to read pfandrueckgabe stornierung", "error", err, "stornierung_id", stornierungID)
+		return false, ErrDatabase
+	}
+	if !found {
+		return false, nil
+	}
+	gleich, err := kasse.GleicheStornierung(gespeichert, rueckgabeID, positionen)
+	if err != nil {
+		log.Error("Failed to compare stored pfandrueckgabe stornierung", "error", err, "stornierung_id", stornierungID)
+		return true, ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Pfandrückgabe-Stornierung mit anderem Inhalt bereits gebucht", "stornierung_id", stornierungID, "rueckgabe_id", rueckgabeID)
+		return true, ErrPfandrueckgabeAbweichend
+	}
+	log.Info("Idempotente Pfandrückgabe-Stornierung: stornierungId bereits vorhanden", "stornierung_id", stornierungID)
+	return true, nil
 }
 
 // pruefeVerrechnetenVerkauf answers a conflicting settled Direktverkauf: success only if the
@@ -288,12 +309,6 @@ func (c Command) readPfandrueckgabe(ctx context.Context, subject string) ([]even
 		return nil, kasse.PfandrueckgabeHistorieEintrag{}, ErrDatabase
 	}
 	return events, eintrag, nil
-}
-
-func enthaeltStornierung(eintrag kasse.PfandrueckgabeHistorieEintrag, stornierungID string) bool {
-	return slices.ContainsFunc(eintrag.Stornierungen, func(s kasse.VorgangStornierung) bool {
-		return s.StornierungID == stornierungID
-	})
 }
 
 func (c Command) pruefeAktivenTisch(ctx context.Context, tischID int) error {

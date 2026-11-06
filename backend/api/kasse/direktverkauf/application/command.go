@@ -27,6 +27,7 @@ type eventRepo interface {
 	ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungNr int, tischID int) ([]event.Event, error)
 	GetDirektverkauf(ctx context.Context, verkaufID string) (event.Event, bool, error)
 	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
+	GetPfandrueckgabeStornierung(ctx context.Context, stornierungID string) (event.Event, bool, error)
 }
 
 type kassensitzungenRepo interface {
