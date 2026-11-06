@@ -71,7 +71,7 @@ function backend(produkte: Produkt[] = []): FakeBackend {
     .respond('service/get-tisch-historie', () => ({
       historie: getTischHistorie(),
     }))
-    .respond('service/get-aktive-produkte', { produkte })
+    .respond('service/get-aktive-produkte', { produkte, pfandProdukte: [] })
     .respond('serviceleitung/stornierung-erteilen', {})
 }
 

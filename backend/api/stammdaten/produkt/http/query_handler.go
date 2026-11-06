@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
 	dom "github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 type query interface {
 	GetAllProdukte(ctx context.Context) ([]dom.Produkt, error)
-	GetActiveProdukte(ctx context.Context) ([]dom.Produkt, error)
+	GetActiveProdukte(ctx context.Context) (application.AktiveProdukte, error)
 }
 
 type QueryHandler struct {
@@ -41,6 +42,11 @@ type produkt struct {
 
 type getAllProdukteResponse struct {
 	Produkte []produkt `json:"produkte"`
+}
+
+type getAktiveProdukteResponse struct {
+	Produkte      []produkt `json:"produkte"`
+	PfandProdukte []produkt `json:"pfandProdukte"`
 }
 
 func toVariante(v dom.Variante) variante {
@@ -96,12 +102,15 @@ func (h *QueryHandler) GetAllProdukteHandler() http.HandlerFunc {
 
 func (h *QueryHandler) GetActiveProdukteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		produkte, err := h.Query.GetActiveProdukte(r.Context())
+		aktive, err := h.Query.GetActiveProdukte(r.Context())
 		if err != nil {
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, getAllProdukteResponse{Produkte: toProdukte(produkte)})
+		helper.SendResponse(w, getAktiveProdukteResponse{
+			Produkte:      toProdukte(aktive.Produkte),
+			PfandProdukte: toProdukte(aktive.PfandProdukte),
+		})
 	}
 }

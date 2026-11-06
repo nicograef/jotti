@@ -29,15 +29,28 @@ func (q Query) GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error) {
 	return produkte, nil
 }
 
-func (q Query) GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error) {
+// AktiveProdukte: PfandProdukte is the subset of Produkte with the Pfand flag, offered by the Pfandrückgabe.
+type AktiveProdukte struct {
+	Produkte      []produkt.Produkt
+	PfandProdukte []produkt.Produkt
+}
+
+func (q Query) GetActiveProdukte(ctx context.Context) (AktiveProdukte, error) {
 	log := logging.FromContext(ctx)
 
 	produkte, err := q.ProduktRepo.GetActiveProdukte(ctx)
 	if err != nil {
 		log.Error("Failed to retrieve active produkte", "error", err)
-		return nil, ErrDatabase
+		return AktiveProdukte{}, ErrDatabase
 	}
 
-	log.Info("Retrieved active produkte", "count", len(produkte))
-	return produkte, nil
+	pfandProdukte := []produkt.Produkt{}
+	for _, p := range produkte {
+		if p.Pfand {
+			pfandProdukte = append(pfandProdukte, p)
+		}
+	}
+
+	log.Info("Retrieved active produkte", "count", len(produkte), "pfand_count", len(pfandProdukte))
+	return AktiveProdukte{Produkte: produkte, PfandProdukte: pfandProdukte}, nil
 }

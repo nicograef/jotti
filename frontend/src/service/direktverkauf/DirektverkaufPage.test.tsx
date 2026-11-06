@@ -47,7 +47,10 @@ afterEach(() => {
 
 function backend(): FakeBackend {
   return new FakeBackend()
-    .respond('service/get-aktive-produkte', { produkte: [] })
+    .respond('service/get-aktive-produkte', {
+      produkte: [],
+      pfandProdukte: [],
+    })
     .respond('service/get-direktverkauf-historie', { historie: [] })
 }
 
@@ -73,7 +76,7 @@ describe('DirektverkaufPage', () => {
       .mockImplementationOnce(() => {
         throw new BackendError(400, 'test_fehler')
       })
-      .mockReturnValue({ produkte: [testProdukt] })
+      .mockReturnValue({ produkte: [testProdukt], pfandProdukte: [] })
     renderWithBackend(
       <DirektverkaufPage />,
       backend().respond('service/get-aktive-produkte', getAktiveProdukte),
