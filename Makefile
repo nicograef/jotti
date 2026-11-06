@@ -173,12 +173,7 @@ prod-init: ## Ersteinrichtung Produktion (.env prüfen, Images ziehen, Caddy Aut
 	./scripts/prod-init.sh
 
 prod-up: ## Stack starten/neustarten mit gepinnter Version (kein Update; fuer Updates: make prod-update)
-	@v=$$(grep -E '^JOTTI_VERSION=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d '[:space:]'); \
-	if ! echo "$$v" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$$'; then \
-	  echo "FEHLER: JOTTI_VERSION in .env ist kein gepinntes Release-Tag (gefunden: '$${v:-<leer>}')."; \
-	  echo "Setze JOTTI_VERSION=vX.Y.Z in .env. Zum Aktualisieren: make prod-update."; \
-	  exit 1; \
-	fi
+	@bash -c '. scripts/lib.sh && require_pinned_version start >/dev/null'
 	docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 prod-update: ## Sicheres Update (Pre-Update-Backup, Images ziehen, Migrationen, Health-Check, Rollback-Anleitung)

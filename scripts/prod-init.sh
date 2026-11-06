@@ -55,7 +55,6 @@ fi
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 EMAIL="$(read_env LETSENCRYPT_EMAIL)"
-VERSION="$(read_env JOTTI_VERSION)"
 
 if [[ -z "$DOMAIN" ]]; then
   fatal "JOTTI_DOMAIN is not set in .env. Set it to your public domain (e.g. jotti.meinverein.de)."
@@ -63,15 +62,7 @@ fi
 if [[ -z "$EMAIL" ]]; then
   fatal "LETSENCRYPT_EMAIL is not set in .env. Set it to a contact email for the Let's Encrypt account."
 fi
-# Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted; "latest" or an
-# empty value would silently pull a moving image. Compose references the tag as a
-# bare ${JOTTI_VERSION} with no default, so an empty value aborts the stack; this
-# check turns that into an early, actionable error before anything is pulled.
-if ! parse_semver "$VERSION" >/dev/null; then
-  error "JOTTI_VERSION in .env is not a pinned release tag (found: '${VERSION:-<empty>}')."
-  error "Set it to a release tag like vX.Y.Z from https://github.com/nicograef/jotti/releases."
-  fatal "Refusing to deploy an unpinned version ('latest' and empty are not allowed)."
-fi
+VERSION="$(require_pinned_version deploy)"
 
 # A known or placeholder secret means a full auth bypass.
 validate_secret JWT_SECRET

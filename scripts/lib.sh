@@ -39,6 +39,21 @@ parse_semver() {
   printf '%s %s %s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
 }
 
+# require_pinned_version ACTION — prints JOTTI_VERSION from .env; fatals unless it
+# is a pinned release tag. Compose references the tag as a bare ${JOTTI_VERSION}
+# with no default: "latest" would pull a moving image and an empty value aborts
+# the stack, so this turns both into an early, actionable error.
+require_pinned_version() {
+  local action="$1" version
+  version="$(read_env JOTTI_VERSION)"
+  if ! parse_semver "$version" >/dev/null; then
+    error "JOTTI_VERSION in .env is not a pinned release tag (found: '${version:-<empty>}')."
+    error "Set it to a release tag like vX.Y.Z from https://github.com/nicograef/jotti/releases."
+    fatal "Refusing to $action an unpinned version ('latest' and empty are not allowed)."
+  fi
+  printf '%s\n' "$version"
+}
+
 # require_docker_stack COMPOSE_FILE [--no-compose-cli] — fatals unless docker,
 # COMPOSE_FILE and .env are there. --no-compose-cli drops the `docker compose`
 # (v2) requirement for prod-backup-verify.sh, which drives a throwaway container

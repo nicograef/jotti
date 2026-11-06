@@ -40,16 +40,8 @@ cd "$PROJECT_ROOT"
 
 require_docker_stack "$COMPOSE_FILE"
 
-# Only a pinned release tag (vMAJOR.MINOR.PATCH) is accepted: compose references
-# the tag as a bare ${JOTTI_VERSION} with no default, so "latest" would track a
-# moving image and defeat the downgrade guard, and an empty value would abort the
-# stack.
-TARGET_VERSION="$(read_env JOTTI_VERSION)"
-if ! parse_semver "$TARGET_VERSION" >/dev/null; then
-  error "JOTTI_VERSION in .env is not a pinned release tag (found: '${TARGET_VERSION:-<empty>}')."
-  error "Set it to a release tag like vX.Y.Z from https://github.com/nicograef/jotti/releases."
-  fatal "Refusing to update against an unpinned version ('latest' and empty are not allowed)."
-fi
+# A pinned target also keeps the downgrade guard working: "latest" has no order.
+TARGET_VERSION="$(require_pinned_version "update against")"
 
 RUNNING_IMAGE="$(docker inspect -f '{{.Config.Image}}' "$PROD_BACKEND_CONTAINER" 2>/dev/null || true)"
 if [[ -z "$RUNNING_IMAGE" ]]; then
