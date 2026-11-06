@@ -95,6 +95,8 @@ const REFERENZ_PRAEFIX_LABEL: Record<string, string> = {
   'direktverkauf-getaetigt': 'Direktverkauf',
   'direktverkauf-storniert': 'Direktverkauf-Storno',
   'stornierung-erteilt': 'Stornierung',
+  'pfand-zurueckgegeben': 'Pfandrückgabe',
+  'pfandrueckgabe-storniert': 'Pfandrückgabe-Storno',
 }
 
 // Anzeigename je Kategorie für Stationsköpfe, Referenz-Anzeige und

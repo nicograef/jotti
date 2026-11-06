@@ -48,6 +48,8 @@ describe('formatDruckauftragReferenz', () => {
     ['direktverkauf-getaetigt:3', 'Direktverkauf Nr. 3'],
     ['direktverkauf-storniert:7', 'Direktverkauf-Storno Nr. 7'],
     ['stornierung-erteilt:41', 'Stornierung Nr. 41'],
+    ['pfand-zurueckgegeben:42', 'Pfandrückgabe Nr. 42'],
+    ['pfandrueckgabe-storniert:43', 'Pfandrückgabe-Storno Nr. 43'],
     ['testdruck:essen', 'Testbon Essen'],
     ['testdruck:getraenk', 'Testbon Getränk'],
     ['testdruck:kassenbeleg', 'Testbon Kassenbeleg'],
