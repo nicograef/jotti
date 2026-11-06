@@ -13,7 +13,6 @@ type userRepo interface {
 	GetUser(ctx context.Context, userID int) (user.User, error)
 	CreateUser(ctx context.Context, u user.User) (int, error)
 	UpdateUser(ctx context.Context, u user.User) error
-	GetAllUsers(ctx context.Context) ([]user.User, error)
 }
 
 type Command struct {

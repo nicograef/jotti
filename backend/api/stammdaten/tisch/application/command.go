@@ -12,7 +12,6 @@ type tischRepo interface {
 	CreateTisch(ctx context.Context, t tisch.Tisch) (int, error)
 	UpdateTisch(ctx context.Context, t tisch.Tisch) error
 	DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error
-	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
 	TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error)
 }
 

@@ -17,8 +17,6 @@ type produktRepo interface {
 	GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error)
 	CreateVariante(ctx context.Context, produktID int, variante produkt.Variante) (int, error)
 	UpdateVariante(ctx context.Context, variante produkt.Variante) error
-	GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error)
-	GetActiveProdukte(ctx context.Context) ([]produkt.Produkt, error)
 	DeleteProduktMitVarianten(ctx context.Context, produkt produkt.Produkt) error
 	VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error
 	VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error
