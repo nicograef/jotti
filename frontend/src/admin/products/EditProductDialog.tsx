@@ -32,7 +32,7 @@ interface EditProductDialogProps {
   backend: Pick<ProduktBackend, 'updateProdukt'>
   open: boolean
   product: Produkt
-  updated: (product: Produkt) => void
+  updated: () => void
   close: () => void
 }
 
@@ -81,7 +81,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
         ...data,
       })
       form.reset()
-      props.updated({ ...props.product, ...data })
+      props.updated()
       props.close()
     })
   }

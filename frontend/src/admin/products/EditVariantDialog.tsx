@@ -42,7 +42,7 @@ interface EditVariantDialogProps {
   produktId: number
   variant: Variante
   backend: Pick<ProduktBackend, 'updateVariante' | 'deleteVariante'>
-  updated: (variante: Variante) => void
+  updated: () => void
   deleted: () => void
   close: () => void
 }
@@ -84,7 +84,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
         id: props.variant.id,
         ...data,
       })
-      props.updated({ ...props.variant, ...data })
+      props.updated()
       props.close()
     })
   }

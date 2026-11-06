@@ -16,7 +16,7 @@ import { UserCreatedDialog } from './UserCreatedDialog'
 import { Users } from './Users'
 
 const initialUserCreatedState = {
-  user: null as User | null,
+  user: null as Pick<User, 'name' | 'username' | 'role'> | null,
   onetimePassword: '',
   open: false,
 }

@@ -32,7 +32,7 @@ interface EditUserDialogProps {
   // Beim eigenen Konto bleibt die Rolle gesperrt: eine Herabstufung sperrte den
   // letzten Admin aus. Das Backend lehnt sie zusätzlich mit cannot_demote_self ab.
   isSelf: boolean
-  updated: (user: User) => void
+  updated: () => void
   close: () => void
 }
 
@@ -67,7 +67,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
         ...data,
       })
       form.reset()
-      props.updated({ ...props.user, ...data })
+      props.updated()
       props.close()
     })
   }

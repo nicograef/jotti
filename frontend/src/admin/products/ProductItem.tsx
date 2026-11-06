@@ -35,7 +35,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import type { Produkt, Variante } from '@/lib/produktSchemas'
+import type { Produkt } from '@/lib/produktSchemas'
 
 import { NewVariantDialog } from './NewVariantDialog'
 import { Richtung, VarianteStatus } from './Produkt'
@@ -51,7 +51,7 @@ interface ProductItemProps {
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
   onChanged: () => void
-  onVariantCreated: (variante: Variante) => void
+  onVariantCreated: (variante: { name: string }) => void
   onVariantDeleted: () => void
 }
 

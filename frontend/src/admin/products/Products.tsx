@@ -1,7 +1,7 @@
 import { Package } from 'lucide-react'
 
 import { EmptyState } from '@/components/common/EmptyState'
-import type { Produkt, Variante } from '@/lib/produktSchemas'
+import type { Produkt } from '@/lib/produktSchemas'
 
 import { HinweisKarte } from '../components/HinweisKarte'
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
@@ -18,7 +18,7 @@ interface ProductsProps {
   onDelete: (produktId: number) => Promise<void>
   // Jede Änderung ohne eigene Meldung: die Liste lädt neu.
   onChanged: () => void
-  onVariantCreated: (variante: Variante) => void
+  onVariantCreated: (variante: { name: string }) => void
   onVariantDeleted: () => void
 }
 

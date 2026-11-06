@@ -21,7 +21,7 @@ interface VariantChipProps {
   onActivate: (varianteId: number) => Promise<void>
   onDeactivate: (varianteId: number) => Promise<void>
   onMove: (varianteId: number, richtung: Richtung) => Promise<void>
-  onUpdated: (variante: Variante) => void
+  onUpdated: () => void
   onDeleted: () => void
 }
 

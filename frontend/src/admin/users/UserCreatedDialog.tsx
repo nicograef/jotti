@@ -15,7 +15,7 @@ import type { User } from './User'
 import { rolleLabel } from './UserRolle'
 
 interface UserCreatedDialogProps {
-  user: User | null
+  user: Pick<User, 'name' | 'username' | 'role'> | null
   onetimePassword: string
   open: boolean
   close: () => void

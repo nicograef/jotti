@@ -42,7 +42,7 @@ interface EditTischDialogProps {
   backend: Pick<TischBackend, 'updateTisch' | 'deleteTisch'>
   open: boolean
   tisch: Tisch
-  updated: (tisch: Tisch) => void
+  updated: () => void
   deleted: (tischId: number) => void
   close: () => void
 }
@@ -82,7 +82,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
         ...data,
       })
       form.reset()
-      props.updated({ ...props.tisch, ...data })
+      props.updated()
       props.close()
     })
   }

@@ -20,7 +20,7 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import { Kategorie, type Produkt } from '@/lib/produktSchemas'
+import { Kategorie } from '@/lib/produktSchemas'
 
 import { PfandField } from './PfandField'
 import { defaultSteuersatzByKategorie } from './Produkt'
@@ -32,7 +32,7 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface NewProductDialogProps {
   backend: Pick<ProduktBackend, 'createProdukt'>
-  created: (product: Produkt) => void
+  created: (product: FormData) => void
 }
 
 export function NewProductDialog(props: NewProductDialogProps) {
@@ -66,17 +66,10 @@ export function NewProductDialog(props: NewProductDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      const id = await props.backend.createProdukt(data)
+      await props.backend.createProdukt(data)
       form.reset()
       setOpen(false)
-      props.created({
-        id,
-        ...data,
-        status: 'active',
-        varianten: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
+      props.created(data)
     })
   }
 
