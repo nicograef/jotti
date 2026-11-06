@@ -126,32 +126,45 @@ describe('Products', () => {
     expect(be.deaktiviereVariante).toHaveBeenCalledWith(7)
   })
 
-  it('deactivates all variants and reloads the list once', async () => {
-    const user = userEvent.setup()
-    const onChanged = vi.fn()
-    const be = renderProducts(
-      [
-        produkt({
-          id: 1,
-          name: 'Bier',
-          varianten: [
-            variante({ id: 7, name: 'Klein' }),
-            variante({ id: 8, name: 'Groß' }),
-          ],
-        }),
-      ],
-      backend(),
-      onChanged,
-    )
+  it.each([
+    { fall: 'all succeed', fehlschlag: false, aufrufe: [[7], [8], [9]] },
+    { fall: 'the second fails', fehlschlag: true, aufrufe: [[7], [8]] },
+  ])(
+    'deactivates all variants and reloads the list once when $fall',
+    async ({ fehlschlag, aufrufe }) => {
+      const user = userEvent.setup()
+      const onChanged = vi.fn()
+      const be = backend()
+      if (fehlschlag) {
+        be.deaktiviereVariante
+          .mockResolvedValueOnce(undefined)
+          .mockRejectedValueOnce(new Error('Netzwerkfehler'))
+      }
+      renderProducts(
+        [
+          produkt({
+            id: 1,
+            name: 'Bier',
+            varianten: [
+              variante({ id: 7, name: 'Klein' }),
+              variante({ id: 8, name: 'Groß' }),
+              variante({ id: 9, name: 'Maß' }),
+            ],
+          }),
+        ],
+        be,
+        onChanged,
+      )
 
-    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
-    await user.click(
-      screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
-    )
+      await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
+      await user.click(
+        screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
+      )
 
-    expect(be.deaktiviereVariante.mock.calls).toEqual([[7], [8]])
-    expect(onChanged).toHaveBeenCalledTimes(1)
-  })
+      expect(be.deaktiviereVariante.mock.calls).toEqual(aufrufe)
+      expect(onChanged).toHaveBeenCalledTimes(1)
+    },
+  )
 
   it('offers an active Löschen entry in the actions menu', async () => {
     const user = userEvent.setup()

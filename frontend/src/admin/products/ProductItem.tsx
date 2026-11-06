@@ -105,10 +105,14 @@ export function ProductItem(props: ProductItemProps) {
 
   const handleDeactivateAllVariants = async () => {
     await runDeactivateAllVariants(async () => {
-      for (const variante of activeVarianten) {
-        await props.backend.deaktiviereVariante(variante.id)
+      // Bricht die Schleife ab, sind die vorigen Varianten schon deaktiviert.
+      try {
+        for (const variante of activeVarianten) {
+          await props.backend.deaktiviereVariante(variante.id)
+        }
+      } finally {
+        props.onChanged()
       }
-      props.onChanged()
     })
   }
 
