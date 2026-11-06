@@ -54,7 +54,7 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 
 	data.UmsatzProSteuersatz = computeUmsatzProSteuersatz(data.UmsatzProSteuersatz)
 	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
-		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen,
+		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen, data.Breakdowns.PfandProServicekraft,
 	)
 
 	zeilen, err := q.ReportingRepo.GetProduktStatistik(ctx, kassensitzungNr)
@@ -68,11 +68,12 @@ func (q Query) GetReporting(ctx context.Context, kassensitzungNr int) (reporting
 	return data, nil
 }
 
-// aggregateAbrechnungProServicekraft merges table payments (by actor) with storno rows (by storno attribution).
-// The rules for returns, corrections and direct sales are in docs/handbuch.md §7.2.
+// aggregateAbrechnungProServicekraft merges table payments (by actor), storno rows (by storno attribution) and
+// table Pfand returns (by the return's actor). The rules are in docs/handbuch.md §7.2.
 func aggregateAbrechnungProServicekraft(
 	kassiert []reporting.AbrechnungServicekraft,
 	stornierungen []reporting.StornierungDetail,
+	pfand []reporting.PfandServicekraft,
 ) []reporting.AbrechnungServicekraft {
 	out := make([]reporting.AbrechnungServicekraft, len(kassiert))
 	copy(out, kassiert)
@@ -80,22 +81,26 @@ func aggregateAbrechnungProServicekraft(
 	for i, k := range out {
 		indexByUserID[k.UserID] = i
 	}
+	zeileFuer := func(ref reporting.ServicekraftRef) int {
+		idx, ok := indexByUserID[ref.UserID]
+		if !ok {
+			idx = len(out)
+			indexByUserID[ref.UserID] = idx
+			out = append(out, reporting.AbrechnungServicekraft{
+				UserID:   ref.UserID,
+				UserName: ref.UserName,
+				Name:     ref.Name,
+			})
+		}
+		return idx
+	}
 
 	for _, s := range stornierungen {
 		if s.Quelle == reporting.QuelleDirektverkauf {
 			continue
 		}
 		for _, betroffen := range s.Betroffene {
-			idx, ok := indexByUserID[betroffen.UserID]
-			if !ok {
-				idx = len(out)
-				indexByUserID[betroffen.UserID] = idx
-				out = append(out, reporting.AbrechnungServicekraft{
-					UserID:   betroffen.UserID,
-					UserName: betroffen.UserName,
-					Name:     betroffen.Name,
-				})
-			}
+			idx := zeileFuer(betroffen)
 			out[idx].AnzahlStornierungen++
 			// Only the cash-relevant return carries an amount; its zahlungId attributes it to one cashier.
 			if s.BarRueckgabe {
@@ -104,8 +109,13 @@ func aggregateAbrechnungProServicekraft(
 		}
 	}
 
+	for _, p := range pfand {
+		idx := zeileFuer(reporting.ServicekraftRef{UserID: p.UserID, UserName: p.UserName, Name: p.Name})
+		out[idx].PfandCents += p.PfandCents
+	}
+
 	for i := range out {
-		out[i].AbzugebenCents = out[i].KassiertCents - out[i].RuecknahmenCents
+		out[i].AbzugebenCents = out[i].KassiertCents - out[i].RuecknahmenCents - out[i].PfandCents
 	}
 
 	sort.SliceStable(out, func(a, b int) bool {
@@ -298,7 +308,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	}
 
 	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
-		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen,
+		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen, data.Breakdowns.PfandProServicekraft,
 	)
 	data.Servicekraefte = mergeServicekraefteLive(data.Breakdowns.AbrechnungProServicekraft, sessions, nameByTischID)
 
@@ -329,6 +339,7 @@ func mergeServicekraefteLive(
 			KassiertCents:       a.KassiertCents,
 			RuecknahmenCents:    a.RuecknahmenCents,
 			AnzahlStornierungen: a.AnzahlStornierungen,
+			PfandCents:          a.PfandCents,
 			AbzugebenCents:      a.AbzugebenCents,
 			OffeneTische:        []reporting.OffeneArbeitTisch{},
 			Erledigt:            true,

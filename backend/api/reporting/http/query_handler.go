@@ -73,6 +73,8 @@ type summaryResponse struct {
 	AnzahlStornierungen      int `json:"anzahlStornierungen"`
 	AnzahlDirektverkaeufe    int `json:"anzahlDirektverkaeufe"`
 	DirektverkaufUmsatzCents int `json:"direktverkaufUmsatzCents"`
+	AnzahlPfandrueckgaben    int `json:"anzahlPfandrueckgaben"`
+	PfandrueckgabenCents     int `json:"pfandrueckgabenCents"`
 }
 
 type breakdownsResponse struct {
@@ -89,6 +91,7 @@ type abrechnungServicekraft struct {
 	AnzahlZahlungen     int    `json:"anzahlZahlungen"`
 	RuecknahmenCents    int    `json:"ruecknahmenCents"`
 	AnzahlStornierungen int    `json:"anzahlStornierungen"`
+	PfandCents          int    `json:"pfandCents"`
 	AbzugebenCents      int    `json:"abzugebenCents"`
 }
 
@@ -154,6 +157,7 @@ func toAbrechnungProServicekraft(werte []reporting.AbrechnungServicekraft) []abr
 			AnzahlZahlungen:     w.AnzahlZahlungen,
 			RuecknahmenCents:    w.RuecknahmenCents,
 			AnzahlStornierungen: w.AnzahlStornierungen,
+			PfandCents:          w.PfandCents,
 			AbzugebenCents:      w.AbzugebenCents,
 		}
 	}
@@ -170,6 +174,8 @@ func toSummary(s reporting.Summary) summaryResponse {
 		AnzahlStornierungen:      s.AnzahlStornierungen,
 		AnzahlDirektverkaeufe:    s.AnzahlDirektverkaeufe,
 		DirektverkaufUmsatzCents: s.DirektverkaufUmsatzCents,
+		AnzahlPfandrueckgaben:    s.AnzahlPfandrueckgaben,
+		PfandrueckgabenCents:     s.PfandrueckgabenCents,
 	}
 }
 
@@ -334,6 +340,7 @@ type eigeneUebersichtResponse struct {
 	ZahlungenCents     int `json:"zahlungenCents"`
 	AnzahlRuecknahmen  int `json:"anzahlRuecknahmen"`
 	RuecknahmenCents   int `json:"ruecknahmenCents"`
+	PfandCents         int `json:"pfandCents"`
 	AbzugebenCents     int `json:"abzugebenCents"`
 }
 
@@ -358,6 +365,7 @@ func (h *QueryHandler) GetEigeneUebersichtHandler() http.HandlerFunc {
 			ZahlungenCents:     data.ZahlungenCents,
 			AnzahlRuecknahmen:  data.AnzahlRuecknahmen,
 			RuecknahmenCents:   data.RuecknahmenCents,
+			PfandCents:         data.PfandCents,
 			AbzugebenCents:     data.AbzugebenCents,
 		})
 	}
@@ -382,6 +390,7 @@ type servicekraftLiveResponse struct {
 	KassiertCents       int                             `json:"kassiertCents"`
 	RuecknahmenCents    int                             `json:"ruecknahmenCents"`
 	AnzahlStornierungen int                             `json:"anzahlStornierungen"`
+	PfandCents          int                             `json:"pfandCents"`
 	AbzugebenCents      int                             `json:"abzugebenCents"`
 	OffenCents          int                             `json:"offenCents"`
 	OffeneTische        []offeneArbeitTischLiveResponse `json:"offeneTische"`
@@ -419,6 +428,7 @@ func toServicekraftLive(s reporting.ServicekraftLive) servicekraftLiveResponse {
 		KassiertCents:       s.KassiertCents,
 		RuecknahmenCents:    s.RuecknahmenCents,
 		AnzahlStornierungen: s.AnzahlStornierungen,
+		PfandCents:          s.PfandCents,
 		AbzugebenCents:      s.AbzugebenCents,
 		OffenCents:          s.OffenCents,
 		OffeneTische:        offeneTische,

@@ -50,6 +50,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		kassiertRows []dbgen.GetKassiertProServicekraftRow
 		zeilenRows   []dbgen.GetUmsatzPositionszeilenRow
 		stornoRows   []dbgen.GetStornierungenRow
+		pfandRows    []dbgen.GetPfandProServicekraftRow
 		metadatenRow dbgen.GetKassensitzungMetadatenRow
 	)
 
@@ -73,6 +74,11 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	g.Go(func() error {
 		var err error
 		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		pfandRows, err = r.q.GetPfandProServicekraft(ctx, kassensitzungNr)
 		return err
 	})
 	g.Go(func() error {
@@ -110,6 +116,7 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 		Summary:         toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
+			PfandProServicekraft:      toPfandServicekraft(pfandRows),
 		},
 		UmsatzProSteuersatz: umsatzProSteuersatz,
 		Stornierungen:       stornierungen,
@@ -155,6 +162,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		offeneTischeRows []dbgen.GetOffeneTischeDetailsRow
 		kassiertRows     []dbgen.GetKassiertProServicekraftRow
 		stornoRows       []dbgen.GetStornierungenRow
+		pfandRows        []dbgen.GetPfandProServicekraftRow
 	)
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -184,6 +192,11 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		stornoRows, err = r.q.GetStornierungen(ctx, kassensitzungNr)
 		return err
 	})
+	g.Go(func() error {
+		var err error
+		pfandRows, err = r.q.GetPfandProServicekraft(ctx, kassensitzungNr)
+		return err
+	})
 
 	if err := g.Wait(); err != nil {
 		return reporting.LiveReportingData{}, db.Error(err)
@@ -210,6 +223,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 		Summary:          toSummary(stats),
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: toAbrechnungServicekraft(kassiertRows),
+			PfandProServicekraft:      toPfandServicekraft(pfandRows),
 		},
 		Stornierungen: stornierungen,
 	}, nil
@@ -242,7 +256,22 @@ func toSummary(stats dbgen.GetReportingStatsRow) reporting.Summary {
 		AnzahlStornierungen:      stats.AnzahlStornierungen,
 		AnzahlDirektverkaeufe:    stats.AnzahlDirektverkaeufe,
 		DirektverkaufUmsatzCents: stats.DirektverkaufUmsatzCents,
+		AnzahlPfandrueckgaben:    stats.AnzahlPfandrueckgaben,
+		PfandrueckgabenCents:     stats.PfandrueckgabenCents,
 	}
+}
+
+func toPfandServicekraft(rows []dbgen.GetPfandProServicekraftRow) []reporting.PfandServicekraft {
+	pfand := make([]reporting.PfandServicekraft, len(rows))
+	for i, row := range rows {
+		pfand[i] = reporting.PfandServicekraft{
+			UserID:     row.UserID,
+			UserName:   row.UserName,
+			Name:       row.Name,
+			PfandCents: row.PfandCents,
+		}
+	}
+	return pfand
 }
 
 // toAbrechnungServicekraft leaves returns, storno count and Abzugeben at zero; the application layer derives them
@@ -332,13 +361,38 @@ func (r Repository) GetProduktStatistik(ctx context.Context, kassensitzungNr int
 	return zeilen, nil
 }
 
+// GetEigeneUebersicht takes the user's Pfand row from GetPfandProServicekraft, so the overview and the settlement row
+// attribute Pfand identically.
 func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassensitzungNr int) (reporting.EigeneUebersicht, error) {
-	row, err := r.q.GetEigeneUebersicht(ctx, dbgen.GetEigeneUebersichtParams{
-		UserID:          userID,
-		KassensitzungNr: kassensitzungNr,
+	var (
+		row       dbgen.GetEigeneUebersichtRow
+		pfandRows []dbgen.GetPfandProServicekraftRow
+	)
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var err error
+		row, err = r.q.GetEigeneUebersicht(gctx, dbgen.GetEigeneUebersichtParams{
+			UserID:          userID,
+			KassensitzungNr: kassensitzungNr,
+		})
+		return err
 	})
-	if err != nil {
+	g.Go(func() error {
+		var err error
+		pfandRows, err = r.q.GetPfandProServicekraft(gctx, kassensitzungNr)
+		return err
+	})
+	if err := g.Wait(); err != nil {
 		return reporting.EigeneUebersicht{}, db.Error(err)
+	}
+
+	pfandCents := 0
+	for _, p := range pfandRows {
+		if p.UserID == userID {
+			pfandCents = p.PfandCents
+			break
+		}
 	}
 
 	return reporting.EigeneUebersicht{
@@ -348,6 +402,7 @@ func (r Repository) GetEigeneUebersicht(ctx context.Context, userID int, kassens
 		ZahlungenCents:     row.ZahlungenCents,
 		AnzahlRuecknahmen:  row.AnzahlRuecknahmen,
 		RuecknahmenCents:   row.RuecknahmenCents,
-		AbzugebenCents:     row.AbzugebenCents,
+		PfandCents:         pfandCents,
+		AbzugebenCents:     row.ZahlungenCents - row.RuecknahmenCents - pfandCents,
 	}, nil
 }

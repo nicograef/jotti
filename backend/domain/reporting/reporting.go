@@ -6,8 +6,8 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// AbrechnungServicekraft is a Servicekraft's table-service cash settlement: AbzugebenCents = KassiertCents − RuecknahmenCents.
-// See docs/handbuch.md §7.2.
+// AbrechnungServicekraft is a Servicekraft's table-service cash settlement:
+// AbzugebenCents = KassiertCents − RuecknahmenCents − PfandCents, and it may turn negative. See docs/handbuch.md §7.2.
 type AbrechnungServicekraft struct {
 	UserID              int
 	UserName            string // eingefrorener Username
@@ -16,7 +16,17 @@ type AbrechnungServicekraft struct {
 	AnzahlZahlungen     int
 	RuecknahmenCents    int
 	AnzahlStornierungen int
+	PfandCents          int
 	AbzugebenCents      int
+}
+
+// PfandServicekraft ist das am Tisch ausgezahlte Pfand einer Servicekraft, netto nach Stornierungen.
+// Eingabe der Abrechnung pro Servicekraft; erscheint nie direkt in einer Response.
+type PfandServicekraft struct {
+	UserID     int
+	UserName   string // eingefrorener Username
+	Name       string // live aus users aufgelöster Klarname
+	PfandCents int
 }
 
 type UmsatzSteuersatz struct {
@@ -104,10 +114,15 @@ type Summary struct {
 	AnzahlStornierungen      int
 	AnzahlDirektverkaeufe    int
 	DirektverkaufUmsatzCents int
+	AnzahlPfandrueckgaben    int
+	// PfandrueckgabenCents ist die Nettosumme: Rückgaben minus deren Stornierungen.
+	PfandrueckgabenCents int
 }
 
 type Breakdowns struct {
 	AbrechnungProServicekraft []AbrechnungServicekraft
+	// PfandProServicekraft speist AbrechnungProServicekraft und erscheint nie direkt in einer Response.
+	PfandProServicekraft []PfandServicekraft
 }
 
 // Metadaten sind die Sitzungs-Kopfdaten des Tagesberichts, rein aus den
@@ -174,6 +189,7 @@ type ServicekraftLive struct {
 	KassiertCents       int
 	RuecknahmenCents    int
 	AnzahlStornierungen int
+	PfandCents          int
 	AbzugebenCents      int
 	// OffenCents ist die Summe über OffeneTische.OffenCents.
 	OffenCents int
@@ -199,6 +215,8 @@ type EigeneUebersicht struct {
 	ZahlungenCents     int
 	AnzahlRuecknahmen  int
 	RuecknahmenCents   int
-	// AbzugebenCents ist ZahlungenCents - RuecknahmenCents und nie negativ.
+	// PfandCents ist das am Tisch ausgezahlte Pfand, netto nach Stornierungen.
+	PfandCents int
+	// AbzugebenCents ist ZahlungenCents − RuecknahmenCents − PfandCents und darf negativ werden.
 	AbzugebenCents int
 }

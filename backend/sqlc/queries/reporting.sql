@@ -33,7 +33,12 @@ SELECT
     (
         COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-    )::int AS direktverkauf_umsatz_cents
+    )::int AS direktverkauf_umsatz_cents,
+    COALESCE(COUNT(CASE WHEN type = 'pfand-zurueckgegeben:v1' THEN 1 END), 0)::int AS anzahl_pfandrueckgaben,
+    (
+        COALESCE(SUM(kj_extract_pfandrueckgabe_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(type, data)), 0)::int
+    )::int AS pfandrueckgaben_cents
 FROM kassenjournal
 WHERE type IN (
     'bestellung-aufgenommen:v1',
@@ -72,6 +77,31 @@ WHERE e.type = 'zahlung-kassiert:v1'
 AND e.kassensitzung_nr = @kassensitzung_nr
 GROUP BY e.user_id
 ORDER BY kassiert_cents DESC;
+
+-- name: GetPfandProServicekraft :many
+-- Tagesabrechnung: ausgezahltes Pfand am Tisch je Servicekraft pro Kassensitzung, die
+-- Pfand-Seite der Abrechnung pro Servicekraft. Es zählen nur Rückgaben mit tischId > 0;
+-- Rückgaben an der Theke (tischId 0) gehören wie Direktverkäufe zu keiner Servicekraft.
+-- Eine Stornierung zählt für den Akteur der Rückgabe im selben subject, nicht für den
+-- Stornierenden. pfand_cents ist die Nettosumme: Rückgaben minus deren Stornierungen.
+-- Der Join über subject und type nutzt idx_kassenjournal_subject_type.
+SELECT
+    r.user_id,
+    MAX(r.user_name)::text AS user_name,
+    COALESCE(MAX(u.name), '')::text AS name,
+    (
+        COALESCE(SUM(kj_extract_pfandrueckgabe_cents(e.type, e.data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(e.type, e.data)), 0)::int
+    )::int AS pfand_cents
+FROM kassenjournal r
+JOIN kassenjournal e ON e.subject = r.subject
+    AND e.type IN ('pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
+LEFT JOIN users u ON u.id = r.user_id
+WHERE r.type = 'pfand-zurueckgegeben:v1'
+AND r.kassensitzung_nr = @kassensitzung_nr
+AND (r.data->>'tischId')::int > 0
+GROUP BY r.user_id
+ORDER BY pfand_cents DESC;
 
 -- name: GetStornierungen :many
 -- Reporting: Storno-Events pro Kassensitzung — kassenwirksame Warenrücknahme (stornierung-erteilt),
@@ -272,17 +302,14 @@ LEFT JOIN LATERAL (
 -- einen Benutzer und ohne Umweg über die Detailzeilen: Eine Warenrücknahme zählt für diese
 -- Servicekraft, wenn die über zahlungId referenzierte Zahlung von ihr kassiert wurde — egal,
 -- wer storniert hat. Geldneutrale Korrekturen bleiben bewusst außen vor; sie ändern nichts an
--- dem, was abzugeben ist. abzugeben_cents ist nie negativ: Pro Zahlung gilt
--- Σ Rücknahmen <= Zahlbetrag (FIFO-Buchführung in ComputeStornoAufteilung), und beide Seiten
--- sind demselben Kassierer zugeordnet.
+-- dem, was abzugeben ist. Das ausgezahlte Pfand liefert GetPfandProServicekraft.
 SELECT
     eigene.anzahl_bestellungen,
     eigene.bestellungen_cents,
     eigene.anzahl_zahlungen,
     eigene.zahlungen_cents,
     ruecknahmen.anzahl_ruecknahmen,
-    ruecknahmen.ruecknahmen_cents,
-    (eigene.zahlungen_cents - ruecknahmen.ruecknahmen_cents)::int AS abzugeben_cents
+    ruecknahmen.ruecknahmen_cents
 FROM (
     SELECT
         COALESCE(COUNT(CASE WHEN kj.type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,

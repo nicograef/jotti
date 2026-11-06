@@ -149,6 +149,41 @@ func direktverkaufStornoEvent(verkaufID string, betragCents int, kommentar strin
 	}
 }
 
+func pfandPosition(positionID string, betragCents int) map[string]any {
+	return map[string]any{
+		"positionId":       positionID,
+		"varianteId":       20,
+		"produktName":      "Pfand",
+		"varianteName":     "Glas",
+		"kategorie":        "getraenk",
+		"steuersatz":       "regel",
+		"einzelpreisCents": betragCents,
+		"menge":            1,
+	}
+}
+
+// pfandrueckgabeEvent: tischID 0 is the Direktverkauf.
+func pfandrueckgabeEvent(rueckgabeID string, tischID, betragCents int) map[string]any {
+	return map[string]any{
+		"rueckgabeId":       rueckgabeID,
+		"tischId":           tischID,
+		"gesamtbetragCents": betragCents,
+		"kommentar":         "",
+		"positionen":        []map[string]any{pfandPosition("pp-"+rueckgabeID, betragCents)},
+	}
+}
+
+func pfandStornoEvent(rueckgabeID string, tischID, betragCents int, kommentar string) map[string]any {
+	return map[string]any{
+		"stornierungId":          "ps-" + rueckgabeID,
+		"rueckgabeId":            rueckgabeID,
+		"tischId":                tischID,
+		"gesamtStornierungCents": betragCents,
+		"kommentar":              kommentar,
+		"positionen":             []map[string]any{pfandPosition("pp-"+rueckgabeID, betragCents)},
+	}
+}
+
 // abrechnungByUser keys the rows by the frozen username.
 func abrechnungByUser(zeilen []reporting.AbrechnungServicekraft) map[string]reporting.AbrechnungServicekraft {
 	out := map[string]reporting.AbrechnungServicekraft{}
@@ -322,6 +357,95 @@ func TestAbrechnung_VollstaendigeRuecknahmeErgibtNullNichtNegativ(t *testing.T) 
 	assertAbrechnung(t, byUser["anna"], 2000, 2000, 0, 1)
 }
 
+func assertPfand(t *testing.T, zeile reporting.AbrechnungServicekraft, kassiert, pfand, abzugeben int) {
+	t.Helper()
+	if zeile.KassiertCents != kassiert || zeile.PfandCents != pfand || zeile.AbzugebenCents != abzugeben {
+		t.Errorf("%s: expected kassiert %d / pfand %d / abzugeben %d, got %+v",
+			zeile.UserName, kassiert, pfand, abzugeben, zeile)
+	}
+}
+
+// Pfand paid out at a table lowers the actor's Abzugeben, even at a table without any order.
+// A Servicekraft with only Pfand returns gets a row, and its Abzugeben turns negative.
+func TestAbrechnung_PfandrueckgabeAmTischMindertAbzugeben(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	bobID := createAbrechnungUser(t, db, "Bob Schmidt", "bob")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-1", 1, pfandrueckgabeEvent("r-1", 1, 400), zNr)
+	// Table 7 has no order and no Tisch-Session.
+	insertAbrechnungEvent(t, db, bobID, "bob", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-2", 1, pfandrueckgabeEvent("r-2", 7, 300), zNr)
+
+	data, err := q.GetReporting(context.Background(), zNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
+	if len(byUser) != 2 {
+		t.Errorf("expected anna and bob in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+	}
+	assertPfand(t, byUser["anna"], 2000, 400, 1600)
+	assertPfand(t, byUser["bob"], 0, 300, -300)
+}
+
+// Pfand paid out at the counter belongs to the Direktverkauf till: it changes no settlement row and
+// creates none, but counts in the report figure.
+func TestAbrechnung_PfandrueckgabeImDirektverkaufBleibtAussen(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	lenaID := createAbrechnungUser(t, db, "Lena Chef", "lena")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-1", 1, pfandrueckgabeEvent("r-1", 0, 400), zNr)
+	insertAbrechnungEvent(t, db, lenaID, "lena", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-2", 1, pfandrueckgabeEvent("r-2", 0, 200), zNr)
+
+	data, err := q.GetReporting(context.Background(), zNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
+	if len(byUser) != 1 {
+		t.Errorf("expected only anna (Tischservice) in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+	}
+	assertPfand(t, byUser["anna"], 2000, 0, 2000)
+	if data.Summary.PfandrueckgabenCents != 600 {
+		t.Errorf("expected the report figure to count both counter returns (600), got %d", data.Summary.PfandrueckgabenCents)
+	}
+}
+
+// The Serviceleitung cancels a table return: the cancellation restores the return actor's Abzugeben.
+// The Serviceleitung paid nothing out and gets no row.
+func TestAbrechnung_PfandStornoTrifftDenAkteurDerRueckgabe(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	lenaID := createAbrechnungUser(t, db, "Lena Chef", "lena")
+	tisch := "kassensitzung-1/tisch-1"
+	rueckgabe := "kassensitzung-1/pfandrueckgabe-r-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 2000), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "pfand-zurueckgegeben:v1", rueckgabe, 1, pfandrueckgabeEvent("r-1", 1, 600), zNr)
+	insertAbrechnungEvent(t, db, lenaID, "lena", "pfandrueckgabe-storniert:v1", rueckgabe, 2, pfandStornoEvent("r-1", 1, 200, "Falsch gezählt"), zNr)
+
+	data, err := q.GetReporting(context.Background(), zNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	byUser := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)
+	if len(byUser) != 1 {
+		t.Errorf("expected only anna in the abrechnung, got %+v", data.Breakdowns.AbrechnungProServicekraft)
+	}
+	assertPfand(t, byUser["anna"], 2000, 400, 1600)
+}
+
 func assertEigeneUebersicht(t *testing.T, u reporting.EigeneUebersicht, kassiert, ruecknahmen, anzahlRuecknahmen, abzugeben int) {
 	t.Helper()
 	if u.ZahlungenCents != kassiert || u.RuecknahmenCents != ruecknahmen ||
@@ -423,4 +547,34 @@ func TestEigeneUebersicht_VollstaendigeRuecknahmeErgibtNull(t *testing.T) {
 		t.Fatalf("GetEigeneUebersicht failed: %v", err)
 	}
 	assertEigeneUebersicht(t, uebersicht, 2000, 2000, 1, 0)
+}
+
+// Table Pfand lowers the own overview exactly like the settlement row, and may turn it negative.
+// Counter Pfand stays out.
+func TestEigeneUebersicht_PfandrueckgabeMindertAbzugeben(t *testing.T) {
+	db, q, zNr := abrechnungSetup(t)
+	annaID := createAbrechnungUser(t, db, "Anna Müller", "anna")
+	tisch := "kassensitzung-1/tisch-1"
+
+	insertAbrechnungEvent(t, db, annaID, "anna", "bestellung-aufgenommen:v1", tisch, 1, bestellungEvent("pos-1", 300), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "zahlung-kassiert:v1", tisch, 2, zahlungEvent("z-1", "pos-1", 300), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-1", 1, pfandrueckgabeEvent("r-1", 1, 400), zNr)
+	insertAbrechnungEvent(t, db, annaID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r-2", 1, pfandrueckgabeEvent("r-2", 0, 200), zNr)
+
+	ctx := context.Background()
+	uebersicht, err := q.ReportingRepo.GetEigeneUebersicht(ctx, annaID, zNr)
+	if err != nil {
+		t.Fatalf("GetEigeneUebersicht failed: %v", err)
+	}
+	if uebersicht.ZahlungenCents != 300 || uebersicht.PfandCents != 400 || uebersicht.AbzugebenCents != -100 {
+		t.Errorf("expected kassiert 300 / pfand 400 / abzugeben -100, got %+v", uebersicht)
+	}
+
+	data, err := q.GetReporting(ctx, zNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+	if got := abrechnungByUser(data.Breakdowns.AbrechnungProServicekraft)["anna"].AbzugebenCents; got != uebersicht.AbzugebenCents {
+		t.Errorf("eigene Übersicht (%d) und Abrechnungszeile (%d) müssen denselben Abzugeben-Betrag nennen", uebersicht.AbzugebenCents, got)
+	}
 }

@@ -19,8 +19,7 @@ SELECT
     eigene.anzahl_zahlungen,
     eigene.zahlungen_cents,
     ruecknahmen.anzahl_ruecknahmen,
-    ruecknahmen.ruecknahmen_cents,
-    (eigene.zahlungen_cents - ruecknahmen.ruecknahmen_cents)::int AS abzugeben_cents
+    ruecknahmen.ruecknahmen_cents
 FROM (
     SELECT
         COALESCE(COUNT(CASE WHEN kj.type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
@@ -62,7 +61,6 @@ type GetEigeneUebersichtRow struct {
 	ZahlungenCents     int
 	AnzahlRuecknahmen  int
 	RuecknahmenCents   int
-	AbzugebenCents     int
 }
 
 // Service-Dashboard: Eigene KPIs der eingeloggten Servicekraft pro Kassensitzung.
@@ -71,9 +69,7 @@ type GetEigeneUebersichtRow struct {
 // einen Benutzer und ohne Umweg über die Detailzeilen: Eine Warenrücknahme zählt für diese
 // Servicekraft, wenn die über zahlungId referenzierte Zahlung von ihr kassiert wurde — egal,
 // wer storniert hat. Geldneutrale Korrekturen bleiben bewusst außen vor; sie ändern nichts an
-// dem, was abzugeben ist. abzugeben_cents ist nie negativ: Pro Zahlung gilt
-// Σ Rücknahmen <= Zahlbetrag (FIFO-Buchführung in ComputeStornoAufteilung), und beide Seiten
-// sind demselben Kassierer zugeordnet.
+// dem, was abzugeben ist. Das ausgezahlte Pfand liefert GetPfandProServicekraft.
 func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersichtParams) (GetEigeneUebersichtRow, error) {
 	row := q.db.QueryRowContext(ctx, getEigeneUebersicht, arg.UserID, arg.KassensitzungNr)
 	var i GetEigeneUebersichtRow
@@ -84,7 +80,6 @@ func (q *Queries) GetEigeneUebersicht(ctx context.Context, arg GetEigeneUebersic
 		&i.ZahlungenCents,
 		&i.AnzahlRuecknahmen,
 		&i.RuecknahmenCents,
-		&i.AbzugebenCents,
 	)
 	return i, err
 }
@@ -257,6 +252,67 @@ func (q *Queries) GetOffeneTischeDetails(ctx context.Context, kassensitzungNr in
 	return items, nil
 }
 
+const getPfandProServicekraft = `-- name: GetPfandProServicekraft :many
+SELECT
+    r.user_id,
+    MAX(r.user_name)::text AS user_name,
+    COALESCE(MAX(u.name), '')::text AS name,
+    (
+        COALESCE(SUM(kj_extract_pfandrueckgabe_cents(e.type, e.data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(e.type, e.data)), 0)::int
+    )::int AS pfand_cents
+FROM kassenjournal r
+JOIN kassenjournal e ON e.subject = r.subject
+    AND e.type IN ('pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
+LEFT JOIN users u ON u.id = r.user_id
+WHERE r.type = 'pfand-zurueckgegeben:v1'
+AND r.kassensitzung_nr = $1
+AND (r.data->>'tischId')::int > 0
+GROUP BY r.user_id
+ORDER BY pfand_cents DESC
+`
+
+type GetPfandProServicekraftRow struct {
+	UserID     int
+	UserName   string
+	Name       string
+	PfandCents int
+}
+
+// Tagesabrechnung: ausgezahltes Pfand am Tisch je Servicekraft pro Kassensitzung, die
+// Pfand-Seite der Abrechnung pro Servicekraft. Es zählen nur Rückgaben mit tischId > 0;
+// Rückgaben an der Theke (tischId 0) gehören wie Direktverkäufe zu keiner Servicekraft.
+// Eine Stornierung zählt für den Akteur der Rückgabe im selben subject, nicht für den
+// Stornierenden. pfand_cents ist die Nettosumme: Rückgaben minus deren Stornierungen.
+// Der Join über subject und type nutzt idx_kassenjournal_subject_type.
+func (q *Queries) GetPfandProServicekraft(ctx context.Context, kassensitzungNr int) ([]GetPfandProServicekraftRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPfandProServicekraft, kassensitzungNr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPfandProServicekraftRow{}
+	for rows.Next() {
+		var i GetPfandProServicekraftRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.UserName,
+			&i.Name,
+			&i.PfandCents,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getProduktStatistik = `-- name: GetProduktStatistik :many
 SELECT
     (position->>'kategorie')::text AS kategorie,
@@ -369,7 +425,12 @@ SELECT
     (
         COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
-    )::int AS direktverkauf_umsatz_cents
+    )::int AS direktverkauf_umsatz_cents,
+    COALESCE(COUNT(CASE WHEN type = 'pfand-zurueckgegeben:v1' THEN 1 END), 0)::int AS anzahl_pfandrueckgaben,
+    (
+        COALESCE(SUM(kj_extract_pfandrueckgabe_cents(type, data)), 0)::int
+        - COALESCE(SUM(kj_extract_pfandrueckgabe_storno_cents(type, data)), 0)::int
+    )::int AS pfandrueckgaben_cents
 FROM kassenjournal
 WHERE type IN (
     'bestellung-aufgenommen:v1',
@@ -394,6 +455,8 @@ type GetReportingStatsRow struct {
 	AnzahlStornierungen      int
 	AnzahlDirektverkaeufe    int
 	DirektverkaufUmsatzCents int
+	AnzahlPfandrueckgaben    int
+	PfandrueckgabenCents     int
 }
 
 // Reporting: Aggregierte Kennzahlen für eine Kassensitzung. Der Gesamtumsatz ist netto:
@@ -410,6 +473,8 @@ func (q *Queries) GetReportingStats(ctx context.Context, kassensitzungNr int) (G
 		&i.AnzahlStornierungen,
 		&i.AnzahlDirektverkaeufe,
 		&i.DirektverkaufUmsatzCents,
+		&i.AnzahlPfandrueckgaben,
+		&i.PfandrueckgabenCents,
 	)
 	return i, err
 }

@@ -552,6 +552,57 @@ func TestGetReporting_UmsatzProSteuersatzZiehtPfandrueckgabeAb(t *testing.T) {
 	}
 }
 
+// TestGetReporting_ZaehltPfandrueckgaben: the report counts every return, at a table and at the counter, and nets
+// their cancellations. Cancellations of returns stay out of the storno figures.
+func TestGetReporting_ZaehltPfandrueckgaben(t *testing.T) {
+	db := dbtest.Open()
+	defer func() { _ = db.Close() }()
+	cleanDB(t, db)
+	defer cleanDB(t, db)
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	userID := createUser(t, db, "Anna Müller", "anna", "active")
+	ksNr := createKassensitzung(t, db)
+
+	glas := func(menge int) []map[string]any {
+		return []map[string]any{{
+			"produktName":      "Pfand",
+			"varianteName":     "Glas",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 200,
+			"menge":            menge,
+		}}
+	}
+
+	insertEvent(t, db, userID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r1", 1, map[string]any{
+		"rueckgabeId": "r1", "tischId": 1, "positionen": glas(2), "gesamtbetragCents": 400, "kommentar": "",
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "pfandrueckgabe-storniert:v1", "kassensitzung-1/pfandrueckgabe-r1", 2, map[string]any{
+		"stornierungId": "rs1", "rueckgabeId": "r1", "tischId": 1, "positionen": glas(1), "gesamtStornierungCents": 200, "kommentar": "Falsch gezählt",
+	}, ksNr)
+	insertEvent(t, db, userID, "anna", "pfand-zurueckgegeben:v1", "kassensitzung-1/pfandrueckgabe-r2", 1, map[string]any{
+		"rueckgabeId": "r2", "tischId": 0, "positionen": glas(3), "gesamtbetragCents": 600, "kommentar": "",
+	}, ksNr)
+
+	data, err := repo.GetReporting(ctx, ksNr)
+	if err != nil {
+		t.Fatalf("GetReporting failed: %v", err)
+	}
+
+	if data.Summary.AnzahlPfandrueckgaben != 2 {
+		t.Errorf("expected 2 Pfandrückgaben, got %d", data.Summary.AnzahlPfandrueckgaben)
+	}
+	if data.Summary.PfandrueckgabenCents != 800 {
+		t.Errorf("expected Pfandrückgaben netto 800 (400 + 600 − 200 Stornierung), got %d", data.Summary.PfandrueckgabenCents)
+	}
+	if data.Summary.AnzahlStornierungen != 0 || data.Summary.GesamtStornierungenCents != 0 || len(data.Stornierungen) != 0 {
+		t.Errorf("expected no storno figures for a cancelled return, got %d / %d / %+v",
+			data.Summary.AnzahlStornierungen, data.Summary.GesamtStornierungenCents, data.Stornierungen)
+	}
+}
+
 // TestGetReporting_MetadatenAusJournalEvents: the report header projects opening and closing time, the closing user
 // (frozen user_name) and the count difference purely from journal events.
 func TestGetReporting_MetadatenAusJournalEvents(t *testing.T) {
