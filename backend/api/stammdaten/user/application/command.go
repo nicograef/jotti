@@ -2,9 +2,7 @@ package application
 
 import (
 	"context"
-	"errors"
 
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
@@ -30,12 +28,7 @@ func (c Command) CreateUser(ctx context.Context, name, username string, role use
 
 	userID, err := c.UserRepo.CreateUser(ctx, user)
 	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn("Username already exists", "error", err, "username", user.Username)
-			return 0, "", ErrUsernameAlreadyExists
-		}
-		log.Error("Failed to create user", "error", err, "username", user.Username)
-		return 0, "", ErrDatabase
+		return 0, "", fromRepositoryError(err, log, "creation", "username", user.Username)
 	}
 
 	log.Info("User created successfully", "username", user.Username)
@@ -47,12 +40,7 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn("User not found for update", "user_id", userID)
-			return ErrUserNotFound
-		}
-		log.Error("Failed to retrieve user for update", "error", err, "user_id", userID)
-		return ErrDatabase
+		return fromRepositoryError(err, log, "update", "user_id", userID)
 	}
 
 	err = user.UpdateDetails(name, username, role)
@@ -63,12 +51,7 @@ func (c Command) UpdateUser(ctx context.Context, userID int, name, username stri
 
 	err = c.UserRepo.UpdateUser(ctx, user)
 	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn("Username already exists", "error", err, "username", user.Username)
-			return ErrUsernameAlreadyExists
-		}
-		log.Error("Failed to update user", "error", err, "user_id", userID)
-		return ErrDatabase
+		return fromRepositoryError(err, log, "update", "user_id", userID, "username", user.Username)
 	}
 
 	log.Info("User updated successfully", "user_id", userID)
@@ -92,12 +75,7 @@ func (c Command) applyUserStatusChange(ctx context.Context, userID int, successM
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn("User not found for status change", "user_id", userID)
-			return ErrUserNotFound
-		}
-		log.Error("Failed to retrieve user for status change", "error", err, "user_id", userID)
-		return ErrDatabase
+		return fromRepositoryError(err, log, "status change", "user_id", userID)
 	}
 
 	action(&user)
@@ -117,12 +95,7 @@ func (c Command) ResetPassword(ctx context.Context, userID int) (string, error) 
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn("User not found for password reset", "user_id", userID)
-			return "", ErrUserNotFound
-		}
-		log.Error("Failed to retrieve user for password reset", "error", err, "user_id", userID)
-		return "", ErrDatabase
+		return "", fromRepositoryError(err, log, "password reset", "user_id", userID)
 	}
 
 	onetimePassword, err := user.ResetPassword()
