@@ -1,11 +1,10 @@
 import { z } from 'zod'
 
 import {
-  DirektverkaufStornierungSchema,
   VerkaufPositionInputSchema,
-  VerkaufPositionSchema,
+  VorgangHistorieBasisSchema,
 } from '../direktverkauf/Direktverkauf'
-import { DateStringSchema, PositionRefSchema } from '../schemas'
+import { PositionRefSchema } from '../schemas'
 
 // tischId 0 ist der Direktverkauf.
 export const PfandZurueckgebenSchema = z.object({
@@ -16,18 +15,11 @@ export const PfandZurueckgebenSchema = z.object({
 })
 export type PfandZurueckgeben = z.infer<typeof PfandZurueckgebenSchema>
 
-export const PfandrueckgabeHistorieEintragSchema = z.object({
-  rueckgabeId: z.uuid(),
-  tischId: z.number().int().min(0),
-  userName: z.string(),
-  getaetigtAm: DateStringSchema,
-  positionen: VerkaufPositionSchema.array(),
-  gesamtbetragCents: z.number().int().min(0),
-  kommentar: z.string(),
-  offenePositionen: VerkaufPositionSchema.array(),
-  gesamtStorniertCents: z.number().int().min(0),
-  stornierungen: DirektverkaufStornierungSchema.array(),
-})
+export const PfandrueckgabeHistorieEintragSchema =
+  VorgangHistorieBasisSchema.extend({
+    rueckgabeId: z.uuid(),
+    tischId: z.number().int().min(0),
+  })
 export type PfandrueckgabeHistorieEintrag = z.infer<
   typeof PfandrueckgabeHistorieEintragSchema
 >

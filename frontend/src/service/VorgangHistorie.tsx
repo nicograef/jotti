@@ -28,8 +28,8 @@ import {
   meldeBelegStatus,
 } from './beleg'
 import type {
-  DirektverkaufStornierung,
   VerkaufPosition,
+  VorgangHistorieBasis,
 } from './direktverkauf/Direktverkauf'
 import type { PositionRef } from './schemas'
 import { Kommentar } from './table/CommentField'
@@ -38,19 +38,8 @@ import { HistorieSkeletonGrid } from './table/HistorieSkeletonGrid'
 import { Receipt } from './table/Receipt'
 import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
-// Ein Vorgang mit eigenem Stream: Direktverkauf oder Pfandrückgabe; id ist die
-// Vorgangs-ID (verkaufId oder rueckgabeId).
-export interface VorgangEintrag {
-  id: string
-  userName: string
-  getaetigtAm: string
-  positionen: VerkaufPosition[]
-  gesamtbetragCents: number
-  kommentar: string
-  offenePositionen: VerkaufPosition[]
-  gesamtStorniertCents: number
-  stornierungen: DirektverkaufStornierung[]
-}
+// id ist die Vorgangs-ID (verkaufId oder rueckgabeId).
+export type VorgangEintrag = VorgangHistorieBasis & { id: string }
 
 function positionenZusammenfassung(positionen: VerkaufPosition[]): string {
   return positionen

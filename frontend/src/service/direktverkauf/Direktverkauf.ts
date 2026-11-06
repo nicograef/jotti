@@ -63,12 +63,9 @@ export const DirektverkaufStornierungSchema = z.object({
   storniertAm: DateStringSchema,
   gesamtStornierungCents: z.number().int().min(0),
 })
-export type DirektverkaufStornierung = z.infer<
-  typeof DirektverkaufStornierungSchema
->
 
-export const DirektverkaufHistorieEintragSchema = z.object({
-  verkaufId: z.uuid(),
+// Historie eines Vorgangs mit eigenem Stream: Direktverkauf oder Pfandrückgabe.
+export const VorgangHistorieBasisSchema = z.object({
   userName: z.string(),
   getaetigtAm: DateStringSchema,
   positionen: VerkaufPositionSchema.array(),
@@ -78,6 +75,10 @@ export const DirektverkaufHistorieEintragSchema = z.object({
   gesamtStorniertCents: z.number().int().min(0),
   stornierungen: DirektverkaufStornierungSchema.array(),
 })
+export type VorgangHistorieBasis = z.infer<typeof VorgangHistorieBasisSchema>
+
+export const DirektverkaufHistorieEintragSchema =
+  VorgangHistorieBasisSchema.extend({ verkaufId: z.uuid() })
 export type DirektverkaufHistorieEintrag = z.infer<
   typeof DirektverkaufHistorieEintragSchema
 >
