@@ -158,6 +158,8 @@ function DruckstationCard({
   const { loading: bonmodusSaving, run: runBonmodus } = useActionSubmit({
     actionLabel: 'Bonmodus speichern',
   })
+  // Beide Speicherungen senden die ganze Konfiguration aus `config`; die eine
+  // sperrt die andere, bis der Refetch den neuen Stand geliefert hat.
 
   // Speichert nur bei Änderung; ausgelöst on-blur und per Enter (kein
   // Speichern-Button).
@@ -218,7 +220,7 @@ function DruckstationCard({
           <Input
             id={`ip-${config.kategorie}`}
             value={druckerIp}
-            disabled={saving}
+            disabled={saving || bonmodusSaving}
             onChange={(e) => {
               setDruckerIp(e.target.value)
               if (ipError !== null) {
@@ -262,7 +264,7 @@ function DruckstationCard({
         <BonmodusOptionen
           kategorie={config.kategorie}
           aktiv={config.bonmodus}
-          disabled={bonmodusSaving}
+          disabled={bonmodusSaving || saving}
           onSelect={(bonmodus) => void waehleBonmodus(bonmodus)}
         />
       )}

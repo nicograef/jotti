@@ -227,6 +227,33 @@ describe('DruckstationConfigPage — Stationskarten', () => {
     ])
   })
 
+  it('lässt keinen Bonmodus-Klick die gerade gespeicherte IP überschreiben', async () => {
+    const user = userEvent.setup()
+    const fake = backend({
+      druckstationen: [
+        makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
+      ],
+    })
+    await renderPage(fake)
+
+    const input = screen.getByLabelText('Drucker-IP')
+    await user.clear(input)
+    await user.type(input, '192.168.1.99')
+    await user.click(screen.getByRole('button', { name: /Pro Bestellung/ }))
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        'Drucker-IP für „Essen“ gespeichert.',
+      )
+    })
+    expect(fake.bodies('admin/update-druckstationen')).toEqual([
+      expect.objectContaining({
+        druckerIp: '192.168.1.99',
+        bonmodus: 'pro_position',
+      }),
+    ])
+  })
+
   it('zeigt nach erfolgreichem IP-Speichern eine Inline-Bestätigung, die nach ~2 Sekunden verschwindet', async () => {
     const user = userEvent.setup()
     await renderPage(
