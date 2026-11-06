@@ -15,7 +15,12 @@ import {
 } from '@/components/ui/drawer'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { formatEuro, formatPositionName, formatRelativeTime } from '@/lib/utils'
+import {
+  formatEuro,
+  formatPositionName,
+  formatRelativeTime,
+  formatZeitpunkt,
+} from '@/lib/utils'
 
 import {
   belegDruckenMitNachfassen,
@@ -29,7 +34,7 @@ import type {
 import type { PositionRef } from './schemas'
 import { Kommentar } from './table/CommentField'
 import { toReceiptItems } from './table/drawerUtils'
-import { HistorieRowSkeleton } from './table/HistorieRowSkeleton'
+import { HistorieSkeletonGrid } from './table/HistorieSkeletonGrid'
 import { Receipt } from './table/Receipt'
 import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
@@ -107,14 +112,7 @@ export function VorgangHistorie({
   }
 
   if (loading) {
-    return (
-      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {Array.from({ length: 6 }).map((_, index) => (
-          // oxlint-disable-next-line react/no-array-index-key
-          <HistorieRowSkeleton key={index} />
-        ))}
-      </div>
-    )
+    return <HistorieSkeletonGrid />
   }
 
   if (eintraege.length === 0) {
@@ -241,13 +239,7 @@ function Details({
             {verkauf.userName}
           </DrawerTitle>
           <DrawerDescription>
-            {new Date(verkauf.getaetigtAm).toLocaleString('de-DE', {
-              day: 'numeric',
-              month: 'numeric',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatZeitpunkt(verkauf.getaetigtAm)}
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">

@@ -56,6 +56,17 @@ export function formatPositionName(
   return `${produktName} ${varianteName}`.trim()
 }
 
+// Full timestamp of a history detail drawer, e.g. "8.6.2026, 11:00".
+export function formatZeitpunkt(date: string): string {
+  return new Date(date).toLocaleString('de-DE', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 /**
  * Relative timestamp for history lists. No live ticker — the value only changes
  * on re-render/refetch, which is accepted; the full timestamp stays in the

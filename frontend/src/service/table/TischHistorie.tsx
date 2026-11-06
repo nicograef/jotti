@@ -23,13 +23,18 @@ import {
 import { ItemGroup } from '@/components/ui/item'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
-import { cn, formatEuro, formatRelativeTime } from '@/lib/utils'
+import {
+  cn,
+  formatEuro,
+  formatRelativeTime,
+  formatZeitpunkt,
+} from '@/lib/utils'
 
 import { belegDruckenMitNachfassen, meldeBelegStatus } from '../beleg'
 import type { Bestellung } from './Bestellung'
 import { Kommentar } from './CommentField'
 import { toReceiptItems } from './drawerUtils'
-import { HistorieRowSkeleton } from './HistorieRowSkeleton'
+import { HistorieSkeletonGrid } from './HistorieSkeletonGrid'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { Receipt, type ReceiptPosition } from './Receipt'
@@ -148,22 +153,21 @@ export function TischHistorie({
 
   return (
     <>
-      <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {historieLoading
-          ? Array.from({ length: 6 }).map((_, index) => (
-              // oxlint-disable-next-line react/no-array-index-key
-              <HistorieRowSkeleton key={index} />
-            ))
-          : historie.map((item) => (
-              <HistoryRow
-                key={item.id}
-                {...zeilenmodell(item)}
-                onClick={() => {
-                  setDetail(item)
-                }}
-              />
-            ))}
-      </ItemGroup>
+      {historieLoading ? (
+        <HistorieSkeletonGrid />
+      ) : (
+        <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
+          {historie.map((item) => (
+            <HistoryRow
+              key={item.id}
+              {...zeilenmodell(item)}
+              onClick={() => {
+                setDetail(item)
+              }}
+            />
+          ))}
+        </ItemGroup>
+      )}
       {detail && (
         <HistorieDetail
           detail={detail}
@@ -413,14 +417,7 @@ function Details({
             {title} · {formatRelativeTime(date)} · {userName}
           </DrawerTitle>
           <DrawerDescription>
-            {tischName} ·{' '}
-            {new Date(date).toLocaleString('de-DE', {
-              day: 'numeric',
-              month: 'numeric',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {tischName} · {formatZeitpunkt(date)}
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
