@@ -32,6 +32,9 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - `kasse.StreamTypePfandrueckgabe = "pfandrueckgabe"`, ohne Projektion. `writeEventInTx()` führt ihn im selben `case` wie `StreamTypeDirektverkauf`. `kasse.PfandrueckgabeSubject()` baut das Subject.
 - Die Rückgabe ist `version = 1`, jede Stornierung eine Folge-Version im selben Stream.
 - `tischId` im Event ordnet die Rückgabe dem Tisch zu, mit und ohne Tisch-Session. Die Tisch-Projektion bleibt unberührt.
+- Das gilt für Tisch, leeren Tisch und Theke gleich. Grund: Eine Tisch-Session lebt ab der ersten Bestellung die ganze Kassensitzung.
+- Eine Rückgabe hat weder Rechnung noch zuordenbaren Verkauf. Ein eigener Stream erspart die Fallunterscheidung nach bestehender Tisch-Session.
+- Die Tisch-Historie zeigt Rückgaben über `tischId` in einem eigenen Abschnitt „Pfandrückgaben".
 - Eine Rückgabe erzeugt kein Guthaben am Tisch. Verrechnet wird nur im selben Abschluss.
 
 **Migration** `database/migrations/11_pfandrueckgabe.up.sql`, in `BEGIN; … COMMIT;`:
@@ -91,10 +94,12 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - Er ist ein Kassenbeleg mit negativen Positionen, negativer Steuermatrix und negativem Gesamtbetrag.
 - Der Beleg zur Stornierung ist ein Stornobeleg mit positiven Beträgen und „Storno zu Bon-Nr" der Rückgabe.
 
-**Angewandte KISS-Schnitte** gegenüber dem PRD:
+**Weitere Schnitte.**
 
-- Eigener Stream für jede Rückgabe statt Tisch-Session-Stream. Das entfernt die Fallunterscheidung nach bestehender Tisch-Session, jede Projektionsänderung und zwei Storno-Orte. Die Zuordnung zum Tisch trägt `tischId` ohnehin.
 - `tagesabschluss-erstellt:v1` bekommt keine Folgeversion. Sein `umsatzGesamtCents` ist netto; Anzahl und Summe der Rückgaben zeigt der Kassenbericht aus dem Journal.
+- Die Stornierung einer Rückgabe ist als Stornobeleg druckbar, weil jeder signierte Vorgang einen erstellbaren Beleg braucht (§ 146a Abs. 2 AO).
+- Die Stornierung ist positionsgenau (PRD-Stories 12 und 13) und per `stornierungId` vom Client und Replay idempotent.
+- Pfand tippt die Servicekraft als eigene Position. Automatisches Pfand je Variante bleibt draußen und bekommt nach der Auslieferung ein eigenes PRD.
 - Pfandrückgabe-Stornierungen erscheinen nicht in der Storno-Liste des Kassenberichts. Sie stehen in der Pfand-Historie und wirken über die Nettosumme.
 - Der Pfandbeleg bekommt keinen eigenen Titel. Der Kassenbeleg mit negativen Beträgen und Positionen namens „Pfand" genügt.
 
@@ -144,16 +149,6 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 
 ## Open questions / Risks
 
-- **Planer-Entscheidung, Owner-Bestätigung offen: eigener Stream je Rückgabe.** Das PRD legt Rückgaben am Tisch in den Tisch-Session-Stream. Der Plan nimmt immer einen eigenen Stream; Begründung unter „Angewandte KISS-Schnitte". Folge: Die Tisch-Historie zeigt Rückgaben über `tischId`, auch ohne Tisch-Session.
-- **Planer-Entscheidung, Owner-Bestätigung offen: Z-Bon ohne Folgeversion.** `tagesabschluss-erstellt:v1` trägt keine Pfand-Kennzahlen. Anzahl und Summe stehen im Kassenbericht. Eine `:v2` lohnt erst, wenn der Z-Bon-Druck sie braucht.
-- **Planer-Entscheidung, Owner-Bestätigung offen: Stornobeleg der Rückgabe.** Das PRD nennt nur den Pfandbeleg. Der Plan macht auch die Stornierung druckbar, weil jeder signierte Vorgang einen erstellbaren Beleg braucht (§ 146a Abs. 2 AO).
-- **PRD nachziehen.** Bestätigt der Owner die drei Entscheidungen, schreibt der Lead vor Phase 1 das PRD um. Betroffen: §„Streams und Projektion", die Zeile „Kassenabschluss und Tagesabschluss führen …" unter §„Kasse und Reporting" und §„Beleg". Lehnt er eine ab, ändert sich zuerst der Plan.
-- **PRD-Wortlaut ohne Verhaltensänderung.** Der Lead zieht vor Phase 1 auch diese Stellen nach:
-  - §„Event-Verträge": `pfandrueckgabe-storniert:v1` trägt die Tisch-ID.
-  - §„Commands und API" und die Weg-Tabelle: ein Index statt zwei; die Stornierung ist per Replay idempotent.
-  - §„Kasse und Reporting": zwei vorzeichenlose Extraktionsfunktionen für Pfand statt einer.
-- **Prüfpunkte aus dem PRD bleiben offen.** BMF-Schreiben vom 20.10.2014 (Warenumschließung oder Transporthilfsmittel) liegt nicht in den Rechtsquellen. Die DSFinV-K zitiert § 17 Abs. 1 Satz 7 UStG, der Gesetzestext hat Satz 8. Beides ist Steuerberater-Sache, kein Blocker.
-- **`docs/decisions.md`** braucht eine Zeile „Pfandrückgabe als eigener Kassenvorgang, nie als Negativpreis". Der Lead trägt sie beim Landen ein; dieser Plan fasst die Datei nicht an.
 - **Migrationsnummer.** 11 ist beim Schreiben frei. `docs/prds/prd-stationsmodell.md` plant ebenfalls die nächste freie Nummer. Landet sie zuerst, wird diese Datei vor dem Landen umbenannt.
 - **Überschneidung im Abschluss.** `docs/prds/prd-kommentar-je-position.md` ändert `frontend/src/service/direktverkauf/DirektverkaufAbschluss.tsx` ebenfalls. Parallel geplant, gibt es dort einen Merge-Konflikt.
 - **Upgrade-Pfad nur in CI.** Der Job `upgrade-path` in `.github/workflows/ci.yml` prüft Spalte und ersetzte Funktion auf einer befüllten Bestandsinstanz. Lokal deckt `make check-integration` nur die Frischinstallation ab.
@@ -203,7 +198,8 @@ Ein Gast gibt Pfandgut zurück und erhält den Pfandbetrag bar oder verrechnet. 
 - Das DTO `produkt` in `backend/api/stammdaten/produkt/http/query_handler.go` trägt `pfand`. Zod-`ProduktSchema` bekommt `pfand: z.boolean()`.
 - Neues und Bearbeiten-Formular zeigen den Schalter „Pfand-Produkt", Standard aus. Der Request trägt `pfand`.
 - `frontend/src/admin/products/ProductItem.tsx` markiert ein Pfand-Produkt mit einem Badge „Pfand".
-- `docs/leitfaden/belege-steuersaetze.md` erklärt: Pfand teilt den Satz der Hauptleistung. Gläserpfand zu Getränken 19 %, Tellerpfand zu Speisen 7 %.
+- `docs/leitfaden/belege-steuersaetze.md` erklärt: Pfand teilt den Satz der Hauptleistung. Glaspfand zu Getränken 19 %, Tellerpfand zu Speisen 7 %.
+- Quelle ist das BMF-Schreiben vom 20.10.2014, BStBl I S. 1372: Festglas und Pfandteller sind Warenumschließungen. Der Leitfaden zitiert es ohne Link.
 - Der Leitfaden nennt den Schalter „Pfand-Produkt" und rät zu je einem Pfand-Produkt pro Satz.
 
 Demo: Der Admin legt „Pfand" mit Variante „Glas 2,00 €" an und kennzeichnet es. Nach dem Neuladen steht das Badge.

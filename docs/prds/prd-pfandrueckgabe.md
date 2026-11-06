@@ -26,13 +26,13 @@ Die Servicekraft tippt die zurückgegebenen Gläser an. Der Drawer zeigt den Bet
 
 Ohne Verkauf geht dasselbe: Der Abschnitt „Pfand zurück" allein ergibt eine reine Pfandrückgabe mit Barauszahlung.
 
-Das gilt auch am Tisch, an dem in der Kassensitzung noch niemand bestellt hat. Die Rückgabe bucht dann in einen eigenen Stream wie im Direktverkauf.
+Das gilt auch am Tisch, an dem in der Kassensitzung noch niemand bestellt hat. Jede Rückgabe bucht in einen eigenen Stream, am Tisch wie im Direktverkauf.
 
 Jede Pfandrückgabe ist ein eigener, TSE-signierter Kassenvorgang. Sie mindert den Soll-Kassenbestand und den Umsatz am Steuersatz des Pfand-Produkts.
 
-Die Historie zeigt jede Pfandrückgabe. Die Serviceleitung storniert eine irrtümliche Rückgabe dort, mit Kommentar.
+Die Historie zeigt jede Pfandrückgabe, am Tisch in einem eigenen Abschnitt. Die Serviceleitung storniert eine irrtümliche Rückgabe dort positionsgenau, mit Kommentar.
 
-Der Pfandbeleg ist auf Verlangen druckbar, wie jeder Kassenbeleg. Der DSFinV-K-Export führt die Rückgabe als Geschäftsvorfall „PfandRueckzahlung".
+Pfandbeleg und Stornobeleg einer Rückgabe sind auf Verlangen druckbar, wie jeder Kassenbeleg. Der DSFinV-K-Export führt die Rückgabe als Geschäftsvorfall „PfandRueckzahlung".
 
 ## User Stories
 
@@ -64,7 +64,7 @@ Der Pfandbeleg ist auf Verlangen druckbar, wie jeder Kassenbeleg. Der DSFinV-K-E
 | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Negativ-Variante         | gering  | hoch: Die Preisgrenze prüft auch gespeicherte Events, die DB verbietet negative Preise und Salden, die Steueraufteilung lehnt negative Beträge ab, die Rückgabe läuft als Bestellung über Arbeitsbons und Saldo | schlecht: Negative Preise in v1-Events bleiben für immer, jeder künftige Leser muss sie tragen |
 | Preisfindung je Position | hoch    | mittel: Folgeversionen von Bestellung, Zahlung, Direktverkauf und Stornierung; eine Rückgabe ohne Kauf hat keine Position zum Mindern; die Preisfindung kennt laut DSFinV-K nur Grundpreis, Rabatt und Zuschlag | mittel: Folgeversionen bleiben im Journal                                                      |
-| Rückgabe-Vorgang         | mittel  | gering: Bestehende Events, Schemas und die Positiv-Regel der Geldsummen bleiben unberührt; das Vorzeichen trägt der Event-Typ wie bei der Warenrücknahme                                                        | gut: rein additive Event-Typen, eine additive Spalte und zwei Indexe                           |
+| Rückgabe-Vorgang         | mittel  | gering: Bestehende Events, Schemas und die Positiv-Regel der Geldsummen bleiben unberührt; das Vorzeichen trägt der Event-Typ wie bei der Warenrücknahme                                                        | gut: rein additive Event-Typen, eine additive Spalte und ein Index                             |
 
 Gewählt ist der Rückgabe-Vorgang. Er deckt Rückgabe mit und ohne Kauf ab und bricht keinen eingefrorenen Vertrag.
 
@@ -80,18 +80,19 @@ Gewählt ist der Rückgabe-Vorgang. Er deckt Rückgabe mit und ohne Kauf ab und 
 - `pfand-zurueckgegeben:v1` trägt eine client-erzeugte Rückgabe-ID, die Tisch-ID, fette Positionen, die Gesamtsumme und einen optionalen Kommentar.
 - Die Tisch-ID ist im Direktverkauf 0, wie beim Direktverkauf-Storno im Reporting.
 - Positionen und Summe sind positiv wie bei jeder Warenrücknahme. Die Bedeutung „Auszahlung" folgt aus dem Event-Typ.
-- `pfandrueckgabe-storniert:v1` trägt Stornierungs-ID, Rückgabe-ID, die stornierten Positionen, die Summe und einen Pflichtkommentar.
-- Die Stornierung darf je Position höchstens die zurückgegebene Menge zurücknehmen, wie beim Direktverkauf-Storno.
+- `pfandrueckgabe-storniert:v1` trägt Stornierungs-ID, Rückgabe-ID, Tisch-ID, die stornierten Positionen, die Summe und einen Pflichtkommentar.
+- Die Tisch-ID kommt aus der Rückgabe. So filtern Export, Historie und Abrechnung beide Typen ohne Rückgriff auf die Rückgabe.
+- Die Stornierung ist positionsgenau. Sie darf je Position höchstens die noch offene Menge zurücknehmen, wie beim Direktverkauf-Storno.
 - Beide Typen bekommen eingefrorene Vertragstests. Bestehende Event-Typen ändern sich nicht.
 
 ### Streams und Projektion
 
-- Am Tisch landet die Rückgabe im Stream der Tisch-Session. Die Projektion übergeht sie, Saldo und Positionen bleiben gleich.
-- Im Direktverkauf bekommt jede Rückgabe einen eigenen Stream unter der Kassensitzung, wie ein Direktverkauf.
-- Am Tisch ohne Tisch-Session bekommt die Rückgabe denselben eigenen Stream, mit der Tisch-ID im Event.
-- Grund: Die Tisch-Session entsteht mit der ersten Bestellung. Eine Rückgabe als erstes Event hinterließe einen Stream ohne Projektionszeile.
-- Ablehnen scheidet aus: Die Servicekraft müsste in den Direktverkauf wechseln, dessen Auszahlung der Theke statt ihr zugerechnet würde.
-- Diese Rückgabe erscheint in der Direktverkauf-Historie mit Tischname. Dort storniert die Serviceleitung sie.
+- Jede Pfandrückgabe bekommt einen eigenen Stream unter der Kassensitzung, am Tisch, am leeren Tisch und im Direktverkauf.
+- Die Tisch-ID im Event ordnet sie dem Tisch zu. Die Tisch-Projektion bleibt unberührt, Saldo und Positionen ändern sich nicht.
+- Grund: Eine Tisch-Session lebt ab der ersten Bestellung die ganze Kassensitzung. Eine Rückgabe hat weder Rechnung noch zuordenbaren Verkauf.
+- Ein eigener Stream erspart die Fallunterscheidung nach bestehender Tisch-Session und jede Änderung an der Projektion.
+- Die Tisch-Historie zeigt die Rückgaben des Tisches in einem eigenen Abschnitt. Dort storniert die Serviceleitung sie.
+- Die Direktverkauf-Historie zeigt ebenso die Rückgaben mit Tisch-ID 0.
 - Eine Rückgabe erzeugt kein Guthaben am Tisch. Verrechnet wird nur im selben Abschluss, so bleibt der Saldo nie negativ.
 - Die Stornierung hängt sich als Folge-Version an den Stream der Rückgabe.
 
@@ -101,8 +102,9 @@ Gewählt ist der Rückgabe-Vorgang. Er deckt Rückgabe mit und ohne Kauf ab und 
 - Ein eigener Command „Pfand zurückgeben" deckt die Rückgabe ohne Kauf ab, am Tisch wie im Direktverkauf.
 - Die Rückgabe-ID macht jeden Command mit Pfand idempotent. Ein zweiter Aufruf mit derselben ID bucht nichts.
 - Ein partieller Unique-Index auf die Rückgabe-ID für `pfand-zurueckgegeben:v1` erzwingt das, nach dem Vorbild `idx_kassenjournal_verkauf_id`.
-- Ein zweiter partieller Unique-Index auf die Stornierungs-ID für `pfandrueckgabe-storniert:v1` macht die Stornierung idempotent.
-- Beide Indexe legt die additive Migration der Pfand-Spalte an. Verletzt ein Wiederholversuch den Index im verrechneten Abschluss, rollt auch die Zahlung zurück.
+- Die additive Migration der Pfand-Spalte legt ihn an. Verletzt ein Wiederholversuch den Index im verrechneten Abschluss, rollt auch die Zahlung zurück.
+- Die Stornierung ist über die client-erzeugte Stornierungs-ID idempotent, ohne eigenen Index. Der Command findet sie im Replay des Rückgabe-Streams.
+- Gleichzeitige Duplikate einer Stornierung weist die Eindeutigkeit von Subject und Version ab.
 - Jede Servicekraft darf Pfand zurückgeben. Stornieren dürfen nur Serviceleitung und Admin.
 - Alle Endpunkte sind POST. Die Abschluss-Barriere der Kassensitzung gilt wie für jeden Kassenvorgang.
 - Das Frontend ruft die Endpunkte über die bestehenden Backend-Klassen. Der Pfand-Abschnitt lebt in der einen Abschluss-Komponente je Fläche.
@@ -132,27 +134,34 @@ Gewählt ist der Rückgabe-Vorgang. Er deckt Rückgabe mit und ohne Kauf ab und 
 
 - Pfand für eine Warenumschließung teilt das Schicksal der Hauptleistung (Abschn. 3.10 Abs. 5a Satz 2 UStAE).
 - Das Pfand ist Teil des Entgelts für die Lieferung (Abschn. 10.1 Abs. 8 Satz 1 UStAE).
-- Gläserpfand zu Getränken trägt damit 19 %, Tellerpfand zu Speisen 7 % (§ 12 Abs. 2 Nr. 15 UStG).
+- Festglas und Pfandteller sind Warenumschließungen. Sie gehen an den Endverbraucher und sind üblich, um die Ware verkaufsfähig zu machen.
+- Die Kriterien stammen aus dem BMF-Schreiben vom 20.10.2014, BStBl I S. 1372. Es nennt Flaschen; Festglas und Teller sind daraus abgeleitet.
+- Glaspfand zu Getränken trägt damit 19 %, Tellerpfand zu Speisen 7 % (§ 12 Abs. 2 Nr. 15 UStG).
 - Die Rückzahlung ist eine Entgeltminderung (Abschn. 3.10 Abs. 5a Satz 3 und Abschn. 10.1 Abs. 8 Satz 2 UStAE).
 - Den Steuerbetrag berichtigt der Verein im Zeitraum der Rückgabe (§ 17 Abs. 1 Satz 1 und 8 UStG).
+- DSFinV-K und BMF-Schreiben zitieren dafür Satz 7. Der heutige Satz 6 zur Leistungskette kam später hinzu und verschob die Zählung.
 - Elektronische Kassen ordnen Entgeltminderungen direkt dem Steuersatz zu (DSFinV-K Tz. 4.2.4). jotti nimmt dafür den Satz des Pfand-Produkts.
 - Dieselbe Zuordnung verlangt Abschn. 10.1 Abs. 8 Satz 4 UStAE: sachgerecht nach den geltenden Steuersätzen.
 
 ### Kasse und Reporting
 
 - Der Soll-Kassenbestand zieht Pfandrückgaben ab und addiert deren Stornierungen. Die Bareinnahmen der Vier-Komponenten-Aufschlüsselung tun dasselbe.
-- Der Umsatz je Steuersatz zieht Pfandrückgaben am Satz ab. Eine additive Migration ersetzt dafür die SQL-Extraktionsfunktion und ergänzt eine für Pfand.
+- Dieselbe Migration ergänzt zwei vorzeichenlose Extraktionsfunktionen: Summe der Rückgabe, Summe der Stornierung. Das Vorzeichen setzt die Query.
+- Der Umsatz je Steuersatz zieht Pfandrückgaben am Satz ab. Eine additive Migration ersetzt dafür die SQL-Extraktionsfunktion.
 - Die Abrechnung pro Servicekraft zieht Rückgaben mit Tisch-ID beim Akteur ab, auch die ohne Tisch-Session. Rückgaben im Direktverkauf zählen zur Kasse des Direktverkaufs.
 - Ein abzugebender Betrag darf dadurch negativ werden. Die Servicekraft hat dann mehr Pfand ausgezahlt als eingenommen.
 - Eine Stornierung zählt für die Servicekraft der ursprünglichen Rückgabe, nach der bestehenden Storno-Zuordnung.
-- Der abzugebende Betrag der eigenen Übersicht und des Live-Dashboards folgt derselben Rechnung.
-- Kassenabschluss und Tagesabschluss führen Anzahl und Summe der Pfandrückgaben.
+- Der abzugebende Betrag der eigenen Übersicht und des Live-Dashboards folgt derselben Rechnung. Eine eigene Pfand-Kennzahl hat das Live-Dashboard nicht.
+- Der Kassenbericht führt Anzahl und Nettosumme der Pfandrückgaben.
+- `tagesabschluss-erstellt:v1` bekommt keine Folgeversion. Sein Gesamtumsatz ist netto, also nach Abzug der Pfandrückgaben.
 - Die Produktstatistik bleibt auf der Bestellbasis. Rückgaben ändern sie nicht, wie Warenrücknahmen.
 
 ### Beleg
 
 - Der Pfandbeleg ist auf Verlangen druckbar und nachdruckbar, über die Rückgabe-ID. Er trägt negative Beträge und die Steuermatrix.
-- Die Belegausgabe-Befreiung des Vereins gilt auch für ihn. Erstellbar bleibt er jederzeit (§ 146a Abs. 2 AO).
+- Die Stornierung einer Rückgabe ist als Stornobeleg druckbar, mit positiven Beträgen und Verweis auf die Bon-Nr der Rückgabe.
+- Grund: Jeder signierte Vorgang braucht einen erstellbaren Beleg (§ 146a Abs. 2 AO).
+- Die Belegausgabe-Befreiung des Vereins gilt für beide Belege. Erstellbar bleiben sie jederzeit.
 
 ## Testing Decisions
 
@@ -162,7 +171,7 @@ Getestet wird äußeres Verhalten an der billigsten Ebene, die den Fehler sieht.
 - Event-Verträge: Je ein eingefrorener Vertragstest pro Typ. Der Vollständigkeitstest der Vertragsdatei erzwingt ihn ohnehin.
 - Domäne: Die Stornierung lehnt Mengen über der Rückgabe ab. Vorbild ist der Validierungstest des Direktverkauf-Stornos.
 - Anwendung mit echter Datenbank: Ein doppelter Aufruf mit derselben Rückgabe-ID bucht einmal, ebenso mit derselben Stornierungs-ID. Vorbild ist der Idempotenz-Test des Direktverkaufs.
-- Anwendung mit echter Datenbank: Eine Rückgabe am Tisch ohne Tisch-Session legt keine Projektionszeile an.
+- Anwendung mit echter Datenbank: Die Historie eines Tisches liefert nur dessen Rückgaben, Tisch-ID 0 nur die des Direktverkaufs.
 - Anwendung: Eine ungültige Pfand-Position verhindert auch die Zahlung, beide Events fehlen dann.
 - Anwendung: Eine Rückgabe erzeugt einen Signaturauftrag mit negativem `Kassenbeleg-V1`. Den Baustein deckt der Storno-Fall der processData-Tests.
 - SQL mit echter Datenbank: Soll-Kassenbestand und Umsatz je Steuersatz ziehen eine Rückgabe ab. Vorbild sind die Reporting-Integrationstests.
@@ -181,7 +190,8 @@ Getestet wird äußeres Verhalten an der billigsten Ebene, die den Fehler sieht.
 - Ein Freigetränk für Helfer hat kein Entgelt, das sich mindern ließe (Abschn. 10.3 Abs. 1 UStAE). Der Helferdeckel ist bereits Nicht-Ziel.
 - Kommt Rabatt zurück, ist die gesonderte negative Positionszeile mit Typ „Rabatt" der Weg (Tz. 4.2.4), nicht die Preisfindung.
 - Guthaben am Tisch: Eine Rückgabe ohne Abschluss bleibt nicht als Gutschrift am Tisch stehen.
-- Automatisches Pfand zur Getränke-Variante. Die Servicekraft tippt das Pfand-Produkt wie jede Position.
+- Automatisches Pfand zur Getränke-Variante. Die Servicekraft tippt das Pfand-Produkt als eigene Position.
+- Das automatische Pfand bekommt ein eigenes PRD, sobald die Pfandrückgabe ausgeliefert ist.
 - Pfandsaldo oder Glasbestand: Wie viele Gläser fehlen, zählt der Verein selbst.
 - Pfandmarken oder Pfandbons als Rückgabe-Nachweis. Papier und Vertrauen decken das ab.
 - Geschäftsvorfalltyp „Pfand" für den Pfand-Verkauf. Der Verkauf bleibt „Umsatz", siehe Further Notes.
@@ -208,16 +218,10 @@ Ein Merkmal aus den Stammdaten zur Exportzeit würde alte Events umdeuten. Die F
 
 Steuerlich ist „Umsatz" korrekt: gleicher Satz, gleiches Entgelt (Abschn. 10.1 Abs. 8 Satz 1 UStAE). Asymmetrisch bleibt nur die Buchungsgliederung.
 
-### Prüfpunkte vor der Umsetzung
-
-- Ob Festgläser Warenumschließungen oder Transporthilfsmittel sind, regelt das BMF-Schreiben vom 20.10.2014 (I. Nr. 1).
-- Das Schreiben nennt Flaschen, keine Gläser oder Teller. Die Einordnung als Warenumschließung ist eine Folgerung aus seinen Kriterien, kein Zitat.
-- Die DSFinV-K zitiert § 17 Abs. 1 Satz 7 UStG. Nach dem vorliegenden Gesetzestext steht die Zeitraumregel in Satz 8.
-- Die Dateitabelle des DSFinV-K-Exports in der Compliance-Doku nennt Pfand als Beispiel für die Zusatzinfo. Die Spezifikation stützt das nicht.
-
 ### Bei der Umsetzung nachzuziehen
 
 - Handbuch: Event-Tabelle, Subject-Design, Soll-Formel und die Invariante zum abzugebenden Betrag.
-- Compliance-Doku: Prozesstyp-Tabelle, Geschäftsvorfalltypen, Storno-Handling und die Zeile zur Zusatzinfo.
-- Leitfaden „Belege und Steuersätze": welcher Satz für Gläser- und Tellerpfand gilt.
+- Compliance-Doku: Prozesstyp-Tabelle, Geschäftsvorfalltypen und Storno-Handling.
+- Compliance-Doku: Die Dateitabelle nennt Pfand als Beispiel für die Zusatzinfo. Die Spezifikation stützt das nicht, das Beispiel entfällt.
+- Leitfaden „Belege und Steuersätze": Glaspfand 19 %, Tellerpfand 7 %, mit dem BMF-Schreiben vom 20.10.2014 als Quelle.
 - Anforderungen: eine Kennung für die Pfandrückgabe. Glossar: die vier Einträge oben.
