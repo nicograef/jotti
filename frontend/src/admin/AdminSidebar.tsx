@@ -38,7 +38,6 @@ import { AuthSingleton } from '@/lib/Auth'
 
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
 import { useAktiveKassensitzung } from './kasse/hooks'
-import { KassensitzungStatus } from './kasse/Kassensitzung'
 import { formatLocalTime } from './reporting/utils'
 
 interface NavItem {
@@ -92,14 +91,12 @@ export function AdminSidebar() {
   const version = useVersion()
   const { isDark, setTheme } = useTheme()
 
-  const { kassensitzung } = useAktiveKassensitzung()
+  const { kassensitzung, abschlussUnterbrochen } = useAktiveKassensitzung()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
 
   const kasseAktiv = kassensitzung !== null
-  const abschlussUnterbrochen =
-    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   const kasseStatus: { zustand: StatusDotZustand; label: string } =
     abschlussUnterbrochen
       ? { zustand: 'fehler', label: 'Abschluss unterbrochen' }

@@ -56,7 +56,8 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
 export function KassenberichtePage() {
   const { kassensitzungen, isPending: listLoading } =
     useAbgeschlosseneKassensitzungen()
-  const { kassensitzung: aktiveSitzung } = useAktiveKassensitzung()
+  const { kassensitzung: aktiveSitzung, abschlussUnterbrochen } =
+    useAktiveKassensitzung()
   const [selectedNr, setSelectedNr] = useState<number | null>(null)
 
   const effectiveNr = selectedNr ?? kassensitzungen.at(0)?.zNr ?? null
@@ -99,6 +100,7 @@ export function KassenberichtePage() {
             <SitzungsListe
               sitzungen={kassensitzungen}
               aktiveSitzung={aktiveSitzung}
+              abschlussUnterbrochen={abschlussUnterbrochen}
               selectedNr={effectiveNr}
               onSelect={setSelectedNr}
             />

@@ -18,7 +18,6 @@ import {
 } from './hooks'
 import { KasseAbschliessenSection } from './KasseAbschliessenSection'
 import type { AktiveKassensitzung } from './KasseBackend'
-import { KassensitzungStatus } from './Kassensitzung'
 import { LaufenderBetriebSection } from './LaufenderBetriebSection'
 
 type StepState = 'done' | 'active' | 'inactive'
@@ -110,7 +109,7 @@ function EroeffnetKarte({
 }
 
 export function KassensitzungPage() {
-  const { kassensitzung, isPending, isError, refetch } =
+  const { kassensitzung, abschlussUnterbrochen, isPending, isError, refetch } =
     useAktiveKassensitzung()
   // Eigener Abruf für Schritt 1 (Anfangsbestand); TanStack Query dedupliziert
   // ihn mit dem Abruf in LaufenderBetriebSection.
@@ -128,10 +127,6 @@ export function KassensitzungPage() {
       zuletztOffenRef.current = istOffen
     }
   }, [isPending, istOffen])
-
-  // Hinter der Barriere lehnt das Backend jede Buchung ab (kasse_wird_abgeschlossen).
-  const abschlussUnterbrochen =
-    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
 
   const titel = kassensitzung
     ? `Kassentag Nr. ${String(kassensitzung.zNr)} — ${kassensitzung.bezeichnung}`

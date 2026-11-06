@@ -1,5 +1,4 @@
 import { useAktiveKassensitzung, useKassenbestand } from '@/admin/kasse/hooks'
-import { KassensitzungStatus } from '@/admin/kasse/Kassensitzung'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
@@ -18,7 +17,7 @@ export function AdminDashboardPage() {
     dataUpdatedAt,
     refetch,
   } = useLiveReporting()
-  const { kassensitzung } = useAktiveKassensitzung()
+  const { kassensitzung, abschlussUnterbrochen } = useAktiveKassensitzung()
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
   const { tseStatus, isPending: tseLoading } = useTSEStatus()
   const { queue } = useTSESignaturQueue()
@@ -60,8 +59,6 @@ export function AdminDashboardPage() {
   ].filter((teil): teil is string => typeof teil === 'string')
   const kasseText = kasseTeile.length > 0 ? kasseTeile.join(' · ') : 'geöffnet'
 
-  const abschlussUnterbrochen =
-    kassensitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   const kasseTitel = abschlussUnterbrochen
     ? 'Abschluss unterbrochen'
     : 'Kasse offen'

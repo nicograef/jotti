@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router'
 
 import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
-import { KassensitzungStatus } from '@/admin/kasse/Kassensitzung'
+import { StatusDot } from '@/admin/components/StatusDot'
 import { cn, formatEuro } from '@/lib/utils'
 
 import type { AbgeschlosseneSitzung } from './types'
@@ -10,16 +10,16 @@ import { formatDatumKurz } from './utils'
 export function SitzungsListe({
   sitzungen,
   aktiveSitzung,
+  abschlussUnterbrochen,
   selectedNr,
   onSelect,
 }: {
   sitzungen: AbgeschlosseneSitzung[]
   aktiveSitzung: AktiveKassensitzung | null
+  abschlussUnterbrochen: boolean
   selectedNr: number | null
   onSelect: (nr: number) => void
 }) {
-  const abschlussUnterbrochen =
-    aktiveSitzung?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN
   return (
     <div className="flex flex-col gap-2">
       {aktiveSitzung && (
@@ -37,11 +37,13 @@ export function SitzungsListe({
                 abschlussUnterbrochen ? 'text-destructive' : 'text-primary',
               )}
             >
-              <span
-                className={cn(
-                  'size-1.5 rounded-full',
-                  abschlussUnterbrochen ? 'bg-destructive' : 'bg-primary',
-                )}
+              <StatusDot
+                zustand={abschlussUnterbrochen ? 'fehler' : 'ok'}
+                label={
+                  abschlussUnterbrochen
+                    ? 'Kassensitzung: Abschluss unterbrochen'
+                    : 'Kassensitzung offen'
+                }
               />
               {abschlussUnterbrochen ? 'Abschluss unterbrochen' : 'offen'}
             </span>
