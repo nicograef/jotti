@@ -104,7 +104,7 @@ func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []ts
 	for _, item := range resp.Data {
 		tssList = append(tssList, tse.TSSInfo{
 			ID:    strings.TrimSpace(item.ID),
-			State: strings.TrimSpace(item.State),
+			State: fiskalyZustand(item.State),
 		})
 	}
 	return env, tssList, nil
@@ -127,7 +127,7 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 		clients = append(clients, tse.ClientInfo{
 			ID:           strings.TrimSpace(item.ID),
 			SerialNumber: strings.TrimSpace(item.SerialNumber),
-			State:        strings.TrimSpace(item.State),
+			State:        fiskalyZustand(item.State),
 		})
 	}
 	return clients, nil
@@ -151,7 +151,7 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 	return tse.TSSErstellt{
 		ID:    id,
 		PUK:   strings.TrimSpace(resp.AdminPUK),
-		State: strings.TrimSpace(resp.State),
+		State: fiskalyZustand(resp.State),
 	}, nil
 }
 

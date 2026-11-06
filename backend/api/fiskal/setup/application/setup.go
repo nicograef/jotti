@@ -135,7 +135,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	if !gefunden {
 		return TSESetupErgebnis{}, ErrTSESetupTSSNichtGefunden
 	}
-	state := strings.ToUpper(strings.TrimSpace(ziel.State))
+	state := ziel.State
 
 	identitaet, err := c.TSERepo.GetKassenidentitaet(ctx)
 	if err != nil {
@@ -154,7 +154,7 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	aktion := clientRegistrieren
 	if passender := passenderClient(clients, seriennummer); passender != nil {
 		clientID = passender.ID
-		if strings.EqualFold(strings.TrimSpace(passender.State), "REGISTERED") {
+		if passender.State == "REGISTERED" {
 			aktion = clientFertig
 		} else {
 			aktion = clientReaktivieren
@@ -373,7 +373,7 @@ func einrichtungsFehler(log *slog.Logger, err error, schritt, tssID string) erro
 // Only DISABLED TSS count as dead and do not block a new setup.
 func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	for _, t := range tssListe {
-		if !strings.EqualFold(strings.TrimSpace(t.State), "DISABLED") {
+		if t.State != "DISABLED" {
 			return true
 		}
 	}

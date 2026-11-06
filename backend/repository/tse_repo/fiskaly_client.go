@@ -296,7 +296,7 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 	}
 
 	return tse.RetrieveResult{
-		State:        tse.TransactionState(strings.ToUpper(strings.TrimSpace(resp.State))),
+		State:        tse.TransactionState(fiskalyZustand(resp.State)),
 		FinishResult: finishResult,
 	}, nil
 }
@@ -353,8 +353,8 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 	// The application layer compares serial numbers because it knows the Kassen-Seriennummer.
 	status := tse.VerbindungStatus{
 		Umgebung:           env,
-		TSSState:           strings.TrimSpace(tssResp.State),
-		ClientState:        strings.TrimSpace(clientResp.State),
+		TSSState:           fiskalyZustand(tssResp.State),
+		ClientState:        fiskalyZustand(clientResp.State),
 		ClientSerialNumber: strings.TrimSpace(clientResp.SerialNumber),
 	}
 	if err := status.Validate(); err != nil {
@@ -635,6 +635,11 @@ func (c *fiskalyClient) retryDelay(attempt int, retryAfterHeader string) time.Du
 		delay = 200 * time.Millisecond * time.Duration(1<<attempt)
 	}
 	return min(delay, maxRetryDelay)
+}
+
+// fiskalyZustand normalizes a fiskaly state once at the boundary, so every comparison behind it can match exact upper-case values.
+func fiskalyZustand(state string) string {
+	return strings.ToUpper(strings.TrimSpace(state))
 }
 
 func parseRetryAfter(value string) time.Duration {

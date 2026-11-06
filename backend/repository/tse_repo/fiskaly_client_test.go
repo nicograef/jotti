@@ -595,7 +595,7 @@ func TestFiskalyClient_TestConnection_DeregisteredClient(t *testing.T) {
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1/client/client-1":
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"state":         "DEREGISTERED",
+				"state":         " deregistered",
 				"serial_number": "kasse-serial-1",
 			})
 		default:

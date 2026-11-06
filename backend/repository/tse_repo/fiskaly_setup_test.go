@@ -15,7 +15,7 @@ import (
 )
 
 // TestFiskalySetupClient_OnlyAuthAndReads pins the check step: only the auth POST and GET requests, never writing methods.
-// It also reads environment, TSS states and the client serial_number from the fiskaly responses.
+// It also reads environment, TSS states (upper-cased) and the client serial_number from the fiskaly responses.
 func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 	type call struct {
 		method string
@@ -41,13 +41,13 @@ func TestFiskalySetupClient_OnlyAuthAndReads(t *testing.T) {
 				"_env": "TEST",
 				"data": []map[string]any{
 					{"_id": "tss-1", "state": "INITIALIZED"},
-					{"_id": "tss-2", "state": "CREATED"},
+					{"_id": "tss-2", "state": " created "},
 				},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-1/client":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": []map[string]any{
-					{"_id": "client-1", "serial_number": "kasse-serial-1", "state": "REGISTERED"},
+					{"_id": "client-1", "serial_number": "kasse-serial-1", "state": "registered"},
 				},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/api/v2/tss/tss-2":
