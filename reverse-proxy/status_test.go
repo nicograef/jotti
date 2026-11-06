@@ -11,34 +11,32 @@ func TestDecideStatus(t *testing.T) {
 		in          statusInputs
 		wantPrimary string
 		wantNotice  notice
-		wantQR      bool
-		wantGreen   bool
 		wantRefresh bool
 	}{
 		{
 			name:        "gültiges Zertifikat, Rebind ok → grüne Adresse mit QR, kein Refresh",
 			in:          statusInputs{cert: certValid, rebindOK: true, greenURL: green, fallbackURL: fallback},
-			wantPrimary: green, wantNotice: noticeGreen, wantQR: true, wantGreen: true, wantRefresh: false,
+			wantPrimary: green, wantNotice: noticeGreen, wantRefresh: false,
 		},
 		{
 			name:        "kein Zertifikat → Fallback, Ausstellung läuft, Selbst-Refresh",
 			in:          statusInputs{cert: certNone, rebindOK: true, greenURL: green, fallbackURL: fallback},
-			wantPrimary: fallback, wantNotice: noticeIssuing, wantQR: false, wantGreen: false, wantRefresh: true,
+			wantPrimary: fallback, wantNotice: noticeIssuing, wantRefresh: true,
 		},
 		{
 			name:        "abgelaufenes Zertifikat → Fallback, Erneuerung läuft",
 			in:          statusInputs{cert: certExpired, rebindOK: true, greenURL: green, fallbackURL: fallback},
-			wantPrimary: fallback, wantNotice: noticeRenewing, wantQR: false, wantGreen: false, wantRefresh: true,
+			wantPrimary: fallback, wantNotice: noticeRenewing, wantRefresh: true,
 		},
 		{
 			name:        "Rebind blockiert trotz gültigem Zertifikat → Fallback + Anleitung",
 			in:          statusInputs{cert: certValid, rebindOK: false, greenURL: green, fallbackURL: fallback},
-			wantPrimary: fallback, wantNotice: noticeRebind, wantQR: false, wantGreen: false, wantRefresh: true,
+			wantPrimary: fallback, wantNotice: noticeRebind, wantRefresh: true,
 		},
 		{
 			name:        "keine grüne Adresse möglich (kein State/keine IP) → Fallback ohne Refresh",
 			in:          statusInputs{greenURL: "", fallbackURL: fallback},
-			wantPrimary: fallback, wantNotice: noticeNoGreen, wantQR: false, wantGreen: false, wantRefresh: false,
+			wantPrimary: fallback, wantNotice: noticeNoGreen, wantRefresh: false,
 		},
 	}
 
@@ -50,12 +48,6 @@ func TestDecideStatus(t *testing.T) {
 			}
 			if got.notice != tt.wantNotice {
 				t.Errorf("notice = %d, want %d", got.notice, tt.wantNotice)
-			}
-			if got.showQR != tt.wantQR {
-				t.Errorf("showQR = %v, want %v", got.showQR, tt.wantQR)
-			}
-			if got.greenActive != tt.wantGreen {
-				t.Errorf("greenActive = %v, want %v", got.greenActive, tt.wantGreen)
 			}
 			if got.refresh != tt.wantRefresh {
 				t.Errorf("refresh = %v, want %v", got.refresh, tt.wantRefresh)

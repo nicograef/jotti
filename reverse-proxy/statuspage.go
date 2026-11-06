@@ -112,19 +112,20 @@ type pageData struct {
 
 func (s *statusServer) pageData(view statusView) pageData {
 	headline, body := noticeText(view.notice)
+	green := view.notice == noticeGreen
 	d := pageData{
 		Headline:    headline,
 		Body:        body,
 		PrimaryURL:  view.primaryURL,
 		GreenURL:    s.greenURL,
 		FallbackURL: s.fallbackURL,
-		GreenActive: view.greenActive,
+		GreenActive: green,
 		ShowRebind:  view.notice == noticeRebind,
 		Refresh:     view.refresh,
 		LEStaging:   s.leStaging,
 		RebindGuide: rebindGuideURL,
 	}
-	if view.showQR && s.greenURL != "" {
+	if green {
 		d.QR = qrDataURI(s.greenURL)
 	}
 	return d

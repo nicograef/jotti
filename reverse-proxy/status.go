@@ -26,11 +26,9 @@ type statusInputs struct {
 }
 
 type statusView struct {
-	primaryURL  string // prominent angezeigte Adresse
-	greenActive bool   // grüne Adresse erreichbar & vertrauenswürdig
-	showQR      bool   // QR-Code für die grüne Adresse anzeigen
-	refresh     bool   // Seite aktualisiert sich selbst (bis „grün")
-	notice      notice
+	primaryURL string // prominent angezeigte Adresse
+	refresh    bool   // Seite aktualisiert sich selbst (bis „grün")
+	notice     notice // noticeGreen ⇔ grüne Adresse erreichbar & vertrauenswürdig
 }
 
 // decideStatus bildet die beobachteten Eingaben auf die Anzeige ab. Die Reihenfolge
@@ -46,7 +44,7 @@ func decideStatus(in statusInputs) statusView {
 	case !in.rebindOK:
 		return statusView{primaryURL: in.fallbackURL, refresh: true, notice: noticeRebind}
 	case in.cert == certValid:
-		return statusView{primaryURL: in.greenURL, greenActive: true, showQR: true, notice: noticeGreen}
+		return statusView{primaryURL: in.greenURL, notice: noticeGreen}
 	case in.cert == certExpired:
 		return statusView{primaryURL: in.fallbackURL, refresh: true, notice: noticeRenewing}
 	default: // certNone
