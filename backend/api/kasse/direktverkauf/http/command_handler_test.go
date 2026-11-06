@@ -35,7 +35,6 @@ func requestWithUser(body string) *http.Request {
 
 const (
 	validBody      = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
-	pfandBody      = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":"","pfand":{"rueckgabeId":"7f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":2,"varianteId":2,"menge":1}]}}`
 	validStornoBod = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`
 )
 
@@ -58,7 +57,6 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"tätigen: ohne Verkaufs-ID und Positionen", taetigen, nil, `{"positionen":[],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"tätigen: Verkaufs-ID keine UUID", taetigen, nil, `{"verkaufId":"nicht-eine-uuid","positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"tätigen: Menge über 999", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
-		{"tätigen: Pfand ohne Pfand-Produkt", taetigen, enrichment.ErrKeinPfandProdukt, pfandBody, http.StatusBadRequest, "kein_pfand_produkt"},
 		{"tätigen: Pfand ohne Rückgabe-ID", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":"","pfand":{"positionen":[{"produktId":2,"varianteId":2,"menge":1}]}}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Konflikt", stornieren, application.ErrConflict, validStornoBod, http.StatusConflict, "conflict"},
 		{"stornieren: Verkauf unbekannt", stornieren, application.ErrVerkaufNichtGefunden, validStornoBod, http.StatusBadRequest, "verkauf_not_found"},

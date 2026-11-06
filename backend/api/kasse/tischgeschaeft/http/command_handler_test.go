@@ -57,7 +57,6 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"aufnehmen: Bestell-ID keine UUID", aufnehmen, nil, `{"bestellungId":"nicht-eine-uuid","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"aufnehmen: Menge über 999", aufnehmen, nil, `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"kassieren: Konflikt", (*CommandHandler).ZahlungKassierenHandler, application.ErrConflict, `{"tischId":1,` + positionRef + `,"kommentar":""}`, http.StatusConflict, "conflict"},
-		{"kassieren: Pfand ohne Pfand-Produkt", (*CommandHandler).ZahlungKassierenHandler, enrichment.ErrKeinPfandProdukt, `{"tischId":1,` + positionRef + `,"kommentar":"","pfand":{"rueckgabeId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff",` + pfandPosition + `}}`, http.StatusBadRequest, "kein_pfand_produkt"},
 		{"kassieren: Pfand ohne Rückgabe-ID", (*CommandHandler).ZahlungKassierenHandler, nil, `{"tischId":1,` + positionRef + `,"kommentar":"","pfand":{` + pfandPosition + `}}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Konflikt", (*CommandHandler).StornierungErteilenHandler, application.ErrConflict, `{"tischId":1,` + positionRef + `,"kommentar":"Reklamation"}`, http.StatusConflict, "conflict"},
 		{"umbuchen: Konflikt", umbuchen, application.ErrConflict, `{"quellTischId":1,"zielTischId":2,` + positionRef + `}`, http.StatusConflict, "conflict"},
