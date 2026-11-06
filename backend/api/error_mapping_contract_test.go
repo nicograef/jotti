@@ -20,7 +20,7 @@ const apiImportPrefix = "github.com/nicograef/jotti/backend/api/"
 // nothing the client can act on, so MapError's fallback answers 500.
 const errDatabaseName = "ErrDatabase"
 
-// sentinel holds a sentinelKey value.
+// mappingException exempts a sentinel from the mapping contract; reason is mandatory.
 type mappingException struct {
 	sentinel string
 	reason   string
