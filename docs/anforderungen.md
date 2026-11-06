@@ -73,7 +73,7 @@ Zeitraumbezogene Auswertungen beziehen sich je auf eine Kassensitzung (`kassensi
 | R-01 | Tagesabrechnung              | KPIs und Breakdowns je Kassensitzung.                                                                                                                                                                           |
 | R-04 | Abrechnung pro Servicekraft  | Bargeld-Abrechnung des Tischservice je Servicekraft (Teil von R-01 und R-07); Direktverkäufe bleiben außen vor (eigene Kasse). Storno-Zuordnung → [handbuch.md §7.2](handbuch.md#72-admin-ansichten-reporting). |
 | R-05 | Produkt-/Varianten-Statistik | Ausgegebene Menge und Umsatz pro Produkt und Variante je Kassensitzung — in Tagesabrechnung und Live-Dashboard.                                                                                                 |
-| R-06 | Eigene Übersicht             | KPI-Sektion auf dem Service-Dashboard; bei zugeordneter Warenrücknahme zusätzlich ein Hinweis mit dem abzugebenden Betrag.                                                                                      |
+| R-06 | Eigene Übersicht             | KPI-Sektion auf dem Service-Dashboard; bei zugeordneter Warenrücknahme oder ausgezahltem Pfand zusätzlich ein Hinweis mit dem abzugebenden Betrag.                                                              |
 | R-07 | Live-Dashboard               | Echtzeit-KPIs der offenen Kassensitzung.                                                                                                                                                                        |
 
 ### Querschnitt (Qualitätsmerkmale)
