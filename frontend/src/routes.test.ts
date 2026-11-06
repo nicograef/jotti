@@ -31,6 +31,8 @@ describe('ServiceTableGuard', () => {
   })
 
   it('allows valid positive integer tischId and persists Tischservice', () => {
+    ServiceDirektverkaufLoader()
+
     const result = ServiceTableGuard({
       params: { tischId: '12' },
     } as never)
@@ -56,26 +58,9 @@ describe('ServiceIndexRedirect', () => {
   })
 
   it('leitet bei gespeichertem Tischservice auf die Tischauswahl', () => {
+    ServiceDirektverkaufLoader()
     ServiceTischauswahlLoader()
 
     expect(locationOf(ServiceIndexRedirect())).toBe('tische')
-  })
-})
-
-describe('Modus-Route-Loader', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
-  it('Tischauswahl-Loader persistiert Tischservice', () => {
-    ServiceTischauswahlLoader()
-
-    expect(getArbeitsmodus()).toBe('tischservice')
-  })
-
-  it('Direktverkauf-Loader persistiert Direktverkauf', () => {
-    ServiceDirektverkaufLoader()
-
-    expect(getArbeitsmodus()).toBe('direktverkauf')
   })
 })
