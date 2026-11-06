@@ -59,7 +59,7 @@ func TestErrorMappingContract(t *testing.T) {
 			continue
 		}
 		if !named[key] {
-			t.Errorf("%s: sentinel %s reaches no error code — name it in a helper.MapError call or an errors.Is guard under api/**/http, or add it to mappingExceptions with a reason", pos, key)
+			t.Errorf("%s: sentinel %s reaches no error code — name it in a helper.MapError call, a helper.ErrorCode table or an errors.Is guard under api/**/http, or add it to mappingExceptions with a reason", pos, key)
 		}
 	}
 
@@ -111,7 +111,7 @@ func collectDeclaredSentinels(t *testing.T) map[string]token.Position {
 }
 
 // A sentinel counts as named when a non-test file of an api/**/http package
-// references it inside a helper.MapError call or an errors.Is guard.
+// references it inside a helper.MapError call, a helper.ErrorCode table or an errors.Is guard.
 func collectNamedSentinels(t *testing.T) map[string]bool {
 	t.Helper()
 
@@ -126,6 +126,12 @@ func collectNamedSentinels(t *testing.T) map[string]bool {
 		errorsAlias := aliases["errors"]
 
 		ast.Inspect(file, func(node ast.Node) bool {
+			if lit, ok := node.(*ast.CompositeLit); ok && isErrorCodeTable(lit, helperAlias) {
+				for _, key := range sentinelRefs(lit, aliases, pkgDir) {
+					named[key] = true
+				}
+				return false
+			}
 			call, ok := node.(*ast.CallExpr)
 			if !ok {
 				return true
@@ -228,6 +234,21 @@ func isQualifiedCall(call *ast.CallExpr, qualifier string, name string) bool {
 	ident, ok := selector.X.(*ast.Ident)
 
 	return ok && ident.Name == qualifier
+}
+
+// isErrorCodeTable matches helper.ErrorCode{...} and []helper.ErrorCode{...}.
+func isErrorCodeTable(lit *ast.CompositeLit, helperAlias string) bool {
+	typ := lit.Type
+	if array, ok := typ.(*ast.ArrayType); ok {
+		typ = array.Elt
+	}
+	selector, ok := typ.(*ast.SelectorExpr)
+	if !ok || selector.Sel.Name != "ErrorCode" {
+		return false
+	}
+	ident, ok := selector.X.(*ast.Ident)
+
+	return ok && helperAlias != "" && ident.Name == helperAlias
 }
 
 func isSentinelName(name string) bool {

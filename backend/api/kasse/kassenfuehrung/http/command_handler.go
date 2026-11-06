@@ -112,16 +112,11 @@ func (h *CommandHandler) GeldtransitBuchenHandler() http.HandlerFunc {
 
 		err := h.Command.GeldtransitBuchen(r.Context(), userID, userName, body.GeldtransitID, body.Richtung, body.BetragCents, body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, kasseApp.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, kasseApp.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: kasseApp.ErrConflict, Code: "conflict", Status: http.StatusConflict},
+				{Err: kasseApp.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
+				{Err: kasseApp.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+			})
 			return
 		}
 
@@ -144,22 +139,18 @@ func (h *CommandHandler) KasseAbschliessenHandler() http.HandlerFunc {
 
 		ergebnis, err := h.Command.KasseAbschliessen(r.Context(), userID, userName, *body.IstBestandCents)
 		if err != nil {
-			var ausstehend *kasseApp.SignaturenAusstehendError
-			switch {
-			case errors.As(err, &ausstehend):
+			if ausstehend, ok := errors.AsType[*kasseApp.SignaturenAusstehendError](err); ok {
 				helper.SendConflictDetails(w, "signaturen_ausstehend", signaturenAusstehendDetails{
 					Anzahl: ausstehend.Anzahl,
 				})
-			case errors.Is(err, kasseApp.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, kasseApp.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: kasseApp.ErrTischeSaldoOffen, Code: "tische_saldo_offen"},
-					{Err: kasseApp.ErrBuchungenNachKassensturz, Code: "buchungen_nach_kassensturz"},
-				})
+				return
 			}
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: kasseApp.ErrConflict, Code: "conflict", Status: http.StatusConflict},
+				{Err: kasseApp.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+				{Err: kasseApp.ErrTischeSaldoOffen, Code: "tische_saldo_offen"},
+				{Err: kasseApp.ErrBuchungenNachKassensturz, Code: "buchungen_nach_kassensturz"},
+			})
 			return
 		}
 

@@ -2,8 +2,8 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
+	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -21,6 +21,20 @@ type command interface {
 
 type CommandHandler struct {
 	Command command
+}
+
+// kasseFehler opens every Kasse handler's table: a stale write or a closed Kasse is a 409.
+var kasseFehler = []helper.ErrorCode{
+	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
+	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
+	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+}
+
+// pfandEingabeFehler covers the Pfand and product checks of the position enrichment.
+var pfandEingabeFehler = []helper.ErrorCode{
+	{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
+	{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+	{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 }
 
 type verkaufPositionInput struct {
@@ -97,22 +111,9 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 
 		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, toVerkaufPositionInputs(body.Positionen), body.Kommentar, toPfandEingabe(body.Pfand))
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
-				helper.SendConflict(w, "pfandrueckgabe_abweichend")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
-					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
+			}, pfandEingabeFehler))
 			return
 		}
 
@@ -165,19 +166,10 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 
 		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VerkaufID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
-					{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
+				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
+			}))
 			return
 		}
 

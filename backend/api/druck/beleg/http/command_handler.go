@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	z "github.com/Oudwins/zog"
@@ -98,24 +97,17 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 
 		status, err := h.Command.KassenbelegDrucken(r.Context(), cmd)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			case errors.Is(err, application.ErrRueckgabeNichtGefunden):
-				helper.SendNotFound(w, "rueckgabe_not_found")
-			case errors.Is(err, application.ErrStornierungNichtGefunden):
-				helper.SendNotFound(w, "stornierung_not_found")
-			default:
-				// Ein gemeinsames Mapping für alle Formen: jede Form kann nur ihre
-				// Teilmenge dieser Fehler liefern, und die Codes sind formunabhängig gleich.
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
-					{Err: application.ErrZahlungNichtGefunden, Code: "zahlung_not_found"},
-					{Err: application.ErrKassenbelegDruckerNichtKonfiguriert, Code: "kassenbeleg_drucker_nicht_konfiguriert"},
-				})
-			}
+			// Ein gemeinsames Mapping für alle Formen: jede Form kann nur ihre
+			// Teilmenge dieser Fehler liefern, und die Codes sind formunabhängig gleich.
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
+				{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found", Status: http.StatusNotFound},
+				{Err: application.ErrStornierungNichtGefunden, Code: "stornierung_not_found", Status: http.StatusNotFound},
+				{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
+				{Err: application.ErrZahlungNichtGefunden, Code: "zahlung_not_found"},
+				{Err: application.ErrKassenbelegDruckerNichtKonfiguriert, Code: "kassenbeleg_drucker_nicht_konfiguriert"},
+			})
 			return
 		}
 

@@ -38,10 +38,6 @@ func SendClientError(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusBadRequest)
 }
 
-func SendConflictError(w http.ResponseWriter) {
-	SendConflict(w, "conflict")
-}
-
 func SendNotFound(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusNotFound)
 }
@@ -115,17 +111,23 @@ func ExtendWriteDeadline(w http.ResponseWriter, r *http.Request, timeout time.Du
 	}
 }
 
+// ErrorCode maps a sentinel to a wire code; a zero Status means 400.
 type ErrorCode struct {
-	Err  error
-	Code string
+	Err    error
+	Code   string
+	Status int
 }
 
-// MapError answers 400 with the code of the first entry the error matches
+// MapError answers with the code and status of the first entry the error matches
 // (errors.Is) — the order of codes decides — and 500 without a match.
 func MapError(w http.ResponseWriter, err error, codes []ErrorCode) {
 	for _, entry := range codes {
 		if errors.Is(err, entry.Err) {
-			SendClientError(w, entry.Code, nil)
+			status := entry.Status
+			if status == 0 {
+				status = http.StatusBadRequest
+			}
+			SendJSONResponse(w, errorResponse{Code: entry.Code}, status)
 			return
 		}
 	}

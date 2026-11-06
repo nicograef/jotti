@@ -13,13 +13,15 @@ import (
 )
 
 var (
-	errFirst  = errors.New("first")
-	errSecond = errors.New("second")
+	errFirst    = errors.New("first")
+	errSecond   = errors.New("second")
+	errConflict = errors.New("conflict")
 )
 
 var mapErrorCodes = []ErrorCode{
 	{Err: errFirst, Code: "first_code"},
 	{Err: errSecond, Code: "second_code"},
+	{Err: errConflict, Code: "conflict_code", Status: http.StatusConflict},
 }
 
 func assertMappedError(t *testing.T, err error, wantStatus int, wantCode string) {
@@ -49,6 +51,11 @@ func TestMapError_Match(t *testing.T) {
 // Ein Fehler, der auf zwei Einträge passt, bekommt den Code des ersten.
 func TestMapError_FirstMatchWins(t *testing.T) {
 	assertMappedError(t, errors.Join(errSecond, errFirst), http.StatusBadRequest, "first_code")
+}
+
+// An entry with a Status answers with it; a zero Status stays 400.
+func TestMapError_EntryStatus(t *testing.T) {
+	assertMappedError(t, errConflict, http.StatusConflict, "conflict_code")
 }
 
 func TestMapError_NoMatch(t *testing.T) {

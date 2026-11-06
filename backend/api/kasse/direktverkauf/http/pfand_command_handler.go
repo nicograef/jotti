@@ -2,9 +2,9 @@ package http
 
 import (
 	"context"
-	"errors"
 	"math"
 	"net/http"
+	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -53,26 +53,11 @@ func (h *PfandCommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 
 		err := h.Command.PfandZurueckgeben(r.Context(), userID, userName, body.RueckgabeID, *body.TischID, toVerkaufPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
-				helper.SendConflict(w, "pfandrueckgabe_abweichend")
-			case errors.Is(err, application.ErrTischNichtGefunden):
-				helper.SendNotFound(w, "tisch_not_found")
-			case errors.Is(err, application.ErrTischNichtAktiv):
-				helper.SendConflict(w, "tisch_not_active")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
-					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
+				{Err: application.ErrTischNichtGefunden, Code: "tisch_not_found", Status: http.StatusNotFound},
+				{Err: application.ErrTischNichtAktiv, Code: "tisch_not_active", Status: http.StatusConflict},
+			}, pfandEingabeFehler))
 			return
 		}
 
@@ -113,22 +98,11 @@ func (h *PfandCommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc
 
 		err := h.Command.PfandrueckgabeStornieren(r.Context(), userID, userName, body.StornierungID, body.RueckgabeID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			case errors.Is(err, application.ErrRueckgabeNichtGefunden):
-				helper.SendNotFound(w, "rueckgabe_not_found")
-			case errors.Is(err, application.ErrPositionNichtStornierbar):
-				helper.SendConflict(w, "position_nicht_stornierbar")
-			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
-				helper.SendConflict(w, "pfandrueckgabe_abweichend")
-			default:
-				helper.SendServerError(w)
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found", Status: http.StatusNotFound},
+				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar", Status: http.StatusConflict},
+				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
+			}))
 			return
 		}
 

@@ -2,8 +2,8 @@ package http
 
 import (
 	"context"
-	"errors"
 	"net/http"
+	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
@@ -24,6 +24,13 @@ type command interface {
 
 type CommandHandler struct {
 	Command command
+}
+
+// kasseFehler opens every Kasse handler's table: a stale write or a closed Kasse is a 409.
+var kasseFehler = []helper.ErrorCode{
+	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
+	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
+	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
 }
 
 type bestellPositionInput struct {
@@ -96,21 +103,12 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 		}
 		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, toBestellPositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
-					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
-					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+				{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+				{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
+			}))
 			return
 		}
 
@@ -163,25 +161,15 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 		}
 		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar, toPfandEingabe(body.Pfand))
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
-				helper.SendConflict(w, "pfandrueckgabe_abweichend")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
-					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
-					{Err: application.ErrPositionNichtBezahlbar, Code: "position_nicht_bezahlbar"},
-					{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
-					{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-					{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+				{Err: application.ErrPositionNichtBezahlbar, Code: "position_nicht_bezahlbar"},
+				{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
+				{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+				{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
+			}))
 			return
 		}
 
@@ -229,20 +217,11 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 		}
 		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, toPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
-					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
-					{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
+			}))
 			return
 		}
 
@@ -265,21 +244,12 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 
 		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, toPositionRefs(body.Positionen), body.BenutzerKommentar)
 		if err != nil {
-			switch {
-			case errors.Is(err, application.ErrConflict):
-				helper.SendConflictError(w)
-			case errors.Is(err, application.ErrKasseWirdAbgeschlossen):
-				helper.SendConflict(w, "kasse_wird_abgeschlossen")
-			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
-				helper.SendConflict(w, "kasse_nicht_geoeffnet")
-			default:
-				helper.MapError(w, err, []helper.ErrorCode{
-					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
-					{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
-					{Err: application.ErrPositionNichtUmbuchbar, Code: "position_nicht_umbuchbar"},
-					{Err: application.ErrUmbuchungGleicherTisch, Code: "umbuchung_gleicher_tisch"},
-				})
-			}
+			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
+				{Err: application.ErrPositionNichtUmbuchbar, Code: "position_nicht_umbuchbar"},
+				{Err: application.ErrUmbuchungGleicherTisch, Code: "umbuchung_gleicher_tisch"},
+			}))
 			return
 		}
 
