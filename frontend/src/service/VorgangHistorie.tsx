@@ -17,21 +17,37 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { formatEuro, formatPositionName, formatRelativeTime } from '@/lib/utils'
 
-import { belegDruckenMitNachfassen, meldeBelegStatus } from '../beleg'
-import { Kommentar } from '../table/CommentField'
-import { toReceiptItems } from '../table/drawerUtils'
-import { HistorieRowSkeleton } from '../table/HistorieRowSkeleton'
-import { Receipt } from '../table/Receipt'
+import {
+  belegDruckenMitNachfassen,
+  type BelegStatus,
+  meldeBelegStatus,
+} from './beleg'
 import type {
-  DirektverkaufHistorieEintrag,
-  DirektverkaufKassenbelegDrucken,
-} from './Direktverkauf'
-import type { DirektverkaufBackend } from './DirektverkaufBackend'
-import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
+  DirektverkaufStornierung,
+  VerkaufPosition,
+} from './direktverkauf/Direktverkauf'
+import type { PositionRef } from './schemas'
+import { Kommentar } from './table/CommentField'
+import { toReceiptItems } from './table/drawerUtils'
+import { HistorieRowSkeleton } from './table/HistorieRowSkeleton'
+import { Receipt } from './table/Receipt'
+import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
-function positionenZusammenfassung(
-  positionen: DirektverkaufHistorieEintrag['positionen'],
-): string {
+// Ein Vorgang mit eigenem Stream: Direktverkauf oder Pfandrückgabe; id ist die
+// Vorgangs-ID (verkaufId oder rueckgabeId).
+export interface VorgangEintrag {
+  id: string
+  userName: string
+  getaetigtAm: string
+  positionen: VerkaufPosition[]
+  gesamtbetragCents: number
+  kommentar: string
+  offenePositionen: VerkaufPosition[]
+  gesamtStorniertCents: number
+  stornierungen: DirektverkaufStornierung[]
+}
+
+function positionenZusammenfassung(positionen: VerkaufPosition[]): string {
   return positionen
     .map(
       (position) =>
@@ -40,27 +56,34 @@ function positionenZusammenfassung(
     .join(', ')
 }
 
-interface DirektverkaufHistorieProps {
-  historie: DirektverkaufHistorieEintrag[]
-  historieLoading: boolean
-  backend: Pick<
-    DirektverkaufBackend,
-    'direktverkaufStornieren' | 'kassenbelegDrucken'
-  >
+interface VorgangHistorieProps {
+  eintraege: VorgangEintrag[]
+  loading: boolean
+  // Zeilen- und Drawer-Titel, etwa „Verkauf“ oder „Pfandrückgabe“.
+  bezeichnung: string
+  leerHinweis: string
+  stornieren: (
+    id: string,
+    positionen: PositionRef[],
+    kommentar: string,
+  ) => Promise<void>
+  belegDrucken: (id: string, stornierungId?: string) => Promise<BelegStatus>
   onErfolg: (nachricht: string) => void
 }
 
-export function DirektverkaufHistorie({
-  historie,
-  historieLoading,
-  backend,
+export function VorgangHistorie({
+  eintraege,
+  loading,
+  bezeichnung,
+  leerHinweis,
+  stornieren,
+  belegDrucken,
   onErfolg,
-}: DirektverkaufHistorieProps) {
-  const [detail, setDetail] = useState<DirektverkaufHistorieEintrag | null>(
+}: VorgangHistorieProps) {
+  const [detail, setDetail] = useState<VorgangEintrag | null>(null)
+  const [stornoVorgang, setStornoVorgang] = useState<VorgangEintrag | null>(
     null,
   )
-  const [stornoVerkauf, setStornoVerkauf] =
-    useState<DirektverkaufHistorieEintrag | null>(null)
   const { loading: belegDruckenLoading, run: runBelegDrucken } =
     useActionSubmit({
       actionLabel: 'Kassenbeleg drucken',
@@ -71,10 +94,10 @@ export function DirektverkaufHistorie({
       },
     })
 
-  const belegAnfordern = (cmd: DirektverkaufKassenbelegDrucken) => {
+  const belegAnfordern = (id: string, stornierungId?: string) => {
     void runBelegDrucken(async () => {
       const status = await belegDruckenMitNachfassen(() =>
-        backend.kassenbelegDrucken(cmd),
+        belegDrucken(id, stornierungId),
       )
       meldeBelegStatus(
         status,
@@ -83,7 +106,7 @@ export function DirektverkaufHistorie({
     })
   }
 
-  if (historieLoading) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
         {Array.from({ length: 6 }).map((_, index) => (
@@ -94,20 +117,18 @@ export function DirektverkaufHistorie({
     )
   }
 
-  if (historie.length === 0) {
+  if (eintraege.length === 0) {
     return (
-      <p className="text-muted-foreground text-center py-8">
-        Noch keine Direktverkäufe in dieser Kassensitzung.
-      </p>
+      <p className="text-muted-foreground text-center py-8">{leerHinweis}</p>
     )
   }
 
   return (
     <>
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3 my-4">
-        {historie.map((verkauf) => (
+        {eintraege.map((verkauf) => (
           <button
-            key={verkauf.verkaufId}
+            key={verkauf.id}
             type="button"
             onClick={() => {
               setDetail(verkauf)
@@ -119,7 +140,7 @@ export function DirektverkaufHistorie({
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <span className="flex flex-wrap items-center gap-2 text-[15px] font-medium">
-                Verkauf
+                {bezeichnung}
                 {verkauf.gesamtStorniertCents > 0 && (
                   <Badge variant="destructive">
                     −{formatEuro(verkauf.gesamtStorniertCents)} storniert
@@ -148,17 +169,18 @@ export function DirektverkaufHistorie({
       {detail && (
         <Details
           verkauf={detail}
+          bezeichnung={bezeichnung}
           belegDruckenLoading={belegDruckenLoading}
           onKassenbeleg={() => {
-            belegAnfordern({ verkaufId: detail.verkaufId })
+            belegAnfordern(detail.id)
           }}
           onStornobeleg={(stornierungId) => {
-            belegAnfordern({ verkaufId: detail.verkaufId, stornierungId })
+            belegAnfordern(detail.id, stornierungId)
           }}
           onStornieren={
             AuthSingleton.canCancel && detail.offenePositionen.length > 0
               ? () => {
-                  setStornoVerkauf(detail)
+                  setStornoVorgang(detail)
                   setDetail(null)
                 }
               : undefined
@@ -168,15 +190,18 @@ export function DirektverkaufHistorie({
           }}
         />
       )}
-      {stornoVerkauf && (
-        <DirektverkaufStornoDrawer
-          backend={backend}
-          verkauf={stornoVerkauf}
+      {stornoVorgang && (
+        <VorgangStornoDrawer
+          bezeichnung={bezeichnung}
+          offenePositionen={stornoVorgang.offenePositionen}
+          stornieren={(positionen, kommentar) =>
+            stornieren(stornoVorgang.id, positionen, kommentar)
+          }
           onClose={() => {
-            setStornoVerkauf(null)
+            setStornoVorgang(null)
           }}
           onStorniert={() => {
-            setStornoVerkauf(null)
+            setStornoVorgang(null)
             onErfolg('Stornierung gebucht.')
           }}
         />
@@ -187,13 +212,15 @@ export function DirektverkaufHistorie({
 
 function Details({
   verkauf,
+  bezeichnung,
   belegDruckenLoading,
   onKassenbeleg,
   onStornobeleg,
   onStornieren,
   onClose,
 }: {
-  verkauf: DirektverkaufHistorieEintrag
+  verkauf: VorgangEintrag
+  bezeichnung: string
   belegDruckenLoading: boolean
   onKassenbeleg: () => void
   onStornobeleg: (stornierungId: string) => void
@@ -210,7 +237,7 @@ function Details({
       <DrawerContent>
         <DrawerHeader className="mx-auto w-full max-w-sm">
           <DrawerTitle>
-            Verkauf · {formatRelativeTime(verkauf.getaetigtAm)} ·{' '}
+            {bezeichnung} · {formatRelativeTime(verkauf.getaetigtAm)} ·{' '}
             {verkauf.userName}
           </DrawerTitle>
           <DrawerDescription>

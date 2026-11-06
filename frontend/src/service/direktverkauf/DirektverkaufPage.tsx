@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
@@ -5,15 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import { ErfolgsPop } from '../ErfolgsPop'
+import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
+import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
-import { DirektverkaufHistorie } from './DirektverkaufHistorie'
+import { VorgangHistorie } from '../VorgangHistorie'
 import { DirektverkaufTab } from './DirektverkaufTab'
 import { direktverkaufBackend, useDirektverkaufHistorie } from './hooks'
 
 export function DirektverkaufPage() {
   const isMobile = useIsMobile()
+  const queryClient = useQueryClient()
   const {
     produkte,
     pfandProdukte,
@@ -37,7 +41,10 @@ export function DirektverkaufPage() {
   const erfolgSchliessen = useCallback(() => {
     setErfolg((prev) => ({ ...prev, open: false }))
     void reloadHistorie()
-  }, [reloadHistorie])
+    void queryClient.invalidateQueries({
+      queryKey: [PFANDRUECKGABE_HISTORIE_KEY],
+    })
+  }, [reloadHistorie, queryClient])
 
   const tabTrigger = (
     <TabsList className="h-10 w-full">
@@ -77,12 +84,29 @@ export function DirektverkaufPage() {
       }}
     />
   ) : (
-    <DirektverkaufHistorie
-      historie={historie}
-      historieLoading={historieLoading}
-      backend={direktverkaufBackend}
-      onErfolg={zeigeErfolg}
-    />
+    <>
+      <VorgangHistorie
+        eintraege={historie.map((verkauf) => ({
+          ...verkauf,
+          id: verkauf.verkaufId,
+        }))}
+        loading={historieLoading}
+        bezeichnung="Verkauf"
+        leerHinweis="Noch keine Direktverkäufe in dieser Kassensitzung."
+        stornieren={(verkaufId, positionen, kommentar) =>
+          direktverkaufBackend.direktverkaufStornieren({
+            verkaufId,
+            positionen,
+            kommentar,
+          })
+        }
+        belegDrucken={(verkaufId, stornierungId) =>
+          direktverkaufBackend.kassenbelegDrucken({ verkaufId, stornierungId })
+        }
+        onErfolg={zeigeErfolg}
+      />
+      <PfandrueckgabenAbschnitt tischId={0} onErfolg={zeigeErfolg} />
+    </>
   )
 
   return (

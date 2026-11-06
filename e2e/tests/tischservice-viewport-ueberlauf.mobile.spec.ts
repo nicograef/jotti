@@ -87,7 +87,7 @@ test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', 
       .click()
     await expect(page.getByText('Verkauf abgeschlossen.')).toBeVisible()
 
-    // Direktverkauf-Historie: die Verkaufs-Liste (DirektverkaufHistorie-Grid).
+    // Direktverkauf-Historie: die Verkaufs-Liste (VorgangHistorie-Grid).
     await page.getByRole('tab', { name: 'Historie' }).click()
     await expect(
       page.getByRole('button', { name: /Verkauf.*8,00/ }),

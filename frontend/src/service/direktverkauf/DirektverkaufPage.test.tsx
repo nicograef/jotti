@@ -52,6 +52,7 @@ function backend(): FakeBackend {
       pfandProdukte: [],
     })
     .respond('service/get-direktverkauf-historie', { historie: [] })
+    .respond('service/get-pfandrueckgabe-historie', { historie: [] })
 }
 
 describe('DirektverkaufPage', () => {

@@ -17,42 +17,44 @@ import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 import { formatEuro } from '@/lib/utils'
 
-import { PositionAuswahlListe } from '../PositionAuswahlListe'
-import { KommentarField } from '../table/CommentField'
+import type { VerkaufPosition } from './direktverkauf/Direktverkauf'
+import { PositionAuswahlListe } from './PositionAuswahlListe'
+import type { PositionRef } from './schemas'
+import { KommentarField } from './table/CommentField'
 import {
   calculateTotalPrice,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
-} from '../table/drawerUtils'
-import type { DirektverkaufHistorieEintrag } from './Direktverkauf'
-import type { DirektverkaufBackend } from './DirektverkaufBackend'
+} from './table/drawerUtils'
 
-interface DirektverkaufStornoDrawerProps {
-  backend: Pick<DirektverkaufBackend, 'direktverkaufStornieren'>
-  verkauf: DirektverkaufHistorieEintrag
+interface VorgangStornoDrawerProps {
+  // Der Titel lautet „<bezeichnung> stornieren“.
+  bezeichnung: string
+  offenePositionen: VerkaufPosition[]
+  stornieren: (positionen: PositionRef[], kommentar: string) => Promise<void>
   onClose: () => void
   onStorniert: () => void
 }
 
-export function DirektverkaufStornoDrawer({
-  backend,
-  verkauf,
+export function VorgangStornoDrawer({
+  bezeichnung,
+  offenePositionen,
+  stornieren,
   onClose,
   onStorniert,
-}: DirektverkaufStornoDrawerProps) {
+}: VorgangStornoDrawerProps) {
   const [kommentar, setKommentar] = useState('')
   const { mengen, add, remove } = useMengen<string>(
     (positionId) =>
-      verkauf.offenePositionen.find((p) => p.positionId === positionId)
-        ?.menge ?? 0,
+      offenePositionen.find((p) => p.positionId === positionId)?.menge ?? 0,
   )
 
   // Die Positionsauswahl meldet bereits useMengen; der getippte Grund kommt
   // hinzu, weil er ein zweites Mal formuliert werden müsste.
   useOffenerVorgang(kommentar.trim() !== '')
 
-  const selectedPositionen = selectPositionen(verkauf.offenePositionen, mengen)
+  const selectedPositionen = selectPositionen(offenePositionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
   const kommentarInvalid = kommentar.trim().length < 3
@@ -66,11 +68,7 @@ export function DirektverkaufStornoDrawer({
 
   const onSubmit = async () => {
     await run(async () => {
-      await backend.direktverkaufStornieren({
-        verkaufId: verkauf.verkaufId,
-        positionen: toPositionRefs(selectedPositionen),
-        kommentar,
-      })
+      await stornieren(toPositionRefs(selectedPositionen), kommentar)
     })
   }
 
@@ -83,14 +81,14 @@ export function DirektverkaufStornoDrawer({
     >
       <DrawerContent pending={loading}>
         <DrawerHeader className="mx-auto w-full max-w-sm">
-          <DrawerTitle>Verkauf stornieren</DrawerTitle>
+          <DrawerTitle>{bezeichnung} stornieren</DrawerTitle>
           <DrawerDescription>
-            Positionen aus diesem Verkauf zum Stornieren auswählen.
+            Die zu stornierenden Positionen auswählen.
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="mx-auto w-full max-w-sm">
           <PositionAuswahlListe
-            positionen={toAuswahlPositionen(verkauf.offenePositionen)}
+            positionen={toAuswahlPositionen(offenePositionen)}
             mengen={mengen}
             onAdd={add}
             onRemove={remove}

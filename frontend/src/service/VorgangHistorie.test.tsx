@@ -3,11 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { signIn, signOut } from '@/test/auth'
-import { FakeBackend } from '@/test/FakeBackend'
 
-import type { DirektverkaufHistorieEintrag } from './Direktverkauf'
-import { DirektverkaufBackend } from './DirektverkaufBackend'
-import { DirektverkaufHistorie } from './DirektverkaufHistorie'
+import { type VorgangEintrag, VorgangHistorie } from './VorgangHistorie'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -23,18 +20,38 @@ afterEach(() => {
   signOut()
 })
 
-function backend(): FakeBackend {
-  return new FakeBackend()
-    .respond('serviceleitung/direktverkauf-stornieren', {})
-    .respond('service/beleg-drucken', { status: 'eingereiht' })
+function aktionen() {
+  return {
+    stornieren: vi.fn().mockResolvedValue(undefined),
+    belegDrucken: vi.fn().mockResolvedValue('eingereiht'),
+  }
+}
+
+function renderHistorie(
+  eintraege: VorgangEintrag[],
+  aktion = aktionen(),
+  onErfolg = vi.fn(),
+) {
+  render(
+    <VorgangHistorie
+      eintraege={eintraege}
+      loading={false}
+      bezeichnung="Verkauf"
+      leerHinweis="Noch keine Direktverkäufe in dieser Kassensitzung."
+      stornieren={aktion.stornieren}
+      belegDrucken={aktion.belegDrucken}
+      onErfolg={onErfolg}
+    />,
+  )
+  return aktion
 }
 
 const verkaufId = '00000000-0000-4000-8000-000000000001'
 const positionId = '00000000-0000-4000-8000-000000000002'
 const stornierungId = '00000000-0000-4000-8000-000000000003'
 
-const verkauf: DirektverkaufHistorieEintrag = {
-  verkaufId,
+const verkauf: VorgangEintrag = {
+  id: verkaufId,
   userName: 'Anna',
   getaetigtAm: '2026-06-08T10:00:00Z',
   positionen: [
@@ -67,9 +84,9 @@ const verkauf: DirektverkaufHistorieEintrag = {
   stornierungen: [],
 }
 
-describe('DirektverkaufHistorie', () => {
+describe('VorgangHistorie', () => {
   it('shows the position summary as a sub-line on each sale row', () => {
-    const mehrpositionenVerkauf: DirektverkaufHistorieEintrag = {
+    const mehrpositionenVerkauf: VorgangEintrag = {
       ...verkauf,
       positionen: [
         {
@@ -94,30 +111,15 @@ describe('DirektverkaufHistorie', () => {
         },
       ],
     }
-    render(
-      <DirektverkaufHistorie
-        historie={[mehrpositionenVerkauf]}
-        historieLoading={false}
-        backend={new DirektverkaufBackend(backend())}
-        onErfolg={vi.fn()}
-      />,
-    )
+    renderHistorie([mehrpositionenVerkauf])
 
     expect(screen.getByText('2× Cola 0,5l, 1× Brezel')).toBeInTheDocument()
   })
 
-  it('cancels selected positions with exactly one backend call', async () => {
+  it('cancels selected positions with exactly one stornieren call', async () => {
     const user = userEvent.setup()
-    const fake = backend()
     const onErfolg = vi.fn()
-    render(
-      <DirektverkaufHistorie
-        historie={[verkauf]}
-        historieLoading={false}
-        backend={new DirektverkaufBackend(fake)}
-        onErfolg={onErfolg}
-      />,
-    )
+    const aktion = renderHistorie([verkauf], aktionen(), onErfolg)
 
     await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
@@ -133,33 +135,21 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(
-        fake.bodies('serviceleitung/direktverkauf-stornieren'),
-      ).toHaveLength(1)
+      expect(aktion.stornieren).toHaveBeenCalledTimes(1)
     })
-    expect(fake.bodies('serviceleitung/direktverkauf-stornieren')).toEqual([
-      {
-        verkaufId,
-        positionen: [{ positionId, menge: 1 }],
-        kommentar: 'Rückgabe',
-      },
-    ])
+    expect(aktion.stornieren).toHaveBeenCalledWith(
+      verkaufId,
+      [{ positionId, menge: 1 }],
+      'Rückgabe',
+    )
     // Statt sofortigem Refetch meldet der Storno den Erfolg über den Pop-Text;
-    // der Refetch folgt beim Schließen des Pops (DirektverkaufPage).
+    // der Refetch folgt beim Schließen des Pops auf der Seite.
     expect(onErfolg).toHaveBeenCalledWith('Stornierung gebucht.')
   })
 
-  it('triggers kassenbeleg print for a sale with exactly one backend call', async () => {
+  it('triggers kassenbeleg print for a sale with exactly one belegDrucken call', async () => {
     const user = userEvent.setup()
-    const fake = backend()
-    render(
-      <DirektverkaufHistorie
-        historie={[verkauf]}
-        historieLoading={false}
-        backend={new DirektverkaufBackend(fake)}
-        onErfolg={vi.fn()}
-      />,
-    )
+    const aktion = renderHistorie([verkauf])
 
     await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(
@@ -167,15 +157,14 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(fake.bodies('service/beleg-drucken')).toHaveLength(1)
+      expect(aktion.belegDrucken).toHaveBeenCalledTimes(1)
     })
-    expect(fake.bodies('service/beleg-drucken')).toEqual([{ verkaufId }])
+    expect(aktion.belegDrucken).toHaveBeenCalledWith(verkaufId, undefined)
   })
 
   it('triggers stornobeleg print with the stornierungId of the cancellation', async () => {
     const user = userEvent.setup()
-    const fake = backend()
-    const stornierterVerkauf: DirektverkaufHistorieEintrag = {
+    const stornierterVerkauf: VorgangEintrag = {
       ...verkauf,
       offenePositionen: [],
       gesamtStorniertCents: 1000,
@@ -187,14 +176,7 @@ describe('DirektverkaufHistorie', () => {
         },
       ],
     }
-    render(
-      <DirektverkaufHistorie
-        historie={[stornierterVerkauf]}
-        historieLoading={false}
-        backend={new DirektverkaufBackend(fake)}
-        onErfolg={vi.fn()}
-      />,
-    )
+    const aktion = renderHistorie([stornierterVerkauf])
 
     await user.click(screen.getByRole('button', { name: /Verkauf/ }))
     await user.click(
@@ -202,10 +184,8 @@ describe('DirektverkaufHistorie', () => {
     )
 
     await waitFor(() => {
-      expect(fake.bodies('service/beleg-drucken')).toHaveLength(1)
+      expect(aktion.belegDrucken).toHaveBeenCalledTimes(1)
     })
-    expect(fake.bodies('service/beleg-drucken')).toEqual([
-      { verkaufId, stornierungId },
-    ])
+    expect(aktion.belegDrucken).toHaveBeenCalledWith(verkaufId, stornierungId)
   })
 })

@@ -4,8 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 
-import type { DirektverkaufHistorieEintrag } from './Direktverkauf'
-import { DirektverkaufStornoDrawer } from './DirektverkaufStornoDrawer'
+import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -30,27 +29,14 @@ const position = {
   menge: 2,
 }
 
-const verkauf: DirektverkaufHistorieEintrag = {
-  verkaufId: '11111111-1111-1111-1111-111111111111',
-  userName: 'Anna',
-  getaetigtAm: '2026-06-08T10:00:00Z',
-  positionen: [position],
-  gesamtbetragCents: 1000,
-  kommentar: '',
-  offenePositionen: [position],
-  gesamtStorniertCents: 0,
-  stornierungen: [],
-}
-
-describe('DirektverkaufStornoDrawer im Vorgangs-Register', () => {
+describe('VorgangStornoDrawer im Vorgangs-Register', () => {
   it('meldet den getippten Kommentar zusätzlich zur Positionsauswahl', async () => {
     const user = userEvent.setup()
     const { unmount } = render(
-      <DirektverkaufStornoDrawer
-        backend={{
-          direktverkaufStornieren: vi.fn().mockResolvedValue(undefined),
-        }}
-        verkauf={verkauf}
+      <VorgangStornoDrawer
+        bezeichnung="Verkauf"
+        offenePositionen={[position]}
+        stornieren={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
         onStorniert={vi.fn()}
       />,
