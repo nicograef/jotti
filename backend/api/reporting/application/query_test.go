@@ -258,8 +258,8 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 	}
 }
 
-// TestGetReporting_SummeAbzugebenEntsprichtTischservice guards Σ Abzugeben == collected table revenue − Σ returns,
-// direct sales excluded on both sides.
+// TestGetReporting_SummeAbzugebenEntsprichtTischservice guards Σ Abzugeben == collected table revenue − Σ returns
+// − Σ table Pfand, direct sales excluded on both sides. A Pfand-only row may turn negative.
 func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 	kassiert := []reporting.AbrechnungServicekraft{
 		{UserID: 3, UserName: "felix", KassiertCents: 5000, AnzahlZahlungen: 4},
@@ -287,9 +287,13 @@ func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 			Betroffene: []reporting.ServicekraftRef{{UserID: 9, UserName: "lena"}},
 		},
 	}
+	pfand := []reporting.PfandServicekraft{
+		{UserID: 3, UserName: "felix", PfandCents: 600},
+		{UserID: 11, UserName: "mia", PfandCents: 800},
+	}
 	data := reporting.ReportingData{
 		KassensitzungNr: testKassensitzungNr,
-		Breakdowns:      reporting.Breakdowns{AbrechnungProServicekraft: kassiert},
+		Breakdowns:      reporting.Breakdowns{AbrechnungProServicekraft: kassiert, PfandProServicekraft: pfand},
 		Stornierungen:   stornierungen,
 	}
 
@@ -311,16 +315,19 @@ func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 		}
 	}
 
+	summePfand := 0
+	for _, p := range pfand {
+		summePfand += p.PfandCents
+	}
+
 	summeAbzugeben := 0
 	for _, a := range result.Breakdowns.AbrechnungProServicekraft {
 		summeAbzugeben += a.AbzugebenCents
-		if a.AbzugebenCents < 0 {
-			t.Errorf("Abzugeben darf nie negativ sein: %+v", a)
-		}
 	}
 
-	if summeAbzugeben != summeKassiert-summeRuecknahmen {
-		t.Errorf("Σ Abzugeben %d != Kassiert %d − Rücknahmen %d", summeAbzugeben, summeKassiert, summeRuecknahmen)
+	if summeAbzugeben != summeKassiert-summeRuecknahmen-summePfand {
+		t.Errorf("Σ Abzugeben %d != Kassiert %d − Rücknahmen %d − Pfand %d",
+			summeAbzugeben, summeKassiert, summeRuecknahmen, summePfand)
 	}
 }
 
