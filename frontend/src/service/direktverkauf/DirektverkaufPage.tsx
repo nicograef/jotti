@@ -4,12 +4,12 @@ import { useCallback, useState } from 'react'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useVorgang } from '@/hooks/use-vorgang'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { VorgangHistorie } from '../VorgangHistorie'
@@ -32,7 +32,10 @@ export function DirektverkaufPage() {
     isError: historieError,
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
-  const pfandVorgang = usePfandVorgang()
+  // Korb, verkaufId und Pfand-Vorgang liegen hier, damit sie einen Blick in die
+  // Historie überstehen; ein Retry nach verlorener Antwort buchte sonst doppelt.
+  const verkauf = useVorgang<number>()
+  const pfandVorgang = useVorgang<number>()
 
   // Der Refetch der Historie läuft erst beim Schließen des Pops, damit die
   // Änderung dem Pop folgt.
@@ -74,6 +77,7 @@ export function DirektverkaufPage() {
       pfandBackend={pfandBackend}
       products={produkte}
       pfandProdukte={pfandProdukte}
+      vorgang={verkauf}
       pfandVorgang={pfandVorgang}
       productsLoading={isPending}
       onErfolg={zeigeErfolg}

@@ -10,13 +10,13 @@ import { useCountUp } from '@/hooks/use-count-up'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useVorgang } from '@/hooks/use-vorgang'
 import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
@@ -125,9 +125,10 @@ export function TablePage() {
     reload()
   }, [reload])
 
-  // Korb und Auswahl liegen hier, damit sie das Aus- und Wiedereinhängen der
-  // Radix-Tab-Inhalte überstehen; ein Tab-Wechsel verlöre sie sonst.
-  const bestellKorb = useMengen<number>()
+  // Korb, Auswahl und Vorgangs-Schlüssel liegen hier, damit sie das Aus- und
+  // Wiedereinhängen der Radix-Tab-Inhalte überstehen; ein Tab-Wechsel verlöre
+  // sie sonst, und ein Retry nach verlorener Antwort buchte doppelt.
+  const bestellung = useVorgang<number>()
   const unbezahlteMengen: Record<string, number> = {}
   state.unbezahltePositionen.forEach((position) => {
     unbezahlteMengen[position.positionId] = position.menge
@@ -135,14 +136,14 @@ export function TablePage() {
   const kassierenAuswahl = useMengen<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
-  const pfandVorgang = usePfandVorgang()
+  const pfandVorgang = useVorgang<number>()
 
   // Beim Tischwechsel bleibt TablePage gemountet (nur der :tischId-Param ändert
   // sich), daher wird die gehobene Auswahl pro Tisch zurückgesetzt.
   const [aktiverTisch, setAktiverTisch] = useState(tischId)
   if (tischId !== aktiverTisch) {
     setAktiverTisch(tischId)
-    bestellKorb.reset()
+    bestellung.steuerung.reset()
     kassierenAuswahl.reset()
     pfandVorgang.steuerung.reset()
   }
@@ -254,7 +255,7 @@ export function TablePage() {
         tisch={tisch}
         products={produkte}
         productsLoading={produkteLoading}
-        mengenSteuerung={bestellKorb}
+        vorgang={bestellung}
         onErfolg={zeigeErfolg}
       />
     ))

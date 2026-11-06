@@ -9,10 +9,10 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
 import type { ZahlungKassieren } from './Zahlung'
@@ -22,7 +22,7 @@ import { ZahlungAbschluss } from './ZahlungAbschluss'
 function ZahlungAbschlussHarness(
   props: Omit<ComponentProps<typeof ZahlungAbschluss>, 'pfandVorgang'>,
 ) {
-  return <ZahlungAbschluss {...props} pfandVorgang={usePfandVorgang()} />
+  return <ZahlungAbschluss {...props} pfandVorgang={useVorgang<number>()} />
 }
 
 vi.mock('sonner', () => ({

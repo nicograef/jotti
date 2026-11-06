@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useMengen } from '@/hooks/use-mengen'
+import { useVorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -17,10 +17,9 @@ import { TischBackend } from './TischBackend'
 // Der Bestell-Korb liegt in TablePage; für die isolierten Komponenten-Tests
 // stellt dieser Harness die gehobene Steuerung bereit.
 function BestellungHarness(
-  props: Omit<ComponentProps<typeof BestellungTab>, 'mengenSteuerung'>,
+  props: Omit<ComponentProps<typeof BestellungTab>, 'vorgang'>,
 ) {
-  const mengenSteuerung = useMengen<number>()
-  return <BestellungTab {...props} mengenSteuerung={mengenSteuerung} />
+  return <BestellungTab {...props} vorgang={useVorgang<number>()} />
 }
 
 vi.mock('sonner', () => ({

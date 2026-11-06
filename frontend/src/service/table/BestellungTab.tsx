@@ -1,5 +1,5 @@
-import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
@@ -15,9 +15,8 @@ interface BestellungTabProps {
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
-  // Bestell-Korb (Variante-ID → Menge), von TablePage gehoben, damit die
-  // Auswahl das Aus- und Wiedereinhängen der Tab-Inhalte überlebt.
-  mengenSteuerung: MengenSteuerung<number>
+  // Bestell-Korb (Variante-ID → Menge) samt bestellungId, von TablePage gehoben.
+  vorgang: Vorgang<number>
   onErfolg: (nachricht: string) => void
 }
 
@@ -26,11 +25,11 @@ export function BestellungTab({
   tisch,
   products,
   productsLoading,
-  mengenSteuerung,
+  vorgang,
   onErfolg,
 }: BestellungTabProps) {
   const isMobile = useIsMobile()
-  const { mengen, add, remove, reset } = mengenSteuerung
+  const { mengen, add, remove, reset } = vorgang.steuerung
 
   if (productsLoading) {
     return <ProductListSkeleton />
@@ -64,6 +63,7 @@ export function BestellungTab({
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={calculateTotalPrice(receiptItems)}
+            schluesselFuer={vorgang.schluesselFuer}
             bestellungAufgenommen={bestellungAufgenommen}
           />
         }
@@ -78,6 +78,7 @@ export function BestellungTab({
         tisch={tisch}
         products={products}
         mengen={mengen}
+        schluesselFuer={vorgang.schluesselFuer}
         bestellungAufgenommen={bestellungAufgenommen}
       />
       {productList}

@@ -355,6 +355,51 @@ describe('TablePage', () => {
     })
   })
 
+  // Die Bestellung ist gebucht, die Antwort geht verloren. Nach einem Tab-Wechsel
+  // muss die Wiederholung dieselbe bestellungId tragen, sonst bucht sie doppelt.
+  it('behält die bestellungId über einen Tab-Wechsel hinweg', async () => {
+    setViewportWidth(1024)
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
+    const bestellungAufnehmen = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = backend([testProdukt]).respond(
+      'service/bestellung-aufnehmen',
+      bestellungAufnehmen,
+    )
+    const user = userEvent.setup()
+    renderPage(fake)
+
+    await screen.findByRole('heading', { name: 'Stammtisch', level: 1 })
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
+    )
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
+    )
+    await waitFor(() => {
+      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+    })
+
+    const [erster, wiederholung] = fake.bodies(
+      'service/bestellung-aufnehmen',
+    ) as [{ bestellungId: string }, { bestellungId: string }]
+    expect(wiederholung.bestellungId).toBe(erster.bestellungId)
+  })
+
   // Die Rückgabe ist gebucht, die Antwort geht verloren. Nach einem Tab-Wechsel
   // muss die Wiederholung dieselbe rueckgabeId tragen, sonst zahlt sie doppelt aus.
   it('behält Pfand-Auswahl und rueckgabeId über einen Tab-Wechsel hinweg', async () => {

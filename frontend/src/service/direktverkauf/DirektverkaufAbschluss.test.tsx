@@ -3,18 +3,28 @@ import userEvent from '@testing-library/user-event'
 import { type ComponentProps, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 
-// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+// Verkauf und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function DirektverkaufAbschlussHarness(
-  props: Omit<ComponentProps<typeof DirektverkaufAbschluss>, 'pfandVorgang'>,
+  props: Omit<
+    ComponentProps<typeof DirektverkaufAbschluss>,
+    'pfandVorgang' | 'schluesselFuer'
+  >,
 ) {
-  return <DirektverkaufAbschluss {...props} pfandVorgang={usePfandVorgang()} />
+  const verkauf = useVorgang<number>()
+  return (
+    <DirektverkaufAbschluss
+      {...props}
+      pfandVorgang={useVorgang<number>()}
+      schluesselFuer={verkauf.schluesselFuer}
+    />
+  )
 }
 
 vi.mock('sonner', () => ({
@@ -56,7 +66,7 @@ const pfandProdukt: Produkt = {
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
 function renderSpalte(
-  direktverkaufTaetigen: () => Promise<void> = vi
+  direktverkaufTaetigen: (verkauf: DirektverkaufTaetigen) => Promise<void> = vi
     .fn()
     .mockResolvedValue(undefined),
 ) {
@@ -281,68 +291,37 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(screen.getByPlaceholderText(/Kommentar/)).toHaveValue('')
   })
 
-  it('behält den verkaufId über einen Retry und wechselt ihn beim neuen Vorgang', async () => {
+  it('behält den verkaufId über einen Retry und erneuert ihn, wenn sich der Inhalt danach ändert', async () => {
     const user = userEvent.setup()
     const direktverkaufTaetigen = vi
       .fn<(verkauf: DirektverkaufTaetigen) => Promise<void>>()
-      .mockRejectedValueOnce(new Error('kaputt'))
-      .mockResolvedValue(undefined)
-
-    // Testrahmen, der die Auswahl von „gefüllt" nach „leer" (erfolgreicher
-    // Abschluss) und zurück schalten kann, um den Vorgangswechsel zu prüfen.
-    function Harness() {
-      const [leer, setLeer] = useState(false)
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setLeer((v) => !v)
-            }}
-          >
-            toggle
-          </button>
-          <DirektverkaufAbschlussHarness
-            pfandBackend={{ pfandZurueckgeben: vi.fn() }}
-            pfandProdukte={[]}
-            pfandAusgezahlt={vi.fn()}
-            variant="spalte"
-            backend={{ direktverkaufTaetigen }}
-            receiptItems={leer ? [] : receiptItems}
-            positionen={leer ? [] : positionen}
-            totalCents={leer ? 0 : 700}
-            verkaufAbgeschlossen={vi.fn()}
-            verkaufVerworfen={vi.fn()}
-          />
-        </>
-      )
-    }
-    render(<Harness />)
+      .mockRejectedValue(new Error('kaputt'))
+    renderSpalte(direktverkaufTaetigen)
 
     const abschliessen = () =>
       screen.getByRole('button', { name: 'Verkauf abschließen' })
 
-    // Erster (fehlschlagender) Versuch.
     await user.click(abschliessen())
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
     })
-    const ersterKey = direktverkaufTaetigen.mock.calls[0][0].verkaufId
-
-    // Retry desselben Vorgangs: gleicher Schlüssel.
     await user.click(abschliessen())
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(2)
     })
-    expect(direktverkaufTaetigen.mock.calls[1][0].verkaufId).toBe(ersterKey)
+    const [[erster], [retry]] = direktverkaufTaetigen.mock.calls
+    expect(retry.verkaufId).toBe(erster.verkaufId)
 
-    // Neuer logischer Vorgang: Auswahl leeren (Abschluss) und neu füllen.
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
+    // Ohne Pfand vergleicht das Backend den Inhalt einer bekannten verkaufId
+    // nicht: der geänderte Verkauf bräuchte sonst nie gebucht.
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Senf')
     await user.click(abschliessen())
     await waitFor(() => {
       expect(direktverkaufTaetigen).toHaveBeenCalledTimes(3)
     })
-    expect(direktverkaufTaetigen.mock.calls[2][0].verkaufId).not.toBe(ersterKey)
+    const geaendert = direktverkaufTaetigen.mock.calls[2][0]
+    expect(geaendert.verkaufId).toMatch(UUID)
+    expect(geaendert.verkaufId).not.toBe(erster.verkaufId)
+    expect(geaendert.kommentar).toBe('Ohne Senf')
   })
 })

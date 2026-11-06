@@ -49,6 +49,7 @@ function renderDrawer(mengen: Record<number, number>) {
         tisch={tisch}
         products={[testProdukt]}
         mengen={mengen}
+        schluesselFuer={() => crypto.randomUUID()}
         bestellungAufgenommen={vi.fn()}
       />
     </ServiceDock>,

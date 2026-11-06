@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event'
 import { type ComponentProps, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -18,14 +19,22 @@ import { setViewportWidth } from '@/test/render'
 import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
 import { DirektverkaufTab } from './direktverkauf/DirektverkaufTab'
 import { ErfolgsPop } from './ErfolgsPop'
-import { usePfandVorgang } from './pfand/usePfandVorgang'
 import { ServiceDock } from './ServiceDock'
 
-// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+// Verkauf und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function DirektverkaufTabHarness(
-  props: Omit<ComponentProps<typeof DirektverkaufTab>, 'pfandVorgang'>,
+  props: Omit<
+    ComponentProps<typeof DirektverkaufTab>,
+    'vorgang' | 'pfandVorgang'
+  >,
 ) {
-  return <DirektverkaufTab {...props} pfandVorgang={usePfandVorgang()} />
+  return (
+    <DirektverkaufTab
+      {...props}
+      vorgang={useVorgang<number>()}
+      pfandVorgang={useVorgang<number>()}
+    />
+  )
 }
 
 // toast kommt über den Fehlerpfad von useActionSubmit; die Erfolgs-Flows dürfen

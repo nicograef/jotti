@@ -4,11 +4,11 @@ import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useMengen } from '@/hooks/use-mengen'
+import { useVorgang } from '@/hooks/use-vorgang'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
 import { setViewportWidth } from '@/test/render'
 
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceDock } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
@@ -34,7 +34,7 @@ function ZahlungHarness(
     <ZahlungTab
       {...props}
       mengenSteuerung={mengenSteuerung}
-      pfandVorgang={usePfandVorgang()}
+      pfandVorgang={useVorgang<number>()}
     />
   )
 }

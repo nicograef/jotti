@@ -8,13 +8,13 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { parseCents } from '@/lib/utils'
 
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
-import type { PfandBackend } from '../pfand/PfandBackend'
-import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
 import {
   istPfandrueckgabeAbweichend,
   pfandAuswahl,
   type PfandVorgang,
-} from '../pfand/usePfandVorgang'
+} from '../pfand/pfandAuswahl'
+import type { PfandBackend } from '../pfand/PfandBackend'
+import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
 import { AbschlussContainer } from '../table/AbschlussContainer'
 import { AbschlussHeader } from '../table/AbschlussHeader'
 import { AbschlussLeer } from '../table/AbschlussLeer'
@@ -34,6 +34,8 @@ interface DirektverkaufAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   totalCents: number
+  // Liefert die verkaufId für diesen Versuch (siehe Vorgang.schluesselFuer).
+  schluesselFuer: (inhalt: unknown) => string
   verkaufAbgeschlossen: () => void
   // Leert den Korb ohne Erfolgsmeldung, damit der nächste Versuch eine neue verkaufId zieht.
   verkaufVerworfen: () => void
@@ -49,9 +51,6 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
-  // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
-  const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
   const pfand = pfandAuswahl(props.pfandProdukte, props.pfandVorgang)
   const mitPfand = pfand.summeCents > 0
   const nurPfand = noPositionenSelected && mitPfand
@@ -67,10 +66,10 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       }
     : {}
 
+  // A selection starting from empty is a new Vorgang; the persistent column carries no input over from an abandoned one.
   const warLeerRef = useRef(noPositionenSelected)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
-      setVerkaufId(crypto.randomUUID())
       setErhaltenEuro('')
       setZielbetragEuro('')
       setAndererAktiv(false)
@@ -124,13 +123,14 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   const loading = verkauf.loading || pfandAuszahlung.loading
 
   const onSubmit = async () => {
+    const inhalt = {
+      positionen: props.positionen,
+      kommentar,
+      ...pfandVerrechnung,
+    }
+    const verkaufId = props.schluesselFuer(inhalt)
     await verkauf.run(async () => {
-      await props.backend.direktverkaufTaetigen({
-        verkaufId,
-        positionen: props.positionen,
-        kommentar,
-        ...pfandVerrechnung,
-      })
+      await props.backend.direktverkaufTaetigen({ verkaufId, ...inhalt })
     })
   }
 

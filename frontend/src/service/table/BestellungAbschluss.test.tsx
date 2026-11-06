@@ -1,7 +1,9 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { type ComponentProps, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { useVorgang } from '@/hooks/use-vorgang'
 
 import type { BestellungAufnehmen } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
@@ -15,6 +17,16 @@ vi.mock('sonner', () => ({
 afterEach(() => {
   cleanup()
 })
+
+// Der Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function BestellungAbschlussHarness(
+  props: Omit<ComponentProps<typeof BestellungAbschluss>, 'schluesselFuer'>,
+) {
+  const vorgang = useVorgang<number>()
+  return (
+    <BestellungAbschluss {...props} schluesselFuer={vorgang.schluesselFuer} />
+  )
+}
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 const receiptItems: ReceiptPosition[] = [
@@ -33,7 +45,7 @@ function renderSpalte(
 ) {
   const bestellungAufgenommen = vi.fn()
   render(
-    <BestellungAbschluss
+    <BestellungAbschlussHarness
       variant="spalte"
       backend={{ bestellungAufnehmen }}
       tisch={tisch}
@@ -49,7 +61,7 @@ function renderSpalte(
 describe('BestellungAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
     render(
-      <BestellungAbschluss
+      <BestellungAbschlussHarness
         variant="spalte"
         backend={{ bestellungAufnehmen: vi.fn() }}
         tisch={tisch}
@@ -97,66 +109,6 @@ describe('BestellungAbschluss (Spalte)', () => {
     expect(bestellungAufgenommen).toHaveBeenCalledTimes(1)
   })
 
-  it('behält den bestellungId über einen Retry und wechselt ihn beim neuen Vorgang', async () => {
-    const user = userEvent.setup()
-    const bestellungAufnehmen = vi
-      .fn<(b: BestellungAufnehmen) => Promise<void>>()
-      .mockRejectedValueOnce(new Error('kaputt'))
-      .mockResolvedValue(undefined)
-
-    function Harness() {
-      const [leer, setLeer] = useState(false)
-      return (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              setLeer((v) => !v)
-            }}
-          >
-            toggle
-          </button>
-          <BestellungAbschluss
-            variant="spalte"
-            backend={{ bestellungAufnehmen }}
-            tisch={tisch}
-            receiptItems={leer ? [] : receiptItems}
-            positionen={leer ? [] : positionen}
-            totalCents={leer ? 0 : 700}
-            bestellungAufgenommen={vi.fn()}
-          />
-        </>
-      )
-    }
-    render(<Harness />)
-
-    const aufnehmen = () =>
-      screen.getByRole('button', { name: 'Bestellung aufnehmen' })
-
-    await user.click(aufnehmen())
-    await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
-    })
-    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
-
-    await user.click(aufnehmen())
-    await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
-    })
-    expect(bestellungAufnehmen.mock.calls[1][0].bestellungId).toBe(ersterKey)
-
-    // Neuer logischer Vorgang: Auswahl leeren und neu füllen.
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
-    await user.click(screen.getByRole('button', { name: 'toggle' }))
-    await user.click(aufnehmen())
-    await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(3)
-    })
-    expect(bestellungAufnehmen.mock.calls[2][0].bestellungId).not.toBe(
-      ersterKey,
-    )
-  })
-
   it('erneuert den bestellungId, wenn sich der Kommentar nach einem Fehlversuch ändert', async () => {
     const user = userEvent.setup()
     const bestellungAufnehmen = vi
@@ -164,7 +116,7 @@ describe('BestellungAbschluss (Spalte)', () => {
       .mockRejectedValueOnce(new Error('kaputt'))
       .mockResolvedValue(undefined)
     render(
-      <BestellungAbschluss
+      <BestellungAbschlussHarness
         variant="spalte"
         backend={{ bestellungAufnehmen }}
         tisch={tisch}
@@ -212,7 +164,7 @@ describe('BestellungAbschluss (Spalte)', () => {
           >
             toggle
           </button>
-          <BestellungAbschluss
+          <BestellungAbschlussHarness
             variant="spalte"
             backend={{ bestellungAufnehmen: vi.fn() }}
             tisch={tisch}

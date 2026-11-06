@@ -89,10 +89,13 @@ const stornierterVerkauf = {
   ],
 }
 
-function backend(pfandProdukte: Produkt[] = []): FakeBackend {
+function backend(
+  pfandProdukte: Produkt[] = [],
+  produkte: Produkt[] = [],
+): FakeBackend {
   return new FakeBackend()
     .respond('service/get-aktive-produkte', {
-      produkte: [],
+      produkte,
       pfandProdukte,
     })
     .respond('service/get-direktverkauf-historie', { historie: [] })
@@ -149,6 +152,53 @@ describe('DirektverkaufPage', () => {
     expect(
       await screen.findByText('Historie konnte nicht geladen werden'),
     ).toBeInTheDocument()
+  })
+
+  // Der Verkauf ist gebucht, die Antwort geht verloren. Nach einem Blick in die
+  // Historie müssen Korb und verkaufId stehen, sonst bucht die Wiederholung doppelt.
+  it('behält Korb und verkaufId über einen Blick in die Historie', async () => {
+    setViewportWidth(1024)
+    const direktverkaufTaetigen = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = backend([], [testProdukt]).respond(
+      'service/direktverkauf-taetigen',
+      direktverkaufTaetigen,
+    )
+    const user = userEvent.setup()
+    renderWithBackend(<DirektverkaufPage />, fake)
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+    await waitFor(() => {
+      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Verkaufen' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+    await waitFor(() => {
+      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(2)
+    })
+
+    const [erster, wiederholung] = fake.bodies(
+      'service/direktverkauf-taetigen',
+    ) as [
+      { verkaufId: string; positionen: unknown[] },
+      { verkaufId: string; positionen: unknown[] },
+    ]
+    expect(wiederholung.positionen).toEqual(erster.positionen)
+    expect(wiederholung.positionen).toHaveLength(1)
+    expect(wiederholung.verkaufId).toBe(erster.verkaufId)
   })
 
   // Die Rückgabe ist gebucht, die Antwort geht verloren. Nach einem Blick in die

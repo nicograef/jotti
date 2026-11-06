@@ -22,6 +22,8 @@ interface BestellungAbschlussProps {
   receiptItems: ReceiptPosition[]
   positionen: BestellPositionInput[]
   totalCents: number
+  // Liefert die bestellungId für diesen Versuch (siehe Vorgang.schluesselFuer).
+  schluesselFuer: (inhalt: unknown) => string
   bestellungAufgenommen: () => void
   variant: 'sheet' | 'spalte'
 }
@@ -31,19 +33,11 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
 
-  // One bestellungId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
-  // The new key also resets the Kommentar, so the persistent column carries nothing over from an abandoned Vorgang.
-  const [bestellungId, setBestellungId] = useState(() => crypto.randomUUID())
+  // A selection starting from empty is a new Vorgang; the persistent column carries no Kommentar over from an abandoned one.
   const warLeerRef = useRef(noPositionenSelected)
-  // Inhalt des letzten Absendeversuchs. Nach einem Fehlversuch mit geändertem
-  // Inhalt ist der Schlüssel verbraucht: Das Backend erkennt ihn als Duplikat
-  // und verwürfe die geänderte Bestellung stillschweigend.
-  const letzterVersuchRef = useRef<string | null>(null)
   useEffect(() => {
     if (warLeerRef.current && !noPositionenSelected) {
-      setBestellungId(crypto.randomUUID())
       setKommentar('')
-      letzterVersuchRef.current = null
     }
     warLeerRef.current = noPositionenSelected
   }, [noPositionenSelected])
@@ -57,23 +51,13 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
-    const versuchsInhalt = JSON.stringify({
+    const bestellungId = props.schluesselFuer({
       positionen: props.positionen,
       kommentar,
     })
-    let schluessel = bestellungId
-    if (
-      letzterVersuchRef.current !== null &&
-      letzterVersuchRef.current !== versuchsInhalt
-    ) {
-      schluessel = crypto.randomUUID()
-      setBestellungId(schluessel)
-    }
-    letzterVersuchRef.current = versuchsInhalt
-
     await run(async () => {
       await props.backend.bestellungAufnehmen({
-        bestellungId: schluessel,
+        bestellungId,
         tischId: props.tisch.id,
         positionen: props.positionen,
         kommentar,

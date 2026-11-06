@@ -21,8 +21,8 @@ import {
   formatPositionName,
 } from '@/lib/utils'
 
+import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { PfandBackend } from '../pfand/PfandBackend'
-import type { PfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import type { Position } from './Bestellung'

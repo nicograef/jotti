@@ -14,6 +14,7 @@ interface BestellungDrawerProps {
   tisch: Tisch
   products: Produkt[]
   mengen: Record<number, number>
+  schluesselFuer: (inhalt: unknown) => string
   bestellungAufgenommen: () => void
 }
 
@@ -50,6 +51,7 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
         receiptItems={receiptItems}
         positionen={inputItems}
         totalCents={totalPrice}
+        schluesselFuer={props.schluesselFuer}
         bestellungAufgenommen={() => {
           setOpen(false)
           props.bestellungAufgenommen()

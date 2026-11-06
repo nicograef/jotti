@@ -1,9 +1,9 @@
-import { useMengen } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { PfandBackend } from '../pfand/PfandBackend'
-import type { PfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
@@ -16,7 +16,8 @@ interface DirektverkaufTabProps {
   pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   products: Produkt[]
   pfandProdukte: Produkt[]
-  // Von DirektverkaufPage gehoben, damit Pfand und rueckgabeId einen Blick in die Historie überstehen.
+  // Von DirektverkaufPage gehoben, damit Korb, verkaufId, Pfand und rueckgabeId einen Blick in die Historie überstehen.
+  vorgang: Vorgang<number>
   pfandVorgang: PfandVorgang
   productsLoading: boolean
   onErfolg: (nachricht: string) => void
@@ -27,12 +28,13 @@ export function DirektverkaufTab({
   pfandBackend,
   products,
   pfandProdukte,
+  vorgang,
   pfandVorgang,
   productsLoading,
   onErfolg,
 }: DirektverkaufTabProps) {
   const isMobile = useIsMobile()
-  const { mengen, add, remove, reset } = useMengen<number>()
+  const { mengen, add, remove, reset } = vorgang.steuerung
 
   const { receiptItems, inputItems } = toBestellungData(products, mengen)
   const total = calculateTotalPrice(receiptItems)
@@ -75,6 +77,7 @@ export function DirektverkaufTab({
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={total}
+            schluesselFuer={vorgang.schluesselFuer}
             verkaufAbgeschlossen={verkaufAbgeschlossen}
             verkaufVerworfen={reset}
             pfandAusgezahlt={pfandAusgezahlt}
@@ -95,6 +98,7 @@ export function DirektverkaufTab({
         positionen={inputItems}
         anzahl={anzahl}
         totalCents={total}
+        schluesselFuer={vorgang.schluesselFuer}
         verkaufAbgeschlossen={verkaufAbgeschlossen}
         verkaufVerworfen={reset}
         pfandAusgezahlt={pfandAusgezahlt}

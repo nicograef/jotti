@@ -3,21 +3,30 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { setViewportWidth } from '@/test/render'
 
-import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceDock } from '../ServiceDock'
 import { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufTab } from './DirektverkaufTab'
 
-// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+// Verkauf und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function DirektverkaufTabHarness(
-  props: Omit<ComponentProps<typeof DirektverkaufTab>, 'pfandVorgang'>,
+  props: Omit<
+    ComponentProps<typeof DirektverkaufTab>,
+    'vorgang' | 'pfandVorgang'
+  >,
 ) {
-  return <DirektverkaufTab {...props} pfandVorgang={usePfandVorgang()} />
+  return (
+    <DirektverkaufTab
+      {...props}
+      vorgang={useVorgang<number>()}
+      pfandVorgang={useVorgang<number>()}
+    />
+  )
 }
 
 vi.mock('sonner', () => ({
