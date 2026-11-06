@@ -24,7 +24,8 @@ const (
 	bonTypSonstige   = "AVSonstige"   // Anhang B: other "anderer Vorgang" (Tagesabschluss), cash-neutral
 	gvTypUmsatz      = "Umsatz"       // Anhang C: realised revenue at line level
 	// Anhang C: Pfand paid out to the guest, a negative Entgeltminderung at the Pfand
-	// product's VAT rate (Tz. 4.2.5); the Pfand sale itself stays "Umsatz".
+	// product's VAT rate (Tz. 4.2.5). The Pfand sale stays "Umsatz", since the frozen sale
+	// events carry no Pfand flag per position (docs/decisions.md D20).
 	gvTypPfandRueckzahlung = "PfandRueckzahlung"
 	// Anhang C GV types that only move the cash balance; jotti records them as
 	// BON_TYP "Beleg" with one non-taxable line (see docs/compliance.md §6.8).
