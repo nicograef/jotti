@@ -695,27 +695,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build and start the E2E stack
-        env:
-          E2E_HTTP_PORT: '8080'
-        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml up -d --build
-
-      - name: Wait for the stack to become healthy
-        run: |
-          for i in $(seq 1 60); do
-            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ || true)
-            if [ "$code" = "200" ]; then
-              echo "Reverse-Proxy is up (HTTP $code)."
-              exit 0
-            fi
-            echo "waiting for the stack ($i/60), last status: ${code:-none} ..."
-            sleep 2
-          done
-          echo "Stack did not become healthy; dumping container status and logs."
-          docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml ps
-          docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml logs
-          exit 1
-
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           package_json_file: e2e/package.json
@@ -747,11 +726,12 @@ jobs:
         working-directory: ./e2e
         run: pnpm exec playwright install --with-deps chromium
 
+      # e2e-stack.sh builds and starts the stack, dumps its logs when the suite
+      # fails and removes it with its volumes.
       - name: Run E2E suite
-        working-directory: ./e2e
         env:
-          E2E_BASE_URL: http://localhost:8080
-        run: pnpm test
+          E2E_STACK_PROJECT: jotti-e2e-ci
+        run: ./scripts/e2e-stack.sh pnpm --dir e2e test
 
       - name: Upload Playwright artefacts on failure
         if: ${{ failure() }}
@@ -762,11 +742,3 @@ jobs:
             e2e/playwright-report/
             e2e/test-results/
           retention-days: 7
-
-      - name: Dump stack logs on failure
-        if: ${{ failure() }}
-        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml logs
-
-      - name: Tear down the E2E stack
-        if: ${{ always() }}
-        run: docker compose -p jotti-e2e-ci -f docker-compose.e2e.yml down -v

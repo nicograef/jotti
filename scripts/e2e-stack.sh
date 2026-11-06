@@ -12,7 +12,8 @@
 # What it does:
 #   1. Builds and starts the stack and waits until the proxy answers HTTP 200.
 #   2. Runs the command with E2E_BASE_URL pointing at the stack.
-#   3. Removes the stack with its volumes on exit; the exit code is the command's.
+#   3. Dumps the stack's logs when the command fails, then removes the stack with
+#      its volumes; the exit code is the command's.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -57,5 +58,10 @@ if [[ -z "$ready" ]]; then
 fi
 
 info "Stack is ready at $BASE_URL."
-# Last command: its exit code is the script's, and the EXIT trap keeps it.
-E2E_BASE_URL="$BASE_URL" "$@"
+status=0
+E2E_BASE_URL="$BASE_URL" "$@" || status=$?
+if ((status != 0)); then
+  error "Command failed (exit $status); stack logs follow."
+  "${COMPOSE[@]}" logs || true
+  exit "$status"
+fi
