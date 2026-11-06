@@ -45,13 +45,7 @@ export class ReportingBackend {
     return response.kassensitzungen
   }
 
-  // Ohne Nummer wählt das Backend die Standard-Sitzung.
-  public async exportDsfinvk(
-    kassensitzungNr: number | null,
-  ): Promise<DownloadResult> {
-    return this.backend.download(
-      'admin/export/dsfinvk',
-      kassensitzungNr ? { kassensitzungNr } : {},
-    )
+  public async exportDsfinvk(kassensitzungNr: number): Promise<DownloadResult> {
+    return this.backend.download('admin/export/dsfinvk', { kassensitzungNr })
   }
 }

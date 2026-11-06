@@ -71,11 +71,11 @@ export function useLiveReporting(): LiveReportingResult {
 }
 
 export function useDsfinvkExport(): {
-  exportieren: (kassensitzungNr: number | null) => void
+  exportieren: (kassensitzungNr: number) => void
   isPending: boolean
 } {
   const mutation = useMutation({
-    mutationFn: (kassensitzungNr: number | null) =>
+    mutationFn: (kassensitzungNr: number) =>
       reportingBackend.exportDsfinvk(kassensitzungNr),
     onSuccess: ({ blob, filename }) => {
       triggerBrowserDownload(blob, filename)
