@@ -5,6 +5,7 @@ package application
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -132,18 +133,7 @@ func TestBestellungAufnehmen_DuplikatBestellungId_IdempotenterErfolg(t *testing.
 func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *testing.T) {
 	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
 
-	var pfandProduktID, pfandVarianteID int
-	if err := db.QueryRow(
-		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfand', 'sonstiges', 'regel', 'active', true, now(), now()) RETURNING id",
-	).Scan(&pfandProduktID); err != nil {
-		t.Fatalf("create pfand produkt: %v", err)
-	}
-	if err := db.QueryRow(
-		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Glas', 200, 'active', now(), now()) RETURNING id",
-		pfandProduktID,
-	).Scan(&pfandVarianteID); err != nil {
-		t.Fatalf("create pfand variante: %v", err)
-	}
+	pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 
 	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
 	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.New().String(), tischID, inputs, ""); err != nil {
@@ -189,5 +179,113 @@ func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *tes
 	}
 	if auftraegeCount != 2 {
 		t.Errorf("erwartet 2 tse_signaturauftraege, vorhanden: %d", auftraegeCount)
+	}
+}
+
+// insertPfandVariante legt ein aktives Pfand-Produkt „Pfand" mit der Variante „Glas" zu 200 Cent an.
+func insertPfandVariante(t *testing.T, db *sql.DB) (produktID, varianteID int) {
+	t.Helper()
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfand', 'sonstiges', 'regel', 'active', true, now(), now()) RETURNING id",
+	).Scan(&produktID); err != nil {
+		t.Fatalf("create pfand produkt: %v", err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Glas', 200, 'active', now(), now()) RETURNING id",
+		produktID,
+	).Scan(&varianteID); err != nil {
+		t.Fatalf("create pfand variante: %v", err)
+	}
+	return produktID, varianteID
+}
+
+// zahlungsFall carries what a case of TestZahlungKassieren_MitPfand_Abweichend_KeinEvent needs to
+// book its first Vorgang.
+type zahlungsFall struct {
+	ctx                   context.Context
+	cmd                   Command
+	userID, ksNr, tischID int
+	refs                  func(menge int) []kasse.PositionRef
+	pfand                 func(menge int) *enrichment.PfandEingabe
+}
+
+// TestZahlungKassieren_MitPfand_Abweichend_KeinEvent: a settled payment whose rueckgabeId is booked
+// with other content, or without the payment it was settled with, is refused with
+// ErrPfandrueckgabeAbweichend and books nothing.
+func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
+	// Each case books a first Vorgang; then follows the payment of one Bier with two Gläser Pfand.
+	tests := []struct {
+		name string
+		erst func(t *testing.T, f zahlungsFall) error
+	}{
+		{"andere Pfand-Menge", func(_ *testing.T, f zahlungsFall) error {
+			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", f.tischID, f.refs(1), "", f.pfand(3))
+		}},
+		{"andere Zahlung", func(_ *testing.T, f zahlungsFall) error {
+			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", f.tischID, f.refs(2), "", f.pfand(2))
+		}},
+		{"Rückgabe ohne Zahlung", func(t *testing.T, f zahlungsFall) error {
+			eingabe := f.pfand(2)
+			positionen, err := enrichment.EnrichPfandPositionen(f.ctx, f.cmd.ProduktRepo, eingabe.Positionen)
+			if err != nil {
+				t.Fatalf("Pfand anreichern: %v", err)
+			}
+			rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(f.ksNr, eingabe.RueckgabeID), eingabe.RueckgabeID, f.tischID, f.userID, "test", positionen, "")
+			if err != nil {
+				t.Fatalf("Rückgabe-Event: %v", err)
+			}
+			rueckgabe.Version = 1
+			_, err = f.cmd.EventRepo.WriteEvent(f.ctx, rueckgabe, kasse.StreamTypePfandrueckgabe, f.ksNr)
+			return err
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+
+			inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
+			if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.New().String(), tischID, inputs, ""); err != nil {
+				t.Fatalf("Bestellung aufnehmen: %v", err)
+			}
+			session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+			if err != nil {
+				t.Fatalf("Tisch-Session lesen: %v", err)
+			}
+			positionID := session.UnbezahltePositionen[0].PositionID
+			rueckgabeID := uuid.New().String()
+			f := zahlungsFall{
+				ctx: ctx, cmd: cmd, userID: userID, ksNr: ksNr, tischID: tischID,
+				refs: func(menge int) []kasse.PositionRef {
+					return []kasse.PositionRef{{PositionID: positionID, Menge: menge}}
+				},
+				pfand: func(menge int) *enrichment.PfandEingabe {
+					return &enrichment.PfandEingabe{
+						RueckgabeID: rueckgabeID,
+						Positionen:  []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: menge}},
+					}
+				},
+			}
+
+			if err := tt.erst(t, f); err != nil {
+				t.Fatalf("erster Vorgang: %v", err)
+			}
+			var vorher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&vorher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+
+			if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, f.refs(1), "", f.pfand(2)); !errors.Is(err, ErrPfandrueckgabeAbweichend) {
+				t.Errorf("erwartet ErrPfandrueckgabeAbweichend, bekam: %v", err)
+			}
+
+			var nachher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&nachher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+			if nachher != vorher {
+				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+			}
+		})
 	}
 }

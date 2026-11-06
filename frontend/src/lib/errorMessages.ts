@@ -63,6 +63,8 @@ export const commonErrorMessages: Record<string, string> = {
     'Für diesen Benutzer wurde noch kein Passwort gesetzt. Bitte zuerst ein Passwort vergeben.',
   password_too_weak:
     'Das Passwort ist zu schwach. Bitte ein stärkeres Passwort verwenden.',
+  pfandrueckgabe_abweichend:
+    'Diese Pfandrückgabe wurde mit anderer Auswahl schon gebucht. Bitte Historie prüfen und neu erfassen.',
   position_nicht_bezahlbar:
     'Mindestens eine Position ist nicht mehr bezahlbar. Bitte Tischstatus aktualisieren und erneut versuchen.',
   // Kontextneutral: Den Code liefert auch der Direktverkauf, der keinen Tisch hat.

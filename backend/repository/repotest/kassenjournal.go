@@ -303,6 +303,22 @@ func (m *KassenjournalRepo) EventExistsByTypeAndVorgangsID(_ context.Context, ev
 	return false, nil
 }
 
+func (m *KassenjournalRepo) GetPfandrueckgabe(_ context.Context, rueckgabeID string) (event.Event, bool, error) {
+	if m.err != nil {
+		return event.Event{}, false, m.err
+	}
+	for _, e := range m.events {
+		if e.Type != string(kasse.EventTypePfandZurueckgegebenV1) {
+			continue
+		}
+		var data kasse.PfandZurueckgegebenV1Data
+		if err := json.Unmarshal(e.Data, &data); err == nil && data.RueckgabeID == rueckgabeID {
+			return e, true, nil
+		}
+	}
+	return event.Event{}, false, nil
+}
+
 func (m *KassenjournalRepo) ReadKassensitzungEvents(_ context.Context, kassensitzungNr int) ([]event.Event, error) {
 	if m.kassensitzungEventsErr != nil {
 		return nil, m.kassensitzungEventsErr

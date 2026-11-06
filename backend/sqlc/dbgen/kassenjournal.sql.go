@@ -51,6 +51,42 @@ func (q *Queries) GetMaxVersion(ctx context.Context, subject string) (int, error
 	return version, err
 }
 
+const getPfandrueckgabe = `-- name: GetPfandrueckgabe :one
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'pfand-zurueckgegeben:v1'
+  AND data->>'rueckgabeId' = $1::text
+`
+
+type GetPfandrueckgabeRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Die Rückgabe zu einer rueckgabeId über alle Kassensitzungen; idx_kassenjournal_rueckgabe_id
+// hält sie eindeutig.
+func (q *Queries) GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (GetPfandrueckgabeRow, error) {
+	row := q.db.QueryRowContext(ctx, getPfandrueckgabe, rueckgabeID)
+	var i GetPfandrueckgabeRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.UserName,
+		&i.Version,
+		&i.Type,
+		&i.Subject,
+		&i.Data,
+		&i.Timestamp,
+	)
+	return i, err
+}
+
 const readDirektverkaufEvents = `-- name: ReadDirektverkaufEvents :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal

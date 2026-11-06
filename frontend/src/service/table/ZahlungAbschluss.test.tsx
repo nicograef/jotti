@@ -12,6 +12,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
+import type { ZahlungKassieren } from './Zahlung'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 
 vi.mock('sonner', () => ({
@@ -251,6 +252,66 @@ describe('ZahlungAbschluss (Spalte)', () => {
     ]
     expect(zahlung.pfand.rueckgabeId).toMatch(UUID)
     expect(zahlung.pfand.rueckgabeId).not.toBe(rueckgabe.rueckgabeId)
+  })
+
+  it('keeps the rueckgabeId across Pfand quantities and renews it with the payment selection', async () => {
+    const user = userEvent.setup()
+    // Jede Antwort geht verloren: Auswahl und rueckgabeId bleiben stehen.
+    const zahlungKassieren = vi
+      .fn<(zahlung: ZahlungKassieren) => Promise<void>>()
+      .mockRejectedValue(new Error('Netzwerkfehler'))
+    const props = {
+      variant: 'spalte' as const,
+      backend: { zahlungKassieren },
+      pfandBackend: { pfandZurueckgeben: vi.fn() },
+      pfandProdukte: [pfandProdukt],
+      tisch,
+      restNachZahlungCents: 200,
+      zahlungKassiert: vi.fn(),
+      pfandAusgezahlt: vi.fn(),
+    }
+    const { rerender } = render(
+      <ZahlungAbschluss
+        {...props}
+        positionenToPay={[{ ...position, menge: 2 }]}
+        totalCents={700}
+      />,
+    )
+    const kassieren = async (aufrufe: number) => {
+      await user.click(screen.getByRole('button', { name: 'Kassieren' }))
+      await waitFor(() => {
+        expect(zahlungKassieren).toHaveBeenCalledTimes(aufrufe)
+      })
+    }
+    const hinzufuegen = () =>
+      user.click(screen.getByRole('button', { name: 'Variante hinzufügen' }))
+
+    await hinzufuegen()
+    await kassieren(1)
+    await hinzufuegen()
+    await kassieren(2)
+    rerender(
+      <ZahlungAbschluss
+        {...props}
+        positionenToPay={[{ ...position, menge: 1 }]}
+        totalCents={350}
+      />,
+    )
+    await kassieren(3)
+
+    const [erste, mehrPfand, andereZahlung] = zahlungKassieren.mock.calls.map(
+      ([zahlung]) => zahlung.pfand,
+    )
+    expect(erste?.positionen).toEqual([
+      { produktId: 9, varianteId: 19, menge: 1 },
+    ])
+    expect(mehrPfand?.positionen).toEqual([
+      { produktId: 9, varianteId: 19, menge: 2 },
+    ])
+    expect(erste?.rueckgabeId).toMatch(UUID)
+    expect(mehrPfand?.rueckgabeId).toBe(erste?.rueckgabeId)
+    expect(andereZahlung?.rueckgabeId).toMatch(UUID)
+    expect(andereZahlung?.rueckgabeId).not.toBe(erste?.rueckgabeId)
   })
 
   it('zeigt die Restbetrag-Zeile in der Spalte', () => {

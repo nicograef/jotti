@@ -34,6 +34,7 @@ type eventRepo interface {
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
+	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -314,18 +315,19 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 }
 
 // ZahlungKassieren writes the payment and, with pfand, the settled Rückgabe in one transaction. The
-// rueckgabeId makes a payment with Pfand idempotent: a stored Rückgabe with that ID means success
-// without booking, because the retried payment would no longer find its positions unpaid.
+// rueckgabeId makes a payment with Pfand idempotent: it is checked before the payment, because the
+// retried payment would no longer find its positions unpaid. A stored Rückgabe answers success only
+// if it and the payment written with it match the request, see pruefeVerrechneteZahlung.
 func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
 	if pfand != nil {
-		exists, err := c.rueckgabeExistiert(ctx, pfand.RueckgabeID)
+		rueckgabe, found, err := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
 		if err != nil {
 			return err
 		}
-		if exists {
-			return nil
+		if found {
+			return c.pruefeVerrechneteZahlung(ctx, rueckgabe, tischID, positionen, pfand)
 		}
 	}
 
@@ -362,6 +364,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 			log.Error("Failed to create pfand zurueckgegeben event", "error", err, "tisch_id", tischID)
 			return err
 		}
+		rueckgabe = kasse.Verrechne(rueckgabe, evt)
 		rueckgabe.Version = 1
 		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
 	}
@@ -370,12 +373,12 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
 			log.Warn("OCC conflict bei Zahlung", "tisch_id", tischID, "subject", subject)
 			if pfand != nil {
-				exists, lookupErr := c.rueckgabeExistiert(ctx, pfand.RueckgabeID)
+				rueckgabe, found, lookupErr := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
 				if lookupErr != nil {
 					return lookupErr
 				}
-				if exists {
-					return nil
+				if found {
+					return c.pruefeVerrechneteZahlung(ctx, rueckgabe, tischID, positionen, pfand)
 				}
 			}
 			return ErrConflict
@@ -392,16 +395,56 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	return nil
 }
 
-func (c Command) rueckgabeExistiert(ctx context.Context, rueckgabeID string) (bool, error) {
-	exists, err := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypePfandZurueckgegebenV1), rueckgabeID, "rueckgabeId")
+func (c Command) getPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
+	rueckgabe, found, err := c.EventRepo.GetPfandrueckgabe(ctx, rueckgabeID)
 	if err != nil {
-		logging.FromContext(ctx).Error("Failed to lookup pfandrueckgabe idempotency", "error", err, "rueckgabe_id", rueckgabeID)
-		return false, ErrDatabase
+		logging.FromContext(ctx).Error("Failed to read pfandrueckgabe", "error", err, "rueckgabe_id", rueckgabeID)
+		return event.Event{}, false, ErrDatabase
 	}
-	if exists {
-		logging.FromContext(ctx).Info("Idempotente Zahlung: rueckgabeId bereits vorhanden", "rueckgabe_id", rueckgabeID)
+	return rueckgabe, found, nil
+}
+
+// pruefeVerrechneteZahlung answers a payment whose rueckgabeId is already booked: success only if
+// the Rückgabe books this table and these quantities and the payment written with it pays the
+// requested positions. A Rückgabe without that payment, say a pure return, is a different Vorgang.
+func (c Command) pruefeVerrechneteZahlung(ctx context.Context, rueckgabe event.Event, tischID int, positionen []kasse.PositionRef, pfand *enrichment.PfandEingabe) error {
+	log := logging.FromContext(ctx)
+
+	gleich, err := kasse.GleicheRueckgabe(rueckgabe, tischID, enrichment.MengenJeVariante(pfand.Positionen))
+	if err != nil {
+		log.Error("Failed to compare stored pfandrueckgabe", "error", err, "rueckgabe_id", pfand.RueckgabeID)
+		return ErrDatabase
 	}
-	return exists, nil
+	if gleich {
+		gleich, err = c.gleicheVerrechneteZahlung(ctx, rueckgabe, tischID, positionen)
+		if err != nil {
+			log.Error("Failed to compare stored zahlung", "error", err, "rueckgabe_id", pfand.RueckgabeID)
+			return ErrDatabase
+		}
+	}
+	if !gleich {
+		log.Warn("Verrechnete Zahlung weicht von der gebuchten Pfandrückgabe ab", "tisch_id", tischID, "rueckgabe_id", pfand.RueckgabeID)
+		return ErrPfandrueckgabeAbweichend
+	}
+
+	log.Info("Idempotente Zahlung: rueckgabeId bereits vorhanden", "rueckgabe_id", pfand.RueckgabeID)
+	return nil
+}
+
+func (c Command) gleicheVerrechneteZahlung(ctx context.Context, rueckgabe event.Event, tischID int, positionen []kasse.PositionRef) (bool, error) {
+	zNr, err := kasse.ParseZNrFromSubject(rueckgabe.Subject)
+	if err != nil {
+		return false, err
+	}
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.TischSessionSubject(zNr, tischID))
+	if err != nil {
+		return false, err
+	}
+	zahlung, found := kasse.VerrechnungsPartner(rueckgabe, events, kasse.EventTypeZahlungKassiertV1)
+	if !found {
+		return false, nil
+	}
+	return kasse.GleicheZahlung(zahlung, positionen)
 }
 
 // StornierungErteilen splits by payment status: unpaid quantities become one bestellung-korrigiert,

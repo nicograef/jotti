@@ -218,3 +218,74 @@ func TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t
 		t.Errorf("erwartet 2 tse_signaturauftraege, vorhanden: %d", auftraegeCount)
 	}
 }
+
+// verrechnungsFall carries what a case of TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent
+// needs to book its first Vorgang.
+type verrechnungsFall struct {
+	ctx                    context.Context
+	cmd                    Command
+	userID                 int
+	verkaufID, rueckgabeID string
+	verkauf, pfand         func(menge int) []enrichment.PositionInput
+}
+
+// TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent: a settled Direktverkauf whose verkaufId or
+// rueckgabeId is booked with other content, or without its partner, is refused with
+// ErrPfandrueckgabeAbweichend and books nothing.
+func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
+	// Each case books a first Vorgang; then follows the sale (Menge 2) with Pfand (Menge 2) under both IDs.
+	tests := []struct {
+		name string
+		erst func(f verrechnungsFall) error
+	}{
+		{"andere Pfand-Menge", func(f verrechnungsFall) error {
+			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(3)})
+		}},
+		{"anderer Verkauf", func(f verrechnungsFall) error {
+			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(1), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
+		}},
+		{"Verkauf ohne Rückgabe", func(f verrechnungsFall) error {
+			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", nil)
+		}},
+		{"Rückgabe ohne Verkauf", func(f verrechnungsFall) error {
+			return f.cmd.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(2), "")
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cmd, db, userID, _, produktID, varianteID := setupDVIntegration(t)
+			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+			f := verrechnungsFall{
+				ctx: ctx, cmd: cmd, userID: userID,
+				verkaufID: uuid.New().String(), rueckgabeID: uuid.New().String(),
+				verkauf: func(menge int) []enrichment.PositionInput {
+					return []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
+				},
+				pfand: func(menge int) []enrichment.PositionInput {
+					return []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: menge}}
+				},
+			}
+
+			if err := tt.erst(f); err != nil {
+				t.Fatalf("erster Vorgang: %v", err)
+			}
+			var vorher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&vorher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+
+			err := cmd.DirektverkaufTaetigen(ctx, userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
+			if !errors.Is(err, ErrPfandrueckgabeAbweichend) {
+				t.Errorf("erwartet ErrPfandrueckgabeAbweichend, bekam: %v", err)
+			}
+
+			var nachher int
+			if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&nachher); err != nil {
+				t.Fatalf("kassenjournal zählen: %v", err)
+			}
+			if nachher != vorher {
+				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+			}
+		})
+	}
+}

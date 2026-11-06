@@ -19,6 +19,10 @@ var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 
 var ErrRueckgabeNichtGefunden = errors.New("pfandrueckgabe nicht gefunden")
 
+// ErrPfandrueckgabeAbweichend: the rueckgabeId or the verkaufId is booked, but not with the
+// request's content or without its settled partner.
+var ErrPfandrueckgabeAbweichend = errors.New("pfandrueckgabe abweichend")
+
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 // ErrConflict is deliberately per-context, not a shared kernel: the HTTP layer maps 409 via

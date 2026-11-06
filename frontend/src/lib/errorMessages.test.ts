@@ -7,17 +7,21 @@ const serverErrorMessage =
   'Es ist ein unerwarteter Serverfehler aufgetreten. Bitte Seite neu laden oder den Administrator kontaktieren.'
 
 describe('getActionErrorMessage', () => {
-  it.each(Object.entries(commonErrorMessages))(
-    'returns the central message for code %s',
-    (code, expected) => {
-      expect(
-        getActionErrorMessage({
-          actionLabel: 'Aktion',
-          error: new BackendError(400, code),
-        }),
-      ).toBe(expected)
-    },
-  )
+  // Literal rows pin the wording of messages a volunteer must act on.
+  it.each([
+    ...Object.entries(commonErrorMessages),
+    [
+      'pfandrueckgabe_abweichend',
+      'Diese Pfandrückgabe wurde mit anderer Auswahl schon gebucht. Bitte Historie prüfen und neu erfassen.',
+    ],
+  ])('returns the central message for code %s', (code, expected) => {
+    expect(
+      getActionErrorMessage({
+        actionLabel: 'Aktion',
+        error: new BackendError(400, code),
+      }),
+    ).toBe(expected)
+  })
 
   it('returns the server error message for code unknown', () => {
     expect(

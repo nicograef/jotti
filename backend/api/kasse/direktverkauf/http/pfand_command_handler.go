@@ -60,6 +60,8 @@ func (h *PfandCommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
+				helper.SendConflict(w, "pfandrueckgabe_abweichend")
 			case errors.Is(err, application.ErrTischNichtGefunden):
 				helper.SendNotFound(w, "tisch_not_found")
 			case errors.Is(err, application.ErrTischNichtAktiv):

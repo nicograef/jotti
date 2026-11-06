@@ -53,6 +53,7 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 	}{
 		{"tätigen: Kasse nicht geöffnet", taetigen, application.ErrKasseNichtGeoeffnet, validBody, http.StatusConflict, "kasse_nicht_geoeffnet"},
 		{"tätigen: Konflikt", taetigen, application.ErrConflict, validBody, http.StatusConflict, "conflict"},
+		{"tätigen: Pfandrückgabe abweichend", taetigen, application.ErrPfandrueckgabeAbweichend, validBody, http.StatusConflict, "pfandrueckgabe_abweichend"},
 		{"tätigen: Produkt unbekannt", taetigen, enrichment.ErrProduktNotFound, validBody, http.StatusBadRequest, "produkt_not_found"},
 		{"tätigen: ohne Verkaufs-ID und Positionen", taetigen, nil, `{"positionen":[],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"tätigen: Verkaufs-ID keine UUID", taetigen, nil, `{"verkaufId":"nicht-eine-uuid","positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},

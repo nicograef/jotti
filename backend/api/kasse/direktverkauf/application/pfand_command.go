@@ -15,7 +15,8 @@ import (
 
 // PfandZurueckgeben writes the Rückgabe as version 1 of its own stream; tischID 0 is the
 // Direktverkauf. rueckgabeID is the client's idempotency key: on an OCC conflict a stored Rückgabe
-// with that ID means idempotent success, none means a real 409.
+// with that ID and the same table and quantities means idempotent success, another content
+// ErrPfandrueckgabeAbweichend, none a real 409.
 func (c Command) PfandZurueckgeben(ctx context.Context, userID int, userName string, rueckgabeID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := logging.FromContext(ctx)
 
@@ -45,16 +46,24 @@ func (c Command) PfandZurueckgeben(ctx context.Context, userID int, userName str
 
 	if err := c.persistVerkaufEvent(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, 0, ks.ZNr, nil); err != nil {
 		if errors.Is(err, ErrConflict) {
-			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypePfandZurueckgegebenV1), rueckgabeID, "rueckgabeId")
-			if lookupErr != nil {
-				log.Error("Failed to lookup pfandrueckgabe idempotency", "error", lookupErr, "rueckgabe_id", rueckgabeID)
+			gespeichert, found, err := c.getPfandrueckgabe(ctx, rueckgabeID)
+			if err != nil {
+				return err
+			}
+			if !found {
+				return ErrConflict
+			}
+			gleich, err := kasse.GleicheRueckgabe(gespeichert, tischID, enrichment.MengenJeVariante(inputs))
+			if err != nil {
+				log.Error("Failed to compare stored pfandrueckgabe", "error", err, "rueckgabe_id", rueckgabeID)
 				return ErrDatabase
 			}
-			if exists {
-				log.Info("Idempotente Pfandrückgabe: rueckgabeId bereits vorhanden", "rueckgabe_id", rueckgabeID)
-				return nil
+			if !gleich {
+				log.Warn("Pfandrückgabe mit anderem Inhalt bereits gebucht", "rueckgabe_id", rueckgabeID)
+				return ErrPfandrueckgabeAbweichend
 			}
-			return ErrConflict
+			log.Info("Idempotente Pfandrückgabe: rueckgabeId bereits vorhanden", "rueckgabe_id", rueckgabeID)
+			return nil
 		}
 		if errors.Is(err, ErrKasseNichtGeoeffnet) {
 			return err
@@ -126,6 +135,74 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 
 	log.Info("Pfandrückgabe storniert", "rueckgabe_id", rueckgabeID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
+}
+
+// pruefeVerrechnetenVerkauf answers a conflicting settled Direktverkauf: success only if the
+// Rückgabe and the Verkauf written with it both match the request. A Verkauf without this Rückgabe,
+// or a Rückgabe without this Verkauf, is a different Vorgang under a reused ID.
+func (c Command) pruefeVerrechnetenVerkauf(ctx context.Context, verkaufID string, inputs []enrichment.PositionInput, pfand *enrichment.PfandEingabe) error {
+	log := logging.FromContext(ctx)
+
+	rueckgabe, found, err := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		verkaufExistiert, err := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
+		if err != nil {
+			log.Error("Failed to lookup direktverkauf idempotency", "error", err, "verkauf_id", verkaufID)
+			return ErrDatabase
+		}
+		if verkaufExistiert {
+			log.Warn("Direktverkauf ohne diese Pfandrückgabe bereits gebucht", "verkauf_id", verkaufID, "rueckgabe_id", pfand.RueckgabeID)
+			return ErrPfandrueckgabeAbweichend
+		}
+		return ErrConflict
+	}
+
+	zNr, err := kasse.ParseZNrFromSubject(rueckgabe.Subject)
+	if err != nil {
+		log.Error("Failed to parse pfandrueckgabe subject", "error", err, "subject", rueckgabe.Subject)
+		return ErrDatabase
+	}
+	verkaufEvents, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.DirektverkaufSubject(zNr, verkaufID))
+	if err != nil {
+		log.Error("Failed to read direktverkauf events", "error", err, "verkauf_id", verkaufID)
+		return ErrDatabase
+	}
+
+	gleich, err := gleicheVerrechnung(rueckgabe, enrichment.MengenJeVariante(pfand.Positionen), verkaufEvents, enrichment.MengenJeVariante(inputs))
+	if err != nil {
+		log.Error("Failed to compare stored direktverkauf with pfand", "error", err, "verkauf_id", verkaufID)
+		return ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Verrechneter Direktverkauf weicht vom gebuchten ab", "verkauf_id", verkaufID, "rueckgabe_id", pfand.RueckgabeID)
+		return ErrPfandrueckgabeAbweichend
+	}
+	log.Info("Idempotenter Direktverkauf mit Pfand: beide Vorgänge bereits vorhanden", "verkauf_id", verkaufID, "rueckgabe_id", pfand.RueckgabeID)
+	return nil
+}
+
+func gleicheVerrechnung(rueckgabe event.Event, pfandMengen map[int]int, verkaufEvents []event.Event, verkaufMengen map[int]int) (bool, error) {
+	gleich, err := kasse.GleicheRueckgabe(rueckgabe, 0, pfandMengen)
+	if err != nil || !gleich {
+		return false, err
+	}
+	verkauf, found := kasse.VerrechnungsPartner(rueckgabe, verkaufEvents, kasse.EventTypeDirektverkaufGetaetigtV1)
+	if !found {
+		return false, nil
+	}
+	return kasse.GleicherVerkauf(verkauf, verkaufMengen)
+}
+
+func (c Command) getPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
+	rueckgabe, found, err := c.EventRepo.GetPfandrueckgabe(ctx, rueckgabeID)
+	if err != nil {
+		logging.FromContext(ctx).Error("Failed to read pfandrueckgabe", "error", err, "rueckgabe_id", rueckgabeID)
+		return event.Event{}, false, ErrDatabase
+	}
+	return rueckgabe, found, nil
 }
 
 func (c Command) readPfandrueckgabe(ctx context.Context, subject string) ([]event.Event, kasse.PfandrueckgabeHistorieEintrag, error) {

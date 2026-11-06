@@ -25,6 +25,10 @@ var ErrTischNotActive = errors.New("tisch not active")
 
 var ErrPositionNichtBezahlbar = errors.New("position nicht bezahlbar")
 
+// ErrPfandrueckgabeAbweichend: the rueckgabeId is booked, but not with the request's content or
+// without the payment it was settled with.
+var ErrPfandrueckgabeAbweichend = errors.New("pfandrueckgabe abweichend")
+
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 var ErrPositionNichtUmbuchbar = errors.New("position nicht umbuchbar")

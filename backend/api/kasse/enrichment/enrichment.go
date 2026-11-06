@@ -24,6 +24,16 @@ type PfandEingabe struct {
 	Positionen  []PositionInput
 }
 
+// MengenJeVariante sums the requested quantity per variant, the form a retry compares against the
+// stored Vorgang.
+func MengenJeVariante(inputs []PositionInput) map[int]int {
+	mengen := make(map[int]int, len(inputs))
+	for _, input := range inputs {
+		mengen[input.VarianteID] += input.Menge
+	}
+	return mengen
+}
+
 type produktRepo interface {
 	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)

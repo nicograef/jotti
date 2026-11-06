@@ -24,6 +24,7 @@ type eventRepo interface {
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
+	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -69,7 +70,8 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // DirektverkaufTaetigen writes the sale into its own stream, without projection; with pfand the settled
 // Rückgabe (tischId 0) goes into its own stream in the same transaction. verkaufID is the client's
 // idempotency key: on an OCC conflict a stored event with that verkaufId means idempotent success
-// (same ID = same operation, payload not compared), none means a real 409.
+// (same ID = same operation, payload not compared), none means a real 409. With pfand the stored
+// pair must match the request, see pruefeVerrechnetenVerkauf.
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
@@ -116,6 +118,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 			log.Error("Failed to create pfand zurueckgegeben event", "error", err)
 			return err
 		}
+		rueckgabe = kasse.Verrechne(rueckgabe, evt)
 		rueckgabe.Version = 1
 		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
 	}
@@ -123,6 +126,9 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	if err := c.EventRepo.WriteEventsAtomic(ctx, ks.ZNr, events); err != nil {
 		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
 			log.Warn("OCC conflict bei Direktverkauf", "subject", subject)
+			if pfand != nil {
+				return c.pruefeVerrechnetenVerkauf(ctx, verkaufID, inputs, pfand)
+			}
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufID, "verkaufId")
 			if lookupErr != nil {
 				log.Error("Failed to lookup direktverkauf idempotency", "error", lookupErr, "verkauf_id", verkaufID)

@@ -108,6 +108,10 @@ func (s *spyEventRepo) EventExistsByTypeAndVorgangsID(_ context.Context, _, _, _
 	return false, nil
 }
 
+func (s *spyEventRepo) GetPfandrueckgabe(_ context.Context, _ string) (event.Event, bool, error) {
+	return event.Event{}, false, nil
+}
+
 type mockDruckstationRepo struct {
 	konfig map[string]druckstation.Druckstation
 	err    error

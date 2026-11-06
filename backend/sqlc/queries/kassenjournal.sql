@@ -23,6 +23,14 @@ WHERE kassensitzung_nr = sqlc.arg(kassensitzung_nr)
   AND (data->>'tischId')::int = sqlc.arg(tisch_id)::int
 ORDER BY id ASC;
 
+-- name: GetPfandrueckgabe :one
+-- Die Rückgabe zu einer rueckgabeId über alle Kassensitzungen; idx_kassenjournal_rueckgabe_id
+-- hält sie eindeutig.
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE type = 'pfand-zurueckgegeben:v1'
+  AND data->>'rueckgabeId' = sqlc.arg(rueckgabe_id)::text;
+
 -- name: ReadEventsByKassensitzung :many
 -- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session-, Direktverkauf-
 -- und Pfandrückgabe-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.

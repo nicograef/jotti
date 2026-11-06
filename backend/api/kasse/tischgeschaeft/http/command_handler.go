@@ -170,6 +170,8 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 				helper.SendConflict(w, "kasse_wird_abgeschlossen")
 			case errors.Is(err, application.ErrKasseNichtGeoeffnet):
 				helper.SendConflict(w, "kasse_nicht_geoeffnet")
+			case errors.Is(err, application.ErrPfandrueckgabeAbweichend):
+				helper.SendConflict(w, "pfandrueckgabe_abweichend")
 			default:
 				helper.MapError(w, err, []helper.ErrorCode{
 					{Err: application.ErrTischNotFound, Code: "tisch_not_found"},

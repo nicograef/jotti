@@ -2,6 +2,8 @@ package kassenjournal_repo
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
@@ -22,4 +24,17 @@ func (r Repository) ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungN
 	}
 
 	return events, nil
+}
+
+// GetPfandrueckgabe returns the Rückgabe event of rueckgabeID from any Kassensitzung; false means
+// none is stored.
+func (r Repository) GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
+	row, err := r.q.GetPfandrueckgabe(ctx, rueckgabeID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return event.Event{}, false, nil
+	}
+	if err != nil {
+		return event.Event{}, false, db.Error(err)
+	}
+	return eventFromReadRow(dbgen.ReadEventsBySubjectRow(row)), true, nil
 }
