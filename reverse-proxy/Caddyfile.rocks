@@ -52,14 +52,6 @@ jotti.rocks {
 	redir /jotti-selbst-betreiben https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
 	redir /jotti-selbst-betreiben/ https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
 
-	# Renamed or moved docs routes, one line each:
-	# "/docs/leitfaden/alter-name/" "/docs/leitfaden/neuer-name/"
-	map {path} {docs_redirect} {
-		default ""
-	}
-	@docs_moved expression `{docs_redirect} != ""`
-	redir @docs_moved {docs_redirect} permanent
-
 	# Website: statischer Astro-Build aus dem Image (Landing und Docs im Verzeichnisformat)
 	root * /srv/website
 	encode zstd gzip
