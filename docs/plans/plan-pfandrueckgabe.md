@@ -206,11 +206,11 @@ Demo: Der Admin legt „Pfand" mit Variante „Glas 2,00 €" an und kennzeichne
 
 ### Acceptance criteria
 
-- [ ] sqlc-Code passt zu Queries und Migration 11: `make check-sqlc`
-- [ ] `scripts/test-integration.sh` besteht den Shell-Lint; seine Filter belegt das nächste Kriterium: `make check-shell`
-- [ ] Anlegen und Bearbeiten speichern und lesen `pfand = true` (`TestCreateProdukt_StoresPfand`, `TestUpdateProdukt_StoresPfand` in `backend/repository/produkt_repo/repo_test.go`): `test "$(TEST_PKG=./repository/produkt_repo/ TEST_RUN='^Test(Create|Update)Produkt_StoresPfand$' make check-integration | grep -cE -- '^--- PASS: Test(Create|Update)Produkt_StoresPfand ')" -eq 2`
-- [ ] Das Formular sendet `pfand: true`, wenn der Schalter an ist (Fall „sends pfand when the Pfand switch is on" in `frontend/src/admin/products/Products.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'sends pfand when the Pfand switch is on' --reporter=verbose | grep -- '✓ .*sends pfand when the Pfand switch is on'`
-- [ ] Jedes Leitfaden-Zitat existiert im Frontend: `./scripts/check-ui-labels.sh`
+- [x] sqlc-Code passt zu Queries und Migration 11: `make check-sqlc`
+- [x] `scripts/test-integration.sh` besteht den Shell-Lint; seine Filter belegt das nächste Kriterium: `make check-shell`
+- [x] Anlegen und Bearbeiten speichern und lesen `pfand = true` (`TestCreateProdukt_StoresPfand`, `TestUpdateProdukt_StoresPfand` in `backend/repository/produkt_repo/repo_test.go`): `test "$(TEST_PKG=./repository/produkt_repo/ TEST_RUN='^Test(Create|Update)Produkt_StoresPfand$' make check-integration | grep -cE -- '^--- PASS: Test(Create|Update)Produkt_StoresPfand ')" -eq 2`
+- [x] Das Formular sendet `pfand: true`, wenn der Schalter an ist (Fall „sends pfand when the Pfand switch is on" in `frontend/src/admin/products/Products.test.tsx`): `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'sends pfand when the Pfand switch is on' --reporter=verbose | grep -- '✓ .*sends pfand when the Pfand switch is on'`
+- [x] Jedes Leitfaden-Zitat existiert im Frontend: `./scripts/check-ui-labels.sh`
 - [ ] Prosa-Gate grün: `./scripts/check-prose.sh`
 
 ## Phase 2: Reine Pfandrückgabe mit Barauszahlung
