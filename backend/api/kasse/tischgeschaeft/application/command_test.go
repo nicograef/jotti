@@ -464,6 +464,56 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	}
 }
 
+// A Pfand position of a product without the Pfand flag rejects the whole settled payment.
+func TestZahlungKassieren_UngueltigesPfand_KeinEvent(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 350,
+		UnbezahltePositionen: []kasse.Position{{
+			PositionID:       "22222222-2222-4222-8222-222222222222",
+			VarianteID:       testVariant.ID,
+			ProduktName:      "Cola",
+			VarianteName:     "0,5l",
+			Kategorie:        "getraenk",
+			Steuersatz:       "regel",
+			EinzelpreisCents: 350,
+			Menge:            1,
+		}},
+		LastEventVersion: 1,
+	})
+
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+
+	command := Command{
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		ProduktRepo:         productMock,
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+	}
+
+	pfand := &enrichment.PfandEingabe{
+		RueckgabeID: "33333333-3333-4333-8333-333333333333",
+		Positionen:  []enrichment.PositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1}},
+	}
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", pfand)
+	if !errors.Is(err, enrichment.ErrKeinPfandProdukt) {
+		t.Fatalf("expected ErrKeinPfandProdukt, got %v", err)
+	}
+
+	events, err := eventMock.ReadKassensitzungEvents(ctx, testKassensitzungNr)
+	if err != nil {
+		t.Fatalf("expected no read error, got %v", err)
+	}
+	if len(events) != 0 {
+		t.Errorf("expected no event, got %d", len(events))
+	}
+}
+
 func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
