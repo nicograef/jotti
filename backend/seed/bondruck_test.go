@@ -204,7 +204,9 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 			kasse.EventTypeKassensturzDurchgefuehrtV1,
 			kasse.EventTypeDifferenzSollIstGebuchtV1,
 			kasse.EventTypeTagesabschlussErstelltV1,
+			kasse.EventTypeZahlungKassiertV1,
 			kasse.EventTypeZahlungKassiertV2,
+			kasse.EventTypeDirektverkaufGetaetigtV1,
 			kasse.EventTypeStornierungErteiltV1,
 			kasse.EventTypeBestellungKorrigiertV1,
 			kasse.EventTypeBestellungUmgebuchtV1:

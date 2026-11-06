@@ -118,7 +118,7 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 
 // positionGvTyp is the GV_TYP of line i.
 func (b *beleg) positionGvTyp(i int) string {
-	if b.pfand != nil && b.pfand[i] {
+	if i < len(b.pfand) && b.pfand[i] {
 		return gvTypPfand
 	}
 	return b.gvTyp
