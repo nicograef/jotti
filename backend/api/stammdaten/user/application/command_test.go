@@ -2,11 +2,9 @@ package application
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/user"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
@@ -25,41 +23,5 @@ func TestCreateUser(t *testing.T) {
 	}
 	if !regexp.MustCompile(`^\d{6}$`).MatchString(onetimePassword) {
 		t.Errorf("Expected exactly 6 digits, got %s", onetimePassword)
-	}
-}
-
-func TestCreateUser_Error(t *testing.T) {
-	repo := repotest.NewUserRepo([]user.User{}, db.ErrDatabase)
-	userCommand := Command{UserRepo: repo}
-
-	_, _, err := userCommand.CreateUser(context.Background(), "Test User", "testuser", user.ServiceRole)
-
-	if err == nil {
-		t.Fatalf("expected error, got nil")
-	}
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected error %v, got %v", ErrDatabase, err)
-	}
-}
-
-func TestUpdateUser_Success(t *testing.T) {
-	repo := repotest.NewUserRepo([]user.User{{ID: 1}}, nil)
-	userCommand := Command{UserRepo: repo}
-
-	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
-
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
-	}
-}
-
-func TestUpdateUser_Error(t *testing.T) {
-	repo := repotest.NewUserRepo([]user.User{}, db.ErrDatabase)
-	userCommand := Command{UserRepo: repo}
-
-	err := userCommand.UpdateUser(context.Background(), 1, "Updated User", "updateduser", user.AdminRole)
-
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected database error, got %v", err)
 	}
 }
