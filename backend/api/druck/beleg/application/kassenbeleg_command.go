@@ -10,6 +10,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -37,7 +38,7 @@ func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, kass
 	return event.Event{}, kasse.ZahlungKassiertV1Data{}, ErrZahlungNichtGefunden
 }
 
-func tseAbschnittAusSignatur(signatur *tse.Signatur) *escpos.TSEAbschnitt {
+func TSEAbschnittAusSignatur(signatur *tse.Signatur) *escpos.TSEAbschnitt {
 	return &escpos.TSEAbschnitt{
 		TransaktionNr:   signatur.TransaktionNummer,
 		Signaturzaehler: signatur.SignaturZaehler,
@@ -169,9 +170,9 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 	ergebnis := tse.DetermineSignaturstatus(stand, aktiveStoerung)
 	switch ergebnis.Status {
 	case tse.SignaturstatusVorhanden:
-		return tseAbschnittAusSignatur(ergebnis.Signatur), escpos.KeinTSEVermerk, false, nil
+		return TSEAbschnittAusSignatur(ergebnis.Signatur), escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusNachsigniert:
-		abschnitt := tseAbschnittAusSignatur(ergebnis.Signatur)
+		abschnitt := TSEAbschnittAusSignatur(ergebnis.Signatur)
 		abschnitt.Nachsigniert = true
 		return abschnitt, escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusAusfall:
@@ -224,9 +225,9 @@ type KassenbelegDruckenCommand struct {
 	StornierungID string
 }
 
-// belegQuelle: Positionen and GesamtbetragCents are positive; Negativ negates them with the
+// BelegQuelle is what a Kassenbeleg prints from one event. Positionen and GesamtbetragCents are positive; Negativ negates them with the
 // Steuermatrix on the Beleg. Stornobeleg only sets the title and the "Storno zu Bon-Nr" line.
-type belegQuelle struct {
+type BelegQuelle struct {
 	Event                    event.Event
 	Positionen               []kasse.Position
 	GesamtbetragCents        int
@@ -282,33 +283,7 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 		return "", ErrDatabase
 	}
 
-	positionen := quelle.Positionen
-	gesamtbetragCents := quelle.GesamtbetragCents
-	steuermatrix := steuer.Steuermatrix(kasse.SteuermatrixPositionen(positionen))
-	if quelle.Negativ {
-		steuermatrix = negiereAufteilungen(steuermatrix)
-		positionen = negierePositionen(positionen)
-		gesamtbetragCents = -gesamtbetragCents
-	}
-
-	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:              betreiber.Vereinsname,
-		Strasse:                  betreiber.Strasse,
-		Plz:                      betreiber.Plz,
-		Ort:                      betreiber.Ort,
-		KassenSeriennummer:       kassenidentitaet.Seriennummer.String(),
-		Belegnummer:              fmt.Sprintf("%d", quelle.Event.ID),
-		Zeitpunkt:                quelle.Event.Time,
-		ErsteBestellungZeitpunkt: quelle.ErsteBestellungZeitpunkt,
-		Positionen:               positionen,
-		Steuermatrix:             steuermatrix,
-		TSE:                      tseAbschnitt,
-		TSEVermerk:               tseVermerk,
-		GesamtbetragCents:        gesamtbetragCents,
-		Zahlungsart:              "bar",
-		Stornobeleg:              quelle.Stornobeleg,
-		StornoZuBelegnummer:      quelle.StornoZuBelegnummer,
-	})
+	payload := escpos.FormatKassenbeleg(KassenbelegDaten(betreiber, kassenidentitaet.Seriennummer.String(), quelle, tseAbschnitt, tseVermerk))
 
 	auftrag := druckauftrag_repo.NeuerDruckauftrag{
 		ZielIP:   kassenbelegStation.DruckerIP,
@@ -326,7 +301,38 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 	return BelegStatusEingereiht, nil
 }
 
-func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung, cmd KassenbelegDruckenCommand) (belegQuelle, error) {
+// KassenbelegDaten assembles the printed Beleg; the demo seed builds its receipts through it too.
+func KassenbelegDaten(b betreiber.Betreiber, kassenSeriennummer string, quelle BelegQuelle, tseAbschnitt *escpos.TSEAbschnitt, tseVermerk escpos.TSEBelegvermerk) escpos.KassenbelegData {
+	positionen := quelle.Positionen
+	gesamtbetragCents := quelle.GesamtbetragCents
+	steuermatrix := steuer.Steuermatrix(kasse.SteuermatrixPositionen(positionen))
+	if quelle.Negativ {
+		steuermatrix = negiereAufteilungen(steuermatrix)
+		positionen = negierePositionen(positionen)
+		gesamtbetragCents = -gesamtbetragCents
+	}
+
+	return escpos.KassenbelegData{
+		Vereinsname:              b.Vereinsname,
+		Strasse:                  b.Strasse,
+		Plz:                      b.Plz,
+		Ort:                      b.Ort,
+		KassenSeriennummer:       kassenSeriennummer,
+		Belegnummer:              fmt.Sprintf("%d", quelle.Event.ID),
+		Zeitpunkt:                quelle.Event.Time,
+		ErsteBestellungZeitpunkt: quelle.ErsteBestellungZeitpunkt,
+		Positionen:               positionen,
+		Steuermatrix:             steuermatrix,
+		TSE:                      tseAbschnitt,
+		TSEVermerk:               tseVermerk,
+		GesamtbetragCents:        gesamtbetragCents,
+		Zahlungsart:              "bar",
+		Stornobeleg:              quelle.Stornobeleg,
+		StornoZuBelegnummer:      quelle.StornoZuBelegnummer,
+	}
+}
+
+func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung, cmd KassenbelegDruckenCommand) (BelegQuelle, error) {
 	switch {
 	case cmd.RueckgabeID != "" && cmd.StornierungID != "":
 		return c.resolvePfandStornobeleg(ctx, ks, cmd.RueckgabeID, cmd.StornierungID)
@@ -343,37 +349,37 @@ func (c Command) resolveBelegQuelle(ctx context.Context, ks *kasse.Kassensitzung
 	}
 }
 
-func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID, stornierungID string) (belegQuelle, error) {
+func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID, stornierungID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read direktverkauf events for stornobeleg", "error", err, "verkauf_id", verkaufID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	verkaufEvent, _, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
 	if err != nil {
 		if errors.Is(err, ErrVerkaufNichtGefunden) {
 			log.Warn("Direktverkauf not found for stornobeleg", "verkauf_id", verkaufID)
-			return belegQuelle{}, ErrVerkaufNichtGefunden
+			return BelegQuelle{}, ErrVerkaufNichtGefunden
 		}
 		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	stornoEvent, stornoData, err := findDirektverkaufStorniertEvent(events, stornierungID)
 	if err != nil {
 		if errors.Is(err, ErrStornierungNichtGefunden) {
 			log.Warn("Stornierung not found for stornobeleg", "verkauf_id", verkaufID, "stornierung_id", stornierungID)
-			return belegQuelle{}, ErrStornierungNichtGefunden
+			return BelegQuelle{}, ErrStornierungNichtGefunden
 		}
 		log.Error("Failed to decode direktverkauf storno event data", "error", err, "verkauf_id", verkaufID, "stornierung_id", stornierungID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
@@ -385,26 +391,26 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 }
 
 // resolvePfandbeleg: the Pfandbeleg is a Kassenbeleg with negative amounts, without Storno title.
-func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID string) (belegQuelle, error) {
+func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ks.ZNr, rueckgabeID))
 	if err != nil {
 		log.Error("Failed to read pfandrueckgabe events for kassenbeleg", "error", err, "rueckgabe_id", rueckgabeID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	rueckgabeEvent, rueckgabeData, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
 	if err != nil {
 		if errors.Is(err, ErrRueckgabeNichtGefunden) {
 			log.Warn("Pfandrückgabe not found for kassenbeleg", "rueckgabe_id", rueckgabeID)
-			return belegQuelle{}, ErrRueckgabeNichtGefunden
+			return BelegQuelle{}, ErrRueckgabeNichtGefunden
 		}
 		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:             rueckgabeEvent,
 		Positionen:        kasse.PositionenFromEventData(rueckgabeData.Positionen),
 		GesamtbetragCents: rueckgabeData.GesamtbetragCents,
@@ -415,36 +421,36 @@ func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung,
 
 // resolvePfandStornobeleg: cancelling a Rückgabe books money back in, so its Stornobeleg carries
 // positive amounts and points to the Rückgabe's Bon-Nr.
-func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID, stornierungID string) (belegQuelle, error) {
+func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, rueckgabeID, stornierungID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ks.ZNr, rueckgabeID))
 	if err != nil {
 		log.Error("Failed to read pfandrueckgabe events for stornobeleg", "error", err, "rueckgabe_id", rueckgabeID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	rueckgabeEvent, _, err := findPfandZurueckgegebenEvent(events, rueckgabeID)
 	if err != nil {
 		if errors.Is(err, ErrRueckgabeNichtGefunden) {
 			log.Warn("Pfandrückgabe not found for stornobeleg", "rueckgabe_id", rueckgabeID)
-			return belegQuelle{}, ErrRueckgabeNichtGefunden
+			return BelegQuelle{}, ErrRueckgabeNichtGefunden
 		}
 		log.Error("Failed to decode pfandrueckgabe event data", "error", err, "rueckgabe_id", rueckgabeID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	stornoEvent, stornoData, err := findPfandrueckgabeStorniertEvent(events, stornierungID)
 	if err != nil {
 		if errors.Is(err, ErrStornierungNichtGefunden) {
 			log.Warn("Stornierung not found for pfand stornobeleg", "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
-			return belegQuelle{}, ErrStornierungNichtGefunden
+			return BelegQuelle{}, ErrStornierungNichtGefunden
 		}
 		log.Error("Failed to decode pfandrueckgabe storno event data", "error", err, "rueckgabe_id", rueckgabeID, "stornierung_id", stornierungID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
@@ -455,37 +461,37 @@ func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensi
 }
 
 // resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf.
-func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (belegQuelle, error) {
+func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read events for stornobeleg", "error", err, "tisch_id", tischID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	stornoEvent, stornoData, err := findStornierungEvent(events, stornierungID)
 	if err != nil {
 		if errors.Is(err, ErrStornierungNichtGefunden) {
 			log.Warn("Stornierung not found for stornobeleg", "tisch_id", tischID, "stornierung_id", stornierungID)
-			return belegQuelle{}, ErrStornierungNichtGefunden
+			return BelegQuelle{}, ErrStornierungNichtGefunden
 		}
 		log.Error("Failed to decode stornierung event data", "error", err, "tisch_id", tischID, "stornierung_id", stornierungID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	zahlungEvent, _, err := findZahlungEvent(events, stornoData.ZahlungID)
 	if err != nil {
 		if errors.Is(err, ErrZahlungNichtGefunden) {
 			log.Warn("Referenzierte Zahlung not found for stornobeleg", "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
-			return belegQuelle{}, ErrZahlungNichtGefunden
+			return BelegQuelle{}, ErrZahlungNichtGefunden
 		}
 		log.Error("Failed to decode referenzierte zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", stornoData.ZahlungID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
@@ -496,27 +502,27 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 	}, nil
 }
 
-func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID string) (belegQuelle, error) {
+func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassensitzung, verkaufID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	subject := kasse.DirektverkaufSubject(ks.ZNr, verkaufID)
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read direktverkauf events for kassenbeleg", "error", err, "verkauf_id", verkaufID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	verkaufEvent, verkaufData, err := findDirektverkaufGetaetigtEvent(events, verkaufID)
 	if err != nil {
 		if errors.Is(err, ErrVerkaufNichtGefunden) {
 			log.Warn("Direktverkauf not found for kassenbeleg", "verkauf_id", verkaufID)
-			return belegQuelle{}, ErrVerkaufNichtGefunden
+			return BelegQuelle{}, ErrVerkaufNichtGefunden
 		}
 		log.Error("Failed to decode direktverkauf event data", "error", err, "verkauf_id", verkaufID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:             verkaufEvent,
 		Positionen:        kasse.PositionenFromEventData(verkaufData.Positionen),
 		GesamtbetragCents: verkaufData.GesamtbetragCents,
@@ -524,33 +530,33 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 	}, nil
 }
 
-func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, zahlungID string) (belegQuelle, error) {
+func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, zahlungID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
 	state, err := c.EventRepo.ReadTischSession(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read table projection for kassenbeleg", "error", err, "tisch_id", tischID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read events for kassenbeleg", "error", err, "tisch_id", tischID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
 	zahlungEvent, zahlungData, err := findZahlungEvent(events, zahlungID)
 	if err != nil {
 		if errors.Is(err, ErrZahlungNichtGefunden) {
 			log.Warn("Zahlung not found for kassenbeleg", "tisch_id", tischID, "zahlung_id", zahlungID)
-			return belegQuelle{}, ErrZahlungNichtGefunden
+			return BelegQuelle{}, ErrZahlungNichtGefunden
 		}
 		log.Error("Failed to decode zahlung event data", "error", err, "tisch_id", tischID, "zahlung_id", zahlungID)
-		return belegQuelle{}, ErrDatabase
+		return BelegQuelle{}, ErrDatabase
 	}
 
-	return belegQuelle{
+	return BelegQuelle{
 		Event:                    zahlungEvent,
 		Positionen:               kasse.PositionenFromEventData(zahlungData.Positionen),
 		GesamtbetragCents:        zahlungData.GesamtZahlungCents,

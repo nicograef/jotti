@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	belegApp "github.com/nicograef/jotti/backend/api/druck/beleg/application"
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
@@ -252,21 +252,12 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		return druckauftragZeile{}, false, fmt.Errorf("kein belegfähiger Event-Typ %q", evt.Type)
 	}
 
-	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:              b.betreiber.Vereinsname,
-		Strasse:                  b.betreiber.Strasse,
-		Plz:                      b.betreiber.Plz,
-		Ort:                      b.betreiber.Ort,
-		KassenSeriennummer:       fakeKassenSeriennummer,
-		Belegnummer:              fmt.Sprintf("%d", evt.ID),
-		Zeitpunkt:                evt.Time,
-		ErsteBestellungZeitpunkt: ersteBestellung,
+	payload := escpos.FormatKassenbeleg(belegApp.KassenbelegDaten(b.betreiber, fakeKassenSeriennummer, belegApp.BelegQuelle{
+		Event:                    evt,
 		Positionen:               positionen,
-		Steuermatrix:             steuer.Steuermatrix(kasse.SteuermatrixPositionen(positionen)),
-		TSE:                      zuTSEAbschnitt(signatur),
 		GesamtbetragCents:        gesamtbetragCents,
-		Zahlungsart:              "bar",
-	})
+		ErsteBestellungZeitpunkt: ersteBestellung,
+	}, belegApp.TSEAbschnittAusSignatur(signatur), escpos.KeinTSEVermerk))
 
 	z := druckauftragZeile{
 		ZielIP:     b.stationen[string(druckstation.KategorieKassenbeleg)].DruckerIP,
@@ -277,20 +268,6 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 	}
 	b.setStatus(&z)
 	return z, true, nil
-}
-
-// zuTSEAbschnitt wandelt die quittierte Signatur des Auftrags in den Beleg-Abschnitt, wie
-// der Belegdruck im Produktivbetrieb.
-func zuTSEAbschnitt(s *tse.Signatur) *escpos.TSEAbschnitt {
-	return &escpos.TSEAbschnitt{
-		TransaktionNr:   s.TransaktionNummer,
-		Signaturzaehler: s.SignaturZaehler,
-		TSESeriennummer: s.TSESeriennummer,
-		ZeitpunktBeginn: s.LogTimeStart,
-		ZeitpunktEnde:   s.LogTimeEnd,
-		Signatur:        s.Signatur,
-		QRCodeData:      s.QRCodeData,
-	}
 }
 
 func parseEventData[T any](evt e.Event) (T, error) {
