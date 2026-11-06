@@ -11,9 +11,13 @@ export const SummarySchema = z.object({
   anzahlStornierungen: z.number().int(),
   anzahlDirektverkaeufe: z.number().int(),
   direktverkaufUmsatzCents: z.number().int(),
+  anzahlPfandrueckgaben: z.number().int(),
+  // Nettosumme: Pfandrückgaben abzüglich ihrer Stornierungen.
+  pfandrueckgabenCents: z.number().int(),
 })
 
-// abzugebenCents = kassiertCents − ruecknahmenCents; Direktverkäufe are not included.
+// abzugebenCents = kassiertCents − ruecknahmenCents − pfandCents and may be negative;
+// Direktverkäufe and Pfand at the counter are not included.
 // anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
 export const AbrechnungServicekraftSchema = z.object({
   userId: z.number().int(),
@@ -23,6 +27,7 @@ export const AbrechnungServicekraftSchema = z.object({
   anzahlZahlungen: z.number().int(),
   ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),
+  pfandCents: z.number().int(),
   abzugebenCents: z.number().int(),
 })
 export type AbrechnungServicekraft = z.infer<
@@ -134,6 +139,7 @@ export const ServicekraftLiveSchema = z.object({
   kassiertCents: z.number().int(),
   ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),
+  pfandCents: z.number().int(),
   abzugebenCents: z.number().int(),
   offenCents: z.number().int(),
   offeneTische: z.array(OffeneArbeitTischSchema),

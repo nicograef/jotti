@@ -41,6 +41,8 @@ function makeReport(zNr: number): ReportingData {
       anzahlStornierungen: 0,
       anzahlDirektverkaeufe: 0,
       direktverkaufUmsatzCents: 0,
+      anzahlPfandrueckgaben: 0,
+      pfandrueckgabenCents: 0,
     },
     breakdowns: {
       abrechnungProServicekraft: [],

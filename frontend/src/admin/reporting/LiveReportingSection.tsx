@@ -237,10 +237,12 @@ export function LiveReportingSection({
                           {tischNamen && ` (${tischNamen})`}
                         </span>
                       )}
-                      {sk.ruecknahmenCents !== 0 && (
+                      {(sk.ruecknahmenCents !== 0 || sk.pfandCents !== 0) && (
                         <span className="text-xs text-muted-foreground">
                           Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
                           {formatEuro(sk.ruecknahmenCents)}
+                          {sk.pfandCents !== 0 &&
+                            ` · Pfand ${formatEuro(sk.pfandCents)}`}
                         </span>
                       )}
                       {sk.anzahlStornierungen > 0 && (

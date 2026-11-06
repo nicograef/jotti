@@ -32,6 +32,8 @@ function makeLiveData(): LiveReportingData {
       anzahlStornierungen: 4,
       anzahlDirektverkaeufe: 63,
       direktverkaufUmsatzCents: 48650,
+      anzahlPfandrueckgaben: 0,
+      pfandrueckgabenCents: 0,
     },
     breakdowns: { servicekraefte: [] },
     stornierungen: [],

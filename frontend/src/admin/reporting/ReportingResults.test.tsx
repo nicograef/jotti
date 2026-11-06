@@ -21,6 +21,8 @@ const reportingResult: ReportingData = {
     anzahlStornierungen: 1,
     anzahlDirektverkaeufe: 7,
     direktverkaufUmsatzCents: 4500,
+    anzahlPfandrueckgaben: 0,
+    pfandrueckgabenCents: 0,
   },
   breakdowns: {
     abrechnungProServicekraft: [
@@ -32,6 +34,7 @@ const reportingResult: ReportingData = {
         anzahlZahlungen: 3,
         ruecknahmenCents: 300,
         anzahlStornierungen: 1,
+        pfandCents: 0,
         abzugebenCents: 6489,
       },
     ],
@@ -178,6 +181,44 @@ describe('ReportingResults', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows the Pfandrückgaben figure', () => {
+    render(
+      <ReportingResults
+        result={{
+          ...reportingResult,
+          summary: {
+            ...reportingResult.summary,
+            anzahlPfandrueckgaben: 2,
+            pfandrueckgabenCents: 800,
+          },
+          breakdowns: {
+            abrechnungProServicekraft: [
+              {
+                ...reportingResult.breakdowns.abrechnungProServicekraft[0],
+                pfandCents: 400,
+                abzugebenCents: 6089,
+              },
+            ],
+          },
+        }}
+        sitzung={sitzung}
+      />,
+    )
+
+    expect(screen.getByText('Pfandrückgaben')).toBeInTheDocument()
+    expect(screen.getByText('2 · 8,00 €')).toBeInTheDocument()
+    expect(
+      screen.getByText('Kassiert 67,89 € · Rücknahmen 3,00 € · Pfand 4,00 €'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('60,89 €')).toBeInTheDocument()
+  })
+
+  it('hides the Pfandrückgaben figure without returns', () => {
+    render(<ReportingResults result={reportingResult} sitzung={sitzung} />)
+
+    expect(screen.queryByText('Pfandrückgaben')).not.toBeInTheDocument()
+  })
+
   it('setzt den Storno-Marker bei der betroffenen, nicht bei der stornierenden Servicekraft', () => {
     render(
       <ReportingResults
@@ -194,6 +235,7 @@ describe('ReportingResults', () => {
                 anzahlZahlungen: 3,
                 ruecknahmenCents: 300,
                 anzahlStornierungen: 1,
+                pfandCents: 0,
                 abzugebenCents: 6489,
               },
               // Lena hat stellvertretend storniert — ohne eigene Zuordnung.
@@ -205,6 +247,7 @@ describe('ReportingResults', () => {
                 anzahlZahlungen: 1,
                 ruecknahmenCents: 0,
                 anzahlStornierungen: 0,
+                pfandCents: 0,
                 abzugebenCents: 1000,
               },
             ],

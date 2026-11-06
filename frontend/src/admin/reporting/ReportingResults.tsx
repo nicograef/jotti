@@ -72,6 +72,7 @@ export function ReportingResults({
 }) {
   const summary = result.summary
   const abrechnung = result.breakdowns.abrechnungProServicekraft
+  const mitPfand = summary.anzahlPfandrueckgaben > 0
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border p-5">
@@ -95,7 +96,9 @@ export function ReportingResults({
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div
+        className={`grid grid-cols-2 gap-3 ${mitPfand ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}
+      >
         <Kennzahl
           label="Kassierter Umsatz"
           wert={formatEuro(summary.gesamtUmsatzCents)}
@@ -113,6 +116,12 @@ export function ReportingResults({
           wert={formatEuro(summary.gesamtStornierungenCents)}
           destructive={summary.gesamtStornierungenCents > 0}
         />
+        {mitPfand && (
+          <Kennzahl
+            label="Pfandrückgaben"
+            wert={`${String(summary.anzahlPfandrueckgaben)} · ${formatEuro(summary.pfandrueckgabenCents)}`}
+          />
+        )}
       </div>
 
       <div>
@@ -156,8 +165,8 @@ export function ReportingResults({
             Abrechnung pro Servicekraft
           </div>
           <p className="mb-2 text-xs text-muted-foreground">
-            Abzugeben = Kassiert − Rücknahmen. Direktverkäufe sind nicht
-            enthalten.
+            Abzugeben = Kassiert − Rücknahmen − Pfand am Tisch. Direktverkäufe
+            sind nicht enthalten.
           </p>
           {abrechnung.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -175,6 +184,8 @@ export function ReportingResults({
                     <span className="text-xs text-muted-foreground">
                       Kassiert {formatEuro(sk.kassiertCents)} · Rücknahmen{' '}
                       {formatEuro(sk.ruecknahmenCents)}
+                      {sk.pfandCents !== 0 &&
+                        ` · Pfand ${formatEuro(sk.pfandCents)}`}
                     </span>
                     {sk.anzahlStornierungen > 0 && (
                       <StornoMarker anzahl={sk.anzahlStornierungen} />
