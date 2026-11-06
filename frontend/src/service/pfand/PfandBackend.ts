@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { type BackendClient, BackendSingleton } from '@/lib/Backend'
 
-import { BelegDruckenResponseSchema, type BelegStatus } from '../beleg'
+import { belegAnfordern, type BelegStatus } from '../beleg'
 import {
   type PfandbelegDrucken,
   PfandbelegDruckenSchema,
@@ -47,12 +47,7 @@ export class PfandBackend {
 
   public async pfandbelegDrucken(cmd: PfandbelegDrucken): Promise<BelegStatus> {
     const body = PfandbelegDruckenSchema.parse(cmd)
-    const { status } = await this.backend.post(
-      'service/beleg-drucken',
-      body,
-      BelegDruckenResponseSchema,
-    )
-    return status
+    return belegAnfordern(this.backend, body)
   }
 }
 

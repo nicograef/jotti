@@ -1,14 +1,29 @@
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import type { BackendClient } from '@/lib/Backend'
+
 // eingereiht = Druckauftrag angelegt; ausstehend = die TSE-Signatur fehlt noch,
 // es entstand kein Druckauftrag — derselbe Endpunkt wird erneut aufgerufen.
 export const BelegStatusSchema = z.enum(['eingereiht', 'ausstehend'])
 export type BelegStatus = z.infer<typeof BelegStatusSchema>
 
-export const BelegDruckenResponseSchema = z.object({
+const BelegDruckenResponseSchema = z.object({
   status: BelegStatusSchema,
 })
+
+// Ein Endpunkt für jeden Beleg; der Aufrufer prüft den Body gegen sein Schema.
+export async function belegAnfordern(
+  backend: BackendClient,
+  body: object,
+): Promise<BelegStatus> {
+  const { status } = await backend.post(
+    'service/beleg-drucken',
+    body,
+    BelegDruckenResponseSchema,
+  )
+  return status
+}
 
 const NACHFASS_INTERVALL_MS = 1_500
 const NACHFASS_VERSUCHE = 6

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 
-import { BelegDruckenResponseSchema, type BelegStatus } from '../beleg'
+import { belegAnfordern, type BelegStatus } from '../beleg'
 import {
   type Bestellung,
   BestellungAufnehmenSchema,
@@ -68,12 +68,7 @@ export class TischBackend {
     const body = z
       .object({ tischId: TischIdSchema, zahlungId: z.uuid() })
       .parse({ tischId, zahlungId })
-    const { status } = await this.backend.post(
-      'service/beleg-drucken',
-      body,
-      BelegDruckenResponseSchema,
-    )
-    return status
+    return belegAnfordern(this.backend, body)
   }
 
   public async stornobelegDrucken(
@@ -83,12 +78,7 @@ export class TischBackend {
     const body = z
       .object({ tischId: TischIdSchema, stornierungId: z.uuid() })
       .parse({ tischId, stornierungId })
-    const { status } = await this.backend.post(
-      'service/beleg-drucken',
-      body,
-      BelegDruckenResponseSchema,
-    )
-    return status
+    return belegAnfordern(this.backend, body)
   }
 
   public async stornierungErteilen(
