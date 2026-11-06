@@ -9,6 +9,7 @@ import {
   ItemGroup,
   ItemTitle,
 } from '@/components/ui/item'
+import { useEintritt } from '@/hooks/use-eintritt'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -238,22 +239,16 @@ function PositionItem({
   const ausgewaehlt = menge > 0
   const zeilenSumme = menge * position.einzelpreisCents
   const unbezahltSumme = unbezahlteMenge * position.einzelpreisCents
-  // Beim Mount erfasst, damit ein Refetch die Staffelung nicht mittendrin abreißt.
-  const [eintritt] = useState(eintrittIndex)
+  const eintritt = useEintritt(eintrittIndex)
 
   return (
     <Item
       key={position.positionId}
       variant="outline"
-      style={
-        eintritt === undefined
-          ? undefined
-          : { animationDelay: `${(eintritt * 60).toString()}ms` }
-      }
+      style={eintritt.style}
       className={cn(
         ausgewaehlt && 'border-primary/60 bg-primary/5',
-        eintritt !== undefined &&
-          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
+        eintritt.className,
       )}
     >
       <ItemContent>

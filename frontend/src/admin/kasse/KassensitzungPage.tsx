@@ -7,6 +7,7 @@ import { WarnKarte } from '@/admin/components/WarnKarte'
 import { formatDatumLang } from '@/admin/reporting/utils'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEintritt } from '@/hooks/use-eintritt'
 import { cn, formatEuro } from '@/lib/utils'
 
 import { EroeffnenSection } from './EroeffnenSection'
@@ -85,15 +86,11 @@ function EroeffnetKarte({
     'de-DE',
     { dateStyle: 'medium', timeStyle: 'short' },
   )
-  // Beim Mount erfasst, damit ein späteres Neurendern die Animation nicht abreißt.
-  const [initialAnimieren] = useState(animieren)
+  const eintritt = useEintritt(animieren ? 0 : undefined)
   return (
     <Card
-      className={cn(
-        'bg-muted/30',
-        initialAnimieren &&
-          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
-      )}
+      style={eintritt.style}
+      className={cn('bg-muted/30', eintritt.className)}
     >
       <CardContent className="py-4">
         <div className="text-sm font-semibold">1 · Kasse eröffnet</div>

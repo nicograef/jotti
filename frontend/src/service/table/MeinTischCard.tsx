@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react'
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
 
+import { useEintritt } from '@/hooks/use-eintritt'
 import { AuthSingleton } from '@/lib/Auth'
 import { cn, formatEuro } from '@/lib/utils'
 
@@ -15,9 +15,7 @@ interface MeinTischCardProps {
 
 export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
   const navigate = useNavigate()
-  // Beim Mount erfasst: so bleibt die Staffelung stabil, wenn die Elternliste
-  // während der Animation neu rendert (Übersicht-Query trifft separat ein).
-  const [eintritt] = useState(eintrittIndex)
+  const eintritt = useEintritt(eintrittIndex)
 
   const handleClick = () => {
     void navigate(`/service/tische/${state.tischId.toString()}`)
@@ -39,16 +37,11 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
     <button
       type="button"
       onClick={handleClick}
-      style={
-        eintritt === undefined
-          ? undefined
-          : { animationDelay: `${(eintritt * 60).toString()}ms` }
-      }
+      style={eintritt.style}
       className={cn(
         'flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left ring-1 ring-foreground/10 transition-colors hover:bg-accent/50',
         alleErledigt && 'opacity-75',
-        eintritt !== undefined &&
-          'animate-fade-up [animation-duration:450ms] [animation-timing-function:cubic-bezier(0.2,0.7,0.3,1)]',
+        eintritt.className,
       )}
     >
       <span
