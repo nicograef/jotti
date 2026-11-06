@@ -66,7 +66,7 @@ for file in "${files[@]}"; do
   done < <(grep -aonE "$LINK_RE" "$file" 2>/dev/null || true)
 done
 
-violations=$((violations + $(report_stale_allowlist)))
+violations=$((violations + $(report_stale_allowlist "exception matches nothing any more: %s")))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations dead markdown link(s) (see $ALLOWLIST to allow a specific line)."

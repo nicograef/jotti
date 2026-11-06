@@ -61,7 +61,7 @@ for file in "${files[@]}"; do
   done <<<"$hits"
 done
 
-violations=$((violations + $(report_stale_allowlist)))
+violations=$((violations + $(report_stale_allowlist "exception matches nothing any more: %s")))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations time zone rule violation(s) found (allow one in $ALLOWLIST)."

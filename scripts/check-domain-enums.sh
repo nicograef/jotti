@@ -69,7 +69,7 @@ for file in "${files[@]}"; do
   done <<<"$hits"
 done
 
-violations=$((violations + $(report_stale_allowlist)))
+violations=$((violations + $(report_stale_allowlist "exception matches nothing any more: %s")))
 
 if [[ "$violations" -gt 0 ]]; then
   fatal "$violations domain enum literal(s) found outside backend/domain/** (allow one in $ALLOWLIST)."

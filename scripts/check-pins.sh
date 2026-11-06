@@ -191,7 +191,7 @@ for name in "${names[@]+"${names[@]}"}"; do
   violations=$((violations + 1))
 done
 
-violations=$((violations + $(report_stale_allowlist)))
+violations=$((violations + $(report_stale_allowlist "exception matches nothing any more: %s")))
 
 # compare_package_field requires one literal value for the JSON key $1 in every
 # package.json that follows it. A missing file is a rename that must turn the

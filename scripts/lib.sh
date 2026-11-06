@@ -239,10 +239,10 @@ allowlisted() {
   return 1
 }
 
-# report_stale_allowlist [FORMAT] — reports every entry that covered nothing,
+# report_stale_allowlist FORMAT — reports every entry that covered nothing,
 # FORMAT a printf format for the entry, and prints their count on stdout.
 report_stale_allowlist() {
-  local format="${1:-exception matches nothing any more: %s}" i label stale=0
+  local format="$1" i label stale=0
   for i in "${!ALLOW_KEYS[@]}"; do
     ((ALLOW_HITS[i] == 0)) || continue
     label="${ALLOW_KEYS[$i]}"
