@@ -1,11 +1,20 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceDock } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
 import { ZahlungDrawer } from './ZahlungDrawer'
+
+// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function ZahlungDrawerHarness(
+  props: Omit<ComponentProps<typeof ZahlungDrawer>, 'pfandVorgang'>,
+) {
+  return <ZahlungDrawer {...props} pfandVorgang={usePfandVorgang()} />
+}
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -38,7 +47,7 @@ function renderDrawer(
   // Drawer hier in ein Dock eingebettet (leiste bleibt leer).
   render(
     <ServiceDock leiste={null}>
-      <ZahlungDrawer
+      <ZahlungDrawerHarness
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         pfandAusgezahlt={vi.fn()}

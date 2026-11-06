@@ -22,6 +22,7 @@ import {
 } from '@/lib/utils'
 
 import type { PfandBackend } from '../pfand/PfandBackend'
+import type { PfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import type { Position } from './Bestellung'
@@ -35,6 +36,8 @@ interface ZahlungTabProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
+  // Wie die Kassieren-Auswahl von TablePage gehoben und je Tisch zurückgesetzt.
+  pfandVorgang: PfandVorgang
   tisch: Tisch
   positionen: Position[]
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
@@ -48,6 +51,7 @@ export function ZahlungTab({
   backend,
   pfandBackend,
   pfandProdukte,
+  pfandVorgang,
   positionen,
   mengenSteuerung,
   onErfolg,
@@ -217,6 +221,7 @@ export function ZahlungTab({
             backend={backend}
             pfandBackend={pfandBackend}
             pfandProdukte={pfandProdukte}
+            pfandVorgang={pfandVorgang}
             tisch={tisch}
             positionenToPay={positionenToPay}
             totalCents={auswahlSumme}
@@ -235,6 +240,7 @@ export function ZahlungTab({
         backend={backend}
         pfandBackend={pfandBackend}
         pfandProdukte={pfandProdukte}
+        pfandVorgang={pfandVorgang}
         tisch={tisch}
         unbezahltePositionen={positionen}
         mengen={mengen}

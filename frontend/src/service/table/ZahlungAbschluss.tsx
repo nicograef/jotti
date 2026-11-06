@@ -10,7 +10,11 @@ import { parseCents } from '@/lib/utils'
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import type { PfandBackend } from '../pfand/PfandBackend'
 import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
-import { usePfandAuswahl } from '../pfand/usePfandAuswahl'
+import {
+  istPfandrueckgabeAbweichend,
+  pfandAuswahl,
+  type PfandVorgang,
+} from '../pfand/usePfandVorgang'
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
@@ -31,6 +35,7 @@ interface ZahlungAbschlussProps {
   backend: Pick<TischBackend, 'zahlungKassieren'>
   pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
+  pfandVorgang: PfandVorgang
   tisch: Tisch
   // Zu kassierende Positionen; `menge` ist die Auswahl-Menge, nicht die volle Position.
   positionenToPay: Position[]
@@ -53,10 +58,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  const pfand = usePfandAuswahl(
-    props.pfandProdukte,
-    JSON.stringify(toPositionRefs(props.positionenToPay)),
-  )
+  const pfand = pfandAuswahl(props.pfandProdukte, props.pfandVorgang)
   const mitPfand = pfand.summeCents > 0
   const nurPfand = noPositionenSelected && mitPfand
   // Mit Pfand ist nur die positive Differenz bar zu kassieren.
@@ -91,8 +93,15 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
     parseCents(zielbetragEuro),
   )
 
+  const pfandVerwerfen = (error: unknown) => {
+    if (istPfandrueckgabeAbweichend(error)) {
+      pfand.steuerung.reset()
+    }
+  }
+
   const zahlung = useActionSubmit({
     actionLabel: 'Zahlung kassieren',
+    onError: pfandVerwerfen,
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')
@@ -104,6 +113,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   })
   const pfandAuszahlung = useActionSubmit({
     actionLabel: 'Pfand auszahlen',
+    onError: pfandVerwerfen,
     onSuccess: () => {
       pfand.steuerung.reset()
       setKommentar('')

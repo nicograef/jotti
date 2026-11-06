@@ -1,13 +1,21 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { type ComponentProps, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
+
+// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function DirektverkaufAbschlussHarness(
+  props: Omit<ComponentProps<typeof DirektverkaufAbschluss>, 'pfandVorgang'>,
+) {
+  return <DirektverkaufAbschluss {...props} pfandVorgang={usePfandVorgang()} />
+}
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -54,7 +62,7 @@ function renderSpalte(
 ) {
   const verkaufAbgeschlossen = vi.fn()
   render(
-    <DirektverkaufAbschluss
+    <DirektverkaufAbschlussHarness
       pfandBackend={{ pfandZurueckgeben: vi.fn() }}
       pfandProdukte={[]}
       pfandAusgezahlt={vi.fn()}
@@ -72,7 +80,7 @@ function renderSpalte(
 describe('DirektverkaufAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
     render(
-      <DirektverkaufAbschluss
+      <DirektverkaufAbschlussHarness
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         pfandAusgezahlt={vi.fn()}
@@ -97,7 +105,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
     const pfandAusgezahlt = vi.fn()
     render(
-      <DirektverkaufAbschluss
+      <DirektverkaufAbschlussHarness
         variant="spalte"
         backend={{ direktverkaufTaetigen }}
         pfandBackend={{ pfandZurueckgeben }}
@@ -133,7 +141,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     const user = userEvent.setup()
     const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
     render(
-      <DirektverkaufAbschluss
+      <DirektverkaufAbschlussHarness
         variant="spalte"
         backend={{ direktverkaufTaetigen }}
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
@@ -239,7 +247,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
           >
             toggle
           </button>
-          <DirektverkaufAbschluss
+          <DirektverkaufAbschlussHarness
             pfandBackend={{ pfandZurueckgeben: vi.fn() }}
             pfandProdukte={[]}
             pfandAusgezahlt={vi.fn()}
@@ -289,7 +297,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
           >
             toggle
           </button>
-          <DirektverkaufAbschluss
+          <DirektverkaufAbschlussHarness
             pfandBackend={{ pfandZurueckgeben: vi.fn() }}
             pfandProdukte={[]}
             pfandAusgezahlt={vi.fn()}

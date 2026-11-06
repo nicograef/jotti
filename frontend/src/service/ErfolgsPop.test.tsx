@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { type ComponentProps, useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
@@ -18,7 +18,15 @@ import { setViewportWidth } from '@/test/render'
 import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
 import { DirektverkaufTab } from './direktverkauf/DirektverkaufTab'
 import { ErfolgsPop } from './ErfolgsPop'
+import { usePfandVorgang } from './pfand/usePfandVorgang'
 import { ServiceDock } from './ServiceDock'
+
+// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function DirektverkaufTabHarness(
+  props: Omit<ComponentProps<typeof DirektverkaufTab>, 'pfandVorgang'>,
+) {
+  return <DirektverkaufTab {...props} pfandVorgang={usePfandVorgang()} />
+}
 
 // toast kommt über den Fehlerpfad von useActionSubmit; die Erfolgs-Flows dürfen
 // ihn nicht aufrufen (prüft der Flow-Test unten).
@@ -119,7 +127,7 @@ function DirektverkaufMitPop({
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   return (
     <ServiceDock leiste={null}>
-      <DirektverkaufTab
+      <DirektverkaufTabHarness
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         backend={backend}

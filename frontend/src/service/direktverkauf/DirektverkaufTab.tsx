@@ -3,6 +3,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandBackend } from '../pfand/PfandBackend'
+import type { PfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
@@ -15,6 +16,8 @@ interface DirektverkaufTabProps {
   pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   products: Produkt[]
   pfandProdukte: Produkt[]
+  // Von DirektverkaufPage gehoben, damit Pfand und rueckgabeId einen Blick in die Historie überstehen.
+  pfandVorgang: PfandVorgang
   productsLoading: boolean
   onErfolg: (nachricht: string) => void
 }
@@ -24,6 +27,7 @@ export function DirektverkaufTab({
   pfandBackend,
   products,
   pfandProdukte,
+  pfandVorgang,
   productsLoading,
   onErfolg,
 }: DirektverkaufTabProps) {
@@ -67,6 +71,7 @@ export function DirektverkaufTab({
             backend={backend}
             pfandBackend={pfandBackend}
             pfandProdukte={pfandProdukte}
+            pfandVorgang={pfandVorgang}
             receiptItems={receiptItems}
             positionen={inputItems}
             totalCents={total}
@@ -84,6 +89,7 @@ export function DirektverkaufTab({
         backend={backend}
         pfandBackend={pfandBackend}
         pfandProdukte={pfandProdukte}
+        pfandVorgang={pfandVorgang}
         receiptItems={receiptItems}
         positionen={inputItems}
         anzahl={anzahl}

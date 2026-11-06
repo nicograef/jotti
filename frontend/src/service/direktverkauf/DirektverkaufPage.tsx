@@ -9,6 +9,7 @@ import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { VorgangHistorie } from '../VorgangHistorie'
@@ -31,6 +32,7 @@ export function DirektverkaufPage() {
     isError: historieError,
     refetch: reloadHistorie,
   } = useDirektverkaufHistorie()
+  const pfandVorgang = usePfandVorgang()
 
   // Der Refetch der Historie läuft erst beim Schließen des Pops, damit die
   // Änderung dem Pop folgt.
@@ -72,6 +74,7 @@ export function DirektverkaufPage() {
       pfandBackend={pfandBackend}
       products={produkte}
       pfandProdukte={pfandProdukte}
+      pfandVorgang={pfandVorgang}
       productsLoading={isPending}
       onErfolg={zeigeErfolg}
     />

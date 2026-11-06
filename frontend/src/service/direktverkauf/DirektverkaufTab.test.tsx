@@ -1,14 +1,23 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { setViewportWidth } from '@/test/render'
 
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceDock } from '../ServiceDock'
 import { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufTab } from './DirektverkaufTab'
+
+// Der Pfand-Vorgang liegt auf der Seite; der Harness übernimmt ihre Rolle.
+function DirektverkaufTabHarness(
+  props: Omit<ComponentProps<typeof DirektverkaufTab>, 'pfandVorgang'>,
+) {
+  return <DirektverkaufTab {...props} pfandVorgang={usePfandVorgang()} />
+}
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -57,7 +66,7 @@ function renderDirektverkauf() {
   // DirektverkaufTab hier in ein Dock eingebettet (leiste bleibt leer).
   render(
     <ServiceDock leiste={null}>
-      <DirektverkaufTab
+      <DirektverkaufTabHarness
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         backend={new DirektverkaufBackend(fake)}
@@ -122,7 +131,7 @@ describe('DirektverkaufTab', () => {
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
     render(
-      <DirektverkaufTab
+      <DirektverkaufTabHarness
         pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         backend={new DirektverkaufBackend(backend())}

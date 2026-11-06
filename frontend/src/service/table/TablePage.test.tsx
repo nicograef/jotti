@@ -50,6 +50,18 @@ const testProdukt: Produkt = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
+const pfandProdukt: Produkt = {
+  ...testProdukt,
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  varianten: [
+    { ...testProdukt.varianten[0], id: 19, name: 'Glas', preisCents: 200 },
+  ],
+}
+
 // `tischId` bildet den :tischId-Param nach — Tischwechsel ohne Remount.
 const testState = vi.hoisted(() => ({ tischId: '1' }))
 
@@ -65,13 +77,16 @@ const getTischState = vi.fn<() => TischSession>()
 const getTischHistorie = vi.fn<() => unknown[]>()
 
 // Table state, history and products; without `produkte` the range is empty.
-function backend(produkte: Produkt[] = []): FakeBackend {
+function backend(
+  produkte: Produkt[] = [],
+  pfandProdukte: Produkt[] = [],
+): FakeBackend {
   return new FakeBackend()
     .respond('service/get-tisch-state', getTischState)
     .respond('service/get-tisch-historie', () => ({
       historie: getTischHistorie(),
     }))
-    .respond('service/get-aktive-produkte', { produkte, pfandProdukte: [] })
+    .respond('service/get-aktive-produkte', { produkte, pfandProdukte })
     .respond('service/get-pfandrueckgabe-historie', { historie: [] })
     .respond('serviceleitung/stornierung-erteilen', {})
 }
@@ -337,6 +352,75 @@ describe('TablePage', () => {
       expect(
         screen.getByRole('button', { name: /Bestellung überprüfen/ }),
       ).toBeDisabled()
+    })
+  })
+
+  // Die Rückgabe ist gebucht, die Antwort geht verloren. Nach einem Tab-Wechsel
+  // muss die Wiederholung dieselbe rueckgabeId tragen, sonst zahlt sie doppelt aus.
+  it('behält Pfand-Auswahl und rueckgabeId über einen Tab-Wechsel hinweg', async () => {
+    setViewportWidth(1024)
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
+    const pfandZurueckgeben = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = backend([], [pfandProdukt]).respond(
+      'service/pfand-zurueckgeben',
+      pfandZurueckgeben,
+    )
+    const user = userEvent.setup()
+    renderPage(fake)
+
+    await screen.findByRole('heading', { name: 'Stammtisch', level: 1 })
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'Bestellen' }))
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(2)
+    })
+
+    const [erster, wiederholung] = fake.bodies(
+      'service/pfand-zurueckgeben',
+    ) as [{ rueckgabeId: string }, { rueckgabeId: string }]
+    expect(wiederholung.rueckgabeId).toBe(erster.rueckgabeId)
+  })
+
+  it('startet die Pfand-Auswahl bei einem Tischwechsel leer', async () => {
+    setViewportWidth(1024)
+    getTischState.mockReturnValue(stammtisch)
+    getTischHistorie.mockReturnValue([])
+    const user = userEvent.setup()
+    const { rerender } = renderPage(backend([], [pfandProdukt]))
+
+    await screen.findByRole('heading', { name: 'Stammtisch', level: 1 })
+    await user.click(screen.getByRole('tab', { name: 'Kassieren' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    expect(
+      screen.getByRole('button', { name: 'Pfand auszahlen' }),
+    ).toBeInTheDocument()
+
+    // Anderer Tisch: nur der :tischId-Param wechselt, TablePage bleibt gemountet.
+    testState.tischId = '2'
+    rerender(<TablePage />)
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', { name: 'Pfand auszahlen' }),
+      ).not.toBeInTheDocument()
     })
   })
 

@@ -10,7 +10,11 @@ import { parseCents } from '@/lib/utils'
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import type { PfandBackend } from '../pfand/PfandBackend'
 import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
-import { usePfandAuswahl } from '../pfand/usePfandAuswahl'
+import {
+  istPfandrueckgabeAbweichend,
+  pfandAuswahl,
+  type PfandVorgang,
+} from '../pfand/usePfandVorgang'
 import { AbschlussContainer } from '../table/AbschlussContainer'
 import { AbschlussHeader } from '../table/AbschlussHeader'
 import { AbschlussLeer } from '../table/AbschlussLeer'
@@ -26,6 +30,7 @@ interface DirektverkaufAbschlussProps {
   backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
   pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
+  pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
   positionen: VerkaufPositionInput[]
   totalCents: number
@@ -45,12 +50,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
   // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
   const [verkaufId, setVerkaufId] = useState(() => crypto.randomUUID())
-  const pfand = usePfandAuswahl(
-    props.pfandProdukte,
-    noPositionenSelected
-      ? ''
-      : `${verkaufId}|${JSON.stringify(props.positionen)}`,
-  )
+  const pfand = pfandAuswahl(props.pfandProdukte, props.pfandVorgang)
   const mitPfand = pfand.summeCents > 0
   const nurPfand = noPositionenSelected && mitPfand
   // Mit Pfand ist nur die positive Differenz bar zu kassieren.
@@ -83,8 +83,16 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
     parseCents(zielbetragEuro),
   )
 
+  // Die verkaufId bleibt: weicht der gebuchte Verkauf ab, buchte eine neue ID ihn doppelt.
+  const pfandVerwerfen = (error: unknown) => {
+    if (istPfandrueckgabeAbweichend(error)) {
+      pfand.steuerung.reset()
+    }
+  }
+
   const verkauf = useActionSubmit({
     actionLabel: 'Verkauf abschließen',
+    onError: pfandVerwerfen,
     onSuccess: () => {
       setErhaltenEuro('')
       setZielbetragEuro('')
@@ -96,6 +104,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   })
   const pfandAuszahlung = useActionSubmit({
     actionLabel: 'Pfand auszahlen',
+    onError: pfandVerwerfen,
     onSuccess: () => {
       pfand.steuerung.reset()
       setKommentar('')

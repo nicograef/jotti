@@ -16,6 +16,7 @@ import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
@@ -134,6 +135,7 @@ export function TablePage() {
   const kassierenAuswahl = useMengen<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
+  const pfandVorgang = usePfandVorgang()
 
   // Beim Tischwechsel bleibt TablePage gemountet (nur der :tischId-Param ändert
   // sich), daher wird die gehobene Auswahl pro Tisch zurückgesetzt.
@@ -142,6 +144,7 @@ export function TablePage() {
     setAktiverTisch(tischId)
     bestellKorb.reset()
     kassierenAuswahl.reset()
+    pfandVorgang.steuerung.reset()
   }
 
   // Der useMengen-`max` deckelt nur beim `add`, nicht die gespeicherte Auswahl:
@@ -260,6 +263,7 @@ export function TablePage() {
       backend={tischBackend}
       pfandBackend={pfandBackend}
       pfandProdukte={pfandProdukte}
+      pfandVorgang={pfandVorgang}
       tisch={tisch}
       positionen={state.unbezahltePositionen}
       mengenSteuerung={kassierenAuswahl}

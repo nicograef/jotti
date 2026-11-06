@@ -9,12 +9,15 @@ interface UseActionSubmitOptions {
   actionLabel: string
   byCode?: Record<string, string>
   onSuccess?: () => void
+  // Läuft nach der Fehlermeldung, etwa um eine abgewiesene Auswahl zu verwerfen.
+  onError?: (error: unknown) => void
 }
 
 export function useActionSubmit({
   actionLabel,
   byCode,
   onSuccess,
+  onError,
 }: UseActionSubmitOptions): {
   loading: boolean
   run: (fn: () => Promise<void>) => Promise<void>
@@ -40,6 +43,7 @@ export function useActionSubmit({
           byCode,
         }),
       )
+      onError?.(error)
     } finally {
       setLoading(false)
     }

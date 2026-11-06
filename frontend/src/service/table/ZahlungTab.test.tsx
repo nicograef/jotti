@@ -8,6 +8,7 @@ import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
 import { setViewportWidth } from '@/test/render'
 
+import { usePfandVorgang } from '../pfand/usePfandVorgang'
 import { ServiceDock } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
@@ -17,7 +18,10 @@ import { ZahlungTab } from './ZahlungTab'
 // Die Kassieren-Auswahl liegt in TablePage; dieser Harness stellt die gehobene
 // Steuerung inklusive der Deckelung auf die unbezahlte Menge bereit.
 function ZahlungHarness(
-  props: Omit<ComponentProps<typeof ZahlungTab>, 'mengenSteuerung'>,
+  props: Omit<
+    ComponentProps<typeof ZahlungTab>,
+    'mengenSteuerung' | 'pfandVorgang'
+  >,
 ) {
   const unbezahlteMengen: Record<string, number> = {}
   props.positionen.forEach((position) => {
@@ -26,7 +30,13 @@ function ZahlungHarness(
   const mengenSteuerung = useMengen<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )
-  return <ZahlungTab {...props} mengenSteuerung={mengenSteuerung} />
+  return (
+    <ZahlungTab
+      {...props}
+      mengenSteuerung={mengenSteuerung}
+      pfandVorgang={usePfandVorgang()}
+    />
+  )
 }
 
 vi.mock('sonner', () => ({

@@ -1,4 +1,4 @@
-import { cleanup, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -45,11 +45,23 @@ afterEach(() => {
   setViewportWidth(1024)
 })
 
-function backend(): FakeBackend {
+const pfandProdukt: Produkt = {
+  ...testProdukt,
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  varianten: [
+    { ...testProdukt.varianten[0], id: 19, name: 'Glas', preisCents: 200 },
+  ],
+}
+
+function backend(pfandProdukte: Produkt[] = []): FakeBackend {
   return new FakeBackend()
     .respond('service/get-aktive-produkte', {
       produkte: [],
-      pfandProdukte: [],
+      pfandProdukte,
     })
     .respond('service/get-direktverkauf-historie', { historie: [] })
     .respond('service/get-pfandrueckgabe-historie', { historie: [] })
@@ -105,5 +117,43 @@ describe('DirektverkaufPage', () => {
     expect(
       await screen.findByText('Historie konnte nicht geladen werden'),
     ).toBeInTheDocument()
+  })
+
+  // Die Rückgabe ist gebucht, die Antwort geht verloren. Nach einem Blick in die
+  // Historie muss die Wiederholung dieselbe rueckgabeId tragen.
+  it('behält Pfand-Auswahl und rueckgabeId über einen Blick in die Historie', async () => {
+    setViewportWidth(1024)
+    const pfandZurueckgeben = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = backend([pfandProdukt]).respond(
+      'service/pfand-zurueckgeben',
+      pfandZurueckgeben,
+    )
+    const user = userEvent.setup()
+    renderWithBackend(<DirektverkaufPage />, fake)
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+    })
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(screen.getByRole('tab', { name: 'Verkaufen' }))
+    await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
+    await waitFor(() => {
+      expect(pfandZurueckgeben).toHaveBeenCalledTimes(2)
+    })
+
+    const [erster, wiederholung] = fake.bodies(
+      'service/pfand-zurueckgeben',
+    ) as [{ rueckgabeId: string }, { rueckgabeId: string }]
+    expect(wiederholung.rueckgabeId).toBe(erster.rueckgabeId)
   })
 })
