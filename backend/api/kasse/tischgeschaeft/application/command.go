@@ -322,12 +322,8 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	log := logging.FromContext(ctx)
 
 	if pfand != nil {
-		rueckgabe, found, err := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
-		if err != nil {
+		if err := c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, nil); err != nil {
 			return err
-		}
-		if found {
-			return c.pruefeVerrechneteZahlung(ctx, rueckgabe, tischID, positionen, pfand)
 		}
 	}
 
@@ -338,6 +334,10 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	if !kasse.ValidatePositionRefs(state.UnbezahltePositionen, positionen) {
 		log.Warn("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar", "tisch_id", tischID)
+		// Ein paralleler Versuch derselben rueckgabeId kann seit der Vorprüfung gebucht haben.
+		if pfand != nil {
+			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrPositionNichtBezahlbar)
+		}
 		return ErrPositionNichtBezahlbar
 	}
 
@@ -373,13 +373,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
 			log.Warn("OCC conflict bei Zahlung", "tisch_id", tischID, "subject", subject)
 			if pfand != nil {
-				rueckgabe, found, lookupErr := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
-				if lookupErr != nil {
-					return lookupErr
-				}
-				if found {
-					return c.pruefeVerrechneteZahlung(ctx, rueckgabe, tischID, positionen, pfand)
-				}
+				return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrConflict)
 			}
 			return ErrConflict
 		}
@@ -393,6 +387,19 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
 	return nil
+}
+
+// pruefeGebuchteRueckgabe answers with pruefeVerrechneteZahlung when pfand.RueckgabeID is already
+// booked, else with fallback.
+func (c Command) pruefeGebuchteRueckgabe(ctx context.Context, tischID int, positionen []kasse.PositionRef, pfand *enrichment.PfandEingabe, fallback error) error {
+	rueckgabe, found, err := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
+	if err != nil {
+		return err
+	}
+	if found {
+		return c.pruefeVerrechneteZahlung(ctx, rueckgabe, tischID, positionen, pfand)
+	}
+	return fallback
 }
 
 func (c Command) getPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
