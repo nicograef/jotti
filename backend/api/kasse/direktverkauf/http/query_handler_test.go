@@ -12,14 +12,16 @@ import (
 )
 
 type mockQuery struct {
-	historie []kasse.DirektverkaufHistorieEintrag
+	historie     []kasse.DirektverkaufHistorieEintrag
+	pfandTischID int
 }
 
 func (m *mockQuery) GetDirektverkaufHistorie(_ context.Context) ([]kasse.DirektverkaufHistorieEintrag, error) {
 	return m.historie, nil
 }
 
-func (m *mockQuery) GetPfandrueckgabeHistorie(_ context.Context, _ int) ([]kasse.PfandrueckgabeHistorieEintrag, error) {
+func (m *mockQuery) GetPfandrueckgabeHistorie(_ context.Context, tischID int) ([]kasse.PfandrueckgabeHistorieEintrag, error) {
+	m.pfandTischID = tischID
 	return nil, nil
 }
 

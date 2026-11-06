@@ -13,10 +13,12 @@ import (
 )
 
 type mockPfandCommand struct {
-	err error
+	err     error
+	tischID int
 }
 
-func (m *mockPfandCommand) PfandZurueckgeben(context.Context, int, string, string, int, []enrichment.PositionInput, string) error {
+func (m *mockPfandCommand) PfandZurueckgeben(_ context.Context, _ int, _ string, _ string, tischID int, _ []enrichment.PositionInput, _ string) error {
+	m.tischID = tischID
 	return m.err
 }
 
@@ -52,6 +54,52 @@ func TestPfandCommandHandler_Abweisungen(t *testing.T) {
 			}
 			if !strings.Contains(rec.Body.String(), `"code":"`+tt.wantCode+`"`) {
 				t.Errorf("expected code %s, got %s", tt.wantCode, rec.Body.String())
+			}
+		})
+	}
+}
+
+// tischId 0 is the Direktverkauf and reaches the application as 0; a missing tischId is a
+// validation error. The pointer schema exists because zog counts a required 0 as missing.
+func TestPfandHandler_TischID(t *testing.T) {
+	const nichtAufgerufen = -1
+	zurueckgeben := func(rec *httptest.ResponseRecorder, body string) int {
+		cmd := &mockPfandCommand{tischID: nichtAufgerufen}
+		(&PfandCommandHandler{Command: cmd}).PfandZurueckgebenHandler().ServeHTTP(rec, requestWithUser(body))
+		return cmd.tischID
+	}
+	historie := func(rec *httptest.ResponseRecorder, body string) int {
+		query := &mockQuery{pfandTischID: nichtAufgerufen}
+		(&QueryHandler{Query: query}).GetPfandrueckgabeHistorieHandler().ServeHTTP(rec, requestWithUser(body))
+		return query.pfandTischID
+	}
+	const positionen = `"rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"produktId":1,"varianteId":1,"menge":2}]`
+	tests := []struct {
+		name        string
+		serve       func(*httptest.ResponseRecorder, string) int
+		body        string
+		wantStatus  int
+		wantTischID int
+	}{
+		{"zurückgeben: Direktverkauf", zurueckgeben, `{` + positionen + `,"tischId":0}`, http.StatusOK, 0},
+		{"zurückgeben: ohne tischId", zurueckgeben, `{` + positionen + `}`, http.StatusBadRequest, nichtAufgerufen},
+		{"Historie: Direktverkauf", historie, `{"tischId":0}`, http.StatusOK, 0},
+		{"Historie: ohne tischId", historie, `{}`, http.StatusBadRequest, nichtAufgerufen},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+
+			gotTischID := tt.serve(rec, tt.body)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected status %d, got %d: %s", tt.wantStatus, rec.Code, rec.Body.String())
+			}
+			if gotTischID != tt.wantTischID {
+				t.Errorf("expected tischId %d at the application, got %d", tt.wantTischID, gotTischID)
+			}
+			if tt.wantStatus == http.StatusBadRequest && !strings.Contains(rec.Body.String(), `"code":"validation_error"`) {
+				t.Errorf("expected validation_error, got %s", rec.Body.String())
 			}
 		})
 	}
