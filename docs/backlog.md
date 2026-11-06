@@ -29,6 +29,9 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Gläserpfand: Vereine fragen nach Pfandrückgabe. Kein Preis darf negativ sein, deshalb geht keine
       Rückgabe. `docs/prds/prd-pfandrueckgabe.md` beschreibt den Weg samt Umsatzsteuer und DSFinV-K;
       Rabatt und Gutschrift klammert es aus. Offen: Freigabe des PRD.
+- [ ] Auto-Pfand je Variante: Die Pfandrückgabe kommt mit manuell getipptem Pfand. Nach ihrer
+      Auslieferung ein PRD schreiben. Darin verknüpft eine Produktvariante eine Pfand-Variante, und
+      die Bestellung fügt das Pfand automatisch hinzu.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
@@ -97,3 +100,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] WLAN mit mehreren Access Points: Ein Verein hatte drei Router unter derselben SSID. Jedes Handy
       musste nach einem Wechsel die Adresse neu eingeben; mit einem Router lief es. Das WLAN hatte kein Internet,
       mobile Daten waren aus. Ursache klären und in die Fehlersuche des Leitfadens aufnehmen.
+- [ ] DSFinV-K 3.0: Der Export folgt der DSFinV-K 2.4. Version 3.0 gilt für Aufzeichnungen nach dem
+      31.12.2028 und ist nach dem 31.12.2027 wahlweise anwendbar (BMF 30.10.2026). 2.4 gegen 3.0
+      abgleichen, Einstieg ist der Änderungsnachweis. Danach ein PRD für die Migration schreiben.
