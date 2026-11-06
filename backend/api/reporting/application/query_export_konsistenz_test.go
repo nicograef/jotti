@@ -120,12 +120,34 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		},
 	}
 
+	pfandrueckgabe := kasse.PfandZurueckgegebenV1Data{
+		RueckgabeID:       "r1",
+		TischID:           42,
+		GesamtbetragCents: 1245,
+		Positionen: []kasse.PositionEventData{
+			konsistenzPosition("regel", 199, 3),
+			konsistenzPosition("ermaessigt", 324, 2),
+		},
+	}
+	pfandStorno := kasse.PfandrueckgabeStorniertV1Data{
+		StornierungID:          "rs1",
+		RueckgabeID:            "r1",
+		TischID:                42,
+		GesamtStornierungCents: 199,
+		Kommentar:              "Fehlbuchung",
+		Positionen: []kasse.PositionEventData{
+			konsistenzPosition("regel", 199, 1),
+		},
+	}
+
 	events := []event.Event{
 		konsistenzEvent(t, 1, kasse.EventTypeZahlungKassiertV1, subjectTisch, zahlung1),
 		konsistenzEvent(t, 2, kasse.EventTypeZahlungKassiertV1, subjectTisch, zahlung2),
 		konsistenzEvent(t, 3, kasse.EventTypeStornierungErteiltV1, subjectTisch, warenruecknahme),
 		konsistenzEvent(t, 4, kasse.EventTypeDirektverkaufGetaetigtV1, kasse.DirektverkaufSubject(konsistenzZNr, "d1"), direktverkauf),
 		konsistenzEvent(t, 5, kasse.EventTypeDirektverkaufStorniertV1, kasse.DirektverkaufSubject(konsistenzZNr, "d1"), direktverkaufStorno),
+		konsistenzEvent(t, 6, kasse.EventTypePfandZurueckgegebenV1, kasse.PfandrueckgabeSubject(konsistenzZNr, "r1"), pfandrueckgabe),
+		konsistenzEvent(t, 7, kasse.EventTypePfandrueckgabeStorniertV1, kasse.PfandrueckgabeSubject(konsistenzZNr, "r1"), pfandStorno),
 	}
 
 	// Report side: one gross row per position as in GetUmsatzPositionszeilen, stornos negative.
@@ -143,10 +165,13 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 	addZeilen(warenruecknahme.Positionen, -1)
 	addZeilen(direktverkauf.Positionen, 1)
 	addZeilen(direktverkaufStorno.Positionen, -1)
+	addZeilen(pfandrueckgabe.Positionen, -1)
+	addZeilen(pfandStorno.Positionen, 1)
 
 	aufschluesselung := computeUmsatzProSteuersatz(zeilen)
 
-	// Export side: businesscases.csv of the same events, summed per UST_SCHLUESSEL.
+	// Export side: businesscases.csv of the same events, "Umsatz" and "PfandRueckzahlung"
+	// summed per UST_SCHLUESSEL.
 	snapshot := dsfinvk.Snapshot{
 		KasseSeriennummer: "11111111-2222-3333-4444-555555555555",
 		Erstellung:        time.Date(2026, 6, 16, 20, 0, 0, 0, time.UTC),
@@ -209,8 +234,8 @@ func TestUmsatzProSteuersatz_KonsistentMitDSFinVKBusinesscases(t *testing.T) {
 		}
 	}
 
-	// Σ gross per rate == session revenue (2238 + 1470 - 1455 + 880 - 335).
-	if gesamtBrutto != 2798 {
-		t.Errorf("Σ Brutto je Steuersatz = %d, want 2798", gesamtBrutto)
+	// Σ gross per rate == session revenue (2238 + 1470 - 1455 + 880 - 335 - 1245 + 199).
+	if gesamtBrutto != 1752 {
+		t.Errorf("Σ Brutto je Steuersatz = %d, want 1752", gesamtBrutto)
 	}
 }
