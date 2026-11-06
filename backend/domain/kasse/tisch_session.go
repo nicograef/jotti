@@ -97,20 +97,12 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 
 	// SaldoCents derives from UnbezahltePositionen, so it is computed once here; GesamtZahlungenCents
 	// is a true accumulator, updated per arm above (docs/handbuch.md §3.8).
-	state.SaldoCents = saldoAusPositionen(state.UnbezahltePositionen)
+	state.SaldoCents = summeCents(state.UnbezahltePositionen)
 
 	state.LastEventID = evt.ID
 	state.LastEventVersion = evt.Version
 
 	return state, nil
-}
-
-func saldoAusPositionen(positionen []Position) int {
-	saldo := 0
-	for _, pos := range positionen {
-		saldo += pos.EinzelpreisCents * pos.Menge
-	}
-	return saldo
 }
 
 // setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung, sofern noch nicht

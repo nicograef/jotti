@@ -3,7 +3,6 @@ package kasse
 import (
 	"errors"
 	"fmt"
-	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
@@ -148,16 +147,8 @@ func validateEventData[T any](schema *z.StructSchema, data *T, label string) err
 }
 
 func NewBestellungAufgenommenEvent(subject string, userID int, userName string, bestellungID string, positionen []Position, kommentar string) (e.Event, error) {
-	// On a copy, so the caller's slice stays untouched.
-	positionen = slices.Clone(positionen)
-	for i := range positionen {
-		positionen[i].PositionID = uuid.New().String()
-	}
-
-	gesamtPreisCents := 0
-	for _, pos := range positionen {
-		gesamtPreisCents += pos.EinzelpreisCents * pos.Menge
-	}
+	positionen = mitNeuenPositionIDs(positionen)
+	gesamtPreisCents := summeCents(positionen)
 
 	data := BestellungAufgenommenV1Data{
 		BestellungID:     bestellungID,
@@ -226,10 +217,7 @@ func NewBestellungKorrigiertEvent(subject string, userID int, userName string, p
 func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string, benutzerKommentar string) (e.Event, e.Event, error) {
 	umbuchungID := uuid.New().String()
 
-	zielPositionen := slices.Clone(quellPositionen)
-	for i := range zielPositionen {
-		zielPositionen[i].PositionID = uuid.New().String()
-	}
+	zielPositionen := mitNeuenPositionIDs(quellPositionen)
 
 	quellData := BestellungUmgebuchtV1Data{
 		UmbuchungID:       umbuchungID,

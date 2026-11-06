@@ -2,10 +2,8 @@ package kasse
 
 import (
 	"math"
-	"slices"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -54,16 +52,8 @@ var pfandrueckgabeStorniertV1DataSchema = z.Struct(z.Shape{
 })
 
 func NewPfandZurueckgegebenEvent(subject string, rueckgabeID string, tischID int, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {
-	// On a copy, so the caller's slice stays untouched.
-	positionen = slices.Clone(positionen)
-	for i := range positionen {
-		positionen[i].PositionID = uuid.New().String()
-	}
-
-	gesamtbetragCents := 0
-	for _, pos := range positionen {
-		gesamtbetragCents += pos.EinzelpreisCents * pos.Menge
-	}
+	positionen = mitNeuenPositionIDs(positionen)
+	gesamtbetragCents := summeCents(positionen)
 
 	data := PfandZurueckgegebenV1Data{
 		RueckgabeID:       rueckgabeID,

@@ -1,5 +1,29 @@
 package kasse
 
+import (
+	"slices"
+
+	"github.com/google/uuid"
+)
+
+// summeCents is the gross total EinzelpreisCents × Menge.
+func summeCents(positionen []Position) int {
+	summe := 0
+	for _, pos := range positionen {
+		summe += pos.EinzelpreisCents * pos.Menge
+	}
+	return summe
+}
+
+// mitNeuenPositionIDs stamps a fresh PositionID on a copy of each position; the caller's slice stays untouched.
+func mitNeuenPositionIDs(positionen []Position) []Position {
+	out := slices.Clone(positionen)
+	for i := range out {
+		out[i].PositionID = uuid.New().String()
+	}
+	return out
+}
+
 // ValidatePositionRefs rejects duplicate PositionIDs — their quantities would add up unnoticed.
 func ValidatePositionRefs(available []Position, requested []PositionRef) bool {
 	seen := make(map[string]bool, len(requested))
