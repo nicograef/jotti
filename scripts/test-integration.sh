@@ -4,6 +4,12 @@
 # Usage:
 #   make check-integration
 #   TEST_PG_PORT=5433 ./scripts/test-integration.sh   # when 5432 is taken
+#   TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestCreateProdukt$' make check-integration
+#
+# Environment:
+#   TEST_PG_CONTAINER, TEST_PG_PORT   container name and host port; parallel runs need their own
+#   TEST_PKG                          space-separated packages relative to backend/, default ./...
+#   TEST_RUN                          go test -run pattern; also sets -v
 #
 # What it does:
 #   1. Starts a fresh Postgres container and waits until a TCP query passes.
@@ -18,6 +24,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 TEST_PG_CONTAINER="${TEST_PG_CONTAINER:-jotti-postgres-test}"
 TEST_PG_PORT="${TEST_PG_PORT:-5432}"
+TEST_PKG="${TEST_PKG:-./...}"
+TEST_RUN="${TEST_RUN:-}"
 PG_IMAGE="postgres:17.11"
 DATABASE_URL="postgres://admin:admin@localhost:${TEST_PG_PORT}/jotti?sslmode=disable"
 
@@ -63,6 +71,11 @@ migrate -path "$PROJECT_ROOT/database/migrations" -database "$DATABASE_URL" up
 # pollute each other's data.
 info "Running integration tests ..."
 cd "$PROJECT_ROOT/backend"
+read -r -a test_pkgs <<<"$TEST_PKG"
+run_args=()
+if [[ -n "$TEST_RUN" ]]; then
+  run_args=(-run "$TEST_RUN" -v)
+fi
 POSTGRES_HOST=localhost \
 POSTGRES_PORT="$TEST_PG_PORT" \
 POSTGRES_USER=admin \
@@ -70,6 +83,6 @@ POSTGRES_PASSWORD=admin \
 POSTGRES_DBNAME=jotti \
 JWT_SECRET=test-secret \
 RELAY_AUTH_TOKEN=test-relay-token \
-go test -tags=integration -count=1 -race -p 1 ./...
+go test -tags=integration -count=1 -race -p 1 "${run_args[@]}" "${test_pkgs[@]}"
 
 info "Integration tests passed."
