@@ -22,16 +22,17 @@ export function useCountUp(ziel: number): number {
       return
     }
     const t0 = performance.now()
-    let frame = requestAnimationFrame(function schritt(t) {
+    const animation = { frame: 0 }
+    animation.frame = requestAnimationFrame(function schritt(t) {
       const p = Math.min(1, (t - t0) / DAUER_MS)
       const e = 1 - Math.pow(1 - p, 3)
       const aktuell = Math.round(von + (ziel - von) * e)
       angezeigtRef.current = aktuell
       setWert(aktuell)
-      if (p < 1) frame = requestAnimationFrame(schritt)
+      if (p < 1) animation.frame = requestAnimationFrame(schritt)
     })
     return () => {
-      cancelAnimationFrame(frame)
+      cancelAnimationFrame(animation.frame)
     }
   }, [ziel])
 
