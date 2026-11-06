@@ -274,6 +274,65 @@ func (q *Queries) ReadKassensitzungEvents(ctx context.Context, kassensitzungNr i
 	return items, nil
 }
 
+const readPfandrueckgabeEvents = `-- name: ReadPfandrueckgabeEvents :many
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE kassensitzung_nr = $1
+  AND type IN ('pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
+  AND (data->>'tischId')::int = $2::int
+ORDER BY id ASC
+`
+
+type ReadPfandrueckgabeEventsParams struct {
+	KassensitzungNr int
+	TischID         int
+}
+
+type ReadPfandrueckgabeEventsRow struct {
+	ID        int
+	UserID    int
+	UserName  string
+	Version   int
+	Type      string
+	Subject   string
+	Data      json.RawMessage
+	Timestamp time.Time
+}
+
+// Rückgaben und ihre Stornierungen eines Tisches; tischId 0 ist der Direktverkauf.
+// Beide Event-Typen tragen tischId selbst.
+func (q *Queries) ReadPfandrueckgabeEvents(ctx context.Context, arg ReadPfandrueckgabeEventsParams) ([]ReadPfandrueckgabeEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, readPfandrueckgabeEvents, arg.KassensitzungNr, arg.TischID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReadPfandrueckgabeEventsRow{}
+	for rows.Next() {
+		var i ReadPfandrueckgabeEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.UserName,
+			&i.Version,
+			&i.Type,
+			&i.Subject,
+			&i.Data,
+			&i.Timestamp,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const writeEvent = `-- name: WriteEvent :one
 INSERT INTO kassenjournal (user_id, user_name, type, subject, version, data, timestamp, kassensitzung_nr)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id

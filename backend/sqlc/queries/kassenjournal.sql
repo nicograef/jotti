@@ -13,6 +13,16 @@ WHERE kassensitzung_nr = $1
   AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
 ORDER BY id ASC;
 
+-- name: ReadPfandrueckgabeEvents :many
+-- Rückgaben und ihre Stornierungen eines Tisches; tischId 0 ist der Direktverkauf.
+-- Beide Event-Typen tragen tischId selbst.
+SELECT id, user_id, user_name, version, type, subject, data, timestamp
+FROM kassenjournal
+WHERE kassensitzung_nr = sqlc.arg(kassensitzung_nr)
+  AND type IN ('pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
+  AND (data->>'tischId')::int = sqlc.arg(tisch_id)::int
+ORDER BY id ASC;
+
 -- name: ReadEventsByKassensitzung :many
 -- Alle Events einer Kassensitzung (Kassensitzungs-, Tisch-Session-, Direktverkauf-
 -- und Pfandrückgabe-Streams), nach id geordnet — Grundlage des DSFinV-K-Exports.

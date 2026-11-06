@@ -18,6 +18,10 @@ func (m *mockHistorieRepo) ReadDirektverkaufEvents(_ context.Context, _ int) ([]
 	return m.events, m.err
 }
 
+func (m *mockHistorieRepo) ReadPfandrueckgabeEvents(_ context.Context, _ int, _ int) ([]event.Event, error) {
+	return m.events, m.err
+}
+
 func TestGetDirektverkaufHistorie_NoOpenKassensitzung_ReturnsEmpty(t *testing.T) {
 	query := Query{
 		EventRepo:           &mockHistorieRepo{},
