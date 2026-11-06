@@ -407,15 +407,8 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 	  echo "Nutze laufenden Stack: $$E2E_BASE_URL"; \
 	  node e2e/website/screenshots.mjs; \
 	else \
-	  set -e; \
-	  trap 'docker compose -p jotti-screenshots -f docker-compose.e2e.yml down -v' EXIT; \
-	  E2E_HTTP_PORT=$(E2E_SCREENSHOT_PORT) docker compose -p jotti-screenshots -f docker-compose.e2e.yml up -d --build; \
-	  for i in $$(seq 1 60); do \
-	    code=$$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$(E2E_SCREENSHOT_PORT)/ || true); \
-	    if [ "$$code" = "200" ]; then echo "Stack ist bereit."; break; fi; \
-	    echo "warte auf Stack ($$i/60), Status $${code:-none} ..."; sleep 2; \
-	  done; \
-	  E2E_BASE_URL=http://localhost:$(E2E_SCREENSHOT_PORT) node e2e/website/screenshots.mjs; \
+	  E2E_STACK_PORT=$(E2E_SCREENSHOT_PORT) E2E_STACK_PROJECT=jotti-screenshots \
+	    ./scripts/e2e-stack.sh node e2e/website/screenshots.mjs; \
 	fi
 
 # Hilfe
