@@ -311,3 +311,43 @@ func TestPfandrueckgabeStornieren_AbweichendeStornierungId_KeinEvent(t *testing.
 		})
 	}
 }
+
+// A stornierungId equal to the rueckgabeId of another Rückgabe would export two Belege with one
+// BON_ID; the cross-type BON_ID index refuses it and nothing is booked.
+func TestPfandrueckgabeStornieren_StornierungIdGleichFremderRueckgabeId_KeinEvent(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, _, _ := setupDVIntegration(t)
+	pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+	inputs := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 1}}
+
+	rueckgabeA, rueckgabeB := uuid.New().String(), uuid.New().String()
+	for _, id := range []string{rueckgabeA, rueckgabeB} {
+		if err := cmd.PfandZurueckgeben(ctx, userID, "test", id, 0, inputs, ""); err != nil {
+			t.Fatalf("Rückgabe %s: %v", id, err)
+		}
+	}
+	events, err := cmd.EventRepo.ReadEventsBySubject(ctx, kasse.PfandrueckgabeSubject(ksNr, rueckgabeA))
+	if err != nil {
+		t.Fatalf("Stream lesen: %v", err)
+	}
+	eintrag, err := kasse.BuildPfandrueckgabeHistorieEintrag(events)
+	if err != nil {
+		t.Fatalf("Replay: %v", err)
+	}
+	var vorher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&vorher); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+
+	err = cmd.PfandrueckgabeStornieren(ctx, userID, "test", rueckgabeB, rueckgabeA, []kasse.PositionRef{{PositionID: eintrag.OffenePositionen[0].PositionID, Menge: 1}}, "Falsch gezählt")
+	if !errors.Is(err, ErrConflict) {
+		t.Errorf("erwartet ErrConflict, bekam: %v", err)
+	}
+
+	var nachher int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&nachher); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if nachher != vorher {
+		t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+	}
+}
