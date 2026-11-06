@@ -6,7 +6,7 @@ DNS-Dienste, über die lokale jotti-Installationen echte Let's-Encrypt-Zertifika
 
 ## 1. Services
 
-Zwei Services im rocks-Stack (`docker-compose.rocks.yml`):
+Zwei DNS-Services im rocks-Stack (`docker-compose.rocks.yml`), neben Backend, Postgres und Reverse-Proxy:
 
 | Service    | Zone                | Erreichbarkeit                                         |
 | ---------- | ------------------- | ------------------------------------------------------ |
