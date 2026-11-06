@@ -7,30 +7,18 @@ import { HinweisKarte } from '../components/HinweisKarte'
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { groupProdukteByKategorie, kategorieZusatz } from './productGrouping'
 import { ProductItem } from './ProductItem'
-import { VarianteStatus } from './Produkt'
-import { type ProduktBackend } from './ProduktBackend'
+import type { ProduktListeBackend } from './ProduktBackend'
 
 interface ProductsProps {
   loading: boolean
-  backend: Pick<
-    ProduktBackend,
-    | 'aktiviereVariante'
-    | 'deaktiviereVariante'
-    | 'createVariante'
-    | 'updateVariante'
-    | 'deleteVariante'
-    | 'verschiebeProdukt'
-    | 'verschiebeVariante'
-    | 'sortiereVariantenAlphabetisch'
-  >
+  backend: ProduktListeBackend
   products: Produkt[]
   druckstationen: DruckstationConfig[]
   onEdit: (produktId: number) => void
   onDelete: (produktId: number) => Promise<void>
-  onMoved: () => void
+  // Jede Änderung ohne eigene Meldung: die Liste lädt neu.
+  onChanged: () => void
   onVariantCreated: (variante: Variante) => void
-  onVariantUpdated: (variante: Variante) => void
-  onVariantStatusChange: (varianteId: number, status: VarianteStatus) => void
   onVariantDeleted: () => void
 }
 
@@ -77,10 +65,8 @@ export function Products(props: ProductsProps) {
                   backend={props.backend}
                   onEdit={props.onEdit}
                   onDelete={props.onDelete}
-                  onMoved={props.onMoved}
+                  onChanged={props.onChanged}
                   onVariantCreated={props.onVariantCreated}
-                  onVariantUpdated={props.onVariantUpdated}
-                  onVariantStatusChange={props.onVariantStatusChange}
                   onVariantDeleted={props.onVariantDeleted}
                 />
               ))}

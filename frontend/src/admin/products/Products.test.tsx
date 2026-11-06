@@ -71,7 +71,11 @@ function backend() {
   }
 }
 
-function renderProducts(products: Produkt[], be = backend()) {
+function renderProducts(
+  products: Produkt[],
+  be = backend(),
+  onChanged = vi.fn(),
+) {
   render(
     <TooltipProvider>
       <Products
@@ -81,10 +85,8 @@ function renderProducts(products: Produkt[], be = backend()) {
         druckstationen={druckstationen}
         onEdit={vi.fn()}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-        onMoved={vi.fn()}
+        onChanged={onChanged}
         onVariantCreated={vi.fn()}
-        onVariantUpdated={vi.fn()}
-        onVariantStatusChange={vi.fn()}
         onVariantDeleted={vi.fn()}
       />
     </TooltipProvider>,
@@ -122,6 +124,33 @@ describe('Products', () => {
     await user.click(toggle)
 
     expect(be.deaktiviereVariante).toHaveBeenCalledWith(7)
+  })
+
+  it('deactivates all variants and reloads the list once', async () => {
+    const user = userEvent.setup()
+    const onChanged = vi.fn()
+    const be = renderProducts(
+      [
+        produkt({
+          id: 1,
+          name: 'Bier',
+          varianten: [
+            variante({ id: 7, name: 'Klein' }),
+            variante({ id: 8, name: 'Groß' }),
+          ],
+        }),
+      ],
+      backend(),
+      onChanged,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
+    await user.click(
+      screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
+    )
+
+    expect(be.deaktiviereVariante.mock.calls).toEqual([[7], [8]])
+    expect(onChanged).toHaveBeenCalledTimes(1)
   })
 
   it('offers an active Löschen entry in the actions menu', async () => {
