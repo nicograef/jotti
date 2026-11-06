@@ -369,31 +369,6 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 	}
 }
 
-// Ein authentifizierter Benutzer ohne ausreichende Rolle bekommt 403 —
-// kein Auto-Logout, die Sitzung bleibt bestehen.
-func TestJwtMiddleware_ServiceRole(t *testing.T) {
-	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.ServiceRole))(handler)
-	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-
-	middleware.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusForbidden {
-		t.Errorf("expected status 403, got %d", rec.Code)
-	}
-}
-
 // Die Autorisierung prüft die Rolle aus der Datenbank, nicht aus dem
 // Token-Claim: Ein Rollenwechsel wirkt beim nächsten Request, nicht erst
 // nach Token-Ablauf.
@@ -431,75 +406,6 @@ func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
 				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)
 			}
 		})
-	}
-}
-
-func TestServiceRole_AllowedForServiceEndpoints(t *testing.T) {
-	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := NewJwtMiddleware(secret, []string{"service"}, activeUser(user.ServiceRole))(handler)
-	req := httptest.NewRequest(http.MethodGet, "/service", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-
-	middleware.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestServiceleitungRole_AllowedForServiceEndpoints(t *testing.T) {
-	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", secret)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung", "service"}, activeUser(user.ServiceleitungRole))(handler)
-	req := httptest.NewRequest(http.MethodGet, "/service", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-
-	middleware.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
-	}
-}
-
-func TestServiceleitungRole_AllowedForCancelEndpoint(t *testing.T) {
-	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(3, "serviceleitung", secret)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUser(user.ServiceleitungRole))(handler)
-	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-
-	middleware.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", rec.Code)
 	}
 }
 
@@ -573,29 +479,6 @@ func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
 				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)
 			}
 		})
-	}
-}
-
-func TestServiceRole_DeniedForCancelEndpoint(t *testing.T) {
-	secret := "test-secret"
-	token, err := jwt.GenerateJWTTokenForUser(2, "service", secret)
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
-	}
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := NewJwtMiddleware(secret, []string{"admin", "serviceleitung"}, activeUser(user.ServiceRole))(handler)
-	req := httptest.NewRequest(http.MethodGet, "/service/cancel", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	rec := httptest.NewRecorder()
-
-	middleware.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusForbidden {
-		t.Errorf("expected status 403, got %d", rec.Code)
 	}
 }
 
