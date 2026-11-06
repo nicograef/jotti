@@ -41,27 +41,42 @@ export function EigeneUebersichtKarten({
           cents={uebersicht.zahlungenCents}
         />
       </div>
-      {uebersicht.anzahlRuecknahmen > 0 && (
-        <RuecknahmeHinweis uebersicht={uebersicht} />
+      {(uebersicht.anzahlRuecknahmen > 0 || uebersicht.pfandCents !== 0) && (
+        <AbzugebenHinweis uebersicht={uebersicht} />
       )}
     </div>
   )
 }
 
-function RuecknahmeHinweis({ uebersicht }: { uebersicht: EigeneUebersicht }) {
+function AbzugebenHinweis({ uebersicht }: { uebersicht: EigeneUebersicht }) {
   const anzahl = uebersicht.anzahlRuecknahmen
   return (
     <p className="mt-2 rounded-xl bg-muted/60 px-4 py-2 text-sm text-muted-foreground">
       <Undo2 className="mr-1.5 inline size-4 align-[-3px] text-destructive" />
-      {anzahl === 1
-        ? 'Eine Rücknahme'
-        : `${String(anzahl)} Rücknahmen`} über{' '}
-      <span className="font-medium text-foreground tabular-nums">
-        {formatEuro(uebersicht.ruecknahmenCents)}
-      </span>{' '}
-      wurde{anzahl === 1 ? '' : 'n'} von deinen Zahlungen zurückgegeben. Du
-      gibst damit{' '}
-      <span className="font-semibold text-foreground tabular-nums">
+      {anzahl > 0 && (
+        <>
+          {anzahl === 1 ? 'Eine Rücknahme' : `${String(anzahl)} Rücknahmen`}{' '}
+          über{' '}
+          <span className="font-medium text-foreground tabular-nums">
+            {formatEuro(uebersicht.ruecknahmenCents)}
+          </span>{' '}
+          wurde{anzahl === 1 ? '' : 'n'} von deinen Zahlungen
+          zurückgegeben.{' '}
+        </>
+      )}
+      {uebersicht.pfandCents !== 0 && (
+        <>
+          Pfand ausgezahlt:{' '}
+          <span className="font-medium text-foreground tabular-nums">
+            {formatEuro(uebersicht.pfandCents)}
+          </span>
+          .{' '}
+        </>
+      )}
+      Du gibst damit{' '}
+      <span
+        className={`font-semibold tabular-nums ${uebersicht.abzugebenCents < 0 ? 'text-destructive' : 'text-foreground'}`}
+      >
         {formatEuro(uebersicht.abzugebenCents)}
       </span>{' '}
       ab.

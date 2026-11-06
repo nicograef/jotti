@@ -16,6 +16,7 @@ function uebersicht(
     zahlungenCents: 10000,
     anzahlRuecknahmen: 0,
     ruecknahmenCents: 0,
+    pfandCents: 0,
     abzugebenCents: 10000,
     ...overrides,
   }
@@ -66,6 +67,24 @@ describe('EigeneUebersichtKarten', () => {
     )
 
     expect(screen.getByText(/Rücknahmen/)).toHaveTextContent('3 Rücknahmen')
+  })
+
+  it('shows a negative amount to hand over', () => {
+    render(
+      <EigeneUebersichtKarten
+        uebersicht={uebersicht({
+          zahlungenCents: 300,
+          pfandCents: 400,
+          abzugebenCents: -100,
+        })}
+        loading={false}
+      />,
+    )
+
+    const hinweis = screen.getByText(/Pfand ausgezahlt/)
+    expect(hinweis).toHaveTextContent('4,00 €')
+    expect(hinweis).toHaveTextContent('Du gibst damit -1,00 € ab.')
+    expect(hinweis).not.toHaveTextContent('Rücknahme')
   })
 
   it('zeigt im Ladezustand zwei Skeleton-Spalten und keine Hinweiszeile', () => {

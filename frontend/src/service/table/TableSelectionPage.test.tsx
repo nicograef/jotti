@@ -51,6 +51,7 @@ const leereUebersicht = {
   zahlungenCents: 0,
   anzahlRuecknahmen: 0,
   ruecknahmenCents: 0,
+  pfandCents: 0,
   abzugebenCents: 0,
 }
 

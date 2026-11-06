@@ -37,7 +37,8 @@ export type AktiverTischMitFavorit = z.infer<
 
 // anzahlRuecknahmen/ruecknahmenCents sind die dieser Servicekraft zugeordneten
 // Warenrücknahmen (zurückgenommen von einer Zahlung, die sie kassiert hat — egal, wer
-// storniert hat). abzugebenCents ist zahlungenCents abzüglich dieser Rücknahmen.
+// storniert hat). pfandCents ist das am Tisch ausgezahlte Pfand. abzugebenCents ist
+// zahlungenCents abzüglich Rücknahmen und Pfand und darf negativ werden.
 export const EigeneUebersichtSchema = z.object({
   anzahlBestellungen: z.number().int(),
   bestellungenCents: z.number().int(),
@@ -45,6 +46,7 @@ export const EigeneUebersichtSchema = z.object({
   zahlungenCents: z.number().int(),
   anzahlRuecknahmen: z.number().int(),
   ruecknahmenCents: z.number().int(),
+  pfandCents: z.number().int(),
   abzugebenCents: z.number().int(),
 })
 export type EigeneUebersicht = z.infer<typeof EigeneUebersichtSchema>
