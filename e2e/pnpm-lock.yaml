@@ -176,8 +176,8 @@ importers:
         specifier: 26.6.6
         version: 26.6.6
       eslint-plugin-playwright:
-        specifier: ^2.12.1
-        version: 2.12.1(eslint@10.11.0)
+        specifier: ^2.12.2
+        version: 2.12.2(eslint@10.11.0)
       oxlint:
         specifier: ^1.90.0
         version: 1.91.0(oxlint-tsgolint@7.0.2006)
@@ -601,8 +601,8 @@ packages:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
 
-  eslint-plugin-playwright@2.12.1:
-    resolution: {integrity: sha512-JhavNuYBIq7SE/Zg9Esf9RGHkXoDbzrEKS383cowzMyvZ4JMbmdNCN6CoW+RU1Cjzwcoea1tou0je58uXmT/9A==}
+  eslint-plugin-playwright@2.12.2:
+    resolution: {integrity: sha512-sYRCyAEACD3URVoFTfldZcvZNdlJ1r5414gilOTsDCu26PY7l4dUl/3o9ohIEltZgaDS1VXD1mG5xU1KlIGJSw==}
     engines: {node: '>=16.9.0'}
     peerDependencies:
       eslint: '>=8.40.0'
@@ -1100,7 +1100,7 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  eslint-plugin-playwright@2.12.1(eslint@10.11.0):
+  eslint-plugin-playwright@2.12.2(eslint@10.11.0):
     dependencies:
       eslint: 10.11.0
       globals: 17.13.0
