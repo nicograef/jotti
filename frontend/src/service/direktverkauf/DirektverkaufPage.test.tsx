@@ -57,6 +57,38 @@ const pfandProdukt: Produkt = {
   ],
 }
 
+const verkaufId = '00000000-0000-4000-8000-000000000001'
+const stornierungId = '00000000-0000-4000-8000-000000000003'
+
+const cola = {
+  positionId: '00000000-0000-4000-8000-000000000002',
+  varianteId: 1,
+  produktName: 'Cola',
+  varianteName: '0,5l',
+  kategorie: 'getraenk' as const,
+  steuersatz: 'regel' as const,
+  einzelpreisCents: 500,
+  menge: 2,
+}
+
+const stornierterVerkauf = {
+  verkaufId,
+  userName: 'Anna',
+  getaetigtAm: '2026-06-08T10:00:00Z',
+  positionen: [cola],
+  gesamtbetragCents: 1000,
+  kommentar: '',
+  offenePositionen: [{ ...cola, menge: 1 }],
+  gesamtStorniertCents: 500,
+  stornierungen: [
+    {
+      stornierungId,
+      storniertAm: '2026-06-08T11:00:00Z',
+      gesamtStornierungCents: 500,
+    },
+  ],
+}
+
 function backend(pfandProdukte: Produkt[] = []): FakeBackend {
   return new FakeBackend()
     .respond('service/get-aktive-produkte', {
@@ -155,5 +187,26 @@ describe('DirektverkaufPage', () => {
       'service/pfand-zurueckgeben',
     ) as [{ rueckgabeId: string }, { rueckgabeId: string }]
     expect(wiederholung.rueckgabeId).toBe(erster.rueckgabeId)
+  })
+
+  it.each([
+    ['Kassenbeleg drucken', { verkaufId }],
+    ['Stornobeleg drucken', { verkaufId, stornierungId }],
+  ])('sends %s with the Direktverkauf Beleg body', async (button, body) => {
+    const user = userEvent.setup()
+    const fake = backend()
+      .respond('service/get-direktverkauf-historie', {
+        historie: [stornierterVerkauf],
+      })
+      .respond('service/beleg-drucken', { status: 'eingereiht' })
+    renderWithBackend(<DirektverkaufPage />, fake)
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(await screen.findByRole('button', { name: /Verkauf/ }))
+    await user.click(screen.getByRole('button', { name: button }))
+
+    await waitFor(() => {
+      expect(fake.bodies('service/beleg-drucken')).toEqual([body])
+    })
   })
 })
