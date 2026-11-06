@@ -17,6 +17,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - Tisch-Übersicht mit offenem Saldo, Positionen und Bestellhistorie.
 - „Meine Tische“: Favoriten als große Tischkarten auf dem Dashboard, Schnellsuche nach Name oder Nummer.
 - Direktverkauf ohne Tisch: bestellen und kassieren in einem Schritt, mit Historie und Storno.
+- Pfandrückgabe: Pfandgut bar auszahlen oder beim Kassieren und im Direktverkauf verrechnen. Admins kennzeichnen Pfand-Produkte, die Serviceleitung storniert Rückgaben positionsgenau.
 
 ### Küche
 
@@ -42,6 +43,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - Abrechnung je Servicekraft.
 - Produktumsatz-Reporting: meistverkaufte Varianten, Mengen und Umsatz je Produkt.
 - DSFinV-K-Export als ZIP-Archiv (Version 2.4) für die Finanzverwaltung.
+- Pfandrückgaben mindern Soll-Kassenbestand und Umsatz am Steuersatz des Pfand-Produkts. Kassenbericht und Abrechnung je Servicekraft weisen sie aus, der Export führt sie als „PfandRueckzahlung“.
 
 ### Verwaltung, Sicherheit und Compliance
 
