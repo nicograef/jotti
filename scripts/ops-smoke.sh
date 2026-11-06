@@ -85,6 +85,18 @@ http_post_status() {
     -X POST -H 'Content-Type: application/json' ${3:+-H "$3"} -d "$data" "$url" 2>"$SMOKE_TMP/curl.log" || echo 000
 }
 
+# post_expect_200 STEP URL DATA [AUTH_HEADER] — POSTs DATA, sets STEP_DURATION
+# and aborts the run with the redacted body unless the status is 200.
+post_expect_200() {
+  local step="$1" start status
+  start="$(date +%s)"
+  status="$(http_post_status "$2" "$3" "${4:-}")"
+  STEP_DURATION=$(($(date +%s) - start))
+  if [[ "$status" != "200" ]]; then
+    fail_step "$step" "expected 200, got $status: $(redacted_body)"
+  fi
+}
+
 # json_field FIELD — extracts a top-level field from $SMOKE_TMP/body.json
 # without a jq dependency; every value read here is a simple scalar.
 json_field() {
@@ -151,34 +163,22 @@ step_install() {
   fi
   ok_step "parse-admin-otp" "$duration"
 
-  start="$(date +%s)"
-  local status
-  status="$(http_post_status "$BASE_URL/api/auth/set-password" \
-    "$(printf '{"username":"admin","password":"%s","onetimePassword":"%s"}' "$ADMIN_PASSWORD" "$otp")")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "set-password" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "set-password" "$duration"
+  post_expect_200 "set-password" "$BASE_URL/api/auth/set-password" \
+    "$(printf '{"username":"admin","password":"%s","onetimePassword":"%s"}' "$ADMIN_PASSWORD" "$otp")"
+  ok_step "set-password" "$STEP_DURATION"
 
   step_login
 }
 
 # step_login — logs in as admin and sets ADMIN_TOKEN.
 step_login() {
-  local start end duration status
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/auth/login" \
-    "$(printf '{"username":"admin","password":"%s"}' "$ADMIN_PASSWORD")")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "login" "expected 200, got $status: $(redacted_body)"
-  fi
+  post_expect_200 "login" "$BASE_URL/api/auth/login" \
+    "$(printf '{"username":"admin","password":"%s"}' "$ADMIN_PASSWORD")"
   ADMIN_TOKEN="$(json_field token)"
   if [[ -z "$ADMIN_TOKEN" ]]; then
     fail_step "login" "no token in response body"
   fi
-  ok_step "login" "$duration"
+  ok_step "login" "$STEP_DURATION"
 }
 
 step_ops() {
@@ -200,14 +200,9 @@ step_sale() {
   # Betreiber liefert kassensitzung-eroeffnen 400 betreiber_nicht_konfiguriert.
   # Nur die Pflichtfelder (vereinsname, strasse, plz, ort); steuernummer/ustId
   # bleiben optional.
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/admin/update-betreiber" \
-    '{"vereinsname":"Ops-Smoke-Verein","strasse":"Teststraße 1","plz":"12345","ort":"Teststadt"}' "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "update-betreiber" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "update-betreiber" "$duration"
+  post_expect_200 "update-betreiber" "$BASE_URL/api/admin/update-betreiber" \
+    '{"vereinsname":"Ops-Smoke-Verein","strasse":"Teststraße 1","plz":"12345","ort":"Teststadt"}' "$auth_header"
+  ok_step "update-betreiber" "$STEP_DURATION"
 
   start="$(date +%s)"
   status="$(http_post_status "$BASE_URL/api/admin/kassensitzung-eroeffnen" \
@@ -222,46 +217,26 @@ step_sale() {
   fi
 
   # Active product names are unique, so every ops rerun names its own product.
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/admin/create-produkt" \
-    "$(printf '{"name":"Ops-Smoke-Produkt-%s","kategorie":"sonstiges","steuersatz":"regel"}' "$(date +%s)")" "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "create-produkt" "expected 200, got $status: $(redacted_body)"
-  fi
+  post_expect_200 "create-produkt" "$BASE_URL/api/admin/create-produkt" \
+    "$(printf '{"name":"Ops-Smoke-Produkt-%s","kategorie":"sonstiges","steuersatz":"regel"}' "$(date +%s)")" "$auth_header"
   local produkt_id
   produkt_id="$(json_field id)"
-  ok_step "create-produkt" "$duration" "id=$produkt_id"
+  ok_step "create-produkt" "$STEP_DURATION" "id=$produkt_id"
 
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/admin/create-variante" \
-    "$(printf '{"produktId":%s,"name":"Standard","preisCents":250}' "$produkt_id")" "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "create-variante" "expected 200, got $status: $(redacted_body)"
-  fi
+  post_expect_200 "create-variante" "$BASE_URL/api/admin/create-variante" \
+    "$(printf '{"produktId":%s,"name":"Standard","preisCents":250}' "$produkt_id")" "$auth_header"
   local variante_id
   variante_id="$(json_field id)"
-  ok_step "create-variante" "$duration" "id=$variante_id"
+  ok_step "create-variante" "$STEP_DURATION" "id=$variante_id"
 
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/admin/activate-variante" \
-    "$(printf '{"id":%s}' "$variante_id")" "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "activate-variante" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "activate-variante" "$duration"
+  post_expect_200 "activate-variante" "$BASE_URL/api/admin/activate-variante" \
+    "$(printf '{"id":%s}' "$variante_id")" "$auth_header"
+  ok_step "activate-variante" "$STEP_DURATION"
 
   VERKAUF_ID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())')"
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/service/direktverkauf-taetigen" \
-    "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$VERKAUF_ID" "$produkt_id" "$variante_id")" "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "direktverkauf-taetigen" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "direktverkauf-taetigen" "$duration" "verkaufId=$VERKAUF_ID"
+  post_expect_200 "direktverkauf-taetigen" "$BASE_URL/api/service/direktverkauf-taetigen" \
+    "$(printf '{"verkaufId":"%s","positionen":[{"produktId":%s,"varianteId":%s,"menge":1}],"kommentar":"ops-smoke"}' "$VERKAUF_ID" "$produkt_id" "$variante_id")" "$auth_header"
+  ok_step "direktverkauf-taetigen" "$STEP_DURATION" "verkaufId=$VERKAUF_ID"
 }
 
 # step_receipt_export TOKEN — one Kassenbeleg print for step_sale's VERKAUF_ID
@@ -275,14 +250,9 @@ step_receipt_export() {
   # 192.0.2.1 ist eine TEST-NET-1-Adresse (RFC 5737), also nie ein echter
   # Drucker — der Handler legt bei nicht-leerer druckerIp trotzdem einen
   # Druckauftrag in der DB an, ohne den Drucker tatsächlich zu erreichen.
-  start="$(date +%s)"
-  status="$(http_post_status "$BASE_URL/api/admin/update-druckstationen" \
-    '{"kategorie":"kassenbeleg","druckerIp":"192.0.2.1"}' "$auth_header")"
-  end="$(date +%s)"; duration=$((end - start))
-  if [[ "$status" != "200" ]]; then
-    fail_step "update-druckstationen" "expected 200, got $status: $(redacted_body)"
-  fi
-  ok_step "update-druckstationen" "$duration"
+  post_expect_200 "update-druckstationen" "$BASE_URL/api/admin/update-druckstationen" \
+    '{"kategorie":"kassenbeleg","druckerIp":"192.0.2.1"}' "$auth_header"
+  ok_step "update-druckstationen" "$STEP_DURATION"
 
   # beleg-drucken meldet "ausstehend" (200, kein Druckauftrag), solange der
   # asynchrone Signatur-Worker die TSE-Signatur nicht quittiert hat. Nur
