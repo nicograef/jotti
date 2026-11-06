@@ -9,6 +9,7 @@ import { parseCents } from '@/lib/utils'
 
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import type { PfandBackend } from '../pfand/PfandBackend'
+import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
 import { usePfandAuswahl } from '../pfand/usePfandAuswahl'
 import { AbschlussContainer } from '../table/AbschlussContainer'
 import { AbschlussHeader } from '../table/AbschlussHeader'
@@ -41,8 +42,20 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
 
   const noPositionenSelected = props.positionen.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  const pfand = usePfandAuswahl(props.pfandProdukte, !noPositionenSelected)
-  const nurPfand = noPositionenSelected && pfand.summeCents > 0
+  const pfand = usePfandAuswahl(props.pfandProdukte)
+  const mitPfand = pfand.summeCents > 0
+  const nurPfand = noPositionenSelected && mitPfand
+  // Mit Pfand ist nur die positive Differenz bar zu kassieren.
+  const zuZahlenCents = props.totalCents - pfand.summeCents
+  const barzahlung = !mitPfand || zuZahlenCents > 0
+  const pfandVerrechnung = mitPfand
+    ? {
+        pfand: {
+          rueckgabeId: pfand.rueckgabeId,
+          positionen: pfand.positionen,
+        },
+      }
+    : {}
 
   // One verkaufId per logical Vorgang, renewed when a selection starts from empty; a retry keeps its key.
   // The new key also resets the inputs, so the persistent column carries nothing over from an abandoned Vorgang.
@@ -60,7 +73,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
   }, [noPositionenSelected])
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
-    props.totalCents,
+    zuZahlenCents,
     parseCents(erhaltenEuro),
     parseCents(zielbetragEuro),
   )
@@ -72,6 +85,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       setZielbetragEuro('')
       setAndererAktiv(false)
       setKommentar('')
+      pfand.steuerung.reset()
       props.verkaufAbgeschlossen()
     },
   })
@@ -91,6 +105,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
         verkaufId,
         positionen: props.positionen,
         kommentar,
+        ...pfandVerrechnung,
       })
     })
   }
@@ -131,32 +146,42 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
             <AbschlussLeer>Produkte auswählen, um zu kassieren.</AbschlussLeer>
           )
         ) : (
-          <>
-            <Receipt
-              positionen={props.receiptItems}
-              totalPrice={props.totalCents}
-            />
-            <BarzahlungFelder
-              gesamtCents={props.totalCents}
-              erhaltenEuro={erhaltenEuro}
-              onErhaltenEuroChange={setErhaltenEuro}
-              zielbetragEuro={zielbetragEuro}
-              onZielbetragEuroChange={setZielbetragEuro}
-              andererAktiv={andererAktiv}
-              onAndererAktivChange={setAndererAktiv}
-              rueckgeldCents={rueckgeldCents}
-              trinkgeldCents={trinkgeldCents}
-            />
-            {kommentarFeld}
-          </>
+          <Receipt
+            positionen={props.receiptItems}
+            totalPrice={props.totalCents}
+          />
         )}
         {pfandAngebot && (
           <PfandAbschnitt
             pfandProdukte={props.pfandProdukte}
             steuerung={pfand.steuerung}
             summeCents={pfand.summeCents}
-            disabled={!noPositionenSelected}
+            disabled={loading}
           />
+        )}
+        {!noPositionenSelected && (
+          <>
+            {mitPfand && (
+              <PfandVerrechnung
+                kaufsummeCents={props.totalCents}
+                pfandCents={pfand.summeCents}
+              />
+            )}
+            {barzahlung && (
+              <BarzahlungFelder
+                gesamtCents={zuZahlenCents}
+                erhaltenEuro={erhaltenEuro}
+                onErhaltenEuroChange={setErhaltenEuro}
+                zielbetragEuro={zielbetragEuro}
+                onZielbetragEuroChange={setZielbetragEuro}
+                andererAktiv={andererAktiv}
+                onAndererAktivChange={setAndererAktiv}
+                rueckgeldCents={rueckgeldCents}
+                trinkgeldCents={trinkgeldCents}
+              />
+            )}
+            {kommentarFeld}
+          </>
         )}
         {nurPfand && kommentarFeld}
       </DrawerBody>

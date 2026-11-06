@@ -14,10 +14,18 @@ export const VerkaufPositionInputSchema = z.object({
 })
 export type VerkaufPositionInput = z.infer<typeof VerkaufPositionInputSchema>
 
+// Die im selben Abschluss verrechnete Pfandrückgabe von Zahlung und Verkauf.
+export const PfandVerrechnungSchema = z.object({
+  rueckgabeId: z.uuid(),
+  positionen: VerkaufPositionInputSchema.array().min(1),
+})
+export type PfandVerrechnung = z.infer<typeof PfandVerrechnungSchema>
+
 export const DirektverkaufTaetigenSchema = z.object({
   verkaufId: z.uuid(),
   positionen: VerkaufPositionInputSchema.array().min(1),
   kommentar: z.string().max(100),
+  pfand: PfandVerrechnungSchema.optional(),
 })
 export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
 

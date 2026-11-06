@@ -16,19 +16,12 @@ export interface PfandAuswahl {
 // Die rueckgabeId gehört zu genau einer Auswahl: Jede Änderung erneuert sie,
 // nur ein unveränderter Wiederholversuch behält sie. Sonst bucht der Server
 // nach einem Timeout die alte Menge, während die neue bar ausgezahlt wird.
-// Solange `gesperrt` gilt, wird eine Auswahl im Render verworfen.
-export function usePfandAuswahl(
-  pfandProdukte: Produkt[],
-  gesperrt: boolean,
-): PfandAuswahl {
+export function usePfandAuswahl(pfandProdukte: Produkt[]): PfandAuswahl {
   const steuerung = useMengen<number>()
   const { receiptItems, inputItems } = toBestellungData(
     pfandProdukte,
     steuerung.mengen,
   )
-  if (gesperrt && inputItems.length > 0) {
-    steuerung.reset()
-  }
 
   const auswahlKey = inputItems
     .map((p) => `${p.varianteId.toString()}:${p.menge.toString()}`)

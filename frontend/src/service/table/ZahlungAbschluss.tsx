@@ -9,6 +9,7 @@ import { parseCents } from '@/lib/utils'
 
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import type { PfandBackend } from '../pfand/PfandBackend'
+import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
 import { usePfandAuswahl } from '../pfand/usePfandAuswahl'
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
@@ -42,8 +43,8 @@ interface ZahlungAbschlussProps {
 
 // Die Zahlung trägt keinen Client-Idempotenz-Schlüssel: die Idempotenz ist
 // zustandsbasiert (bereits bezahlte Positionen → position_nicht_bezahlbar), und
-// der Loading-Guard verhindert den Doppel-Submit. Die Pfandrückgabe trägt ihre
-// rueckgabeId.
+// der Loading-Guard verhindert den Doppel-Submit. Eine Pfandrückgabe, allein
+// oder verrechnet, trägt ihre rueckgabeId.
 export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   const [kommentar, setKommentar] = useState('')
   const [erhaltenEuro, setErhaltenEuro] = useState('')
@@ -52,8 +53,20 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
 
   const noPositionenSelected = props.positionenToPay.length === 0
   const pfandAngebot = props.pfandProdukte.length > 0
-  const pfand = usePfandAuswahl(props.pfandProdukte, !noPositionenSelected)
-  const nurPfand = noPositionenSelected && pfand.summeCents > 0
+  const pfand = usePfandAuswahl(props.pfandProdukte)
+  const mitPfand = pfand.summeCents > 0
+  const nurPfand = noPositionenSelected && mitPfand
+  // Mit Pfand ist nur die positive Differenz bar zu kassieren.
+  const zuZahlenCents = props.totalCents - pfand.summeCents
+  const barzahlung = !mitPfand || zuZahlenCents > 0
+  const pfandVerrechnung = mitPfand
+    ? {
+        pfand: {
+          rueckgabeId: pfand.rueckgabeId,
+          positionen: pfand.positionen,
+        },
+      }
+    : {}
 
   // In der dauerhaften Spalte überlebt der Eingabe-State sonst einen
   // Auswahl-Reset; eine neue Zusammenstellung startet deshalb mit leeren
@@ -70,7 +83,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   }, [noPositionenSelected])
 
   const { rueckgeldCents, trinkgeldCents } = calculateZahlungsbetraege(
-    props.totalCents,
+    zuZahlenCents,
     parseCents(erhaltenEuro),
     parseCents(zielbetragEuro),
   )
@@ -82,6 +95,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
       setZielbetragEuro('')
       setAndererAktiv(false)
       setKommentar('')
+      pfand.steuerung.reset()
       props.zahlungKassiert()
     },
   })
@@ -101,6 +115,7 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
         tischId: props.tisch.id,
         positionen: toPositionRefs(props.positionenToPay),
         kommentar,
+        ...pfandVerrechnung,
       })
     })
   }
@@ -143,32 +158,42 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
             </AbschlussLeer>
           )
         ) : (
-          <>
-            <Receipt
-              positionen={toReceiptItems(props.positionenToPay)}
-              totalPrice={props.totalCents}
-            />
-            <BarzahlungFelder
-              gesamtCents={props.totalCents}
-              erhaltenEuro={erhaltenEuro}
-              onErhaltenEuroChange={setErhaltenEuro}
-              zielbetragEuro={zielbetragEuro}
-              onZielbetragEuroChange={setZielbetragEuro}
-              andererAktiv={andererAktiv}
-              onAndererAktivChange={setAndererAktiv}
-              rueckgeldCents={rueckgeldCents}
-              trinkgeldCents={trinkgeldCents}
-            />
-            {kommentarFeld}
-          </>
+          <Receipt
+            positionen={toReceiptItems(props.positionenToPay)}
+            totalPrice={props.totalCents}
+          />
         )}
         {pfandAngebot && (
           <PfandAbschnitt
             pfandProdukte={props.pfandProdukte}
             steuerung={pfand.steuerung}
             summeCents={pfand.summeCents}
-            disabled={!noPositionenSelected}
+            disabled={loading}
           />
+        )}
+        {!noPositionenSelected && (
+          <>
+            {mitPfand && (
+              <PfandVerrechnung
+                kaufsummeCents={props.totalCents}
+                pfandCents={pfand.summeCents}
+              />
+            )}
+            {barzahlung && (
+              <BarzahlungFelder
+                gesamtCents={zuZahlenCents}
+                erhaltenEuro={erhaltenEuro}
+                onErhaltenEuroChange={setErhaltenEuro}
+                zielbetragEuro={zielbetragEuro}
+                onZielbetragEuroChange={setZielbetragEuro}
+                andererAktiv={andererAktiv}
+                onAndererAktivChange={setAndererAktiv}
+                rueckgeldCents={rueckgeldCents}
+                trinkgeldCents={trinkgeldCents}
+              />
+            )}
+            {kommentarFeld}
+          </>
         )}
         {nurPfand && kommentarFeld}
       </DrawerBody>

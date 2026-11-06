@@ -180,6 +180,53 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     ])
   })
 
+  it('shows Auszahlen when the Pfand exceeds the sale', async () => {
+    const user = userEvent.setup()
+    const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
+    render(
+      <DirektverkaufAbschluss
+        variant="spalte"
+        backend={{ direktverkaufTaetigen }}
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[pfandProdukt]}
+        receiptItems={receiptItems}
+        positionen={positionen}
+        totalCents={700}
+        verkaufAbgeschlossen={vi.fn()}
+        pfandAusgezahlt={vi.fn()}
+      />,
+    )
+
+    for (let i = 0; i < 4; i++) {
+      await user.click(
+        screen.getByRole('button', { name: 'Variante hinzufügen' }),
+      )
+    }
+
+    expect(screen.getByText('Auszahlen').nextElementSibling).toHaveTextContent(
+      '1,00',
+    )
+    expect(screen.queryByLabelText('Erhalten')).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+    await waitFor(() => {
+      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+    })
+    expect(direktverkaufTaetigen).toHaveBeenCalledWith({
+      // oxlint-disable-next-line typescript/no-unsafe-assignment
+      verkaufId: expect.stringMatching(UUID),
+      positionen,
+      kommentar: '',
+      pfand: {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        rueckgabeId: expect.stringMatching(UUID),
+        positionen: [{ produktId: 9, varianteId: 19, menge: 4 }],
+      },
+    })
+  })
+
   it('rechnet das Rückgeld aus dem erhaltenen Betrag', async () => {
     const user = userEvent.setup()
     renderSpalte()

@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -141,6 +147,59 @@ describe('ZahlungAbschluss (Spalte)', () => {
     })
     expect(zahlungKassieren).not.toHaveBeenCalled()
     expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
+  })
+
+  it('nets the Pfand against the payment', async () => {
+    const user = userEvent.setup()
+    const zahlungKassieren = vi.fn().mockResolvedValue(undefined)
+    render(
+      <ZahlungAbschluss
+        variant="spalte"
+        backend={{ zahlungKassieren }}
+        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
+        pfandProdukte={[pfandProdukt]}
+        tisch={tisch}
+        positionenToPay={[{ ...position, menge: 2 }]}
+        totalCents={700}
+        restNachZahlungCents={200}
+        zahlungKassiert={vi.fn()}
+        pfandAusgezahlt={vi.fn()}
+      />,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    const verrechnung = within(screen.getByLabelText('Verrechnung'))
+    expect(
+      verrechnung.getByText('Kaufsumme').nextElementSibling,
+    ).toHaveTextContent('7,00')
+    expect(
+      verrechnung.getByText('Pfand zurück').nextElementSibling,
+    ).toHaveTextContent('-2,00')
+    expect(
+      verrechnung.getByText('Zu zahlen').nextElementSibling,
+    ).toHaveTextContent('5,00')
+
+    await user.type(screen.getByLabelText('Erhalten'), '10,00')
+    expect(screen.getByText('Rückgeld').nextElementSibling).toHaveTextContent(
+      '5,00',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Kassieren' }))
+    await waitFor(() => {
+      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+    })
+    expect(zahlungKassieren).toHaveBeenCalledWith({
+      tischId: 1,
+      positionen: [{ positionId: position.positionId, menge: 2 }],
+      kommentar: '',
+      pfand: {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        rueckgabeId: expect.stringMatching(UUID),
+        positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
+      },
+    })
   })
 
   it('zeigt die Restbetrag-Zeile in der Spalte', () => {
