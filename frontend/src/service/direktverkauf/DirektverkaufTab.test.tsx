@@ -180,7 +180,7 @@ describe('DirektverkaufTab', () => {
     })
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[0]!,
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[0],
     )
     await user.click(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
