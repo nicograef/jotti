@@ -19,7 +19,7 @@ export function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
 
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
 // VerkaufPosition erfüllen sie beide).
-interface AuswaehlbarePosition {
+export interface AuswaehlbarePosition {
   positionId: string
   produktName: string
   varianteName: string
