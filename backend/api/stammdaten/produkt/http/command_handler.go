@@ -104,20 +104,21 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 	}
 }
 
-type verschiebeProduktRequest struct {
+// verschiebeRequest moves a Produkt or a Variante one place up or down.
+type verschiebeRequest struct {
 	ID       int          `json:"id"`
 	Richtung dom.Richtung `json:"richtung"`
 }
 
-var verschiebeProduktSchema = z.Struct(z.Shape{
+var verschiebeSchema = z.Struct(z.Shape{
 	"ID":       dom.IDSchema.Required(),
 	"Richtung": dom.RichtungSchema.Required(),
 })
 
 func (h *CommandHandler) VerschiebeProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := verschiebeProduktRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, verschiebeProduktSchema) {
+		body := verschiebeRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, verschiebeSchema) {
 			return
 		}
 
@@ -201,20 +202,10 @@ func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
 	}
 }
 
-type verschiebeVarianteRequest struct {
-	ID       int          `json:"id"`
-	Richtung dom.Richtung `json:"richtung"`
-}
-
-var verschiebeVarianteSchema = z.Struct(z.Shape{
-	"ID":       dom.IDSchema.Required(),
-	"Richtung": dom.RichtungSchema.Required(),
-})
-
 func (h *CommandHandler) VerschiebeVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := verschiebeVarianteRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, verschiebeVarianteSchema) {
+		body := verschiebeRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, verschiebeSchema) {
 			return
 		}
 
@@ -230,18 +221,19 @@ func (h *CommandHandler) VerschiebeVarianteHandler() http.HandlerFunc {
 	}
 }
 
-type activateVarianteRequest struct {
+// idRequest is the body of every endpoint that addresses one entity by its ID.
+type idRequest struct {
 	ID int `json:"id"`
 }
 
-var activateVarianteSchema = z.Struct(z.Shape{
+var idSchema = z.Struct(z.Shape{
 	"ID": dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) ActivateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateVarianteRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, activateVarianteSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -257,18 +249,10 @@ func (h *CommandHandler) ActivateVarianteHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateVarianteRequest struct {
-	ID int `json:"id"`
-}
-
-var deactivateVarianteSchema = z.Struct(z.Shape{
-	"ID": dom.IDSchema.Required(),
-})
-
 func (h *CommandHandler) DeactivateVarianteHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateVarianteRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deactivateVarianteSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -284,18 +268,10 @@ func (h *CommandHandler) DeactivateVarianteHandler() http.HandlerFunc {
 	}
 }
 
-type deleteProduktRequest struct {
-	ID int `json:"id"`
-}
-
-var deleteProduktSchema = z.Struct(z.Shape{
-	"ID": dom.IDSchema.Required(),
-})
-
 func (h *CommandHandler) DeleteProduktHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteProduktRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deleteProduktSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 

@@ -145,18 +145,19 @@ func (h *CommandHandler) FavoritEntfernenHandler() http.HandlerFunc {
 	}
 }
 
-type activateTischRequest struct {
+// idRequest is the body of every endpoint that addresses one entity by its ID.
+type idRequest struct {
 	ID int `json:"id"`
 }
 
-var activateTischSchema = z.Struct(z.Shape{
+var idSchema = z.Struct(z.Shape{
 	"ID": t.TischIDSchema.Required(),
 })
 
 func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateTischRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, activateTischSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -172,18 +173,10 @@ func (h *CommandHandler) TischAktivierenHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateTischRequest struct {
-	ID int `json:"id"`
-}
-
-var deactivateTischSchema = z.Struct(z.Shape{
-	"ID": t.TischIDSchema.Required(),
-})
-
 func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateTischRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deactivateTischSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -200,18 +193,10 @@ func (h *CommandHandler) TischDeaktivierenHandler() http.HandlerFunc {
 	}
 }
 
-type deleteTischRequest struct {
-	ID int `json:"id"`
-}
-
-var deleteTischSchema = z.Struct(z.Shape{
-	"ID": t.TischIDSchema.Required(),
-})
-
 func (h *CommandHandler) TischLoeschenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteTischRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deleteTischSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 

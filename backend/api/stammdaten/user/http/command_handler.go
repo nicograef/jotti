@@ -106,11 +106,12 @@ func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 	}
 }
 
-type resetPasswordRequest struct {
+// idRequest is the body of every endpoint that addresses one entity by its ID.
+type idRequest struct {
 	ID int `json:"id"`
 }
 
-var resetPasswordSchema = z.Struct(z.Shape{
+var idSchema = z.Struct(z.Shape{
 	"ID": user.IDSchema.Required(),
 })
 
@@ -120,8 +121,8 @@ type resetPasswordResponse struct {
 
 func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := resetPasswordRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, resetPasswordSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -137,18 +138,10 @@ func (h *CommandHandler) ResetPasswordHandler() http.HandlerFunc {
 	}
 }
 
-type activateUserRequest struct {
-	ID int `json:"id"`
-}
-
-var activateUserSchema = z.Struct(z.Shape{
-	"ID": user.IDSchema.Required(),
-})
-
 func (h *CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := activateUserRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, activateUserSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -164,18 +157,10 @@ func (h *CommandHandler) ActivateUserHandler() http.HandlerFunc {
 	}
 }
 
-type deactivateUserRequest struct {
-	ID int `json:"id"`
-}
-
-var deactivateUserSchema = z.Struct(z.Shape{
-	"ID": user.IDSchema.Required(),
-})
-
 func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deactivateUserRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deactivateUserSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
@@ -202,18 +187,10 @@ func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 	}
 }
 
-type deleteUserRequest struct {
-	ID int `json:"id"`
-}
-
-var deleteUserSchema = z.Struct(z.Shape{
-	"ID": user.IDSchema.Required(),
-})
-
 func (h *CommandHandler) DeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := deleteUserRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, deleteUserSchema) {
+		body := idRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, idSchema) {
 			return
 		}
 
