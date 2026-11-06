@@ -165,7 +165,7 @@ func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	}
 }
 
-// Derselbe Wettlauf auf dem Weg über persistTischEvent.
+// Derselbe Wettlauf auf dem Weg über WriteEventsAtomic.
 func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
@@ -461,6 +461,63 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	}
 	if events[0].Version != 4 {
 		t.Errorf("expected version 4 (LastEventVersion 3 + 1), got %d", events[0].Version)
+	}
+}
+
+// verspaeteteRueckgabeRepo hides the Rückgabe from the first lookup: a parallel attempt with the
+// same rueckgabeId commits between the pre-check and the projection read.
+type verspaeteteRueckgabeRepo struct {
+	*repotest.KassenjournalRepo
+	lookups int
+}
+
+func (r *verspaeteteRueckgabeRepo) GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
+	r.lookups++
+	if r.lookups == 1 {
+		return event.Event{}, false, nil
+	}
+	return r.KassenjournalRepo.GetPfandrueckgabe(ctx, rueckgabeID)
+}
+
+func TestZahlungKassieren_ParallelerVersuchMitPfand_Idempotent(t *testing.T) {
+	ctx := context.Background()
+	const rueckgabeID = "33333333-3333-4333-8333-333333333333"
+	const positionID = "22222222-2222-4222-8222-222222222222"
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	zahlung, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
+		[]kasse.Position{{PositionID: positionID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1}},
+		350, "")
+	if err != nil {
+		t.Fatalf("failed to create zahlung: %v", err)
+	}
+	zahlung.ID, zahlung.Version = 5, 2
+	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(testKassensitzungNr, rueckgabeID), rueckgabeID, testActiveTisch.ID, 1, "Test User",
+		[]kasse.Position{{VarianteID: 7, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 200, Menge: 2}}, "")
+	if err != nil {
+		t.Fatalf("failed to create rueckgabe: %v", err)
+	}
+	rueckgabe = kasse.Verrechne(rueckgabe, zahlung)
+	rueckgabe.ID, rueckgabe.Version = 6, 1
+
+	eventMock := &verspaeteteRueckgabeRepo{KassenjournalRepo: repotest.NewKassenjournalRepo([]event.Event{zahlung, rueckgabe}, nil)}
+	// Die Projektion ist der Stand NACH dem parallelen Commit: die Position ist bezahlt.
+	eventMock.SetTischSession(subject, kasse.TischSession{LastEventVersion: 2})
+
+	command := Command{
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+	}
+
+	pfand := &enrichment.PfandEingabe{
+		RueckgabeID: rueckgabeID,
+		Positionen:  []enrichment.PositionInput{{ProduktID: 7, VarianteID: 7, Menge: 2}},
+	}
+	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+		[]kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "", pfand)
+	if err != nil {
+		t.Fatalf("expected idempotent success, got %v", err)
 	}
 }
 
