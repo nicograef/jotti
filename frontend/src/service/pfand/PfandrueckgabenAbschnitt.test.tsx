@@ -49,6 +49,21 @@ const rueckgabe: PfandrueckgabeHistorieEintrag = {
   stornierungen: [],
 }
 
+const stornierungId = '00000000-0000-4000-8000-000000000013'
+
+const stornierteRueckgabe: PfandrueckgabeHistorieEintrag = {
+  ...rueckgabe,
+  offenePositionen: [{ ...glas, menge: 1 }],
+  gesamtStorniertCents: 200,
+  stornierungen: [
+    {
+      stornierungId,
+      storniertAm: '2026-06-08T11:00:00Z',
+      gesamtStornierungCents: 200,
+    },
+  ],
+}
+
 describe('PfandrueckgabenAbschnitt', () => {
   it('cancels a return through pfandrueckgabeStornieren', async () => {
     const user = userEvent.setup()
@@ -92,6 +107,84 @@ describe('PfandrueckgabenAbschnitt', () => {
       rueckgabeId,
       positionen: [{ positionId, menge: 1 }],
       kommentar: 'Falsch gezählt',
+    })
+  })
+
+  // Eine verlorene Antwort darf nicht doppelt buchen: Die Wiederholung derselben
+  // Auswahl trägt dieselbe stornierungId, eine andere Auswahl eine neue.
+  it('keeps the stornierungId for a retry of the same selection only', async () => {
+    const user = userEvent.setup()
+    const stornieren = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = new FakeBackend()
+      .respond('service/get-pfandrueckgabe-historie', { historie: [rueckgabe] })
+      .respond('serviceleitung/pfandrueckgabe-stornieren', stornieren)
+    renderWithBackend(
+      <PfandrueckgabenAbschnitt tischId={4} onErfolg={vi.fn()} />,
+      fake,
+    )
+    const erteilen = async (aufrufe: number) => {
+      await user.click(
+        screen.getByRole('button', { name: /Stornierung erteilen/ }),
+      )
+      await waitFor(() => {
+        expect(stornieren).toHaveBeenCalledTimes(aufrufe)
+      })
+    }
+    const glasHinzufuegen = () =>
+      user.click(screen.getByRole('button', { name: 'Pfand Glas hinzufügen' }))
+
+    await user.click(
+      await screen.findByRole('button', { name: /Pfandrückgabe/ }),
+    )
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await glasHinzufuegen()
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gezählt',
+    )
+    await erteilen(1)
+    await erteilen(2)
+    await glasHinzufuegen()
+    await erteilen(3)
+
+    const [erster, wiederholung, andereAuswahl] = fake.bodies(
+      'serviceleitung/pfandrueckgabe-stornieren',
+    ) as { stornierungId: string; positionen: unknown }[]
+    expect(wiederholung.stornierungId).toBe(erster.stornierungId)
+    expect(andereAuswahl.positionen).toEqual([{ positionId, menge: 2 }])
+    expect(andereAuswahl.stornierungId).not.toBe(erster.stornierungId)
+  })
+
+  it.each([
+    ['Kassenbeleg drucken', { rueckgabeId }],
+    ['Stornobeleg drucken', { rueckgabeId, stornierungId }],
+  ])('sends %s with the Pfand Beleg body', async (button, body) => {
+    const user = userEvent.setup()
+    const fake = new FakeBackend()
+      .respond('service/get-pfandrueckgabe-historie', {
+        historie: [stornierteRueckgabe],
+      })
+      .respond('service/beleg-drucken', { status: 'eingereiht' })
+    renderWithBackend(
+      <PfandrueckgabenAbschnitt tischId={4} onErfolg={vi.fn()} />,
+      fake,
+    )
+
+    await user.click(
+      await screen.findByRole('button', { name: /Pfandrückgabe/ }),
+    )
+    await user.click(screen.getByRole('button', { name: button }))
+
+    await waitFor(() => {
+      expect(fake.bodies('service/beleg-drucken')).toEqual([body])
     })
   })
 })
