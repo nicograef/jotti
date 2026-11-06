@@ -54,8 +54,9 @@ function renderDrawer(
         pfandAusgezahlt={vi.fn()}
         backend={{ zahlungKassieren }}
         tisch={tisch}
-        unbezahltePositionen={[position]}
-        mengen={{ [position.positionId]: 1 }}
+        positionenToPay={[{ ...position, menge: 1 }]}
+        totalCents={350}
+        anzahl={1}
         restNachZahlungCents={350}
         zahlungKassiert={zahlungKassiert}
       />

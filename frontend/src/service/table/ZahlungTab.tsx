@@ -1,4 +1,4 @@
-import { ChevronDown, CircleCheck } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -14,19 +14,19 @@ import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { AuthSingleton } from '@/lib/Auth'
 import type { Produkt } from '@/lib/produktSchemas'
-import {
-  cn,
-  formatAlleAuswaehlenLabel,
-  formatEuro,
-  formatPositionName,
-} from '@/lib/utils'
+import { cn, formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
+import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
 import type { Position } from './Bestellung'
-import { calculateTotalPrice, selectPositionen } from './drawerUtils'
+import {
+  calculateAnzahl,
+  calculateTotalPrice,
+  selectPositionen,
+} from './drawerUtils'
 import type { Tisch } from './Tisch'
 import type { TischBackend } from './TischBackend'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
@@ -60,60 +60,29 @@ export function ZahlungTab({
   const [andereOffen, setAndereOffen] = useState(false)
   const erstAufbau = useErstAufbau(true)
 
-  const { mengen, add, remove, reset, setAll } = mengenSteuerung
+  const { mengen, add, remove, reset } = mengenSteuerung
 
-  const meinePositionen = positionen.filter(
-    (position) => position.bestellerUserId === AuthSingleton.userId,
-  )
-  const anderePositionen = positionen.filter(
-    (position) => position.bestellerUserId !== AuthSingleton.userId,
-  )
+  const meinePositionen: Position[] = []
+  const anderePositionen: Position[] = []
+  for (const position of positionen) {
+    if (position.bestellerUserId === AuthSingleton.userId) {
+      meinePositionen.push(position)
+    } else {
+      anderePositionen.push(position)
+    }
+  }
 
   const positionenToPay = selectPositionen(positionen, mengen)
   const auswahlSumme = calculateTotalPrice(positionenToPay)
+  const auswahlAnzahl = calculateAnzahl(positionenToPay)
   const restNachZahlung = tisch.saldoCents - auswahlSumme
 
-  const alleEigenenVollAusgewaehlt =
-    meinePositionen.length > 0 &&
-    meinePositionen.every(
-      (position) => (mengen[position.positionId] || 0) === position.menge,
-    )
-
-  const alleAuswaehlen = () => {
-    if (alleEigenenVollAusgewaehlt) {
-      reset()
-      return
-    }
-    const naechste: Record<string, number> = {}
-    meinePositionen.forEach((position) => {
-      naechste[position.positionId] = position.menge
-    })
-    setAll(naechste)
-  }
-
-  const eigeneUnbezahltGesamt = meinePositionen.reduce(
-    (summe, position) => summe + position.menge * position.einzelpreisCents,
-    0,
-  )
-
-  const anderePositionenSumme = anderePositionen.reduce(
-    (summe, position) => summe + position.menge * position.einzelpreisCents,
-    0,
-  )
   const anderePositionenNamen = anderePositionen
     .map((position) =>
       formatPositionName(position.produktName, position.varianteName),
     )
     .join(', ')
-  const andereAusgewaehlteAnzahl = anderePositionen.reduce(
-    (anzahl, position) => anzahl + (mengen[position.positionId] || 0),
-    0,
-  )
-  const andereAusgewaehlteSumme = anderePositionen.reduce(
-    (summe, position) =>
-      summe + (mengen[position.positionId] || 0) * position.einzelpreisCents,
-    0,
-  )
+  const andereAusgewaehlt = selectPositionen(anderePositionen, mengen)
 
   const renderPosition = (
     position: Position,
@@ -148,20 +117,11 @@ export function ZahlungTab({
   const auswahl = (
     <div className="my-4 space-y-3">
       {meinePositionen.length > 0 && (
-        <button
-          type="button"
-          onClick={alleAuswaehlen}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
-        >
-          <CircleCheck className="size-5" />
-          {alleEigenenVollAusgewaehlt
-            ? 'Auswahl aufheben'
-            : formatAlleAuswaehlenLabel(
-                meinePositionen.length,
-                eigeneUnbezahltGesamt,
-                'meine',
-              )}
-        </button>
+        <AlleAuswaehlenButton
+          positionen={meinePositionen}
+          steuerung={mengenSteuerung}
+          variante="meine"
+        />
       )}
       <ItemGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 2xl:grid-cols-3">
         {meinePositionen.map((position, index) =>
@@ -194,14 +154,15 @@ export function ZahlungTab({
                 renderPosition(position, true),
               )}
             </ItemGroup>
-          ) : andereAusgewaehlteAnzahl > 0 ? (
+          ) : andereAusgewaehlt.length > 0 ? (
             <p className="text-[13px] font-medium text-primary/80">
-              {andereAusgewaehlteAnzahl} ausgewählt ·{' '}
-              {formatEuro(andereAusgewaehlteSumme)}
+              {calculateAnzahl(andereAusgewaehlt)} ausgewählt ·{' '}
+              {formatEuro(calculateTotalPrice(andereAusgewaehlt))}
             </p>
           ) : (
             <p className="text-[13px] text-muted-foreground">
-              {anderePositionenNamen} · {formatEuro(anderePositionenSumme)}
+              {anderePositionenNamen} ·{' '}
+              {formatEuro(calculateTotalPrice(anderePositionen))}
             </p>
           )}
         </div>
@@ -242,8 +203,9 @@ export function ZahlungTab({
         pfandProdukte={pfandProdukte}
         pfandVorgang={pfandVorgang}
         tisch={tisch}
-        unbezahltePositionen={positionen}
-        mengen={mengen}
+        positionenToPay={positionenToPay}
+        totalCents={auswahlSumme}
+        anzahl={auswahlAnzahl}
         restNachZahlungCents={restNachZahlung}
         zahlungKassiert={zahlungKassiert}
         pfandAusgezahlt={pfandAusgezahlt}

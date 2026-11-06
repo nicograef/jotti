@@ -8,7 +8,6 @@ import type { PfandBackend } from '../pfand/PfandBackend'
 import { DockActionSlot } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import { DockActionButton } from './DockActionButton'
-import { calculateTotalPrice, selectPositionen } from './drawerUtils'
 import { RestbetragZeile } from './RestbetragZeile'
 import type { Tisch } from './Tisch'
 import type { TischBackend } from './TischBackend'
@@ -20,24 +19,20 @@ interface ZahlungDrawerProps {
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   tisch: Tisch
-  unbezahltePositionen: Position[]
-  mengen: Record<string, number>
+  // Von ZahlungTab einmal abgeleitet, wie für die Spalte.
+  positionenToPay: Position[]
+  totalCents: number
+  anzahl: number
   restNachZahlungCents: number
   zahlungKassiert: () => void
   pfandAusgezahlt: () => void
 }
 
 // Handy-Container (unter lg): Dock-Aktionsbutton, Restbetrag-Zeile im Dock-Slot,
-// Bottom-Sheet-Drawer. Ab lg trägt die Abschluss-Spalte (siehe Zahlung) beides.
+// Bottom-Sheet-Drawer. Ab lg trägt die Abschluss-Spalte (siehe ZahlungTab) beides.
 export function ZahlungDrawer(props: ZahlungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const positionenToPay = selectPositionen(
-    props.unbezahltePositionen,
-    props.mengen,
-  )
-  const totalPrice = calculateTotalPrice(positionenToPay)
-  const anzahl = positionenToPay.reduce((sum, p) => sum + p.menge, 0)
-  const noPositionenSelected = positionenToPay.length === 0
+  const noPositionenSelected = props.positionenToPay.length === 0
   // Ohne Auswahl öffnet der Drawer nur für die Pfandrückgabe.
   const nurPfand = noPositionenSelected && props.pfandProdukte.length > 0
   const gesperrt = noPositionenSelected && !nurPfand
@@ -54,8 +49,8 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       <DrawerTrigger asChild>
         <DockActionButton
           label={nurPfand ? 'Pfand zurück' : 'Kassieren'}
-          anzahl={anzahl}
-          summeCents={totalPrice}
+          anzahl={props.anzahl}
+          summeCents={props.totalCents}
           disabled={gesperrt}
         />
       </DrawerTrigger>
@@ -66,8 +61,8 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
         pfandProdukte={props.pfandProdukte}
         pfandVorgang={props.pfandVorgang}
         tisch={props.tisch}
-        positionenToPay={positionenToPay}
-        totalCents={totalPrice}
+        positionenToPay={props.positionenToPay}
+        totalCents={props.totalCents}
         restNachZahlungCents={props.restNachZahlungCents}
         zahlungKassiert={() => {
           setOpen(false)

@@ -6,6 +6,11 @@ import type { Produkt } from '@/lib/produktSchemas'
 
 import { ServiceDock } from '../ServiceDock'
 import { BestellungDrawer } from './BestellungDrawer'
+import {
+  calculateAnzahl,
+  calculateTotalPrice,
+  toBestellungData,
+} from './drawerUtils'
 import type { Tisch } from './Tisch'
 
 vi.mock('sonner', () => ({
@@ -42,13 +47,16 @@ const testProdukt: Produkt = {
 // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
 // Drawer hier in ein Dock eingebettet (leiste bleibt leer).
 function renderDrawer(mengen: Record<number, number>) {
+  const { receiptItems, inputItems } = toBestellungData([testProdukt], mengen)
   render(
     <ServiceDock leiste={null}>
       <BestellungDrawer
         backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
-        products={[testProdukt]}
-        mengen={mengen}
+        receiptItems={receiptItems}
+        positionen={inputItems}
+        totalCents={calculateTotalPrice(receiptItems)}
+        anzahl={calculateAnzahl(inputItems)}
         schluesselFuer={() => crypto.randomUUID()}
         bestellungAufgenommen={vi.fn()}
       />

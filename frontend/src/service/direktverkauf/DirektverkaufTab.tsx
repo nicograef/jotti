@@ -5,7 +5,11 @@ import type { Produkt } from '@/lib/produktSchemas'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
-import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
+import {
+  calculateAnzahl,
+  calculateTotalPrice,
+  toBestellungData,
+} from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 import type { DirektverkaufBackend } from './DirektverkaufBackend'
@@ -38,7 +42,7 @@ export function DirektverkaufTab({
 
   const { receiptItems, inputItems } = toBestellungData(products, mengen)
   const total = calculateTotalPrice(receiptItems)
-  const anzahl = inputItems.reduce((sum, item) => sum + item.menge, 0)
+  const anzahl = calculateAnzahl(inputItems)
 
   if (productsLoading) {
     return <ProductListSkeleton />

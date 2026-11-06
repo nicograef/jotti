@@ -5,7 +5,11 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { BestellungAbschluss } from './BestellungAbschluss'
 import { BestellungDrawer } from './BestellungDrawer'
-import { calculateTotalPrice, toBestellungData } from './drawerUtils'
+import {
+  calculateAnzahl,
+  calculateTotalPrice,
+  toBestellungData,
+} from './drawerUtils'
 import { ProductList, ProductListSkeleton } from './ProductList'
 import type { Tisch } from './Tisch'
 import type { TischBackend } from './TischBackend'
@@ -30,6 +34,8 @@ export function BestellungTab({
 }: BestellungTabProps) {
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = vorgang.steuerung
+  const { receiptItems, inputItems } = toBestellungData(products, mengen)
+  const totalCents = calculateTotalPrice(receiptItems)
 
   if (productsLoading) {
     return <ProductListSkeleton />
@@ -51,7 +57,6 @@ export function BestellungTab({
 
   // Ab lg feste Abschluss-Spalte: der Abschluss-Inhalt mountet genau einmal.
   if (!isMobile) {
-    const { receiptItems, inputItems } = toBestellungData(products, mengen)
     return (
       <ServiceSplitLayout
         auswahl={productList}
@@ -62,7 +67,7 @@ export function BestellungTab({
             tisch={tisch}
             receiptItems={receiptItems}
             positionen={inputItems}
-            totalCents={calculateTotalPrice(receiptItems)}
+            totalCents={totalCents}
             schluesselFuer={vorgang.schluesselFuer}
             bestellungAufgenommen={bestellungAufgenommen}
           />
@@ -76,8 +81,10 @@ export function BestellungTab({
       <BestellungDrawer
         backend={backend}
         tisch={tisch}
-        products={products}
-        mengen={mengen}
+        receiptItems={receiptItems}
+        positionen={inputItems}
+        totalCents={totalCents}
+        anzahl={calculateAnzahl(inputItems)}
         schluesselFuer={vorgang.schluesselFuer}
         bestellungAufgenommen={bestellungAufgenommen}
       />

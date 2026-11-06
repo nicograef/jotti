@@ -1,4 +1,3 @@
-import { CircleCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
@@ -15,17 +14,18 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
-import { formatAlleAuswaehlenLabel } from '@/lib/utils'
 
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { ActionHint } from './ActionHint'
-import type { Bestellung, Position } from './Bestellung'
+import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
+import type { Bestellung } from './Bestellung'
 import { KommentarField } from './CommentField'
 import { GesamtZeile, QuelleDrawerHeader } from './DrawerParts'
 import {
   calculateTotalPrice,
   selectPositionen,
   toAuswahlPositionen,
+  toMengen,
   toPositionRefs,
 } from './drawerUtils'
 import { useAktiveTische } from './hooks'
@@ -41,13 +41,6 @@ interface HistorieUmbuchungDrawerProps {
   quelle: Bestellung | Umbuchung
   onClose: () => void
   onBestellungUmgebucht: (zielName: string) => void
-}
-
-function createDefaultMengen(positionen: Position[]): Record<string, number> {
-  return positionen.reduce<Record<string, number>>((acc, position) => {
-    acc[position.positionId] = position.menge
-    return acc
-  }, {})
 }
 
 export function HistorieUmbuchungDrawer({
@@ -67,11 +60,8 @@ export function HistorieUmbuchungDrawer({
     refetch: reloadTische,
   } = useAktiveTische()
 
-  const umbuchbareMengen = useMemo(
-    () => createDefaultMengen(positionen),
-    [positionen],
-  )
-  const { mengen, add, remove, reset, setAll } = useMengen<string>(
+  const umbuchbareMengen = useMemo(() => toMengen(positionen), [positionen])
+  const auswahl = useMengen<string>(
     (positionId) => umbuchbareMengen[positionId] || 0,
   )
 
@@ -84,6 +74,7 @@ export function HistorieUmbuchungDrawer({
     [tisch.id, tische],
   )
 
+  const { mengen, add, remove } = auswahl
   const selectedPositionen = selectPositionen(positionen, mengen)
   const totalPrice = calculateTotalPrice(selectedPositionen)
   const noPositionenSelected = selectedPositionen.length === 0
@@ -97,21 +88,6 @@ export function HistorieUmbuchungDrawer({
       : zielTischId === null
         ? 'Ziel-Tisch wählen'
         : null
-
-  const alleVollAusgewaehlt =
-    positionen.length > 0 &&
-    positionen.every(
-      (position) => (mengen[position.positionId] || 0) === position.menge,
-    )
-  const umbuchbarGesamt = calculateTotalPrice(positionen)
-
-  const alleAuswaehlen = () => {
-    if (alleVollAusgewaehlt) {
-      reset()
-      return
-    }
-    setAll(umbuchbareMengen)
-  }
 
   const { loading, run } = useActionSubmit({
     actionLabel: 'Umbuchung ausführen',
@@ -151,19 +127,10 @@ export function HistorieUmbuchungDrawer({
         <DrawerBody className="mx-auto w-full max-w-sm">
           {positionen.length > 0 && (
             <div className="px-4 pb-2">
-              <button
-                type="button"
-                onClick={alleAuswaehlen}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"
-              >
-                <CircleCheck className="size-5" />
-                {alleVollAusgewaehlt
-                  ? 'Auswahl aufheben'
-                  : formatAlleAuswaehlenLabel(
-                      positionen.length,
-                      umbuchbarGesamt,
-                    )}
-              </button>
+              <AlleAuswaehlenButton
+                positionen={positionen}
+                steuerung={auswahl}
+              />
             </div>
           )}
           <PositionAuswahlListe

@@ -20,6 +20,7 @@ import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
+import { toMengen } from './drawerUtils'
 import { tischBackend, useTischHistorie, useTischState } from './hooks'
 import { TischHistorie } from './TischHistorie'
 import { ZahlungTab } from './ZahlungTab'
@@ -129,10 +130,7 @@ export function TablePage() {
   // Wiedereinhängen der Radix-Tab-Inhalte überstehen; ein Tab-Wechsel verlöre
   // sie sonst, und ein Retry nach verlorener Antwort buchte doppelt.
   const bestellung = useVorgang<number>()
-  const unbezahlteMengen: Record<string, number> = {}
-  state.unbezahltePositionen.forEach((position) => {
-    unbezahlteMengen[position.positionId] = position.menge
-  })
+  const unbezahlteMengen = toMengen(state.unbezahltePositionen)
   const kassierenAuswahl = useMengen<string>(
     (positionId) => unbezahlteMengen[positionId] || 0,
   )

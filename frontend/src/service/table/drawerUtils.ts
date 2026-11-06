@@ -50,6 +50,17 @@ export function selectPositionen<
     .filter((position) => position.menge > 0)
 }
 
+// Volle Menge je Position, etwa als Obergrenze oder als „alle auswählen".
+export function toMengen(
+  positionen: { positionId: string; menge: number }[],
+): Record<string, number> {
+  return Object.fromEntries(positionen.map((p) => [p.positionId, p.menge]))
+}
+
+export function calculateAnzahl(positionen: { menge: number }[]): number {
+  return positionen.reduce((anzahl, position) => anzahl + position.menge, 0)
+}
+
 export function calculateTotalPrice(
   positionen: { einzelpreisCents: number; menge: number }[],
 ): number {

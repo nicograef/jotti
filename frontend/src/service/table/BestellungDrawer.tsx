@@ -1,19 +1,22 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
-import type { Produkt } from '@/lib/produktSchemas'
 
+import type { BestellPositionInput } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
 import { DockActionButton } from './DockActionButton'
-import { calculateTotalPrice, toBestellungData } from './drawerUtils'
+import type { ReceiptPosition } from './Receipt'
 import type { Tisch } from './Tisch'
 import type { TischBackend } from './TischBackend'
 
 interface BestellungDrawerProps {
   backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
-  products: Produkt[]
-  mengen: Record<number, number>
+  // Von BestellungTab einmal abgeleitet, wie für die Spalte.
+  receiptItems: ReceiptPosition[]
+  positionen: BestellPositionInput[]
+  totalCents: number
+  anzahl: number
   schluesselFuer: (inhalt: unknown) => string
   bestellungAufgenommen: () => void
 }
@@ -22,13 +25,7 @@ interface BestellungDrawerProps {
 // Abschluss-Spalte.
 export function BestellungDrawer(props: BestellungDrawerProps) {
   const [open, setOpen] = useState(false)
-  const { receiptItems, inputItems } = toBestellungData(
-    props.products,
-    props.mengen,
-  )
-  const totalPrice = calculateTotalPrice(receiptItems)
-  const anzahl = inputItems.reduce((sum, item) => sum + item.menge, 0)
-  const noPositionenSelected = inputItems.length === 0
+  const noPositionenSelected = props.positionen.length === 0
 
   const onOpenChange = (isOpen: boolean) => {
     setOpen(noPositionenSelected ? false : isOpen)
@@ -39,8 +36,8 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       <DrawerTrigger asChild>
         <DockActionButton
           label="Bestellung überprüfen"
-          anzahl={anzahl}
-          summeCents={totalPrice}
+          anzahl={props.anzahl}
+          summeCents={props.totalCents}
           disabled={noPositionenSelected}
         />
       </DrawerTrigger>
@@ -48,9 +45,9 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
         variant="sheet"
         backend={props.backend}
         tisch={props.tisch}
-        receiptItems={receiptItems}
-        positionen={inputItems}
-        totalCents={totalPrice}
+        receiptItems={props.receiptItems}
+        positionen={props.positionen}
+        totalCents={props.totalCents}
         schluesselFuer={props.schluesselFuer}
         bestellungAufgenommen={() => {
           setOpen(false)
