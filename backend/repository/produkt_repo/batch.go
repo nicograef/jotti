@@ -114,6 +114,42 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 	return result, nil
 }
 
+// GetPfandVarianten reports which of ids belong to a Pfand-Produkt. It reads deleted and inactive
+// rows too: an ordered position stays payable after its product is removed.
+func (r Repository) GetPfandVarianten(ctx context.Context, ids []int) (map[int]bool, error) {
+	result := make(map[int]bool, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	const query = `SELECT v.id
+		FROM produkt_varianten v
+		JOIN produkte p ON p.id = v.produkt_id
+		WHERE v.id = ANY($1) AND p.pfand`
+
+	rows, err := r.db.QueryContext(ctx, query, toInt32Slice(ids))
+	if err != nil {
+		return nil, db.Error(err)
+	}
+	defer rows.Close() //nolint:errcheck // explicit Close with error check below
+
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, db.Error(err)
+		}
+		result[id] = true
+	}
+	if err := rows.Close(); err != nil {
+		return nil, db.Error(err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, db.Error(err)
+	}
+
+	return result, nil
+}
+
 // toInt32Slice converts []int to []int32 for use as a PostgreSQL int4[] array parameter.
 // pgx v5 encodes []int32 as int4[] natively via TryWrapSliceEncodePlan.
 func toInt32Slice(ids []int) []int32 {

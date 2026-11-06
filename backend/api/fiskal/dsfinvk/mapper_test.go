@@ -1114,6 +1114,88 @@ func TestMapPfandrueckgabeUndStorno(t *testing.T) {
 	}
 }
 
+// TestMapPfandVerkaufTraegtGvTypPfand guards the Anhang C GV_TYP "Pfand" on the Pfand lines of a
+// v2 sale and of its Warenrücknahme, which takes the flag from the sale. A v1 sale carries no
+// flag, so its Pfand line stays "Umsatz" (D20).
+func TestMapPfandVerkaufTraegtGvTypPfand(t *testing.T) {
+	const (
+		zahlungID   = "e1e1e1e1-e1e1-4e1e-8e1e-e1e1e1e1e1e1"
+		ruecknahme  = "e2e2e2e2-e2e2-4e2e-8e2e-e2e2e2e2e2e2"
+		verkaufV1ID = "e3e3e3e3-e3e3-4e3e-8e3e-e3e3e3e3e3e3"
+		verkaufV2ID = "e4e4e4e4-e4e4-4e4e-8e4e-e4e4e4e4e4e4"
+		dvStornoID  = "e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5"
+	)
+	bier := kasse.PositionEventData{PositionID: "b1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1}
+	tisch := kasse.TischSessionSubject(3, 42)
+	events := []event.Event{
+		pfandEvent(t, 1, kasse.EventTypeZahlungKassiertV2, tisch, 2, 7, "anna", 0, kasse.ZahlungKassiertV2Data{
+			ZahlungID: zahlungID,
+			Positionen: []kasse.PositionV2EventData{
+				{PositionEventData: bier},
+				{PositionEventData: pfandPosition("pf1", 2), Pfand: true},
+			},
+			GesamtZahlungCents: 850,
+		}),
+		pfandEvent(t, 2, kasse.EventTypeStornierungErteiltV1, tisch, 3, 7, "anna", 5, kasse.StornierungErteiltV1Data{
+			StornierungID:          ruecknahme,
+			ZahlungID:              zahlungID,
+			Positionen:             []kasse.PositionEventData{pfandPosition("pf1", 1)},
+			GesamtStornierungCents: 200,
+			Kommentar:              "Glas zurück",
+		}),
+		pfandEvent(t, 3, kasse.EventTypeDirektverkaufGetaetigtV1, kasse.DirektverkaufSubject(3, verkaufV1ID), 1, 7, "anna", 10, kasse.DirektverkaufGetaetigtV1Data{
+			VerkaufID:         verkaufV1ID,
+			Positionen:        []kasse.PositionEventData{pfandPosition("pf2", 1)},
+			GesamtbetragCents: 200,
+		}),
+		pfandEvent(t, 4, kasse.EventTypeDirektverkaufGetaetigtV2, kasse.DirektverkaufSubject(3, verkaufV2ID), 1, 7, "anna", 15, kasse.DirektverkaufGetaetigtV2Data{
+			VerkaufID:         verkaufV2ID,
+			Positionen:        []kasse.PositionV2EventData{{PositionEventData: pfandPosition("pf3", 1), Pfand: true}},
+			GesamtbetragCents: 200,
+		}),
+		pfandEvent(t, 5, kasse.EventTypeDirektverkaufStorniertV1, kasse.DirektverkaufSubject(3, verkaufV2ID), 2, 7, "anna", 20, kasse.DirektverkaufStorniertV1Data{
+			StornierungID:          dvStornoID,
+			VerkaufID:              verkaufV2ID,
+			Positionen:             []kasse.PositionEventData{pfandPosition("pf3", 1)},
+			GesamtStornierungCents: 200,
+			Kommentar:              "Falsch eingegeben",
+		}),
+	}
+
+	archive, err := Map(testSnapshot(), events, nil)
+	if err != nil {
+		t.Fatalf("Map() error = %v", err)
+	}
+
+	lines := tableByFile(t, archive, "lines.csv")
+	var gvTypen []string
+	for i := range lines.Records {
+		gvTypen = append(gvTypen, field(t, lines, i, "BON_ID")+"/"+field(t, lines, i, "POS_ZEILE")+" "+field(t, lines, i, "GV_TYP")+" "+field(t, lines, i, "MENGE"))
+	}
+	wantLines := []string{
+		zahlungID + "/1 Umsatz 1,000",
+		zahlungID + "/2 Pfand 2,000",
+		ruecknahme + "/1 Pfand -1,000",
+		verkaufV1ID + "/1 Umsatz 1,000",
+		verkaufV2ID + "/1 Pfand 1,000",
+		dvStornoID + "/1 Pfand -1,000",
+	}
+	if !reflect.DeepEqual(gvTypen, wantLines) {
+		t.Errorf("lines.csv GV_TYP =\n%v\nwant\n%v", gvTypen, wantLines)
+	}
+
+	// 19 % je Position: Umsatz 4,50 + 2,00 (v1) = 6,50 = 5,46 + 1,04;
+	// Pfand 4,00 − 2,00 + 2,00 − 2,00 = 2,00 = 1,68 + 0,32.
+	const erstellung = "2026-06-16T14:30:00Z"
+	wantBusinesscases := [][]string{
+		{testSerial, erstellung, "3", "Umsatz", "", "0", "1", "6,50", "5,46", "1,04"},
+		{testSerial, erstellung, "3", "Pfand", "", "0", "1", "2,00", "1,68", "0,32"},
+	}
+	if got := tableByFile(t, archive, "businesscases.csv").Records; !reflect.DeepEqual(got, wantBusinesscases) {
+		t.Errorf("businesscases.csv records =\n%#v\nwant\n%#v", got, wantBusinesscases)
+	}
+}
+
 // eroeffnetEvent opens the session with an Anfangsbestand of 100,00 €.
 func eroeffnetEvent(t *testing.T, betragCents int) event.Event {
 	t.Helper()

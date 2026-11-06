@@ -34,7 +34,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 
 		setErsteBestellungLogTime(&state, evt.Time)
 
-	case string(EventTypeZahlungKassiertV1):
+	case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 		var data ZahlungKassiertV1Data
 		if err := json.Unmarshal(evt.Data, &data); err != nil {
 			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
@@ -169,7 +169,7 @@ func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
 				nichtStorniert = accumulatePositionen(nichtStorniert, positionen)
 			}
 
-		case string(EventTypeZahlungKassiertV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 			continue
 
 		default:

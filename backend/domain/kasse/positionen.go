@@ -42,6 +42,7 @@ func ResolvePositionen(available []Position, requested []PositionRef) ([]Positio
 					Steuersatz:       pos.Steuersatz,
 					EinzelpreisCents: pos.EinzelpreisCents,
 					Menge:            ref.Menge,
+					Pfand:            pos.Pfand,
 				})
 				totalCents += pos.EinzelpreisCents * ref.Menge
 				break

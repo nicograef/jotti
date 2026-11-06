@@ -1,6 +1,7 @@
 package kasse
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -18,6 +19,9 @@ type Position struct {
 	Steuersatz       string
 	EinzelpreisCents int
 	Menge            int
+	// Pfand marks a line of a Pfand-Produkt; only zahlung-kassiert:v2 and direktverkauf-getaetigt:v2
+	// store it, every other event form reads it as false.
+	Pfand bool
 	// BestellerUserID und BestellerName sind reine Projektionsfelder: beim Anwenden des
 	// bestellung-aufgenommen-Events aus dem Event-Umschlag getagt, nie mitserialisiert.
 	BestellerUserID int
@@ -41,6 +45,39 @@ type PositionEventData struct {
 	Steuersatz       string `json:"steuersatz"`
 	EinzelpreisCents int    `json:"einzelpreisCents"`
 	Menge            int    `json:"menge"`
+}
+
+// PositionV2EventData is the position of zahlung-kassiert:v2 and direktverkauf-getaetigt:v2: the
+// v1 position plus the Pfand flag of its product at the time of sale. The json keys are frozen.
+type PositionV2EventData struct {
+	PositionEventData
+	Pfand bool `json:"pfand"`
+}
+
+func toPositionenV2EventData(positionen []Position) []PositionV2EventData {
+	basis := toPositionenEventData(positionen)
+	out := make([]PositionV2EventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = PositionV2EventData{PositionEventData: basis[i], Pfand: p.Pfand}
+	}
+	return out
+}
+
+func positionenV1(positionen []PositionV2EventData) []PositionEventData {
+	out := make([]PositionEventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = p.PositionEventData
+	}
+	return out
+}
+
+// MitPfandKennzeichen sets Pfand on each position whose variant belongs to a Pfand-Produkt.
+func MitPfandKennzeichen(positionen []Position, pfandVarianten map[int]bool) []Position {
+	out := slices.Clone(positionen)
+	for i := range out {
+		out[i].Pfand = pfandVarianten[out[i].VarianteID]
+	}
+	return out
 }
 
 // toPositionenEventData drops the Besteller fields deliberately — the besteller is already

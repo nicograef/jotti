@@ -2,6 +2,7 @@ package kasse
 
 import (
 	"maps"
+	"slices"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
@@ -15,7 +16,7 @@ type PfandrueckgabeHistorieEintrag struct {
 }
 
 func BuildPfandrueckgabeHistorieEintrag(events []e.Event) (PfandrueckgabeHistorieEintrag, error) {
-	eintrag, data, err := replayVorgang(events, EventTypePfandZurueckgegebenV1, EventTypePfandrueckgabeStorniertV1,
+	eintrag, data, err := replayVorgang(events, []EventType{EventTypePfandZurueckgegebenV1}, EventTypePfandrueckgabeStorniertV1,
 		func(d PfandZurueckgegebenV1Data) vorgangKern {
 			return vorgangKern{Positionen: d.Positionen, GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
 		},
@@ -36,11 +37,12 @@ func Verrechne(rueckgabe e.Event, partner e.Event) e.Event {
 	return rueckgabe
 }
 
-// VerrechnungsPartner returns the event of typ among events that was written with anker: same
-// timestamp, same user. The pairing is symmetric: anker is the settled Rückgabe or its Zahlung or Verkauf.
-func VerrechnungsPartner(anker e.Event, events []e.Event, typ EventType) (e.Event, bool) {
+// VerrechnungsPartner returns the event of one of typen among events that was written with anker:
+// same timestamp, same user. The pairing is symmetric: anker is the settled Rückgabe or its Zahlung
+// or Verkauf.
+func VerrechnungsPartner(anker e.Event, events []e.Event, typen ...EventType) (e.Event, bool) {
 	for _, evt := range events {
-		if evt.Type == string(typ) && evt.UserID == anker.UserID && evt.Time.Equal(anker.Time) {
+		if slices.Contains(typen, EventType(evt.Type)) && evt.UserID == anker.UserID && evt.Time.Equal(anker.Time) {
 			return evt, true
 		}
 	}

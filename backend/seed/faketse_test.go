@@ -15,11 +15,11 @@ import (
 // Demo-Szenario eröffnen alle Sitzungen mit Anfangsbestand, sie zählt daher dazu.
 var fiskalischeTypen = map[string]string{
 	string(kasse.EventTypeBestellungAufgenommenV1):   tse.ProcessTypeBestellungV1,
-	string(kasse.EventTypeZahlungKassiertV1):         tse.ProcessTypeKassenbelegV1,
+	string(kasse.EventTypeZahlungKassiertV2):         tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeStornierungErteiltV1):      tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeBestellungKorrigiertV1):    tse.ProcessTypeBestellungV1,
 	string(kasse.EventTypeBestellungUmgebuchtV1):     tse.ProcessTypeBestellungV1,
-	string(kasse.EventTypeDirektverkaufGetaetigtV1):  tse.ProcessTypeKassenbelegV1,
+	string(kasse.EventTypeDirektverkaufGetaetigtV2):  tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypeDirektverkaufStorniertV1):  tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypePfandZurueckgegebenV1):     tse.ProcessTypeKassenbelegV1,
 	string(kasse.EventTypePfandrueckgabeStorniertV1): tse.ProcessTypeKassenbelegV1,

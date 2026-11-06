@@ -210,7 +210,7 @@ func gleicheVerrechnung(rueckgabe event.Event, pfandMengen map[int]int, verkauf 
 	if err != nil || !gleich {
 		return false, err
 	}
-	if _, found := kasse.VerrechnungsPartner(rueckgabe, []event.Event{verkauf}, kasse.EventTypeDirektverkaufGetaetigtV1); !found {
+	if _, found := kasse.VerrechnungsPartner(rueckgabe, []event.Event{verkauf}, kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2); !found {
 		return false, nil
 	}
 	return kasse.GleicherVerkauf(verkauf, verkaufMengen)
@@ -263,9 +263,9 @@ func (c Command) rueckgabeVerrechnet(ctx context.Context, rueckgabe event.Event,
 		return false, err
 	}
 	var partner []event.Event
-	typ := kasse.EventTypeZahlungKassiertV1
+	typen := []kasse.EventType{kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2}
 	if tischID == 0 {
-		typ = kasse.EventTypeDirektverkaufGetaetigtV1
+		typen = []kasse.EventType{kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2}
 		partner, err = c.EventRepo.ReadDirektverkaufEvents(ctx, zNr)
 	} else {
 		partner, err = c.EventRepo.ReadEventsBySubject(ctx, kasse.TischSessionSubject(zNr, tischID))
@@ -273,7 +273,7 @@ func (c Command) rueckgabeVerrechnet(ctx context.Context, rueckgabe event.Event,
 	if err != nil {
 		return false, err
 	}
-	_, found := kasse.VerrechnungsPartner(rueckgabe, partner, typ)
+	_, found := kasse.VerrechnungsPartner(rueckgabe, partner, typen...)
 	return found, nil
 }
 

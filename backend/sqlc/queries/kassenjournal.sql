@@ -10,15 +10,15 @@ FROM kassenjournal WHERE subject = $1 ORDER BY id ASC;
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
-  AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+  AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2', 'direktverkauf-storniert:v1')
 ORDER BY id ASC;
 
 -- name: GetDirektverkauf :one
--- Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id
+-- Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id_v2
 -- hält ihn eindeutig.
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
-WHERE type = 'direktverkauf-getaetigt:v1'
+WHERE type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2')
   AND data->>'verkaufId' = sqlc.arg(verkauf_id)::text;
 
 -- name: ReadPfandrueckgabeEvents :many

@@ -13,7 +13,7 @@ import (
 )
 
 // positionenMitKommentarEventData spiegelt die benötigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getaetigt:v1 in ihrer Event-Form.
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt in ihrer Event-Form.
 // Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
 type positionenMitKommentarEventData struct {
 	Positionen []kasse.PositionEventData `json:"positionen"`
@@ -36,7 +36,7 @@ func CreateArbeitsbonAuftraegeFromEvent(
 	switch evt.Type {
 	case string(kasse.EventTypeBestellungAufgenommenV1):
 		return createStationsAuftraege(evt, druckstationen, tischName, fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
-	case string(kasse.EventTypeDirektverkaufGetaetigtV1):
+	case string(kasse.EventTypeDirektverkaufGetaetigtV1), string(kasse.EventTypeDirektverkaufGetaetigtV2):
 		return createDirektverkaufAuftraege(evt, druckstationen)
 	default:
 		return nil

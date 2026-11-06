@@ -105,7 +105,7 @@ func TestParallelzugriff_ZweiClientsSelberTisch(t *testing.T) {
 		switch ev.Type {
 		case string(kasse.EventTypeBestellungAufgenommenV1):
 			addMengen(t, ev.Data, bestellt)
-		case string(kasse.EventTypeZahlungKassiertV1):
+		case string(kasse.EventTypeZahlungKassiertV1), string(kasse.EventTypeZahlungKassiertV2):
 			addMengen(t, ev.Data, bezahlt)
 		}
 	}

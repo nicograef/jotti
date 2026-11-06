@@ -10,6 +10,7 @@ import (
 
 const (
 	EventTypeDirektverkaufGetaetigtV1 EventType = "direktverkauf-getaetigt:v1"
+	EventTypeDirektverkaufGetaetigtV2 EventType = "direktverkauf-getaetigt:v2"
 	EventTypeDirektverkaufStorniertV1 EventType = "direktverkauf-storniert:v1"
 )
 
@@ -26,6 +27,29 @@ var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
 	"GesamtbetragCents": z.Int().GTE(1).Required(),
 	"Kommentar":         z.String().Max(100),
 })
+
+// DirektverkaufGetaetigtV2Data is v1 plus the Pfand flag per position, for the DSFinV-K GV_TYP. A
+// reader that ignores the flag reads both versions as DirektverkaufGetaetigtV1Data.
+type DirektverkaufGetaetigtV2Data struct {
+	VerkaufID         string                `json:"verkaufId"`
+	Positionen        []PositionV2EventData `json:"positionen"`
+	GesamtbetragCents int                   `json:"gesamtbetragCents"`
+	Kommentar         string                `json:"kommentar"`
+}
+
+func (d DirektverkaufGetaetigtV2Data) v1() DirektverkaufGetaetigtV1Data {
+	return DirektverkaufGetaetigtV1Data{
+		VerkaufID:         d.VerkaufID,
+		Positionen:        positionenV1(d.Positionen),
+		GesamtbetragCents: d.GesamtbetragCents,
+		Kommentar:         d.Kommentar,
+	}
+}
+
+// IstDirektverkaufGetaetigt reports direktverkauf-getaetigt in any version.
+func IstDirektverkaufGetaetigt(eventType string) bool {
+	return eventType == string(EventTypeDirektverkaufGetaetigtV1) || eventType == string(EventTypeDirektverkaufGetaetigtV2)
+}
 
 // DirektverkaufStorniertV1Data stores the cancelled positions as fat positions
 // (self-contained for reporting). The json keys are frozen — immutable events.
@@ -57,18 +81,19 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 		gesamtbetragCents += pos.EinzelpreisCents * pos.Menge
 	}
 
-	data := DirektverkaufGetaetigtV1Data{
+	data := DirektverkaufGetaetigtV2Data{
 		VerkaufID:         verkaufID,
-		Positionen:        toPositionenEventData(positionen),
+		Positionen:        toPositionenV2EventData(positionen),
 		GesamtbetragCents: gesamtbetragCents,
 		Kommentar:         kommentar,
 	}
 
-	if err := validateEventData(direktverkaufGetaetigtV1DataSchema, &data, "direktverkauf getaetigt"); err != nil {
+	basis := data.v1()
+	if err := validateEventData(direktverkaufGetaetigtV1DataSchema, &basis, "direktverkauf getaetigt"); err != nil {
 		return e.Event{}, err
 	}
 
-	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV1), subject, data)
+	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV2), subject, data)
 }
 
 // NewDirektverkaufStorniertEvent: gesamtStornierungCents is computed by the caller from

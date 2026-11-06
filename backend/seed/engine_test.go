@@ -230,13 +230,13 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		var zahlungen, warenruecknahmen, korrekturen, dv, dvStorno, pfand, pfandStorno, transit int
 		for _, evt := range tagesEvents {
 			switch evt.Type {
-			case string(kasse.EventTypeZahlungKassiertV1):
+			case string(kasse.EventTypeZahlungKassiertV2):
 				zahlungen += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
 			case string(kasse.EventTypeStornierungErteiltV1):
 				warenruecknahmen += parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
 			case string(kasse.EventTypeBestellungKorrigiertV1):
 				korrekturen += parseData[kasse.BestellungKorrigiertV1Data](t, evt).GesamtCents
-			case string(kasse.EventTypeDirektverkaufGetaetigtV1):
+			case string(kasse.EventTypeDirektverkaufGetaetigtV2):
 				dv += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 			case string(kasse.EventTypeDirektverkaufStorniertV1):
 				dvStorno += parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents
@@ -411,12 +411,12 @@ func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 		switch evt.Type {
 		case string(kasse.EventTypeKassensitzungEroeffnetV1):
 			bestand += parseData[kasse.KassensitzungEroeffnetV1Data](t, evt).BetragCents
-		case string(kasse.EventTypeZahlungKassiertV1):
+		case string(kasse.EventTypeZahlungKassiertV2):
 			bestand += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
 		case string(kasse.EventTypeStornierungErteiltV1):
 			// Kassenwirksame Warenrücknahme: Bar-Rückgabe mindert den Bestand.
 			bestand -= parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
-		case string(kasse.EventTypeDirektverkaufGetaetigtV1):
+		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
 			bestand += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
 		case string(kasse.EventTypeDirektverkaufStorniertV1):
 			bestand -= parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents

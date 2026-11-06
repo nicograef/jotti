@@ -44,6 +44,7 @@ type kassensitzungenRepo interface {
 type produktRepo interface {
 	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
+	GetPfandVarianten(ctx context.Context, ids []int) (map[int]bool, error)
 }
 
 type favoritRepo interface {
@@ -342,6 +343,17 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	}
 
 	resolvedPositionen, gesamtZahlungCents := kasse.ResolvePositionen(state.UnbezahltePositionen, positionen)
+	// The Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
+	varianteIDs := make([]int, len(resolvedPositionen))
+	for i, p := range resolvedPositionen {
+		varianteIDs[i] = p.VarianteID
+	}
+	pfandVarianten, err := c.ProduktRepo.GetPfandVarianten(ctx, varianteIDs)
+	if err != nil {
+		log.Error("Failed to read the pfand flag of the paid positions", "error", err, "tisch_id", tischID)
+		return ErrDatabase
+	}
+	resolvedPositionen = kasse.MitPfandKennzeichen(resolvedPositionen, pfandVarianten)
 
 	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
@@ -447,7 +459,7 @@ func (c Command) gleicheVerrechneteZahlung(ctx context.Context, rueckgabe event.
 	if err != nil {
 		return false, err
 	}
-	zahlung, found := kasse.VerrechnungsPartner(rueckgabe, events, kasse.EventTypeZahlungKassiertV1)
+	zahlung, found := kasse.VerrechnungsPartner(rueckgabe, events, kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2)
 	if !found {
 		return false, nil
 	}

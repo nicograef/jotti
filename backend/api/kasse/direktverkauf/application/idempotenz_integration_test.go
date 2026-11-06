@@ -106,7 +106,7 @@ func TestDirektverkaufTaetigen_DuplikatVerkaufId_IdempotenterErfolg(t *testing.T
 	}
 
 	var eventCount int
-	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-getaetigt:v1'").Scan(&eventCount); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-getaetigt:v2'").Scan(&eventCount); err != nil {
 		t.Fatalf("kassenjournal zählen: %v", err)
 	}
 	if eventCount != 1 {
@@ -194,7 +194,7 @@ func TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t
 	}
 
 	var verkaeufe, rueckgaben int
-	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'direktverkauf-getaetigt:v1'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&verkaeufe, &rueckgaben); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'direktverkauf-getaetigt:v2'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&verkaeufe, &rueckgaben); err != nil {
 		t.Fatalf("kassenjournal zählen: %v", err)
 	}
 	if verkaeufe != 1 || rueckgaben != 1 {

@@ -158,7 +158,7 @@ func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *tes
 	}
 
 	var zahlungen, rueckgaben int
-	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'zahlung-kassiert:v1'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&zahlungen, &rueckgaben); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FILTER (WHERE type = 'zahlung-kassiert:v2'), COUNT(*) FILTER (WHERE type = 'pfand-zurueckgegeben:v1') FROM kassenjournal").Scan(&zahlungen, &rueckgaben); err != nil {
 		t.Fatalf("kassenjournal zählen: %v", err)
 	}
 	if zahlungen != 1 || rueckgaben != 1 {
@@ -174,7 +174,7 @@ func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *tes
 	}
 
 	var auftraegeCount int
-	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege a JOIN kassenjournal k ON k.id = a.event_id WHERE k.type IN ('zahlung-kassiert:v1', 'pfand-zurueckgegeben:v1')").Scan(&auftraegeCount); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FROM tse_signaturauftraege a JOIN kassenjournal k ON k.id = a.event_id WHERE k.type IN ('zahlung-kassiert:v2', 'pfand-zurueckgegeben:v1')").Scan(&auftraegeCount); err != nil {
 		t.Fatalf("tse_signaturauftraege zählen: %v", err)
 	}
 	if auftraegeCount != 2 {

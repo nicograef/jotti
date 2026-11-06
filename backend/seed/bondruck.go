@@ -113,7 +113,7 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 			if _, ok := b.ersteBestellung[evt.Subject]; !ok {
 				b.ersteBestellung[evt.Subject] = evt.Time
 			}
-		case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeDirektverkaufGetaetigtV1:
+		case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2, kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
 			b.belegZaehler++
 			if b.belegZaehler%kassenbelegJederNte != 0 {
 				continue
@@ -214,7 +214,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 	var ersteBestellung *time.Time
 
 	switch kasse.EventType(evt.Type) {
-	case kasse.EventTypeZahlungKassiertV1:
+	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2:
 		data, err := parseEventData[kasse.ZahlungKassiertV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err
@@ -226,7 +226,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 			ersteBestellung = &t
 		}
 
-	case kasse.EventTypeDirektverkaufGetaetigtV1:
+	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
 		data, err := parseEventData[kasse.DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err

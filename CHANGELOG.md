@@ -43,7 +43,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - Abrechnung je Servicekraft.
 - Produktumsatz-Reporting: meistverkaufte Varianten, Mengen und Umsatz je Produkt.
 - DSFinV-K-Export als ZIP-Archiv (Version 2.4) für die Finanzverwaltung.
-- Pfandrückgaben mindern Soll-Kassenbestand und Umsatz am Steuersatz des Pfand-Produkts. Kassenbericht und Abrechnung je Servicekraft weisen sie aus, der Export führt sie als „PfandRueckzahlung“.
+- Pfandrückgaben mindern Soll-Kassenbestand und Umsatz am Steuersatz des Pfand-Produkts. Kassenbericht und Abrechnung je Servicekraft weisen sie aus, der Export führt sie als „PfandRueckzahlung“. Verkaufte Pfand-Positionen führt der Export als „Pfand“.
 
 ### Verwaltung, Sicherheit und Compliance
 

@@ -40,7 +40,7 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragBestellung, Bestellung: &bestellung})
-		case string(EventTypeZahlungKassiertV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return nil, err

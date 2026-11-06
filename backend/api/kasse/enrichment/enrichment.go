@@ -126,6 +126,7 @@ func enrich(ctx context.Context, repo produktRepo, inputs []PositionInput, nurPf
 			Steuersatz:       string(prod.Steuersatz),
 			EinzelpreisCents: variante.PreisCents,
 			Menge:            input.Menge,
+			Pfand:            prod.Pfand,
 		})
 	}
 

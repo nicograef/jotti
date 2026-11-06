@@ -178,6 +178,19 @@ func (m *ProduktRepo) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]
 	return result, nil
 }
 
+func (m *ProduktRepo) GetPfandVarianten(ctx context.Context, ids []int) (map[int]bool, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	result := make(map[int]bool, len(ids))
+	for _, id := range ids {
+		if vp, ok := m.varianten[id]; ok && m.produkte[vp.ProduktID].Pfand {
+			result[id] = true
+		}
+	}
+	return result, nil
+}
+
 func (m *ProduktRepo) SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error {
 	return m.err
 }

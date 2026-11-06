@@ -13,6 +13,7 @@ import (
 var allEventTypes = []EventType{
 	EventTypeBestellungAufgenommenV1,
 	EventTypeZahlungKassiertV1,
+	EventTypeZahlungKassiertV2,
 	EventTypeStornierungErteiltV1,
 	EventTypeBestellungKorrigiertV1,
 	EventTypeBestellungUmgebuchtV1,
@@ -22,6 +23,7 @@ var allEventTypes = []EventType{
 	EventTypeDifferenzSollIstGebuchtV1,
 	EventTypeTagesabschlussErstelltV1,
 	EventTypeDirektverkaufGetaetigtV1,
+	EventTypeDirektverkaufGetaetigtV2,
 	EventTypeDirektverkaufStorniertV1,
 	EventTypePfandZurueckgegebenV1,
 	EventTypePfandrueckgabeStorniertV1,
@@ -32,6 +34,7 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 	contractedTypes := map[EventType]bool{
 		EventTypeBestellungAufgenommenV1:    true,
 		EventTypeZahlungKassiertV1:          true,
+		EventTypeZahlungKassiertV2:          true,
 		EventTypeStornierungErteiltV1:       true,
 		EventTypeBestellungKorrigiertV1:     true,
 		EventTypeBestellungUmgebuchtV1:      true,
@@ -41,6 +44,7 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 		EventTypeDifferenzSollIstGebuchtV1:  true,
 		EventTypeTagesabschlussErstelltV1:   true,
 		EventTypeDirektverkaufGetaetigtV1:   true,
+		EventTypeDirektverkaufGetaetigtV2:   true,
 		EventTypeDirektverkaufStorniertV1:   true,
 		EventTypePfandZurueckgegebenV1:      true,
 		EventTypePfandrueckgabeStorniertV1:  true,
@@ -57,7 +61,7 @@ func TestEventContract_AllTypesPinned(t *testing.T) {
 }
 
 // The EventType constants must match the SQL literals in the kj_extract_* functions
-// (01_initial.up.sql, 11_pfandrueckgabe.up.sql); a mismatch makes the SQL silently return NULL.
+// (01_initial.up.sql, 11_pfandrueckgabe.up.sql, 13_pfand_kennzeichen.up.sql); a mismatch makes the SQL silently return NULL.
 func TestEventContract_SQLLiterals(t *testing.T) {
 	checks := []struct {
 		constant EventType
@@ -65,12 +69,14 @@ func TestEventContract_SQLLiterals(t *testing.T) {
 	}{
 		{EventTypeBestellungAufgenommenV1, "bestellung-aufgenommen:v1"},
 		{EventTypeZahlungKassiertV1, "zahlung-kassiert:v1"},
+		{EventTypeZahlungKassiertV2, "zahlung-kassiert:v2"},
 		{EventTypeStornierungErteiltV1, "stornierung-erteilt:v1"},
 		{EventTypeBestellungKorrigiertV1, "bestellung-korrigiert:v1"},
 		{EventTypeKassensitzungEroeffnetV1, "kassensitzung-eroeffnet:v1"},
 		{EventTypeGeldtransitGebuchtV1, "geldtransit-gebucht:v1"},
 		{EventTypeDifferenzSollIstGebuchtV1, "differenz-soll-ist-gebucht:v1"},
 		{EventTypeDirektverkaufGetaetigtV1, "direktverkauf-getaetigt:v1"},
+		{EventTypeDirektverkaufGetaetigtV2, "direktverkauf-getaetigt:v2"},
 		{EventTypeDirektverkaufStorniertV1, "direktverkauf-storniert:v1"},
 		{EventTypePfandZurueckgegebenV1, "pfand-zurueckgegeben:v1"},
 		{EventTypePfandrueckgabeStorniertV1, "pfandrueckgabe-storniert:v1"},
@@ -217,6 +223,53 @@ func TestEventContract_ZahlungKassiertV1(t *testing.T) {
 	}
 	assertPosition(t, data.Positionen[0])
 	assertJSONKeyPresent(t, data, "kommentar")
+}
+
+// positionV2Literal is the frozen v2 sale position: the v1 position plus the Pfand flag.
+const positionV2Literal = `{
+	"positionId":       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+	"varianteId":       7,
+	"produktName":      "Cola",
+	"varianteName":     "0,5l",
+	"kategorie":        "getraenk",
+	"steuersatz":       "regel",
+	"einzelpreisCents": 350,
+	"menge":            2,
+	"pfand":            true
+}`
+
+func assertPositionV2(t *testing.T, positionen []PositionV2EventData) {
+	t.Helper()
+	if len(positionen) != 1 {
+		t.Fatalf("positionen count: %d", len(positionen))
+	}
+	assertPosition(t, positionen[0].PositionEventData)
+	assertField(t, "pfand", positionen[0].Pfand, true)
+	assertJSONKeyPresent(t, PositionV2EventData{}, "pfand")
+	assertJSONKeyPresent(t, PositionV2EventData{}, "positionId")
+}
+
+func TestEventContract_ZahlungKassiertV2(t *testing.T) {
+	const lit = `{
+		"zahlungId":          "22222222-2222-4222-8222-222222222222",
+		"positionen":         [` + positionV2Literal + `],
+		"gesamtZahlungCents": 700,
+		"kommentar":          ""
+	}`
+	var data ZahlungKassiertV2Data
+	unmarshalJSON(t, lit, &data)
+	assertField(t, "zahlungId", data.ZahlungID, "22222222-2222-4222-8222-222222222222")
+	assertField(t, "gesamtZahlungCents", data.GesamtZahlungCents, 700)
+	assertPositionV2(t, data.Positionen)
+	assertJSONKeyPresent(t, data, "kommentar")
+
+	// Readers that ignore the flag read v2 as v1.
+	var v1 ZahlungKassiertV1Data
+	unmarshalJSON(t, lit, &v1)
+	if len(v1.Positionen) != 1 {
+		t.Fatalf("v1 positionen count: %d", len(v1.Positionen))
+	}
+	assertPosition(t, v1.Positionen[0])
 }
 
 func TestEventContract_StornierungErteiltV1(t *testing.T) {
@@ -410,6 +463,29 @@ func TestEventContract_DirektverkaufGetaetigtV1(t *testing.T) {
 		t.Fatalf("positionen count: %d", len(data.Positionen))
 	}
 	assertPosition(t, data.Positionen[0])
+}
+
+func TestEventContract_DirektverkaufGetaetigtV2(t *testing.T) {
+	const lit = `{
+		"verkaufId":         "88888888-8888-4888-8888-888888888888",
+		"positionen":        [` + positionV2Literal + `],
+		"gesamtbetragCents": 700,
+		"kommentar":         ""
+	}`
+	var data DirektverkaufGetaetigtV2Data
+	unmarshalJSON(t, lit, &data)
+	assertField(t, "verkaufId", data.VerkaufID, "88888888-8888-4888-8888-888888888888")
+	assertField(t, "gesamtbetragCents", data.GesamtbetragCents, 700)
+	assertPositionV2(t, data.Positionen)
+	assertJSONKeyPresent(t, data, "kommentar")
+
+	// Readers that ignore the flag read v2 as v1.
+	var v1 DirektverkaufGetaetigtV1Data
+	unmarshalJSON(t, lit, &v1)
+	if len(v1.Positionen) != 1 {
+		t.Fatalf("v1 positionen count: %d", len(v1.Positionen))
+	}
+	assertPosition(t, v1.Positionen[0])
 }
 
 func TestEventContract_DirektverkaufStorniertV1(t *testing.T) {

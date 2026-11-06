@@ -182,7 +182,7 @@ func bucheDirektverkauf(t *testing.T, u *liveTestUmgebung, ksNr int) int {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)
-	return eventIDByType(t, u.db, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufSubject)
+	return eventIDByType(t, u.db, string(kasse.EventTypeDirektverkaufGetaetigtV2), verkaufSubject)
 }
 
 // schreibeKonfiguration takes effect without a restart because the worker rereads the configuration each pass.
@@ -271,7 +271,7 @@ func pruefeGateBlockiertOhneStoerung(t *testing.T, u *liveTestUmgebung, ksNr int
 		t.Fatalf("DirektverkaufTaetigen fuer Gate-Blockade: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)
-	verkaufEventID := eventIDByType(t, u.db, string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufSubject)
+	verkaufEventID := eventIDByType(t, u.db, string(kasse.EventTypeDirektverkaufGetaetigtV2), verkaufSubject)
 
 	_, err := u.kasse.KasseAbschliessen(ctx, u.userID, "test", 5000)
 	var ausstehend *kassenfuehrungApp.SignaturenAusstehendError

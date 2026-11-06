@@ -98,6 +98,33 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"kommentar": "Fehlbuchung",
 	}, ksNr)
 
+	// v2 sale events carry the Pfand flag per position and count like v1.
+	insertEvent(t, db, userID, "testuser", string(kasse.EventTypeZahlungKassiertV2), tischSubject, 4, map[string]any{
+		"zahlungId":          "z2",
+		"gesamtZahlungCents": 300,
+		"positionen": []map[string]any{{
+			"positionId":       "p2",
+			"produktName":      "Pfand",
+			"varianteName":     "Glas",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 300,
+			"menge":            1,
+			"pfand":            true,
+		}},
+		"kommentar": "",
+	}, ksNr)
+	insertEvent(t, db, userID, "testuser", string(kasse.EventTypeDirektverkaufGetaetigtV2), kasse.DirektverkaufSubject(ksNr, "d2"), 1, map[string]any{
+		"verkaufId":         "d2",
+		"gesamtbetragCents": 120,
+		"positionen": []map[string]any{{
+			"produktName":      "Pfand",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 120,
+			"menge":            1,
+			"pfand":            true,
+		}},
+	}, ksNr)
+
 	// pfand-zurueckgegeben: kj_extract_pfandrueckgabe_cents → gesamtbetragCents
 	insertEvent(t, db, userID, "testuser", string(kasse.EventTypePfandZurueckgegebenV1), pfandSubject, 1, map[string]any{
 		"rueckgabeId":       "r1",
@@ -143,7 +170,7 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 		"beschreibung": "Restgeld entnommen",
 	}, ksNr)
 
-	// Umsatz 2238 − 1455 + 880 − 335 − 400 + 150 = 1078, Storno 1455 + 200 + 335 = 1990,
+	// Umsatz 2238 − 1455 + 880 − 335 + 300 + 120 − 400 + 150 = 1498, Storno 1455 + 200 + 335 = 1990,
 	// Geldtransit 500 − 150 = 350. Umsatz is also pinned to the literal, so a Pfand type
 	// missing on both sides cannot pass.
 
@@ -168,8 +195,8 @@ func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
 	if got.UmsatzCents != sql.GesamtUmsatzCents {
 		t.Errorf("UmsatzCents: Go=%d, SQL=%d", got.UmsatzCents, sql.GesamtUmsatzCents)
 	}
-	if got.UmsatzCents != 1078 {
-		t.Errorf("UmsatzCents: Go=%d, erwartet 1078", got.UmsatzCents)
+	if got.UmsatzCents != 1498 {
+		t.Errorf("UmsatzCents: Go=%d, erwartet 1498", got.UmsatzCents)
 	}
 	if got.StornierungCents != sql.GesamtStornierungenCents {
 		t.Errorf("StornierungCents: Go=%d, SQL=%d", got.StornierungCents, sql.GesamtStornierungenCents)

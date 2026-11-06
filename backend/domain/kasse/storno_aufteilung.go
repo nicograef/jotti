@@ -79,7 +79,7 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 				}
 			}
 
-		case string(EventTypeZahlungKassiertV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 			var data ZahlungKassiertV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return StornoAufteilung{}, false

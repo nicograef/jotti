@@ -215,6 +215,40 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 	}
 }
 
+// The sale freezes each position's Pfand flag from its product, for the DSFinV-K GV_TYP.
+func TestDirektverkaufTaetigen_FriertPfandKennzeichenEin(t *testing.T) {
+	pfand := produkt.Produkt{ID: 9, Name: "Pfand", Kategorie: produkt.SonstigesKategorie, Steuersatz: steuer.RegelSteuersatz, Pfand: true, Status: produkt.ActiveStatus}
+	produkte := repotest.NewProduktRepo([]produkt.Produkt{testProduct, pfand}, nil)
+	produkte.AddVariante(testProduct.ID, testVariant)
+	produkte.AddVariante(pfand.ID, produkt.Variante{ID: 19, Name: "Glas", PreisCents: 200, Status: produkt.ActiveStatus})
+	spy := &spyEventRepo{}
+	command := newCommand(spy, testOpenKS)
+	command.ProduktRepo = produkte
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
+		{ProduktID: pfand.ID, VarianteID: 19, Menge: 1},
+	}, "", nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.written) != 1 || spy.written[0].event.Type != "direktverkauf-getaetigt:v2" {
+		t.Fatalf("expected one direktverkauf-getaetigt:v2, got %+v", spy.written)
+	}
+	var data kasse.DirektverkaufGetaetigtV2Data
+	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	got := map[int]bool{}
+	for _, p := range data.Positionen {
+		got[p.VarianteID] = p.Pfand
+	}
+	if len(got) != 2 || got[testVariant.ID] || !got[19] {
+		t.Errorf("pfand per variante = %v, want map[1:false 19:true]", got)
+	}
+}
+
 // Ein deaktivierte (inactive) Variante taucht im Verkaufs-Menü nicht auf, kann
 // aber per direktem POST referenziert werden — der Command lehnt sie ab.
 func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
@@ -342,7 +376,7 @@ func TestDirektverkaufTaetigen_AbholbonProStueckQueuesEinenAuftragJeEinheit(t *t
 	}
 }
 
-// getaetigtEvent builds a real direktverkauf-getaetigt:v1 event with a single position and returns
+// getaetigtEvent builds a real direktverkauf-getaetigt:v2 event with a single position and returns
 // the event, its verkaufId, and the server-generated positionId for use in storno tests.
 func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, string) {
 	t.Helper()

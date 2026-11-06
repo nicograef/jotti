@@ -15,7 +15,7 @@ import (
 const getDirektverkauf = `-- name: GetDirektverkauf :one
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
-WHERE type = 'direktverkauf-getaetigt:v1'
+WHERE type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2')
   AND data->>'verkaufId' = $1::text
 `
 
@@ -30,7 +30,7 @@ type GetDirektverkaufRow struct {
 	Timestamp time.Time
 }
 
-// Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id
+// Der Verkauf zu einer verkaufId über alle Kassensitzungen; idx_kassenjournal_verkauf_id_v2
 // hält ihn eindeutig.
 func (q *Queries) GetDirektverkauf(ctx context.Context, verkaufID string) (GetDirektverkaufRow, error) {
 	row := q.db.QueryRowContext(ctx, getDirektverkauf, verkaufID)
@@ -163,7 +163,7 @@ const readDirektverkaufEvents = `-- name: ReadDirektverkaufEvents :many
 SELECT id, user_id, user_name, version, type, subject, data, timestamp
 FROM kassenjournal
 WHERE kassensitzung_nr = $1
-  AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1')
+  AND type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2', 'direktverkauf-storniert:v1')
 ORDER BY id ASC
 `
 

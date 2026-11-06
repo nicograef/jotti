@@ -48,7 +48,7 @@ func makeBestellungEvent(t *testing.T, id int, subject string, positionen []kass
 	return evt
 }
 
-// makeDirektverkaufEvent baut ein echtes direktverkauf-getaetigt:v1-Event über den
+// makeDirektverkaufEvent baut ein echtes direktverkauf-getaetigt:v2-Event über den
 // Domänen-Konstruktor, aus demselben Grund wie makeBestellungEvent.
 func makeDirektverkaufEvent(t *testing.T, id int, positionen []kasse.Position, kommentar string) event.Event {
 	t.Helper()

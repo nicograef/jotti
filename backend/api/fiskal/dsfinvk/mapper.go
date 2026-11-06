@@ -23,9 +23,11 @@ const (
 	bonTypBestellung = "AVBestellung" // Anhang B: order as "anderer Vorgang", cash-neutral
 	bonTypSonstige   = "AVSonstige"   // Anhang B: other "anderer Vorgang" (Tagesabschluss), cash-neutral
 	gvTypUmsatz      = "Umsatz"       // Anhang C: realised revenue at line level
+	// Anhang C: the Pfand line of a sale and its Warenrücknahme. Only the v2 sale events carry the
+	// Pfand flag per position; v1 sale lines stay "Umsatz" (docs/decisions.md D20).
+	gvTypPfand = "Pfand"
 	// Anhang C: Pfand paid out to the guest, a negative Entgeltminderung at the Pfand
-	// product's VAT rate (Tz. 4.2.5). The Pfand sale stays "Umsatz", since the frozen sale
-	// events carry no Pfand flag per position (docs/decisions.md D20).
+	// product's VAT rate (Tz. 4.2.5).
 	gvTypPfandRueckzahlung = "PfandRueckzahlung"
 	// Anhang C GV types that only move the cash balance; jotti records them as
 	// BON_TYP "Beleg" with one non-taxable line (see docs/compliance.md §6.8).
@@ -64,7 +66,7 @@ type beleg struct {
 	bonID            string
 	bonNr            int
 	bonTyp           string   // BON_TYP: "Beleg", "AVBestellung" or "AVSonstige"
-	gvTyp            string   // GV_TYP of the lines: "Umsatz", "PfandRueckzahlung" or a cash GV type
+	gvTyp            string   // GV_TYP of the lines: "Umsatz", "PfandRueckzahlung" or a cash GV type; pfand overrides it per line
 	zahlart          string   // ZAHLART_TYP: "Bar"; empty for the cash-neutral AVBestellung
 	abrechnungskreis string   // ABRECHNUNGSKREIS (table name); empty without a table (e.g. Direktverkauf)
 	storno           bool     // negative Beleg (Warenrücknahme, Korrektur, Pfand return): flips the sign; BON_STORNO stays 0
@@ -78,6 +80,7 @@ type beleg struct {
 	bedienerID       int
 	bedienerName     string
 	positionen       []kasse.PositionEventData
+	pfand            []bool // per position: GV_TYP "Pfand" instead of gvTyp; nil when no line is Pfand
 	bruttoCents      int
 	tsePflichtig     bool          // signature required (a Signaturauftrag exists for the event)
 	tse              *tse.Signatur // signature from the Auftrag; nil while unsigned
@@ -110,12 +113,92 @@ func (b *beleg) ustAufteilung() []ustBetrag {
 	if b.nichtSteuerbar {
 		return []ustBetrag{{schluessel: ustNichtSteuerbar, brutto: b.bruttoCents, netto: b.bruttoCents, ust: 0}}
 	}
-	matrix := steuer.Steuermatrix(steuermatrixPositionen(b.positionen))
+	return ustBetraege(b.positionen)
+}
+
+// positionGvTyp is the GV_TYP of line i.
+func (b *beleg) positionGvTyp(i int) string {
+	if b.pfand != nil && b.pfand[i] {
+		return gvTypPfand
+	}
+	return b.gvTyp
+}
+
+// gvUstBetrag is one GV type's VAT split within a Beleg.
+type gvUstBetrag struct {
+	gvTyp    string
+	betraege []ustBetrag
+}
+
+// ustAufteilungJeGvTyp splits the Beleg per line GV type, then per VAT key. Steuermatrix sums
+// per position, so the parts add up to ustAufteilung.
+func (b *beleg) ustAufteilungJeGvTyp() []gvUstBetrag {
+	if b.nichtSteuerbar || b.pfand == nil {
+		return []gvUstBetrag{{gvTyp: b.gvTyp, betraege: b.ustAufteilung()}}
+	}
+	var out []gvUstBetrag
+	for _, gvTyp := range []string{b.gvTyp, gvTypPfand} {
+		var positionen []kasse.PositionEventData
+		for i, p := range b.positionen {
+			if b.positionGvTyp(i) == gvTyp {
+				positionen = append(positionen, p)
+			}
+		}
+		if len(positionen) > 0 {
+			out = append(out, gvUstBetrag{gvTyp: gvTyp, betraege: ustBetraege(positionen)})
+		}
+	}
+	return out
+}
+
+func ustBetraege(positionen []kasse.PositionEventData) []ustBetrag {
+	matrix := steuer.Steuermatrix(steuermatrixPositionen(positionen))
 	out := make([]ustBetrag, 0, len(matrix))
 	for _, a := range matrix {
 		out = append(out, ustBetrag{schluessel: ustSchluessel(a.Satz), brutto: a.Brutto, netto: a.Netto, ust: a.Steuer})
 	}
 	return out
+}
+
+// pfandJePosition maps each PositionID of a v2 sale to its Pfand flag; a v1 sale yields none.
+func pfandJePosition(positionen []kasse.PositionV2EventData) map[string]bool {
+	out := make(map[string]bool, len(positionen))
+	for _, p := range positionen {
+		if p.Pfand {
+			out[p.PositionID] = true
+		}
+	}
+	return out
+}
+
+// verkaufsPositionen splits v2 sale positions into the v1 form and the Pfand flags (nil if none).
+func verkaufsPositionen(positionen []kasse.PositionV2EventData) ([]kasse.PositionEventData, []bool) {
+	basis := make([]kasse.PositionEventData, len(positionen))
+	var pfand []bool
+	for i, p := range positionen {
+		basis[i] = p.PositionEventData
+		if p.Pfand {
+			if pfand == nil {
+				pfand = make([]bool, len(positionen))
+			}
+			pfand[i] = true
+		}
+	}
+	return basis, pfand
+}
+
+// ruecknahmePfand derives a Warenrücknahme's Pfand flags from its sale's positions (nil if none).
+func ruecknahmePfand(positionen []kasse.PositionEventData, verkauf map[string]bool) []bool {
+	var pfand []bool
+	for i, p := range positionen {
+		if verkauf[p.PositionID] {
+			if pfand == nil {
+				pfand = make([]bool, len(positionen))
+			}
+			pfand[i] = true
+		}
+	}
+	return pfand
 }
 
 // Map turns a Kassensitzung's snapshot and events into the archive; revenue arises
@@ -168,6 +251,9 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 	// herkunft maps each PositionID to its order's BON_ID. PositionIDs are unique per
 	// order, so a Korrektur resolves its origin orders via its positions.
 	herkunft := map[string]string{}
+	// verkaufsPfand maps a sale's BON_ID to its Pfand positions; its Warenrücknahme takes the
+	// flags from there, since the frozen Storno events carry none.
+	verkaufsPfand := map[string]map[string]bool{}
 
 	for _, ev := range events {
 		vorher := len(belege)
@@ -197,11 +283,14 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeZahlungKassiertV1):
-			var data kasse.ZahlungKassiertV1Data
+		case string(kasse.EventTypeZahlungKassiertV1), string(kasse.EventTypeZahlungKassiertV2):
+			// v1 has no pfand key, so its positions read as no Pfand.
+			var data kasse.ZahlungKassiertV2Data
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal zahlung-kassiert (event %d): %w", ev.ID, err)
 			}
+			positionen, pfand := verkaufsPositionen(data.Positionen)
+			verkaufsPfand[data.ZahlungID] = pfandJePosition(data.Positionen)
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:            data.ZahlungID,
@@ -214,7 +303,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				ende:             zeit(ev),
 				bedienerID:       ev.UserID,
 				bedienerName:     ev.UserName,
-				positionen:       data.Positionen,
+				positionen:       positionen,
+				pfand:            pfand,
 				bruttoCents:      data.GesamtZahlungCents,
 				notiz:            data.Kommentar,
 			})
@@ -241,6 +331,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				bedienerID:       ev.UserID,
 				bedienerName:     ev.UserName,
 				positionen:       data.Positionen,
+				pfand:            ruecknahmePfand(data.Positionen, verkaufsPfand[data.ZahlungID]),
 				bruttoCents:      data.GesamtStornierungCents,
 				notiz:            data.Kommentar,
 			})
@@ -309,11 +400,14 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			bon.bonNr = bonNr
 			belege = append(belege, bon)
 
-		case string(kasse.EventTypeDirektverkaufGetaetigtV1):
-			var data kasse.DirektverkaufGetaetigtV1Data
+		case string(kasse.EventTypeDirektverkaufGetaetigtV1), string(kasse.EventTypeDirektverkaufGetaetigtV2):
+			// v1 has no pfand key, so its positions read as no Pfand.
+			var data kasse.DirektverkaufGetaetigtV2Data
 			if err := json.Unmarshal(ev.Data, &data); err != nil {
 				return nil, fmt.Errorf("unmarshal direktverkauf-getaetigt (event %d): %w", ev.ID, err)
 			}
+			positionen, pfand := verkaufsPositionen(data.Positionen)
+			verkaufsPfand[data.VerkaufID] = pfandJePosition(data.Positionen)
 			bonNr++
 			belege = append(belege, beleg{
 				bonID:        data.VerkaufID,
@@ -325,7 +419,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				ende:         zeit(ev),
 				bedienerID:   ev.UserID,
 				bedienerName: ev.UserName,
-				positionen:   data.Positionen,
+				positionen:   positionen,
+				pfand:        pfand,
 				bruttoCents:  data.GesamtbetragCents,
 				notiz:        data.Kommentar,
 			})
@@ -349,6 +444,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				bedienerID:   ev.UserID,
 				bedienerName: ev.UserName,
 				positionen:   data.Positionen,
+				pfand:        ruecknahmePfand(data.Positionen, verkaufsPfand[data.VerkaufID]),
 				bruttoCents:  data.GesamtStornierungCents,
 				notiz:        data.Kommentar,
 			})
@@ -895,13 +991,13 @@ func buildLines(s Snapshot, erstellung string, belege []beleg) Table {
 			})
 			continue
 		}
-		// Cash-neutral AVBestellungen carry no GV_TYP: "Umsatz" on their lines would make
-		// a per-GV_TYP sum of lines exceed the revenue the closing knows.
-		posGvTyp := b.gvTyp
-		if b.geldneutral {
-			posGvTyp = ""
-		}
 		for i, p := range b.positionen {
+			// Cash-neutral AVBestellungen carry no GV_TYP: "Umsatz" on their lines would make
+			// a per-GV_TYP sum of lines exceed the revenue the closing knows.
+			posGvTyp := b.positionGvTyp(i)
+			if b.geldneutral {
+				posGvTyp = ""
+			}
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, itoa(i + 1), "", positionText(p),
@@ -1052,14 +1148,15 @@ var businesscasesColumns = []string{
 	"Z_UMS_BRUTTO", "Z_UMS_NETTO", "Z_UST",
 }
 
-// gvTypReihenfolge orders GV types for a stable businesscases.csv (Umsatz and
+// gvTypReihenfolge orders GV types for a stable businesscases.csv (Umsatz, Pfand and
 // PfandRueckzahlung before the cash movements).
 var gvTypReihenfolge = map[string]int{
 	gvTypUmsatz:            0,
-	gvTypPfandRueckzahlung: 1,
-	gvTypAnfangsbestand:    2,
-	gvTypGeldtransit:       3,
-	gvTypDifferenzSollIst:  4,
+	gvTypPfand:             1,
+	gvTypPfandRueckzahlung: 2,
+	gvTypAnfangsbestand:    3,
+	gvTypGeldtransit:       4,
+	gvTypDifferenzSollIst:  5,
 }
 
 // gvUstSchluessel is the businesscases.csv aggregation key: one GV type per VAT key.
@@ -1077,13 +1174,15 @@ func buildBusinesscases(s Snapshot, erstellung string, belege []beleg) Table {
 		if b.geldneutral {
 			continue
 		}
-		for _, z := range b.ustAufteilung() {
-			key := gvUstSchluessel{gvTyp: b.gvTyp, schluessel: z.schluessel}
-			cur := summen[key]
-			cur.brutto += b.sign() * z.brutto
-			cur.netto += b.sign() * z.netto
-			cur.ust += b.sign() * z.ust
-			summen[key] = cur
+		for _, teil := range b.ustAufteilungJeGvTyp() {
+			for _, z := range teil.betraege {
+				key := gvUstSchluessel{gvTyp: teil.gvTyp, schluessel: z.schluessel}
+				cur := summen[key]
+				cur.brutto += b.sign() * z.brutto
+				cur.netto += b.sign() * z.netto
+				cur.ust += b.sign() * z.ust
+				summen[key] = cur
+			}
 		}
 	}
 

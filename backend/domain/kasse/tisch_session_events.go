@@ -15,6 +15,7 @@ type EventType string
 const (
 	EventTypeBestellungAufgenommenV1 EventType = "bestellung-aufgenommen:v1"
 	EventTypeZahlungKassiertV1       EventType = "zahlung-kassiert:v1"
+	EventTypeZahlungKassiertV2       EventType = "zahlung-kassiert:v2"
 	EventTypeStornierungErteiltV1    EventType = "stornierung-erteilt:v1"
 	EventTypeBestellungKorrigiertV1  EventType = "bestellung-korrigiert:v1"
 	EventTypeBestellungUmgebuchtV1   EventType = "bestellung-umgebucht:v1"
@@ -47,6 +48,29 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 	"GesamtZahlungCents": z.Int().GTE(1).Required(),
 	"Kommentar":          z.String().Max(100),
 })
+
+// ZahlungKassiertV2Data is v1 plus the Pfand flag per position, for the DSFinV-K GV_TYP. A reader
+// that ignores the flag reads both versions as ZahlungKassiertV1Data.
+type ZahlungKassiertV2Data struct {
+	ZahlungID          string                `json:"zahlungId"`
+	Positionen         []PositionV2EventData `json:"positionen"`
+	GesamtZahlungCents int                   `json:"gesamtZahlungCents"`
+	Kommentar          string                `json:"kommentar"`
+}
+
+func (d ZahlungKassiertV2Data) v1() ZahlungKassiertV1Data {
+	return ZahlungKassiertV1Data{
+		ZahlungID:          d.ZahlungID,
+		Positionen:         positionenV1(d.Positionen),
+		GesamtZahlungCents: d.GesamtZahlungCents,
+		Kommentar:          d.Kommentar,
+	}
+}
+
+// IstZahlungKassiert reports zahlung-kassiert in any version.
+func IstZahlungKassiert(eventType string) bool {
+	return eventType == string(EventTypeZahlungKassiertV1) || eventType == string(EventTypeZahlungKassiertV2)
+}
 
 // StornierungErteiltV1Data is the cash-effective Warenrücknahme of paid positions: negative revenue
 // at the original tax rate plus cash refund, signed as Kassenbeleg-V1 (docs/compliance.md §3.3).
@@ -149,19 +173,21 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 	return e.New(userID, userName, string(EventTypeBestellungAufgenommenV1), subject, data)
 }
 
+// NewZahlungKassiertEvent stores each position's Pfand flag; the caller sets it from the product.
 func NewZahlungKassiertEvent(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
-	data := ZahlungKassiertV1Data{
+	data := ZahlungKassiertV2Data{
 		ZahlungID:          uuid.New().String(),
-		Positionen:         toPositionenEventData(positionen),
+		Positionen:         toPositionenV2EventData(positionen),
 		GesamtZahlungCents: gesamtZahlungCents,
 		Kommentar:          kommentar,
 	}
 
-	if err := validateEventData(zahlungKassiertV1DataSchema, &data, "zahlung kassiert"); err != nil {
+	basis := data.v1()
+	if err := validateEventData(zahlungKassiertV1DataSchema, &basis, "zahlung kassiert"); err != nil {
 		return e.Event{}, err
 	}
 
-	return e.New(userID, userName, string(EventTypeZahlungKassiertV1), subject, data)
+	return e.New(userID, userName, string(EventTypeZahlungKassiertV2), subject, data)
 }
 
 func NewStornierungErteiltEvent(subject string, userID int, userName string, zahlungID string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
@@ -273,7 +299,7 @@ func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 }
 
 func buildZahlungFromEvent(event e.Event) (Zahlung, error) {
-	if event.Type != string(EventTypeZahlungKassiertV1) {
+	if !IstZahlungKassiert(event.Type) {
 		return Zahlung{}, fmt.Errorf("unsupported event type: %s", event.Type)
 	}
 

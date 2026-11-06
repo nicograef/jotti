@@ -25,6 +25,7 @@ const (
 	bonTypSonstige          = "AVSonstige"     // Anhang B: other transaction (Tagesabschluss)
 	refTypTransaktion       = "Transaktion"    // Anhang E: reference within the DSFinV-K
 	gvTypUmsatz             = "Umsatz"         // Anhang C: realised revenue; separates a Storno from a cash movement
+	gvTypPfand              = "Pfand"          // Anhang C: Pfand line of a sale; its Warenrücknahme is a Storno too
 	bonStornoKein           = "0"              // BON_STORNO: no voiding; jotti uses the negative representation
 	tagesabschlussName      = "Tagesabschluss" // jotti's BON_NAME for the AVSonstige closing bon
 	ustSchluesselRegel      = "1"              // Anlage 2: 19 % standard rate
@@ -95,7 +96,7 @@ func ladeTabellendaten(dateien map[string][]byte, tabellen []indexTabelle) map[s
 	return out
 }
 
-// pruefeStornoReferenzen requires each Storno (negative "Beleg" bon with GV_TYP "Umsatz") to carry
+// pruefeStornoReferenzen requires each Storno (negative "Beleg" bon with GV_TYP "Umsatz" or "Pfand") to carry
 // BON_STORNO "0" and a "Transaktion" reference with REF_BON_ID. Negative cash outflows (Geldtransit,
 // DifferenzSollIst) are no Stornos and need no reference; see docs/compliance.md §6.6.
 func pruefeStornoReferenzen(daten map[string]tabellendaten) []Befund {
@@ -149,11 +150,12 @@ func referenzenNachBonID(refs tabellendaten) map[string][][]string {
 	return out
 }
 
-// umsatzBonsAusLines returns the BON_IDs with a GV_TYP "Umsatz" line: sales and Stornos, never cash movements.
+// umsatzBonsAusLines returns the BON_IDs with a GV_TYP "Umsatz" or "Pfand" line: sales and Stornos,
+// never cash movements or Pfand returns.
 func umsatzBonsAusLines(lines tabellendaten) map[string]bool {
 	out := map[string]bool{}
 	for _, zeile := range lines.zeilen {
-		if lines.wert(zeile, "GV_TYP") == gvTypUmsatz {
+		if gvTyp := lines.wert(zeile, "GV_TYP"); gvTyp == gvTypUmsatz || gvTyp == gvTypPfand {
 			out[lines.wert(zeile, "BON_ID")] = true
 		}
 	}

@@ -24,10 +24,10 @@ FROM (
     SELECT
         COALESCE(COUNT(CASE WHEN kj.type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
         COALESCE(SUM(kj_extract_bestellung_cents(kj.type, kj.data)), 0)::int AS bestellungen_cents,
-        COALESCE(COUNT(CASE WHEN kj.type = 'zahlung-kassiert:v1' THEN 1 END), 0)::int AS anzahl_zahlungen,
+        COALESCE(COUNT(CASE WHEN kj.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2') THEN 1 END), 0)::int AS anzahl_zahlungen,
         COALESCE(SUM(kj_extract_zahlung_cents(kj.type, kj.data)), 0)::int AS zahlungen_cents
     FROM kassenjournal kj
-    WHERE kj.type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1')
+    WHERE kj.type IN ('bestellung-aufgenommen:v1', 'zahlung-kassiert:v1', 'zahlung-kassiert:v2')
     AND kj.user_id = $1
     AND kj.kassensitzung_nr = $2
 ) eigene
@@ -41,7 +41,7 @@ CROSS JOIN (
     AND EXISTS (
         SELECT 1
         FROM kassenjournal zahlung
-        WHERE zahlung.type = 'zahlung-kassiert:v1'
+        WHERE zahlung.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2')
         AND zahlung.kassensitzung_nr = $2
         AND zahlung.user_id = $1
         AND zahlung.data->>'zahlungId' = storno.data->>'zahlungId'
@@ -147,10 +147,10 @@ SELECT
     MAX(e.user_name)::text AS user_name,
     COALESCE(MAX(u.name), '')::text AS name,
     COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents,
-    COUNT(CASE WHEN e.type = 'zahlung-kassiert:v1' THEN 1 END)::int AS anzahl_zahlungen
+    COUNT(CASE WHEN e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2') THEN 1 END)::int AS anzahl_zahlungen
 FROM kassenjournal e
 LEFT JOIN users u ON u.id = e.user_id
-WHERE e.type = 'zahlung-kassiert:v1'
+WHERE e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2')
 AND e.kassensitzung_nr = $1
 GROUP BY e.user_id
 ORDER BY kassiert_cents DESC
@@ -321,14 +321,14 @@ SELECT
     (position->>'varianteName')::text AS variante_name,
     COALESCE(SUM(
         (position->>'menge')::int * CASE
-            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2') THEN 1
             WHEN kj.type = 'bestellung-korrigiert:v1' THEN -1
             ELSE 0
         END
     ), 0)::int AS ausgegebene_menge,
     COALESCE(SUM(
         ((position->>'einzelpreisCents')::int * (position->>'menge')::int) * CASE
-            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1') THEN 1
+            WHEN kj.type IN ('bestellung-aufgenommen:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2') THEN 1
             WHEN kj.type = 'bestellung-korrigiert:v1' THEN -1
             ELSE 0
         END
@@ -338,7 +338,8 @@ CROSS JOIN LATERAL jsonb_array_elements(kj.data->'positionen') AS position
 WHERE kj.type IN (
     'bestellung-aufgenommen:v1',
     'bestellung-korrigiert:v1',
-    'direktverkauf-getaetigt:v1'
+    'direktverkauf-getaetigt:v1',
+    'direktverkauf-getaetigt:v2'
 )
 AND kj.kassensitzung_nr = $1
 GROUP BY kategorie, variante_id, produkt_name, variante_name
@@ -421,7 +422,7 @@ SELECT
     COALESCE(SUM(kj_extract_geldtransit_cents(type, data)), 0)::int AS gesamt_geldtransit_cents,
     COALESCE(COUNT(CASE WHEN type = 'bestellung-aufgenommen:v1' THEN 1 END), 0)::int AS anzahl_bestellungen,
     COALESCE(COUNT(CASE WHEN type IN ('stornierung-erteilt:v1', 'bestellung-korrigiert:v1', 'direktverkauf-storniert:v1') THEN 1 END), 0)::int AS anzahl_stornierungen,
-    COALESCE(COUNT(CASE WHEN type = 'direktverkauf-getaetigt:v1' THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
+    COALESCE(COUNT(CASE WHEN type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2') THEN 1 END), 0)::int AS anzahl_direktverkaeufe,
     (
         COALESCE(SUM(kj_extract_direktverkauf_cents(type, data)), 0)::int
         - COALESCE(SUM(kj_extract_direktverkauf_storno_cents(type, data)), 0)::int
@@ -435,9 +436,11 @@ FROM kassenjournal
 WHERE type IN (
     'bestellung-aufgenommen:v1',
     'zahlung-kassiert:v1',
+    'zahlung-kassiert:v2',
     'stornierung-erteilt:v1',
     'bestellung-korrigiert:v1',
     'direktverkauf-getaetigt:v1',
+    'direktverkauf-getaetigt:v2',
     'direktverkauf-storniert:v1',
     'pfand-zurueckgegeben:v1',
     'pfandrueckgabe-storniert:v1',
@@ -488,7 +491,7 @@ WITH storno AS (
 ), ursprung AS (
     SELECT k.type, k.data, k.user_id, k.user_name
     FROM kassenjournal k
-    WHERE k.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'bestellung-aufgenommen:v1')
+    WHERE k.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2', 'direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2', 'bestellung-aufgenommen:v1')
     AND k.kassensitzung_nr = $1
 ), bestell_position AS (
     SELECT ur.user_id, ur.user_name, pos->>'positionId' AS position_id
@@ -498,12 +501,12 @@ WITH storno AS (
 ), zuordnung AS (
     SELECT s.id, ur.user_id, ur.user_name
     FROM storno s
-    JOIN ursprung ur ON ur.type = 'zahlung-kassiert:v1' AND ur.data->>'zahlungId' = s.data->>'zahlungId'
+    JOIN ursprung ur ON ur.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2') AND ur.data->>'zahlungId' = s.data->>'zahlungId'
     WHERE s.type = 'stornierung-erteilt:v1'
     UNION ALL
     SELECT s.id, ur.user_id, ur.user_name
     FROM storno s
-    JOIN ursprung ur ON ur.type = 'direktverkauf-getaetigt:v1' AND ur.data->>'verkaufId' = s.data->>'verkaufId'
+    JOIN ursprung ur ON ur.type IN ('direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2') AND ur.data->>'verkaufId' = s.data->>'verkaufId'
     WHERE s.type = 'direktverkauf-storniert:v1'
     UNION ALL
     SELECT s.id, b.user_id, b.user_name
@@ -576,8 +579,8 @@ type GetStornierungenRow struct {
 // die betroffenen Servicekräfte, deren Vorgang der Storno rückgängig macht, als JSONB-Array
 // [{userId, userName, name}]. Aufgelöst wird jeweils innerhalb derselben Kassensitzung:
 //
-//	Warenrücknahme       → zahlung-kassiert:v1 mit derselben zahlungId (Kassierer, einwertig)
-//	Direktverkauf-Storno → direktverkauf-getaetigt:v1 mit derselben verkaufId (Verkäufer, einwertig)
+//	Warenrücknahme       → zahlung-kassiert mit derselben zahlungId (Kassierer, einwertig)
+//	Direktverkauf-Storno → direktverkauf-getaetigt mit derselben verkaufId (Verkäufer, einwertig)
 //	Korrektur            → je Positions-ID das bestellung-aufgenommen:v1, dessen Positions-Array
 //	                       diese ID enthält (Besteller, mehrwertig, je Person genau einmal)
 //
@@ -629,7 +632,7 @@ SELECT
     s.brutto_cents::int AS brutto_cents
 FROM kassenjournal kj
 CROSS JOIN LATERAL kj_extract_umsatz_pro_steuersatz(kj.type, kj.data) AS s(steuersatz, brutto_cents)
-WHERE kj.type IN ('zahlung-kassiert:v1', 'direktverkauf-getaetigt:v1', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1', 'pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
+WHERE kj.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2', 'direktverkauf-getaetigt:v1', 'direktverkauf-getaetigt:v2', 'direktverkauf-storniert:v1', 'stornierung-erteilt:v1', 'pfand-zurueckgegeben:v1', 'pfandrueckgabe-storniert:v1')
 AND kj.kassensitzung_nr = $1
 `
 

@@ -388,16 +388,16 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, teilRefs, "", nil); err != nil {
 		t.Fatalf("Teilzahlung: %v", err)
 	}
-	teilZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
+	teilZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV2), tischSubject)
 	z := warteAufSignatur(t, db, teilZahlungID)
 	pruefeSignatur(t, "Teilzahlung", z, tse.ProcessTypeKassenbelegV1)
 
-	// (4) Full payment of the remaining 2 units → Kassenbeleg-V1, a second zahlung-kassiert:v1 on the same subject.
+	// (4) Full payment of the remaining 2 units → Kassenbeleg-V1, a second zahlung-kassiert:v2 on the same subject.
 	vollRefs := positionRefsAusSession(t, u, ksNr, u.tischID, 2)
 	if err := u.tisch.ZahlungKassieren(ctx, u.userID, "test", u.tischID, vollRefs, "", nil); err != nil {
 		t.Fatalf("Vollzahlung: %v", err)
 	}
-	vollZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV1), tischSubject)
+	vollZahlungID := eventIDByType(t, db, string(kasse.EventTypeZahlungKassiertV2), tischSubject)
 	if vollZahlungID == teilZahlungID {
 		t.Errorf("Vollzahlung erzeugte kein neues zahlung-kassiert-Event")
 	}
@@ -439,7 +439,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 		t.Fatalf("DirektverkaufTaetigen: %v", err)
 	}
 	verkaufSubject := kasse.DirektverkaufSubject(ksNr, verkaufID)
-	signiereUndPruefe("Direktverkauf", string(kasse.EventTypeDirektverkaufGetaetigtV1), verkaufSubject, tse.ProcessTypeKassenbelegV1)
+	signiereUndPruefe("Direktverkauf", string(kasse.EventTypeDirektverkaufGetaetigtV2), verkaufSubject, tse.ProcessTypeKassenbelegV1)
 
 	// (9) Direct-sale cancellation → negative Kassenbeleg-V1.
 	dvSession, err := kassenjournal_repo.NewRepository(db).ReadEventsBySubject(ctx, verkaufSubject)

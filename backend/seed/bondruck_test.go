@@ -165,7 +165,8 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 		if evt.ID != id {
 			t.Fatalf("Event-IDs nicht deterministisch ab 1 vergeben: Position %d trägt ID %d", id, evt.ID)
 		}
-		if evt.Type != typ+":v1" {
+		// Die Referenz nennt den Event-Typ ohne Version.
+		if evtTyp, _, _ := strings.Cut(evt.Type, ":"); evtTyp != typ {
 			t.Errorf("Referenz %q verweist auf Event vom Typ %s", a.Referenz, evt.Type)
 		}
 		referenzen[a.BonArt+"/"+a.Referenz]++
@@ -191,7 +192,7 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 			if referenzen["arbeitsbon/bestellung-aufgenommen:"+strconv.Itoa(evt.ID)] == 0 {
 				t.Errorf("Bestellung %d ohne Arbeitsbon-Auftrag", evt.ID)
 			}
-		case kasse.EventTypeDirektverkaufGetaetigtV1:
+		case kasse.EventTypeDirektverkaufGetaetigtV2:
 			if referenzen["arbeitsbon/direktverkauf-getaetigt:"+strconv.Itoa(evt.ID)] != 1 {
 				t.Errorf("Direktverkauf %d ohne Sammel-Abholbon", evt.ID)
 			}
@@ -203,7 +204,7 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 			kasse.EventTypeKassensturzDurchgefuehrtV1,
 			kasse.EventTypeDifferenzSollIstGebuchtV1,
 			kasse.EventTypeTagesabschlussErstelltV1,
-			kasse.EventTypeZahlungKassiertV1,
+			kasse.EventTypeZahlungKassiertV2,
 			kasse.EventTypeStornierungErteiltV1,
 			kasse.EventTypeBestellungKorrigiertV1,
 			kasse.EventTypeBestellungUmgebuchtV1:
@@ -260,7 +261,7 @@ func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
 	for i := range daten.Events {
 		evt := daten.Events[i].event
 		typ := kasse.EventType(evt.Type)
-		if (typ == kasse.EventTypeZahlungKassiertV1 || typ == kasse.EventTypeDirektverkaufGetaetigtV1) && signaturen[evt.ID] == nil {
+		if (typ == kasse.EventTypeZahlungKassiertV2 || typ == kasse.EventTypeDirektverkaufGetaetigtV2) && signaturen[evt.ID] == nil {
 			unsigniert = &evt
 			break
 		}
@@ -279,7 +280,7 @@ func TestKassenbeleg_OhneSignaturKeinDruckauftrag(t *testing.T) {
 
 // findKassenbeleg sucht den Kassenbeleg-Druckauftrag zu einem Event.
 func findKassenbeleg(auftraege []druckauftragZeile, evt e.Event) (druckauftragZeile, bool) {
-	typ := strings.TrimSuffix(evt.Type, ":v1")
+	typ, _, _ := strings.Cut(evt.Type, ":")
 	for _, a := range auftraege {
 		if a.BonArt == "kassenbeleg" && a.Referenz == typ+":"+strconv.Itoa(evt.ID) {
 			return a, true

@@ -60,7 +60,7 @@ func sqlReferenzSummen(events []e.Event) AbschlussSummen {
 		}
 
 		switch evt.Type {
-		case string(EventTypeZahlungKassiertV1):
+		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 			// kj_extract_zahlung_cents: data->>'gesamtZahlungCents'
 			s.UmsatzCents += parseInt("gesamtZahlungCents")
 		case string(EventTypeStornierungErteiltV1):
@@ -71,7 +71,7 @@ func sqlReferenzSummen(events []e.Event) AbschlussSummen {
 		case string(EventTypeBestellungKorrigiertV1):
 			// kj_extract_korrektur_cents: data->>'gesamtCents'
 			s.StornierungCents += parseInt("gesamtCents")
-		case string(EventTypeDirektverkaufGetaetigtV1):
+		case string(EventTypeDirektverkaufGetaetigtV1), string(EventTypeDirektverkaufGetaetigtV2):
 			// kj_extract_direktverkauf_cents: data->>'gesamtbetragCents'
 			s.UmsatzCents += parseInt("gesamtbetragCents")
 		case string(EventTypeDirektverkaufStorniertV1):
@@ -280,9 +280,11 @@ func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 
 	summenWirksam := []EventType{
 		EventTypeZahlungKassiertV1,
+		EventTypeZahlungKassiertV2,
 		EventTypeStornierungErteiltV1,
 		EventTypeBestellungKorrigiertV1,
 		EventTypeDirektverkaufGetaetigtV1,
+		EventTypeDirektverkaufGetaetigtV2,
 		EventTypeDirektverkaufStorniertV1,
 		EventTypeGeldtransitGebuchtV1,
 	}

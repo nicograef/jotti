@@ -20,7 +20,7 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 	var s AbschlussSummen
 	for _, evt := range events {
 		switch EventType(evt.Type) {
-		case EventTypeZahlungKassiertV1:
+		case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
 			var data ZahlungKassiertV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
@@ -39,7 +39,7 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
 			}
 			s.StornierungCents += data.GesamtCents
-		case EventTypeDirektverkaufGetaetigtV1:
+		case EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2:
 			var data DirektverkaufGetaetigtV1Data
 			if err := json.Unmarshal(evt.Data, &data); err != nil {
 				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)

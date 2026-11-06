@@ -76,7 +76,7 @@ kassensitzung-{nr}/pfandrueckgabe-{rueckgabeId} → Pfandrückgabe (ein Stream p
 
 **Tisch-Session-Subject:** `kassensitzung-1/tisch-42`, entsteht implizit mit der ersten Bestellung (kein „Tisch-Öffnen"-Event).
 
-**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>`, ein eigener Stream pro Barverkauf an der Theke, ohne Projektion. `direktverkauf-getaetigt:v1` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream. Die Storno-Validierung läuft per On-Demand-Replay des einzelnen Verkauf-Streams. Stornierbar sind nur Positionen, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. Die Bargeld-Rückgabe ist Teil des Storno-Vorgangs selbst und mindert den Soll-Kassenbestand direkt, analog zur Warenrücknahme bezahlter Tisch-Positionen. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung.
+**Direktverkauf-Subject:** `kassensitzung-1/direktverkauf-<uuid>`, ein eigener Stream pro Barverkauf an der Theke, ohne Projektion. `direktverkauf-getaetigt` ist `version = 1`; positionsgenaue Stornierungen sind Folge-Versionen im selben Stream. Die Storno-Validierung läuft per On-Demand-Replay des einzelnen Verkauf-Streams. Stornierbar sind nur Positionen, die noch nicht (vollständig) storniert wurden, höchstens in der ursprünglich verkauften Menge. Die Bargeld-Rückgabe ist Teil des Storno-Vorgangs selbst und mindert den Soll-Kassenbestand direkt, analog zur Warenrücknahme bezahlter Tisch-Positionen. Die kompakte Direktverkauf-Historie (eine Zeile pro Verkauf) entsteht durch Cross-Stream-Replay aller `direktverkauf-*`-Events der offenen Kassensitzung.
 
 **Pfandrückgabe-Subject:** `kassensitzung-1/pfandrueckgabe-<rueckgabeId>`, ein eigener Stream pro Pfandrückgabe, ohne Projektion, für Tisch und Theke gleich. Die Rückgabe ist `version = 1`, jede positionsgenaue Stornierung eine Folge-Version. Beide Events tragen die `tischId` (0 = Direktverkauf); darüber zeigt die Tisch- oder Direktverkauf-Historie die Rückgabe im Abschnitt „Pfandrückgaben". Die Tisch-Projektion bleibt unberührt, eine Rückgabe erzeugt kein Guthaben am Tisch. Stornierbar ist je Position höchstens die zurückgegebene, noch nicht stornierte Menge; geprüft wird per Replay des Rückgabe-Streams.
 
@@ -109,6 +109,7 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 | --------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `bestellung-aufgenommen:v1` | Servicekraft nimmt eine Bestellung am Tisch auf                     | ≥ 1 Position; Produktname, Variante, Kategorie und Einzelpreis als Fat Event eingefroren                                             |
 | `zahlung-kassiert:v1`       | Barzahlung kassiert                                                 | Betrag = Summe der gewählten Positionen; Teilzahlungen möglich                                                                       |
+| `zahlung-kassiert:v2`       | Barzahlung kassiert, mit Pfand-Kennzeichen je Position              | Wie v1; `pfand` je Position beim Kassieren aus dem Produkt eingefroren; neue Zahlungen schreiben nur v2                              |
 | `stornierung-erteilt:v1`    | Kassenwirksame Warenrücknahme bezahlter Positionen                  | Genau eine `zahlungId` (FIFO je Zahlung); negativer Umsatz am Ursprungssteuersatz + Bar-Rückgabe; Kommentar Pflicht (min. 3 Zeichen) |
 | `bestellung-korrigiert:v1`  | Geldneutrale Stornierung unbezahlter Positionen                     | Positionsbezug; ohne Geld- und Umsatzwirkung; Kommentar optional                                                                     |
 | `bestellung-umgebucht:v1`   | Geldneutrale Umbuchung unbezahlter Positionen zwischen zwei Tischen | Quell-/Zielstrom mit gemeinsamer `umbuchungId`; ohne Geldwirkung; Kommentar optional                                                 |
@@ -118,6 +119,7 @@ Alle Events sind unveränderlich (append-only) und werden im Kassenjournal persi
 | Event                        | Semantik                                                     | Tragende Constraints                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | `direktverkauf-getaetigt:v1` | Barverkauf an der Theke: Bestellen + Zahlen in einem Schritt | Immer `version = 1` des Streams                                                                                                 |
+| `direktverkauf-getaetigt:v2` | Wie v1, mit Pfand-Kennzeichen je Position                    | `pfand` je Position aus dem Produkt eingefroren; neue Verkäufe schreiben nur v2                                                 |
 | `direktverkauf-storniert:v1` | Positionsgenauer Storno eines Direktverkaufs                 | Folge-Version im selben Stream; Fat-Positionen; Bargeld-Rückgabe inklusive (→ [3.3](#33-subject-design-hierarchische-subjects)) |
 
 **Pfand-Events** (Subject `kassensitzung-{nr}/pfandrueckgabe-{rueckgabeId}`):
@@ -192,7 +194,7 @@ SQL-Aggregation über das Kassenjournal (eine `SELECT`-Query über `kassensitzun
 
 $$\text{Soll} = \text{Anfangsbestand}_{\text{KS}} + \sum_{\text{Tische}} \text{Zahlungen} - \sum_{\text{Tische}} \text{Warenrücknahmen} + \sum \text{Direktverkauf} - \sum \text{Direktverkauf-Storno} - \sum \text{Pfandrückgaben} + \sum \text{Pfandrückgabe-Stornos} + \text{Kassenbewegungen}_{\text{netto}} + \text{DifferenzSollIst}$$
 
-Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Direktverkauf- und Pfand-Events (`direktverkauf-getaetigt:v1`, `direktverkauf-storniert:v1`, `pfand-zurueckgegeben:v1`, `pfandrueckgabe-storniert:v1`) haben keine eigene Projektion, sind aber vollständig kassenwirksam und fließen in den Soll-Bestand ein.
+Alle Summanden stammen aus dem Kassenjournal. Keine Cross-Context-Projektion. Direktverkauf- und Pfand-Events (`direktverkauf-getaetigt`, `direktverkauf-storniert:v1`, `pfand-zurueckgegeben:v1`, `pfandrueckgabe-storniert:v1`) haben keine eigene Projektion, sind aber vollständig kassenwirksam und fließen in den Soll-Bestand ein.
 
 Die API liefert den Soll-Bestand zusätzlich als Vier-Komponenten-Aufschlüsselung (`Kassenbestand`-Struct, `domain/kasse/kassensitzung.go`): `Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll` (solange keine Kassensturz-Differenz gebucht ist). `Bareinnahmen` bündelt die kassenwirksamen Verkaufsbewegungen (Tisch-Zahlungen abzüglich Warenrücknahmen, Direktverkäufe abzüglich Storno; ausgezahltes Pfand mindert sie, Pfandrückgabe-Stornos heben das auf), `Einlagen`/`Entnahmen` die Geldtransit-Bewegungen. JSON-Keys: `sollBestandCents`, `anfangsbestandCents`, `bareinnahmenCents`, `einlagenCents`, `entnahmenCents`. Die einzelnen Bargeldbewegungen sind zusätzlich als Geldtransit-Liste (`Geldtransit`-Read-Model, `POST /admin/get-geldtransit-liste`) abrufbar — reine Projektion der `geldtransit-gebucht:v1`-Events.
 
@@ -285,7 +287,7 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 
 **Invarianten:** Produkt- und Variantennamen 3–100 Zeichen (getrimmt); Kategorie gültig; Preis 1–99999 Cent. Varianten können unabhängig vom Produkt deaktiviert werden (`inactive`) und erscheinen dann nicht im Service-Katalog.
 
-**Pfand-Kennzeichen:** `produkte.pfand` (Go `Produkt.Pfand`, JSON `pfand`, Standard aus) markiert ein Pfand-Produkt. Es steuert nur, welche Varianten die Pfandrückgabe anbietet; verkauft wird ein Pfand-Produkt wie jedes andere. `POST /service/get-aktive-produkte` liefert die aktiven Pfand-Produkte zusätzlich als `pfandProdukte`. Die Rückgabe übernimmt Name, Preis und Steuersatz des Pfand-Produkts in ihre Positionen; eine Variante ohne Kennzeichen lehnt sie mit `kein_pfand_produkt` ab.
+**Pfand-Kennzeichen:** `produkte.pfand` (Go `Produkt.Pfand`, JSON `pfand`, Standard aus) markiert ein Pfand-Produkt. Es steuert, welche Varianten die Pfandrückgabe anbietet; verkauft wird ein Pfand-Produkt wie jedes andere. Zahlung und Direktverkauf frieren es je Position ein, für den `GV_TYP` `Pfand` im DSFinV-K-Export. `POST /service/get-aktive-produkte` liefert die aktiven Pfand-Produkte zusätzlich als `pfandProdukte`. Die Rückgabe übernimmt Name, Preis und Steuersatz des Pfand-Produkts in ihre Positionen; eine Variante ohne Kennzeichen lehnt sie mit `kein_pfand_produkt` ab.
 
 **Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte. Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen. Sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
 
@@ -318,8 +320,8 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 
 **Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung genau einen Druckauftrag an den Kassenbeleg-Drucker. Er nimmt eine von sechs Body-Formen an:
 
-- `tischId`+`zahlungId`: Tischzahlung (`zahlung-kassiert:v1`)
-- `verkaufId`: Direktverkauf (`direktverkauf-getaetigt:v1`)
+- `tischId`+`zahlungId`: Tischzahlung (`zahlung-kassiert`)
+- `verkaufId`: Direktverkauf (`direktverkauf-getaetigt`)
 - `rueckgabeId`: Pfandbeleg (`pfand-zurueckgegeben:v1`)
 - `tischId`+`stornierungId`: Stornobeleg zur Tisch-Stornierung
 - `verkaufId`+`stornierungId`: Stornobeleg zur Direktverkauf-Stornierung
@@ -329,7 +331,7 @@ Der Pfandbeleg ist ein Kassenbeleg mit negativen Positionen, negativer Steuermat
 
 **Druckauftrags-Outbox (`druckauftraege`):** Single Source of Truth für alle Druckjobs, eine technische Warteschlange (Ziel-IP, ESC/POS-Payload, `bon_art`, fachliche Referenz), kein fiskalisches Journal. Statusmodell: `offen → gedruckt`; nach sechs gemeldeten Fehlversuchen `fehlgeschlagen`, von dort `verworfen` oder zurück auf `offen`. Zwischen den Versuchen wächst die Wartezeit (Backoff 5 s, 15 s, 30 s, 60 s, 180 s).
 
-**Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt:v1` wird aus den konfigurierten Druckstationen abgeleitet:
+**Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt` wird aus den konfigurierten Druckstationen abgeleitet:
 
 - Trägt die Abholbon-Station den Bonmodus `kein_bon`, entsteht kein Auftrag, auch nicht an den Produktstationen. Ihre IP spielt dann keine Rolle.
 - Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit.
@@ -544,7 +546,7 @@ Reporting ist Admin-only und wird on-demand per SQL-Aggregation über `kassenjou
 
 Beide `summary`-Sektionen enthalten die Direktverkauf-Kennzahlen `anzahlDirektverkaeufe` und `direktverkaufUmsatzCents` (netto: Verkauf minus Storno) sowie die Pfand-Kennzahlen `anzahlPfandrueckgaben` und `pfandrueckgabenCents` (netto: Rückgaben minus deren Stornierungen). `gesamtUmsatzCents` und `umsatzProSteuersatz` ziehen Pfandrückgaben ab und addieren deren Stornierungen. Anforderungs-IDs (R-01–R-07) → [anforderungen.md](anforderungen.md).
 
-**Abrechnung pro Servicekraft (R-04) und Storno-Zuordnung.** `breakdowns.abrechnungProServicekraft` ist die Bargeld-Abrechnung des Tischservice je Servicekraft: `kassiertCents` (Summe der `zahlung-kassiert:v1`-Events nach Akteur) − `ruecknahmenCents` − `pfandCents` = `abzugebenCents`, dazu `anzahlStornierungen` als kombinierter Kontroll-Zähler über beide Tisch-Storno-Arten. Im Live-Dashboard trägt `breakdowns.servicekraefte` dieselben Zahlen, zusammengeführt mit der offenen eigenen Arbeit.
+**Abrechnung pro Servicekraft (R-04) und Storno-Zuordnung.** `breakdowns.abrechnungProServicekraft` ist die Bargeld-Abrechnung des Tischservice je Servicekraft: `kassiertCents` (Summe der `zahlung-kassiert`-Events nach Akteur) − `ruecknahmenCents` − `pfandCents` = `abzugebenCents`, dazu `anzahlStornierungen` als kombinierter Kontroll-Zähler über beide Tisch-Storno-Arten. Im Live-Dashboard trägt `breakdowns.servicekraefte` dieselben Zahlen, zusammengeführt mit der offenen eigenen Arbeit.
 
 Read-Model-Regel dahinter: Ein Storno wird nicht dem Akteur zugerechnet, sondern der Servicekraft, deren Vorgang er rückgängig macht. Die Zuordnung entsteht zur Lesezeit aus dem Rückverweis des Events, jeweils innerhalb derselben Kassensitzung:
 

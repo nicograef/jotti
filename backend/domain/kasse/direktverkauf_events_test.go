@@ -20,8 +20,8 @@ func TestNewDirektverkaufGetaetigtEvent_SingleEventWithConsistentSum(t *testing.
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if event.Type != string(EventTypeDirektverkaufGetaetigtV1) {
-		t.Errorf("expected type %s, got %s", EventTypeDirektverkaufGetaetigtV1, event.Type)
+	if event.Type != string(EventTypeDirektverkaufGetaetigtV2) {
+		t.Errorf("expected type %s, got %s", EventTypeDirektverkaufGetaetigtV2, event.Type)
 	}
 	if event.Subject != subject {
 		t.Errorf("expected subject %s, got %s", subject, event.Subject)

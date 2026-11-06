@@ -115,8 +115,10 @@ WHERE kassensitzung_nr = $1
   AND type IN (
     'kassensitzung-eroeffnet:v1',
     'zahlung-kassiert:v1',
+    'zahlung-kassiert:v2',
     'stornierung-erteilt:v1',
     'direktverkauf-getaetigt:v1',
+    'direktverkauf-getaetigt:v2',
     'direktverkauf-storniert:v1',
     'pfand-zurueckgegeben:v1',
     'pfandrueckgabe-storniert:v1',

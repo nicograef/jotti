@@ -41,7 +41,7 @@ func toSteuermatrixPositionen(positionen []kasse.Position) []steuer.Steuermatrix
 
 func findZahlungEvent(events []event.Event, zahlungID string) (event.Event, kasse.ZahlungKassiertV1Data, error) {
 	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypeZahlungKassiertV1) {
+		if !kasse.IstZahlungKassiert(evt.Type) {
 			continue
 		}
 
@@ -89,7 +89,7 @@ func findStornierungEvent(events []event.Event, stornierungID string) (event.Eve
 
 func findDirektverkaufGetaetigtEvent(events []event.Event, verkaufID string) (event.Event, kasse.DirektverkaufGetaetigtV1Data, error) {
 	for _, evt := range events {
-		if evt.Type != string(kasse.EventTypeDirektverkaufGetaetigtV1) {
+		if !kasse.IstDirektverkaufGetaetigt(evt.Type) {
 			continue
 		}
 

@@ -26,6 +26,10 @@ func FuzzApplyEvent(f *testing.F) {
 			`{"zahlungId":"22222222-2222-4222-8222-222222222222","positionen":[` + fuzzPositionLiteral + `],"gesamtZahlungCents":700,"kommentar":""}`,
 		},
 		{
+			string(EventTypeZahlungKassiertV2),
+			`{"zahlungId":"22222222-2222-4222-8222-222222222222","positionen":[` + fuzzPositionLiteral[:len(fuzzPositionLiteral)-1] + `,"pfand":true}],"gesamtZahlungCents":700,"kommentar":""}`,
+		},
+		{
 			string(EventTypeStornierungErteiltV1),
 			`{"stornierungId":"33333333-3333-4333-8333-333333333333","zahlungId":"22222222-2222-4222-8222-222222222222","positionen":[` + fuzzPositionLiteral + `],"gesamtStornierungCents":700,"kommentar":""}`,
 		},
@@ -111,7 +115,7 @@ func FuzzApplyEvent(f *testing.F) {
 // auf den realistischen Rahmen einzugrenzen. Nicht-mindernde Events liefern 0.
 func saldoMinderung(typ string, data json.RawMessage) int {
 	switch typ {
-	case string(EventTypeZahlungKassiertV1):
+	case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
 		var d ZahlungKassiertV1Data
 		if json.Unmarshal(data, &d) == nil {
 			return d.GesamtZahlungCents

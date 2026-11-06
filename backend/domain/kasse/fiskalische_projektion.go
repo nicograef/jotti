@@ -51,7 +51,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		}
 		return bestellungVorgang(fromPositionenEventData(data.Positionen), faktor)
 
-	case EventTypeZahlungKassiertV1:
+	case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
 		data, err := parseProjektionsData[ZahlungKassiertV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
@@ -65,7 +65,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		}
 		return kassenbelegVorgang(fromPositionenEventData(data.Positionen), -data.GesamtStornierungCents, -1)
 
-	case EventTypeDirektverkaufGetaetigtV1:
+	case EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2:
 		data, err := parseProjektionsData[DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
 			return FiskalischerVorgang{}, false, err

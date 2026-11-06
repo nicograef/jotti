@@ -107,3 +107,34 @@ func TestDeleteProduktMitVarianten_MidFailureRollsBack(t *testing.T) {
 		t.Errorf("expected variante to remain active after rollback, got %q", got)
 	}
 }
+
+// A position ordered before the delete stays payable, so its Pfand flag must stay readable.
+func TestGetPfandVarianten_LiestGeloeschteProdukte(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	pfand := newProdukt("Pfand", produkt.GetraenkKategorie)
+	pfand.Pfand = true
+	pfandID, _ := repo.CreateProdukt(ctx, pfand)
+	glasID, _ := repo.CreateVariante(ctx, pfandID, newVariante("Glas", 200, produkt.ActiveStatus))
+	bierID, _ := repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	pilsID, _ := repo.CreateVariante(ctx, bierID, newVariante("Pils", 400, produkt.ActiveStatus))
+
+	p, err := repo.GetProdukt(ctx, pfandID)
+	if err != nil {
+		t.Fatalf("failed to load produkt: %v", err)
+	}
+	applyDelete(&p)
+	if err := repo.DeleteProduktMitVarianten(ctx, p); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	got, err := repo.GetPfandVarianten(ctx, []int{glasID, pilsID})
+	if err != nil {
+		t.Fatalf("GetPfandVarianten: %v", err)
+	}
+	if len(got) != 1 || !got[glasID] {
+		t.Errorf("GetPfandVarianten = %v, want only %d", got, glasID)
+	}
+}

@@ -189,6 +189,7 @@ func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -360,6 +361,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -409,6 +411,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -443,6 +446,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -461,6 +465,60 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 	}
 	if events[0].Version != 4 {
 		t.Errorf("expected version 4 (LastEventVersion 3 + 1), got %d", events[0].Version)
+	}
+}
+
+// The Zahlung is the Beleg: it freezes the Pfand flag the product carries at payment, since the
+// Bestellung event has none. The DSFinV-K export books the flagged line as GV_TYP Pfand.
+func TestZahlungKassieren_FriertPfandKennzeichenEin(t *testing.T) {
+	ctx := context.Background()
+	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	eventMock.SetTischSession(subject, kasse.TischSession{
+		SaldoCents: 550,
+		UnbezahltePositionen: []kasse.Position{
+			{PositionID: "22222222-2222-4222-8222-222222222222", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
+			{PositionID: "33333333-3333-4333-8333-333333333333", VarianteID: 19, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "sonstiges", Steuersatz: "regel", EinzelpreisCents: 200, Menge: 1},
+		},
+		LastEventVersion: 1,
+	})
+	produkte := repotest.NewProduktRepo([]produkt.Produkt{testProduct, {ID: 9, Name: "Pfand", Pfand: true}}, nil)
+	produkte.AddVariante(1, testVariant)
+	produkte.AddVariante(9, produkt.Variante{ID: 19, Name: "Glas", PreisCents: 200, Status: produkt.ActiveStatus})
+
+	command := Command{
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
+		EventRepo:           eventMock,
+		ProduktRepo:         produkte,
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+	}
+
+	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{
+		{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1},
+		{PositionID: "33333333-3333-4333-8333-333333333333", Menge: 1},
+	}, "", nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadEventsBySubject(ctx, subject)
+	if err != nil || len(events) != 1 {
+		t.Fatalf("expected one event, got %d (err %v)", len(events), err)
+	}
+	if events[0].Type != "zahlung-kassiert:v2" {
+		t.Fatalf("type = %s, want zahlung-kassiert:v2", events[0].Type)
+	}
+	var data kasse.ZahlungKassiertV2Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	got := map[int]bool{}
+	for _, p := range data.Positionen {
+		got[p.VarianteID] = p.Pfand
+	}
+	if len(got) != 2 || got[1] || !got[19] {
+		t.Errorf("pfand per variante = %v, want map[1:false 19:true]", got)
 	}
 }
 
@@ -507,6 +565,7 @@ func TestZahlungKassieren_ParallelerVersuchMitPfand_Idempotent(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -685,6 +744,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
@@ -723,6 +783,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
+		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 

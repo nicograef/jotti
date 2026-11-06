@@ -200,6 +200,17 @@ func TestInhalt_StornoOhneReferenz(t *testing.T) {
 	}
 }
 
+func TestInhalt_PfandRuecknahmeOhneReferenz(t *testing.T) {
+	// A Warenrücknahme of only Pfand lines is a Storno too.
+	lines := strings.Replace(gutLinesCSV, "storno-1;Bier;Umsatz", "storno-1;Pfand Glas;Pfand", 1)
+	d := ersetze(gutesInhaltArchiv(), "lines.csv", lines)
+	d = ersetze(d, "references.csv", "BON_ID;POS_ZEILE;REF_TYP;REF_NAME;REF_BON_ID\r\n")
+	befunde, _ := PruefenBytes(baueZip(t, d))
+	if !hatBefund(befunde, regelStornoReferenz) {
+		t.Errorf("erwartet Befund %q, erhielt:\n%s", regelStornoReferenz, befundText(befunde))
+	}
+}
+
 func TestInhalt_StornoMitLeeremRefBonID(t *testing.T) {
 	// An empty REF_BON_ID names no original bon.
 	kaputt := "BON_ID;POS_ZEILE;REF_TYP;REF_NAME;REF_BON_ID\r\nstorno-1;;Transaktion;;\r\n"
