@@ -221,8 +221,6 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	}, nil
 }
 
-// oeffneSetupClient holds the LIVE guard: an environment mismatch ends the setup before any write.
-// zweck only labels the log message.
 // vorbereiteEinrichtung runs the checks RichteTSEEin and UebernimmTSE share before any write at fiskaly.
 func (c Command) vorbereiteEinrichtung(ctx context.Context, log *slog.Logger, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
 	if err := credentials.Validate(); err != nil {
@@ -238,6 +236,7 @@ func (c Command) vorbereiteEinrichtung(ctx context.Context, log *slog.Logger, cr
 }
 
 // oeffneSetupClient lists the account's TSS; a nil bestaetigteUmgebung accepts any environment.
+// zweck only labels the log message.
 func oeffneSetupClient(ctx context.Context, log *slog.Logger, newClient NewTSESetupClient, credentials tse.SetupCredentials, bestaetigteUmgebung *tse.Umgebung, zweck string) (tse.SetupClient, tse.Umgebung, []tse.TSSInfo, error) {
 	client, err := newClient(credentials)
 	if err != nil {
