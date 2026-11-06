@@ -20,6 +20,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { PfandField } from './PfandField'
 import { defaultSteuersatzByKategorie } from './Produkt'
 import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
 import { SteuersatzField } from './SteuersatzField'
@@ -41,6 +42,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
       name: props.product.name,
       kategorie: props.product.kategorie,
       steuersatz: props.product.steuersatz,
+      pfand: props.product.pfand,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -105,6 +107,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
               <NameField form={form} withLabel />
               <CategoryField form={form} withLabel />
               <SteuersatzField form={form} withLabel />
+              <PfandField form={form} />
             </FieldGroup>
           </form>
         </DialogBody>

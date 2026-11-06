@@ -16,6 +16,7 @@ function produkt(overrides: Partial<Produkt>): Produkt {
     name: 'Produkt',
     kategorie: 'essen',
     steuersatz: 'ermaessigt',
+    pfand: false,
     status: 'active',
     varianten: [],
     createdAt: '2026-07-01T10:00:00Z',

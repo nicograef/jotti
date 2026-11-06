@@ -76,6 +76,7 @@ export const ProduktSchema = z.object({
   name: NameSchema,
   kategorie: KategorieSchema,
   steuersatz: SteuersatzSchema,
+  pfand: z.boolean(),
   status: EntityStatusSchema,
   varianten: z.array(VarianteSchema),
   createdAt: DateStringSchema,

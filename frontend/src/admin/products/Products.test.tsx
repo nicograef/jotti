@@ -6,6 +6,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
+import { EditProductDialog } from './EditProductDialog'
+import { NewProductDialog } from './NewProductDialog'
 import { Products } from './Products'
 
 // Radix Popper misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
@@ -45,6 +47,7 @@ function produkt(overrides: Partial<Produkt>): Produkt {
     name: 'Produkt',
     kategorie: 'essen',
     steuersatz: 'ermaessigt',
+    pfand: false,
     status: 'active',
     varianten: [variante()],
     createdAt: '2026-07-01T10:00:00Z',
@@ -223,5 +226,64 @@ describe('Products - alphabetische Variantensortierung', () => {
     expect(
       screen.getByRole('menuitem', { name: /alphabetisch sortieren/ }),
     ).toHaveAttribute('data-disabled')
+  })
+})
+
+describe('Produkt-Formulare', () => {
+  it.each([
+    {
+      dialog: 'NewProductDialog',
+      submit: 'Produkt anlegen',
+      renderDialog: () => {
+        const backend = { createProdukt: vi.fn().mockResolvedValue(9) }
+        render(<NewProductDialog backend={backend} created={vi.fn()} />)
+        return { send: backend.createProdukt, open: 'Neues Produkt' }
+      },
+    },
+    {
+      dialog: 'EditProductDialog',
+      submit: 'Speichern',
+      renderDialog: () => {
+        const backend = { updateProdukt: vi.fn().mockResolvedValue(undefined) }
+        render(
+          <EditProductDialog
+            backend={backend}
+            open
+            product={produkt({ id: 3, name: 'Pfand' })}
+            updated={vi.fn()}
+            close={vi.fn()}
+          />,
+        )
+        return { send: backend.updateProdukt, open: null }
+      },
+    },
+  ])(
+    'sends pfand when the Pfand switch is on ($dialog)',
+    async ({ submit, renderDialog }) => {
+      const user = userEvent.setup()
+      const { send, open } = renderDialog()
+      if (open) {
+        await user.click(screen.getByRole('button', { name: open }))
+        await user.type(screen.getByLabelText('Name'), 'Pfand')
+      }
+
+      await user.click(screen.getByRole('switch', { name: 'Pfand-Produkt' }))
+      await user.click(screen.getByRole('button', { name: submit }))
+
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Pfand', pfand: true }),
+      )
+    },
+  )
+
+  it('marks a Pfand-Produkt with a badge', () => {
+    renderProducts([
+      produkt({ id: 1, name: 'Pfand', pfand: true }),
+      produkt({ id: 2, name: 'Pommes' }),
+    ])
+
+    expect(
+      screen.getAllByText('Pfand', { selector: '[data-slot=badge]' }),
+    ).toHaveLength(1)
   })
 })

@@ -21,6 +21,7 @@ export const CreateProduktSchema = z.object({
   name: NameEingabeSchema,
   kategorie: KategorieSchema,
   steuersatz: SteuersatzSchema,
+  pfand: z.boolean(),
 })
 
 export const UpdateProduktSchema = CreateProduktSchema.extend({

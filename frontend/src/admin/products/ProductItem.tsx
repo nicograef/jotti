@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -153,8 +154,9 @@ export function ProductItem(props: ProductItemProps) {
 
   return (
     <div className="flex flex-wrap items-start gap-x-4 gap-y-2 border-b py-3 last:border-b-0">
-      <span className="min-w-32 shrink-0 pt-1 font-medium">
+      <span className="flex min-w-32 shrink-0 items-center gap-2 pt-1 font-medium">
         {props.product.name}
+        {props.product.pfand && <Badge variant="secondary">Pfand</Badge>}
       </span>
 
       <div className="flex flex-1 flex-wrap items-center gap-2">

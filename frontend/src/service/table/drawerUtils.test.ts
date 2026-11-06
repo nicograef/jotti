@@ -204,6 +204,7 @@ describe('toBestellungData', () => {
     name: 'Pommes',
     kategorie: 'essen',
     steuersatz: 'ermaessigt',
+    pfand: false,
     status: 'active',
     varianten: [
       {

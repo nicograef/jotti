@@ -23,6 +23,7 @@ const testProdukt: Produkt = {
   name: 'Bratwurst',
   kategorie: 'essen',
   steuersatz: 'ermaessigt',
+  pfand: false,
   status: 'active',
   varianten: [
     {
