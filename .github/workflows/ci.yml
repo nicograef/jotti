@@ -561,7 +561,8 @@ jobs:
   # Upgrade-path harness: a database migrated and filled with the previous
   # release's images must survive the upgrade to the current checkout (migrate
   # up, boot, rebuild-projections), and its backup must restore. The previous
-  # release is the newest v* tag below HEAD; the job is the mandatory gate for
+  # release is the latest published GitHub release (release.yml publishes it only
+  # after its images are on GHCR); the job is the mandatory gate for
   # schema changes. Details: database/migrations/README.md.
   upgrade-path:
     needs: changes
