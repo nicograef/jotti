@@ -17,3 +17,9 @@ description: 'Belegausgabepflicht beim Vereinsfest und die richtige Zuordnung de
   70 % ermäßigt und 30 % Regelsatz auf (siehe
   [Steuerrecht Gastronomie](../steuerrecht.md)). Der Steuersatz erscheint auf dem
   Beleg und im Datenexport. Welcher Satz für euch gilt, klärt euer Steuerberater.
+- **Pfand:** Pfand teilt den Steuersatz der Hauptleistung. Glaspfand zu Getränken
+  trägt 19 %, Tellerpfand zu Speisen 7 %. Grund: Festglas und Pfandteller sind
+  Warenumschließungen (BMF-Schreiben vom 20.10.2014, BStBl I S. 1372). Legt
+  deshalb je Steuersatz ein eigenes Pfand-Produkt an und schaltet dort den
+  Schalter „Pfand-Produkt" ein. Seine Varianten erscheinen dann bei der
+  Pfandrückgabe.
