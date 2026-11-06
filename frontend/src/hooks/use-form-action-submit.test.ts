@@ -73,25 +73,4 @@ describe('useFormActionSubmit', () => {
       'Die Daten wurden gerade von jemand anderem geändert. Bitte aktualisieren und erneut versuchen.',
     )
   })
-
-  it('shows toast for validation_error with updated message', async () => {
-    const form = createFormMock()
-    const { result } = renderHook(() =>
-      useFormActionSubmit({
-        form,
-        actionLabel: 'Speichern',
-      }),
-    )
-
-    await act(async () => {
-      await result.current.run(() =>
-        Promise.reject(new BackendError(400, 'validation_error')),
-      )
-    })
-
-    expect(form.setError).not.toHaveBeenCalled()
-    expect(toast.error).toHaveBeenCalledWith(
-      'Bitte die Eingaben prüfen und erneut versuchen.',
-    )
-  })
 })

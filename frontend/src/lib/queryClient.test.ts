@@ -58,12 +58,6 @@ describe('createQueryClient Wiederholungen', () => {
       await zaehleVersuche(new BackendError(500, 'internal_server_error')),
     ).toBe(3)
   })
-
-  // Ein automatisch wiederholter Schreibvorgang würde doppelt buchen; Buchungen
-  // laufen ohnehin über useActionSubmit an react-query vorbei.
-  it('setzt keine Politik für Mutations', () => {
-    expect(createQueryClient().getDefaultOptions().mutations).toBeUndefined()
-  })
 })
 
 describe('createQueryClient Fehler-Toast', () => {

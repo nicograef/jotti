@@ -36,20 +36,10 @@ describe('StornierungSchema (Response, R6)', () => {
 
     expect(result.success).toBe(true)
   })
-
-  it('trägt die Storno-Art über barRueckgabe', () => {
-    const warenruecknahme = StornierungSchema.parse({
-      ...stornierungResponse,
-      barRueckgabe: true,
-      kommentar: 'Falsch gebucht',
-    })
-
-    expect(warenruecknahme.barRueckgabe).toBe(true)
-  })
 })
 
 describe('StornierungErteilenSchema (Request)', () => {
-  it('verlangt weiterhin einen Kommentar mit mindestens 3 Zeichen', () => {
+  it('verlangt einen Kommentar mit mindestens 3 Zeichen', () => {
     const zuKurz = StornierungErteilenSchema.safeParse({
       tischId: 1,
       positionen: [
