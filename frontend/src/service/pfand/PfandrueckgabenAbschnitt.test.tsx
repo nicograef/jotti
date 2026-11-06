@@ -82,15 +82,16 @@ describe('PfandrueckgabenAbschnitt', () => {
     expect(fake.bodies('service/get-pfandrueckgabe-historie')).toEqual([
       { tischId: 4 },
     ])
-    expect(fake.bodies('serviceleitung/pfandrueckgabe-stornieren')).toEqual([
-      {
-        stornierungId: expect.stringMatching(
-          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-        ),
-        rueckgabeId,
-        positionen: [{ positionId, menge: 1 }],
-        kommentar: 'Falsch gezählt',
-      },
-    ])
+    const bodies = fake.bodies('serviceleitung/pfandrueckgabe-stornieren')
+    expect(bodies).toHaveLength(1)
+    const { stornierungId, ...rest } = bodies[0] as Record<string, unknown>
+    expect(stornierungId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    )
+    expect(rest).toEqual({
+      rueckgabeId,
+      positionen: [{ positionId, menge: 1 }],
+      kommentar: 'Falsch gezählt',
+    })
   })
 })
