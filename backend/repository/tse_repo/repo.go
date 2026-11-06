@@ -135,9 +135,6 @@ func (r Repository) GetAlleTSEStoerungen(ctx context.Context) ([]tse.Stoerungsze
 func (r Repository) GetSignaturauftragZuEvent(ctx context.Context, eventID int) (tse.SignaturauftragStand, error) {
 	row, err := r.q.GetTSESignaturauftragZuEvent(ctx, eventID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return tse.SignaturauftragStand{}, db.ErrNotFound
-		}
 		return tse.SignaturauftragStand{}, db.Error(err)
 	}
 
