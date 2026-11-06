@@ -7,35 +7,18 @@ import { AuthSingleton } from '@/lib/Auth'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
+import { type Einmalcode, EinmalcodeDialog } from './EinmalcodeDialog'
 import { HelferPanels } from './HelferPanels'
 import { ALLE_USERS_KEY, useAllUsers, userBackend } from './hooks'
 import { NewUserDialog } from './NewUserDialog'
-import { PasswordResetDialog } from './PasswordResetDialog'
 import { type User, UserStatus } from './User'
-import { UserCreatedDialog } from './UserCreatedDialog'
+import { rolleLabel } from './UserRolle'
 import { Users } from './Users'
-
-const initialUserCreatedState = {
-  user: null as Pick<User, 'name' | 'username' | 'role'> | null,
-  onetimePassword: '',
-  open: false,
-}
-
-const initialPasswordResetState = {
-  username: null as string | null,
-  onetimePassword: '',
-  open: false,
-}
 
 export function AdminUsersPage() {
   const queryClient = useQueryClient()
   const { isPending, users } = useAllUsers()
-  const [userCreatedState, setUserCreatedState] = useState(
-    initialUserCreatedState,
-  )
-  const [passwordResetState, setPasswordResetState] = useState(
-    initialPasswordResetState,
-  )
+  const [einmalcode, setEinmalcode] = useState<Einmalcode | null>(null)
   const [zuBearbeiten, setZuBearbeiten] = useState<User | null>(null)
 
   const { run: runResetPassword } = useActionSubmit({
@@ -50,10 +33,11 @@ export function AdminUsersPage() {
     if (!user) return
     await runResetPassword(async () => {
       const onetimePassword = await userBackend.resetPassword(userId)
-      setPasswordResetState({
+      setEinmalcode({
+        titel: 'Passwort zurückgesetzt!',
+        beschreibung: `Das Passwort für ${user.username} wurde zurückgesetzt. Beim nächsten Anmelden muss der Helfer mit dem untenstehenden Code sein neues Passwort setzen.`,
         username: user.username,
         onetimePassword,
-        open: true,
       })
     })
   }
@@ -65,18 +49,14 @@ export function AdminUsersPage() {
 
   return (
     <>
-      <UserCreatedDialog
-        {...userCreatedState}
-        close={() => {
-          setUserCreatedState(initialUserCreatedState)
-        }}
-      />
-      <PasswordResetDialog
-        {...passwordResetState}
-        close={() => {
-          setPasswordResetState(initialPasswordResetState)
-        }}
-      />
+      {einmalcode && (
+        <EinmalcodeDialog
+          einmalcode={einmalcode}
+          close={() => {
+            setEinmalcode(null)
+          }}
+        />
+      )}
       {zuBearbeiten && (
         <EditUserDialog
           backend={userBackend}
@@ -99,7 +79,12 @@ export function AdminUsersPage() {
             backend={userBackend}
             created={(user, onetimePassword) => {
               invalidateUsers()
-              setUserCreatedState({ user, onetimePassword, open: true })
+              setEinmalcode({
+                titel: 'Helfer wurde angelegt!',
+                beschreibung: `Für ${user.name} wurde ein ${rolleLabel[user.role]}-Helfer angelegt. Beim erstmaligen Anmelden muss der Helfer mit dem untenstehenden Code sein Passwort setzen.`,
+                username: user.username,
+                onetimePassword,
+              })
               toast.success(`Neuer Helfer "${user.name}" wurde erstellt.`)
             }}
           />
