@@ -1,2 +1,9 @@
 allowBuilds:
   msw: false
+
+# GHSA-g3hv-75wg-m249: eslint and @typescript-eslint still declare minimatch ^10.
+minimumReleaseAgeExclude:
+  - minimatch@11.0.5
+
+overrides:
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.5

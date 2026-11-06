@@ -1,0 +1,5 @@
+minimumReleaseAgeExclude:
+  - minimatch@11.0.5
+# GHSA-g3hv-75wg-m249: eslint still declares minimatch ^10.
+overrides:
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.5
