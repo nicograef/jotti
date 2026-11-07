@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Steuersatz } from '@/lib/produktSchemas'
+import { Steuersatz } from '@/lib/produktSchemas'
 
 import { STEUERSATZ_LABEL } from './Produkt'
 
@@ -36,14 +36,11 @@ export function SteuersatzField<AllFormFields extends FieldValues>({
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="regel">{STEUERSATZ_LABEL.regel}</SelectItem>
-              <SelectItem value="ermaessigt">
-                {STEUERSATZ_LABEL.ermaessigt}
-              </SelectItem>
-              <SelectItem value="befreit">
-                {STEUERSATZ_LABEL.befreit}
-              </SelectItem>
-              <SelectItem value="kombi">{STEUERSATZ_LABEL.kombi}</SelectItem>
+              {Object.values(Steuersatz).map((steuersatz) => (
+                <SelectItem key={steuersatz} value={steuersatz}>
+                  {STEUERSATZ_LABEL[steuersatz]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

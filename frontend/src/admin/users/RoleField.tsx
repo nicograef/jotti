@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select'
 import { UserRole } from '@/lib/identity'
 
+import { rolleLabel } from './UserRolle'
+
 const ROLLE_BESCHREIBUNG: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Administratoren können alle Funktionen nutzen.',
   [UserRole.SERVICELEITUNG]:
@@ -53,9 +55,11 @@ export function RoleField<AllFormFields extends FieldValues>({
               <SelectValue placeholder={placeholder ?? 'Auswählen'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin">Administrator</SelectItem>
-              <SelectItem value="serviceleitung">Serviceleitung</SelectItem>
-              <SelectItem value="service">Service</SelectItem>
+              {Object.values(UserRole).map((rolle) => (
+                <SelectItem key={rolle} value={rolle}>
+                  {rolleLabel[rolle]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
