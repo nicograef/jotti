@@ -41,25 +41,9 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 	return ids[0], nil
 }
 
-// WriteEventWithDruckauftraege writes the event and its derived print jobs in one
-// transaction (transactional outbox); buildAuftraege receives the stored event
-// including its generated ID.
-func (r Repository) WriteEventWithDruckauftraege(
-	ctx context.Context,
-	e event.Event,
-	streamType kasse.StreamType,
-	kassensitzungNr int,
-	buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag,
-) (int, error) {
-	ids, err := r.writeAtomic(ctx, kassensitzungNr, []NeuesEvent{{Event: e, StreamType: streamType, BuildAuftraege: buildAuftraege}})
-	if err != nil {
-		return 0, err
-	}
-	return ids[0], nil
-}
-
 // NeuesEvent is one event of an atomic multi-event write. Event carries its final subject and version;
-// a non-nil BuildAuftraege derives print jobs from the stored event in the same transaction.
+// a non-nil BuildAuftraege derives print jobs from the stored event, generated ID included, in the
+// same transaction (transactional outbox).
 type NeuesEvent struct {
 	Event          event.Event
 	StreamType     kasse.StreamType
@@ -138,15 +122,6 @@ func (r Repository) EroeffneKassensitzung(ctx context.Context, datum time.Time, 
 
 	notifySignaturWorker(eingereiht)
 	return zNr, nil
-}
-
-// WriteUmbuchung writes the linked source and target events atomically; both must
-// already carry their final subject and version.
-func (r Repository) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return r.WriteEventsAtomic(ctx, kassensitzungNr, []NeuesEvent{
-		{Event: quellEvent, StreamType: kasse.StreamTypeTischSession},
-		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
-	})
 }
 
 // notifySignaturWorker stößt den Worker non-blocking an; der Polling-Tick bleibt Fallback.

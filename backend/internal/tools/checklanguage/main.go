@@ -345,7 +345,7 @@ func startsAtFirstWord(line string, matchStart int) bool {
 }
 
 // hasInternalCapital reports whether s has an uppercase letter after its first rune.
-// German capitalizes only a word's first letter, so an inner capital marks a Go identifier (WriteEventWithDruckauftraege), never prose.
+// German capitalizes only a word's first letter, so an inner capital marks a Go identifier (WriteEventsAtomic), never prose.
 func hasInternalCapital(s string) bool {
 	r := []rune(s)
 	for i := 1; i < len(r); i++ {

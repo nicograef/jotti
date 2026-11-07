@@ -101,16 +101,6 @@ func (m *KassenjournalRepo) WriteEvent(_ context.Context, e event.Event, _ kasse
 	return newID, nil
 }
 
-func (m *KassenjournalRepo) WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error) {
-	id, err := m.WriteEvent(ctx, e, streamType, kassensitzungNr)
-	if err != nil {
-		return 0, err
-	}
-	e.ID = id
-	m.druckauftraege = append(m.druckauftraege, buildAuftraege(e)...)
-	return id, nil
-}
-
 // WriteEventsAtomic stores all events or none, like the transaction of the real repository.
 func (m *KassenjournalRepo) WriteEventsAtomic(_ context.Context, _ int, events []kassenjournal_repo.NeuesEvent) error {
 	if m.writeErr != nil {
@@ -141,13 +131,6 @@ func (m *KassenjournalRepo) WriteEventsAtomic(_ context.Context, _ int, events [
 	}
 
 	return nil
-}
-
-func (m *KassenjournalRepo) WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error {
-	return m.WriteEventsAtomic(ctx, kassensitzungNr, []kassenjournal_repo.NeuesEvent{
-		{Event: quellEvent, StreamType: kasse.StreamTypeTischSession},
-		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
-	})
 }
 
 func (m *KassenjournalRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {

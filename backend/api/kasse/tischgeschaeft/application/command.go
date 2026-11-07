@@ -25,8 +25,6 @@ type tischRepo interface {
 }
 
 type eventRepo interface {
-	WriteEventWithDruckauftraege(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int, buildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag) (int, error)
-	WriteUmbuchung(ctx context.Context, quellEvent event.Event, zielEvent event.Event, kassensitzungNr int) error
 	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
@@ -77,18 +75,6 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 		return nil, ErrKasseWirdAbgeschlossen
 	}
 	return ks, nil
-}
-
-// writeEventOCC writes at expectedVersion+1 and maps the UNIQUE violation to ErrConflict.
-// expectedVersion must be the state the command validated against (projection or replay), never a
-// fresh GetMaxVersion, or UNIQUE(subject, version) cannot catch a stream change since reading.
-func writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, write func(event.Event) (int, error)) error {
-	e.Version = expectedVersion + 1
-
-	if _, err := write(e); err != nil {
-		return fromWriteError(ctx, err, "subject", subject, "version", e.Version)
-	}
-	return nil
 }
 
 // fromWriteError maps an event-write error: a UNIQUE(subject, version) violation or a deadlock is a
@@ -176,18 +162,20 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird deshalb erst
 	// unmittelbar vor dem Schreiben bestimmt. Bumpt sie dabei die Version eines parallel
 	// validierenden Commands (Zahlung, Storno), läuft dieser korrekt in den OCC-Konflikt.
-	expectedVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
+	maxVersion, err := c.EventRepo.GetMaxVersion(ctx, subject)
 	if err != nil {
 		log.Error("Failed to load max version for bestellung", "error", err, "tisch_id", tischID)
 		return ErrDatabase
 	}
+	evt.Version = maxVersion + 1
 
 	// Writes the event and the Druckaufträge built from it in one transaction
 	// (transactional outbox); buildAuftraege sees the stored event with its generated ID.
-	err = writeEventOCC(ctx, evt, subject, expectedVersion, func(versioned event.Event) (int, error) {
-		return c.EventRepo.WriteEventWithDruckauftraege(ctx, versioned, kasse.StreamTypeTischSession, kassensitzungNr, buildAuftraege)
+	err = c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, []kassenjournal_repo.NeuesEvent{
+		{Event: evt, StreamType: kasse.StreamTypeTischSession, BuildAuftraege: buildAuftraege},
 	})
 	if err != nil {
+		err = fromWriteError(ctx, err, "subject", subject, "version", evt.Version)
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
 			if lookupErr != nil {
@@ -297,7 +285,11 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellEvent.Version = quellState.LastEventVersion + 1
 	zielEvent.Version = zielMaxVersion + 1
 
-	if err := c.EventRepo.WriteUmbuchung(ctx, quellEvent, zielEvent, ks.ZNr); err != nil {
+	err = c.EventRepo.WriteEventsAtomic(ctx, ks.ZNr, []kassenjournal_repo.NeuesEvent{
+		{Event: quellEvent, StreamType: kasse.StreamTypeTischSession},
+		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
+	})
+	if err != nil {
 		return fromWriteError(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
 	}
 

@@ -73,7 +73,7 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 }
 
 // InsertDruckauftraege runs in the caller's transaction so an event and its print jobs commit atomically
-// (transactional outbox, see kassenjournal_repo.WriteEventWithDruckauftraege).
+// (transactional outbox, see kassenjournal_repo.NeuesEvent).
 func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []NeuerDruckauftrag) error {
 	for _, auftrag := range auftraege {
 		err := qtx.InsertDruckauftrag(ctx, dbgen.InsertDruckauftragParams{

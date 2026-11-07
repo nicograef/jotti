@@ -388,7 +388,7 @@ func TestReadFavoritenTischStates(t *testing.T) {
 	}
 }
 
-func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
+func TestWriteEventsAtomic_CommitsEventAndAuftrag(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -401,20 +401,20 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	data := validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 2)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
-	eventID, err := repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
-		func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+	err = repo.WriteEventsAtomic(context.Background(), ksNr, []NeuesEvent{{
+		Event:      e,
+		StreamType: kasse.StreamTypeTischSession,
+		BuildAuftraege: func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 			return []druckauftrag_repo.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
 				Payload:  "AAA=",
 				BonArt:   "arbeitsbon",
 				Referenz: fmt.Sprintf("bestellung-aufgenommen:%d", stored.ID),
 			}}
-		})
+		},
+	}})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
-	}
-	if eventID == 0 {
-		t.Errorf("Expected valid event ID, got %d", eventID)
 	}
 
 	events, err := repo.ReadEventsBySubject(context.Background(), subject)
@@ -422,8 +422,9 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 		t.Fatalf("Expected no read error, got %v", err)
 	}
 	if len(events) != 1 {
-		t.Errorf("Expected 1 persisted event, got %d", len(events))
+		t.Fatalf("Expected 1 persisted event, got %d", len(events))
 	}
+	eventID := events[0].ID
 
 	// The druckauftrag references the generated event ID.
 	var referenz string
@@ -436,7 +437,7 @@ func TestWriteEventWithDruckauftraege_CommitsEventAndAuftrag(t *testing.T) {
 	}
 }
 
-func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T) {
+func TestWriteEventsAtomic_RollsBackEventOnAuftragError(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -450,15 +451,18 @@ func TestWriteEventWithDruckauftraege_RollsBackEventOnAuftragError(t *testing.T)
 	e := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, data)
 
 	// "ungueltig" violates the bon_art CHECK constraint, so the auftrag INSERT fails.
-	_, err = repo.WriteEventWithDruckauftraege(context.Background(), e, kasse.StreamTypeTischSession, ksNr,
-		func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+	err = repo.WriteEventsAtomic(context.Background(), ksNr, []NeuesEvent{{
+		Event:      e,
+		StreamType: kasse.StreamTypeTischSession,
+		BuildAuftraege: func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
 			return []druckauftrag_repo.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
 				Payload:  "AAA=",
 				BonArt:   "ungueltig",
 				Referenz: "bestellung-aufgenommen:rollback",
 			}}
-		})
+		},
+	}})
 	if err == nil {
 		t.Fatal("Expected error from invalid druckauftrag, got nil")
 	}
@@ -543,7 +547,7 @@ func TestWriteEvent_SignaturpflichtigErzeugtOffenenAuftrag(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
+func TestWriteEventsAtomic_UmbuchungCommitsBothEventsAndProjections(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -583,7 +587,7 @@ func TestWriteUmbuchung_CommitsBothEventsAndProjections(t *testing.T) {
 	quellEvent.Version = 2
 	zielEvent.Version = 1
 
-	if err := repo.WriteUmbuchung(context.Background(), quellEvent, zielEvent, ksNr); err != nil {
+	if err := repo.WriteEventsAtomic(context.Background(), ksNr, umbuchungEvents(quellEvent, zielEvent)); err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
@@ -686,7 +690,7 @@ func TestWriteEventsAtomic_RollsBackBothEvents(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
+func TestWriteEventsAtomic_UmbuchungRollsBackWhenTargetWriteFails(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -727,7 +731,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 
 	ungueltigesZielEvent := newTestEvent(userID, "unknown-event:v1", zielSubject, 1, map[string]any{"any": "value"})
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, ungueltigesZielEvent, ksNr)
+	err = repo.WriteEventsAtomic(context.Background(), ksNr, umbuchungEvents(stornierungEvent, ungueltigesZielEvent))
 	if err == nil {
 		t.Fatal("Expected error, got nil")
 	}
@@ -768,7 +772,7 @@ func TestWriteUmbuchung_RollsBackWhenTargetWriteFails(t *testing.T) {
 	}
 }
 
-func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
+func TestWriteEventsAtomic_UmbuchungOCCConflictRollsBackBothSides(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -795,7 +799,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 		t.Fatalf("Failed to write target bestellung: %v", err)
 	}
 
-	// Zahlung für Quelltisch (Version 2), damit die Stornierung im WriteUmbuchung
+	// Zahlung für Quelltisch (Version 2), damit die Stornierung im Umbuchungs-Write
 	// nicht an gesamt_zahlungen_cents >= 0 scheitert (CHECK-Constraint v0.14.0).
 	quellZahlung := newTestEvent(userID, "zahlung-kassiert:v1", quellSubject, 2, validZahlungData(quellPositionID, 2, 700))
 	if _, err := repo.WriteEvent(context.Background(), quellZahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
@@ -825,7 +829,7 @@ func TestWriteUmbuchung_OCCConflictRollsBackBothSides(t *testing.T) {
 	}
 	bestellungEvent.Version = 1 // conflicts with existing target event version 1
 
-	err = repo.WriteUmbuchung(context.Background(), stornierungEvent, bestellungEvent, ksNr)
+	err = repo.WriteEventsAtomic(context.Background(), ksNr, umbuchungEvents(stornierungEvent, bestellungEvent))
 	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
 		t.Errorf("Expected ErrAlreadyExists conflict, got %v", err)
 	}
@@ -2011,5 +2015,13 @@ func TestMigration03_AusgabeEntfernen(t *testing.T) {
 	// Der Append-only-Schutz besteht nach der Migration unverändert: DELETE schlägt fehl.
 	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE subject = $1", subject); err == nil {
 		t.Error("Expected DELETE on kassenjournal to be rejected by the append-only trigger")
+	}
+}
+
+// umbuchungEvents pairs the source and target event of an Umbuchung for one atomic write.
+func umbuchungEvents(quell, ziel event.Event) []NeuesEvent {
+	return []NeuesEvent{
+		{Event: quell, StreamType: kasse.StreamTypeTischSession},
+		{Event: ziel, StreamType: kasse.StreamTypeTischSession},
 	}
 }
