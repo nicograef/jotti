@@ -9,15 +9,15 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	k "github.com/nicograef/jotti/backend/domain/kasse"
-	t "github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type query interface {
-	GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error)
-	GetTischHistorie(ctx context.Context, tischID int) ([]k.HistorieEintrag, error)
+	GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error)
+	GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error)
 	GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error)
-	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]tisch.AktiverTischMitFavorit, error)
 	GetMeineTischeState(ctx context.Context, userID int) ([]application.TischStateView, error)
 }
 
@@ -44,11 +44,11 @@ func (h *QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 		}
 
 		aktiveTische := make([]aktiverTisch, len(tische))
-		for i, tisch := range tische {
+		for i, aktiv := range tische {
 			aktiveTische[i] = aktiverTisch{
-				ID:         tisch.ID,
-				Name:       tisch.Name,
-				SaldoCents: tisch.SaldoCents,
+				ID:         aktiv.ID,
+				Name:       aktiv.Name,
+				SaldoCents: aktiv.SaldoCents,
 			}
 		}
 
@@ -61,7 +61,7 @@ type getTischHistorieRequest struct {
 }
 
 var getTischHistorieSchema = z.Struct(z.Shape{
-	"TischID": t.TischIDSchema.Required(),
+	"TischID": tisch.TischIDSchema.Required(),
 })
 
 type getTischHistorieResponse struct {
@@ -81,7 +81,7 @@ type position struct {
 	BestellerName    string `json:"bestellerName"`
 }
 
-func toPosition(p k.Position) position {
+func toPosition(p kasse.Position) position {
 	return position{
 		PositionID:       p.PositionID,
 		VarianteID:       p.VarianteID,
@@ -96,7 +96,7 @@ func toPosition(p k.Position) position {
 	}
 }
 
-func toPositionen(positionen []k.Position) []position {
+func toPositionen(positionen []kasse.Position) []position {
 	positionenResponse := make([]position, 0, len(positionen))
 	for _, position := range positionen {
 		positionenResponse = append(positionenResponse, toPosition(position))
@@ -119,10 +119,10 @@ type bestellung struct {
 	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
 }
 
-func toBestellung(eintrag k.HistorieEintrag) bestellung {
+func toBestellung(eintrag kasse.HistorieEintrag) bestellung {
 	b := *eintrag.Bestellung
 	return bestellung{
-		Art:                    string(k.HistorieEintragBestellung),
+		Art:                    string(kasse.HistorieEintragBestellung),
 		ID:                     b.ID,
 		UserID:                 b.UserID,
 		UserName:               b.UserName,
@@ -148,9 +148,9 @@ type zahlung struct {
 	KassiertAm         time.Time  `json:"kassiertAm"`
 }
 
-func toZahlung(z k.Zahlung) zahlung {
+func toZahlung(z kasse.Zahlung) zahlung {
 	return zahlung{
-		Art:                string(k.HistorieEintragZahlung),
+		Art:                string(kasse.HistorieEintragZahlung),
 		ID:                 z.ID,
 		UserID:             z.UserID,
 		UserName:           z.UserName,
@@ -176,9 +176,9 @@ type stornierung struct {
 	BarRueckgabe bool `json:"barRueckgabe"`
 }
 
-func toStornierung(s k.Stornierung) stornierung {
+func toStornierung(s kasse.Stornierung) stornierung {
 	return stornierung{
-		Art:                    string(k.HistorieEintragStornierung),
+		Art:                    string(kasse.HistorieEintragStornierung),
 		ID:                     s.ID,
 		UserID:                 s.UserID,
 		UserName:               s.UserName,
@@ -208,10 +208,10 @@ type umbuchung struct {
 	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
 }
 
-func toUmbuchung(eintrag k.HistorieEintrag) umbuchung {
+func toUmbuchung(eintrag kasse.HistorieEintrag) umbuchung {
 	u := *eintrag.Umbuchung
 	return umbuchung{
-		Art:                    string(k.HistorieEintragUmbuchung),
+		Art:                    string(kasse.HistorieEintragUmbuchung),
 		ID:                     u.ID,
 		UserID:                 u.UserID,
 		UserName:               u.UserName,
@@ -228,23 +228,23 @@ func toUmbuchung(eintrag k.HistorieEintrag) umbuchung {
 	}
 }
 
-func toHistorie(eintraege []k.HistorieEintrag) []any {
+func toHistorie(eintraege []kasse.HistorieEintrag) []any {
 	historieResponse := make([]any, 0, len(eintraege))
 	for _, eintrag := range eintraege {
 		switch eintrag.Art {
-		case k.HistorieEintragBestellung:
+		case kasse.HistorieEintragBestellung:
 			if eintrag.Bestellung != nil {
 				historieResponse = append(historieResponse, toBestellung(eintrag))
 			}
-		case k.HistorieEintragZahlung:
+		case kasse.HistorieEintragZahlung:
 			if eintrag.Zahlung != nil {
 				historieResponse = append(historieResponse, toZahlung(*eintrag.Zahlung))
 			}
-		case k.HistorieEintragStornierung:
+		case kasse.HistorieEintragStornierung:
 			if eintrag.Stornierung != nil {
 				historieResponse = append(historieResponse, toStornierung(*eintrag.Stornierung))
 			}
-		case k.HistorieEintragUmbuchung:
+		case kasse.HistorieEintragUmbuchung:
 			if eintrag.Umbuchung != nil {
 				historieResponse = append(historieResponse, toUmbuchung(eintrag))
 			}
@@ -276,7 +276,7 @@ type getTischStateRequest struct {
 }
 
 var getTischStateSchema = z.Struct(z.Shape{
-	"TischID": t.TischIDSchema.Required(),
+	"TischID": tisch.TischIDSchema.Required(),
 })
 
 type tischState struct {
@@ -348,12 +348,12 @@ func (h *QueryHandler) GetAktiveTischeMitFavoritenHandler() http.HandlerFunc {
 		}
 
 		dtos := make([]aktiverTischMitFavorit, len(tische))
-		for i, tisch := range tische {
+		for i, aktiv := range tische {
 			dtos[i] = aktiverTischMitFavorit{
-				ID:         tisch.ID,
-				Name:       tisch.Name,
-				SaldoCents: tisch.SaldoCents,
-				IstFavorit: tisch.IstFavorit,
+				ID:         aktiv.ID,
+				Name:       aktiv.Name,
+				SaldoCents: aktiv.SaldoCents,
+				IstFavorit: aktiv.IstFavorit,
 			}
 		}
 

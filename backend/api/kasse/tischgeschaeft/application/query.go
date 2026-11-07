@@ -5,7 +5,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	t "github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
@@ -21,9 +21,9 @@ type TischStateView struct {
 }
 
 type tischQueryRepo interface {
-	GetTisch(ctx context.Context, id int) (t.Tisch, error)
-	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]t.AktiverTisch, error)
-	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]t.AktiverTischMitFavorit, error)
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
 type eventQueryRepo interface {
@@ -54,7 +54,7 @@ func (q Query) aktiveKassensitzungNr(ctx context.Context) (int, error) {
 	return ks.ZNr, nil
 }
 
-func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
+func (q Query) GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error) {
 	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
@@ -76,7 +76,7 @@ func (q Query) GetAktiveTische(ctx context.Context) ([]t.AktiverTisch, error) {
 func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (TischStateView, error) {
 	log := logging.FromContext(ctx)
 
-	tisch, err := q.TischRepo.GetTisch(ctx, tischID)
+	gefunden, err := q.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
 		return TischStateView{}, fromRepositoryError(err, log, tischID)
 	}
@@ -97,8 +97,8 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 
 	log.Info("Retrieved tisch state", "tisch_id", tischID, "saldo_cents", state.SaldoCents)
 	return TischStateView{
-		TischID:              tisch.ID,
-		TischName:            tisch.Name,
+		TischID:              gefunden.ID,
+		TischName:            gefunden.Name,
 		Subject:              subject,
 		SaldoCents:           state.SaldoCents,
 		UnbezahltePositionen: state.UnbezahltePositionen,
@@ -106,7 +106,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 	}, nil
 }
 
-func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]t.AktiverTischMitFavorit, error) {
+func (q Query) GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]tisch.AktiverTischMitFavorit, error) {
 	log := logging.FromContext(ctx)
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
