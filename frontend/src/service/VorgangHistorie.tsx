@@ -31,6 +31,7 @@ import type {
   PositionRef,
   VorgangHistorieBasis,
 } from './schemas'
+import { mitVersuchsSchluessel } from './versuchsSchluessel'
 import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
 // id ist die Vorgangs-ID (verkaufId oder rueckgabeId).
@@ -164,8 +165,12 @@ export function VorgangHistorie({
         <VorgangStornoDrawer
           bezeichnung={bezeichnung}
           offenePositionen={stornoVorgang.offenePositionen}
-          stornieren={(schluessel, positionen, kommentar) =>
-            stornieren(stornoVorgang.id, schluessel, positionen, kommentar)
+          stornieren={(positionen, kommentar) =>
+            mitVersuchsSchluessel(
+              ['vorgang-storno', stornoVorgang.id, positionen],
+              (schluessel) =>
+                stornieren(stornoVorgang.id, schluessel, positionen, kommentar),
+            )
           }
           onClose={() => {
             setStornoVorgang(null)

@@ -12,7 +12,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
-import { useVersuchsSchluessel } from '@/hooks/use-versuchs-schluessel'
 
 import { ActionHint } from './ActionHint'
 import { KommentarField } from './CommentField'
@@ -31,13 +30,8 @@ interface StornoDrawerProps {
   // DrawerHeader mit Titel und Beschreibung des Vorgangs.
   kopf: ReactNode
   positionen: AuswaehlbarePosition[]
-  // schluessel ist der Idempotenz-Schlüssel des Versuchs; ein Retry derselben
-  // Auswahl behält ihn, auch mit geändertem Grund.
-  stornieren: (
-    schluessel: string,
-    positionen: PositionRef[],
-    kommentar: string,
-  ) => Promise<void>
+  // Der Aufrufer hält den Idempotenz-Schlüssel, damit er den Drawer überdauert.
+  stornieren: (positionen: PositionRef[], kommentar: string) => Promise<void>
   onClose: () => void
   onStorniert: () => void
 }
@@ -51,7 +45,6 @@ export function StornoDrawer({
   onStorniert,
 }: StornoDrawerProps) {
   const [kommentar, setKommentar] = useState('')
-  const schluesselFuer = useVersuchsSchluessel()
   const { mengen, add, remove } = useMengen<string>(
     (positionId) =>
       positionen.find((p) => p.positionId === positionId)?.menge ?? 0,
@@ -76,8 +69,7 @@ export function StornoDrawer({
 
   const onSubmit = async () => {
     await run(async () => {
-      const refs = toPositionRefs(selectedPositionen)
-      await stornieren(schluesselFuer(refs), refs, kommentar)
+      await stornieren(toPositionRefs(selectedPositionen), kommentar)
     })
   }
 

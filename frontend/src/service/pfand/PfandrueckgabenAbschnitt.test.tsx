@@ -163,6 +163,53 @@ describe('PfandrueckgabenAbschnitt', () => {
     expect(andereAuswahl.stornierungId).not.toBe(erster.stornierungId)
   })
 
+  // Nach einem Fehlversuch schließt die Helferin den Drawer und öffnet ihn aus
+  // der unveränderten Historie neu: dieselbe Auswahl trägt dieselbe stornierungId.
+  it('keeps the stornierungId when the drawer is closed and reopened', async () => {
+    const user = userEvent.setup()
+    const stornieren = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('Netzwerkfehler')
+      })
+      .mockReturnValue({})
+    const fake = new FakeBackend()
+      .respond('service/get-pfandrueckgabe-historie', { historie: [rueckgabe] })
+      .respond('serviceleitung/pfandrueckgabe-stornieren', stornieren)
+    renderWithBackend(
+      <PfandrueckgabenAbschnitt tischId={4} onErfolg={vi.fn()} />,
+      fake,
+    )
+    const stornoErteilen = async (aufrufe: number) => {
+      await user.click(
+        await screen.findByRole('button', { name: /Pfandrückgabe/ }),
+      )
+      await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+      await user.click(
+        screen.getByRole('button', { name: 'Pfand Glas hinzufügen' }),
+      )
+      await user.type(
+        screen.getByPlaceholderText('Kommentar (erforderlich)'),
+        'Falsch gezählt',
+      )
+      await user.click(
+        screen.getByRole('button', { name: /Stornierung erteilen/ }),
+      )
+      await waitFor(() => {
+        expect(stornieren).toHaveBeenCalledTimes(aufrufe)
+      })
+    }
+
+    await stornoErteilen(1)
+    await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
+    await stornoErteilen(2)
+
+    const [erster, wiederholung] = fake.bodies(
+      'serviceleitung/pfandrueckgabe-stornieren',
+    ) as { stornierungId: string }[]
+    expect(wiederholung.stornierungId).toBe(erster.stornierungId)
+  })
+
   it.each([
     ['Kassenbeleg drucken', { rueckgabeId }],
     ['Stornobeleg drucken', { rueckgabeId, stornierungId }],

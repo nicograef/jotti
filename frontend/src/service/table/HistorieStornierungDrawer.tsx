@@ -1,4 +1,5 @@
 import { StornoDrawer } from '../StornoDrawer'
+import { mitVersuchsSchluessel } from '../versuchsSchluessel'
 import type { Bestellung } from './Bestellung'
 import { tischBackend } from './hooks'
 import { QuelleDrawerHeader } from './QuelleDrawerHeader'
@@ -28,13 +29,17 @@ export function HistorieStornierungDrawer({
         </QuelleDrawerHeader>
       }
       positionen={quelle.stornierbarePositionen}
-      stornieren={(stornoId, positionen, kommentar) =>
-        tischBackend.stornierungErteilen({
-          stornoId,
-          tischId: tisch.id,
-          positionen,
-          kommentar,
-        })
+      stornieren={(positionen, kommentar) =>
+        mitVersuchsSchluessel(
+          ['tisch-storno', tisch.id, positionen],
+          (stornoId) =>
+            tischBackend.stornierungErteilen({
+              stornoId,
+              tischId: tisch.id,
+              positionen,
+              kommentar,
+            }),
+        )
       }
       onClose={onClose}
       onStorniert={onStornierungErteilt}
