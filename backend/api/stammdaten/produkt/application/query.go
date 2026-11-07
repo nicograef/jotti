@@ -44,6 +44,8 @@ func (q Query) GetActiveProdukte(ctx context.Context) (AktiveProdukte, error) {
 		return AktiveProdukte{}, ErrDatabase
 	}
 
+	ohneVerwaistePfandVerweise(produkte)
+
 	pfandProdukte := []produkt.Produkt{}
 	for _, p := range produkte {
 		if p.Pfand {
@@ -53,4 +55,23 @@ func (q Query) GetActiveProdukte(ctx context.Context) (AktiveProdukte, error) {
 
 	log.Info("Retrieved active produkte", "count", len(produkte), "pfand_count", len(pfandProdukte))
 	return AktiveProdukte{Produkte: produkte, PfandProdukte: pfandProdukte}, nil
+}
+
+// ohneVerwaistePfandVerweise nulls every Pfand link whose target is no Variante of the same
+// answer, so the service never adds a Pfand it cannot sell (an inactive one, say).
+func ohneVerwaistePfandVerweise(produkte []produkt.Produkt) {
+	angeboten := map[int]bool{}
+	for _, p := range produkte {
+		for _, v := range p.Varianten {
+			angeboten[v.ID] = true
+		}
+	}
+	for i := range produkte {
+		for j := range produkte[i].Varianten {
+			v := &produkte[i].Varianten[j]
+			if v.PfandVarianteID != nil && !angeboten[*v.PfandVarianteID] {
+				v.PfandVarianteID = nil
+			}
+		}
+	}
 }

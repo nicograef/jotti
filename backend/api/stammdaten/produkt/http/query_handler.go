@@ -18,11 +18,13 @@ type QueryHandler struct {
 	Query query
 }
 
+// variante: PfandVarianteID is the linked Pfand-Variante or null.
 type variante struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	PreisCents int    `json:"preisCents"`
-	Status     string `json:"status"`
+	ID              int    `json:"id"`
+	Name            string `json:"name"`
+	PreisCents      int    `json:"preisCents"`
+	Status          string `json:"status"`
+	PfandVarianteID *int   `json:"pfandVarianteId"`
 }
 
 type produkt struct {
@@ -46,10 +48,11 @@ type getAktiveProdukteResponse struct {
 
 func toVariante(v dom.Variante) variante {
 	return variante{
-		ID:         v.ID,
-		Name:       v.Name,
-		PreisCents: v.PreisCents,
-		Status:     string(v.Status),
+		ID:              v.ID,
+		Name:            v.Name,
+		PreisCents:      v.PreisCents,
+		Status:          string(v.Status),
+		PfandVarianteID: v.PfandVarianteID,
 	}
 }
 

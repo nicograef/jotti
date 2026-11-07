@@ -36,3 +36,46 @@ func produktIDs(produkte []produkt.Produkt) []int {
 	slices.Sort(ids)
 	return ids
 }
+
+// The service drops a link whose target it does not offer; the Admin sees the stored link.
+func TestGetActiveProdukte_PfandVerweis(t *testing.T) {
+	glasID := 20
+	bier := produkt.Produkt{ID: 1, Name: "Bier", Status: produkt.ActiveStatus, Varianten: []produkt.Variante{
+		{ID: 10, Name: "0,5 l", PreisCents: 400, Status: produkt.ActiveStatus, PfandVarianteID: &glasID},
+	}}
+	pfand := produkt.Produkt{ID: 2, Name: "Glaspfand", Status: produkt.ActiveStatus, Pfand: true, Varianten: []produkt.Variante{
+		{ID: 20, Name: "Glas", PreisCents: 200, Status: produkt.InactiveStatus},
+		{ID: 21, Name: "Becher", PreisCents: 100, Status: produkt.ActiveStatus},
+	}}
+	repo := repotest.NewProduktRepo([]produkt.Produkt{bier, pfand}, nil)
+	ctx := context.Background()
+
+	aktive, err := Query{ProduktRepo: repo}.GetActiveProdukte(ctx)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got := pfandVerweisVon(t, aktive.Produkte, 10); got != nil {
+		t.Errorf("service: expected no Pfand for an inactive Pfand-Variante, got %d", *got)
+	}
+
+	alle, err := Query{ProduktRepo: repo}.GetAllProdukte(ctx)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got := pfandVerweisVon(t, alle, 10); got == nil || *got != glasID {
+		t.Errorf("admin: expected Pfand %d, got %v", glasID, got)
+	}
+}
+
+func pfandVerweisVon(t *testing.T, produkte []produkt.Produkt, varianteID int) *int {
+	t.Helper()
+	for _, p := range produkte {
+		for _, v := range p.Varianten {
+			if v.ID == varianteID {
+				return v.PfandVarianteID
+			}
+		}
+	}
+	t.Fatalf("variante %d missing", varianteID)
+	return nil
+}
