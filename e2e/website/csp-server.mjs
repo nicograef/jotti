@@ -32,7 +32,7 @@ const CONTENT_TYPES = {
 
 // The jotti.rocks site is the only CSP header carrying the Pagefind
 // `'wasm-unsafe-eval'` exception — that is what identifies it in the file.
-export async function readProductionCsp() {
+async function readProductionCsp() {
   const conf = await readFile(rocksCaddyfile, 'utf8')
   const matches = [
     ...conf.matchAll(/header\s+Content-Security-Policy\s+"([^"]+)"/g),
@@ -46,13 +46,10 @@ export async function readProductionCsp() {
   return csp
 }
 
-// Resolves with { url, port, close() }.
-export async function startStaticServer(
-  distDir,
-  { csp, host = '127.0.0.1' } = {},
-) {
+// Resolves with { url, close() }.
+export async function startStaticServer(distDir) {
   const root = resolve(distDir)
-  const cspHeader = csp ?? (await readProductionCsp())
+  const cspHeader = await readProductionCsp()
 
   const server = createServer(async (req, res) => {
     try {
@@ -88,11 +85,10 @@ export async function startStaticServer(
     }
   })
 
-  await new Promise((res) => server.listen(0, host, res))
+  await new Promise((res) => server.listen(0, '127.0.0.1', res))
   const { port } = server.address()
   return {
-    url: `http://${host}:${port}`,
-    port,
+    url: `http://127.0.0.1:${port}`,
     close: () => new Promise((res) => server.close(res)),
   }
 }

@@ -21,9 +21,8 @@ import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { devices } from '@playwright/test'
+import { chromium, devices } from '@playwright/test'
 
-import { launchBrowser } from './browser.mjs'
 import { anmelden } from '../support/anmelden.ts'
 import { resetAndSeed } from '../support/seed.ts'
 import {
@@ -37,12 +36,8 @@ import {
 
 const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:8080'
-const SHOT_OUT =
-  process.env.SHOT_OUT ??
-  join(repoRoot, 'website', 'src', 'assets', 'screenshots')
-const OG_OUT =
-  process.env.OG_OUT ??
-  join(repoRoot, 'website', 'src', 'assets', 'og-startseite.png')
+const SHOT_OUT = join(repoRoot, 'website', 'src', 'assets', 'screenshots')
+const OG_OUT = join(repoRoot, 'website', 'src', 'assets', 'og-startseite.png')
 
 const mode = process.argv[2] ?? 'all'
 
@@ -81,7 +76,7 @@ const tabletLandscape = {
 
 async function captureApp() {
   mkdirSync(SHOT_OUT, { recursive: true })
-  const browser = await launchBrowser()
+  const browser = await chromium.launch()
   try {
     const apiContext = await browser.newContext({ baseURL: BASE })
     const zugangsdaten = await resetAndSeed(apiContext.request)
@@ -236,7 +231,7 @@ async function captureOg() {
   const { startStaticServer } = await import('./csp-server.mjs')
   const distDir = join(repoRoot, 'website', 'dist')
   const server = await startStaticServer(distDir)
-  const browser = await launchBrowser()
+  const browser = await chromium.launch()
   try {
     const context = await browser.newContext({
       viewport: { width: 1200, height: 630 },
