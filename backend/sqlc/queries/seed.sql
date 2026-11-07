@@ -27,6 +27,7 @@ TRUNCATE TABLE
     druckstationen,
     tse_konfiguration,
     tse_stammdaten,
+    tse_stammdaten_je_tss,
     tse_signaturauftraege,
     tse_stoerungen
 RESTART IDENTITY CASCADE;

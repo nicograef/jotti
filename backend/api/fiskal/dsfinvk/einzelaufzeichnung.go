@@ -306,7 +306,7 @@ var transactionsTSEColumns = []string{
 	"TSE_VORGANGSDATEN",
 }
 
-func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
+func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg, tses tseVerzeichnis) Table {
 	var records [][]string
 	for bi := range belege {
 		b := &belege[bi]
@@ -316,7 +316,7 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 			// is not reconstructed here.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-				b.bonID, tseReferenzID, itoa(b.tse.TransaktionNummer),
+				b.bonID, tses.ids[b.tse.TSESeriennummer], itoa(b.tse.TransaktionNummer),
 				isoZeit(b.tse.LogTimeStart), isoZeit(b.tse.LogTimeEnd), b.processType,
 				itoa(b.tse.SignaturZaehler), b.tse.Signatur, "",
 				"",
@@ -326,7 +326,7 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 			// Auftrag status (docs/compliance.md §3.8). Vorgänge without signature duty get no row.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-				b.bonID, tseReferenzID, "",
+				b.bonID, tses.aktuelleID, "",
 				"", "", "",
 				"", "", tseFehlertext(b.tseStatus),
 				"",

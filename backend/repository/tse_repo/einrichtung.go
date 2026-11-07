@@ -68,35 +68,47 @@ func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurat
 	}
 }
 
-// GetTSEStammdaten reads the singleton TSS master data for the DSFinV-K export; the fields are empty before TSE setup.
+// GetTSEStammdaten reads the master data of the TSS configured now; the fields are empty before TSE setup.
 func (r Repository) GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error) {
 	row, err := r.q.GetTSEStammdaten(ctx)
 	if err != nil {
 		return tse.Stammdaten{}, db.Error(err)
 	}
-	return tse.Stammdaten{
-		Seriennummer:        row.Seriennummer,
-		SignaturAlgorithmus: row.SignaturAlgorithmus,
-		PublicKey:           row.PublicKey,
-		Zertifikat:          row.Zertifikat,
-		LogTimeFormat:       row.LogTimeFormat,
-		UpdatedAt:           row.UpdatedAt,
-	}, nil
+	return tse.Stammdaten(row), nil
 }
 
-// UpsertTSEStammdaten stores the singleton TSS master data for the DSFinV-K export.
+// GetTSEStammdatenJeTSS maps each serial to the master data of every TSS ever set up on this Kasse.
+func (r Repository) GetTSEStammdatenJeTSS(ctx context.Context) (map[string]tse.Stammdaten, error) {
+	rows, err := r.q.GetTSEStammdatenJeTSS(ctx)
+	if err != nil {
+		return nil, db.Error(err)
+	}
+	stammdaten := make(map[string]tse.Stammdaten, len(rows))
+	for _, row := range rows {
+		stammdaten[row.Seriennummer] = tse.Stammdaten(row)
+	}
+	return stammdaten, nil
+}
+
+// UpsertTSEStammdaten stores the master data as the current TSS's and keeps them under the TSS serial,
+// so a later TSS change cannot overwrite the data that verify this TSS's signatures.
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
-	err := r.q.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams{
+	params := dbgen.UpsertTSEStammdatenJeTSSParams{
 		Seriennummer:        s.Seriennummer,
 		SignaturAlgorithmus: s.SignaturAlgorithmus,
 		PublicKey:           s.PublicKey,
 		Zertifikat:          s.Zertifikat,
 		LogTimeFormat:       s.LogTimeFormat,
-	})
-	if err != nil {
-		return db.Error(err)
 	}
-	return nil
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if err := qtx.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams(params)); err != nil {
+			return db.Error(err)
+		}
+		if err := qtx.UpsertTSEStammdatenJeTSS(ctx, params); err != nil {
+			return db.Error(err)
+		}
+		return nil
+	})
 }
 
 func toTSEKonfiguration(row dbgen.GetTSEKonfigurationRow) tse.Konfiguration {

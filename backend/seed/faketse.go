@@ -27,7 +27,7 @@ const (
 )
 
 // fakeTSEStammdaten are written like a real TSE setup for tse.csv in the DSFinV-K export.
-// Without them the tse_stammdaten singleton keeps its empty migration default and tse.csv lacks mandatory fields.
+// Without them tse.csv has no master data for the TSS the seeded signatures name.
 func fakeTSEStammdaten() tse.Stammdaten {
 	return tse.Stammdaten{
 		Seriennummer:        fakeTSESeriennummer,

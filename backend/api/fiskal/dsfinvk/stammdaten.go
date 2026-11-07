@@ -2,6 +2,7 @@ package dsfinvk
 
 import (
 	"github.com/nicograef/jotti/backend/domain/betreiber"
+	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
 // The tables of the DSFinV-K Stammdatenmodul.
@@ -129,21 +130,68 @@ var tseColumns = []string{
 	"TSE_ZERTIFIKAT_I", "TSE_ZERTIFIKAT_II",
 }
 
-func buildTSE(s Snapshot, erstellung string) Table {
-	// TSE_ZEITFORMAT declares the TSE's own log time format (fiskaly: unixTime) from the
-	// master data stored at setup; TSE_TA_START/ENDE are ISO 8601 regardless.
-	zeitformat := s.TSEStammdaten.LogTimeFormat
-	if zeitformat == "" {
-		zeitformat = defaultTSEZeitformat
+// tseVerzeichnis lists the TSS of one export: tse.csv gets one row per TSS, and TSE_ID is
+// the row's position.
+type tseVerzeichnis struct {
+	stammdaten []tse.Stammdaten
+	ids        map[string]string // TSS serial -> TSE_ID
+	aktuelleID string            // TSE_ID of the unsigned Vorgänge, which the current TSS will sign
+}
+
+// tseVerzeichnisAus lists each TSS that signed a Beleg, in order of first signature, and the
+// current TSS when a Vorgang is still unsigned or nothing is signed. A serial without stored
+// master data keeps its serial and leaves the rest empty, which the export check reports.
+func tseVerzeichnisAus(s Snapshot, belege []beleg) tseVerzeichnis {
+	v := tseVerzeichnis{ids: map[string]string{}}
+	aufnehmen := func(stammdaten tse.Stammdaten) string {
+		if id, ok := v.ids[stammdaten.Seriennummer]; ok {
+			return id
+		}
+		v.stammdaten = append(v.stammdaten, stammdaten)
+		id := itoa(len(v.stammdaten))
+		v.ids[stammdaten.Seriennummer] = id
+		return id
 	}
 
-	record := []string{
-		s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
-		tseReferenzID, s.TSEStammdaten.Seriennummer, s.TSEStammdaten.SignaturAlgorithmus,
-		zeitformat, tsePDEncoding, s.TSEStammdaten.PublicKey,
+	unsigniert := false
+	for bi := range belege {
+		b := &belege[bi]
+		switch {
+		case b.tse != nil:
+			stammdaten, ok := s.TSEJeSeriennummer[b.tse.TSESeriennummer]
+			if !ok {
+				stammdaten = tse.Stammdaten{Seriennummer: b.tse.TSESeriennummer}
+			}
+			aufnehmen(stammdaten)
+		case b.tsePflichtig:
+			unsigniert = true
+		}
 	}
-	for i := range zertifikatSpalten {
-		record = append(record, certChunk(s.TSEStammdaten.Zertifikat, i))
+	if unsigniert || len(v.stammdaten) == 0 {
+		v.aktuelleID = aufnehmen(s.AktuelleTSE)
+	}
+	return v
+}
+
+func buildTSE(s Snapshot, erstellung string, tses tseVerzeichnis) Table {
+	records := make([][]string, 0, len(tses.stammdaten))
+	for _, stammdaten := range tses.stammdaten {
+		// TSE_ZEITFORMAT declares the TSE's own log time format (fiskaly: unixTime) from the
+		// master data stored at setup; TSE_TA_START/ENDE are ISO 8601 regardless.
+		zeitformat := stammdaten.LogTimeFormat
+		if zeitformat == "" {
+			zeitformat = defaultTSEZeitformat
+		}
+
+		record := []string{
+			s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
+			tses.ids[stammdaten.Seriennummer], stammdaten.Seriennummer, stammdaten.SignaturAlgorithmus,
+			zeitformat, tsePDEncoding, stammdaten.PublicKey,
+		}
+		for i := range zertifikatSpalten {
+			record = append(record, certChunk(stammdaten.Zertifikat, i))
+		}
+		records = append(records, record)
 	}
 
 	return Table{
@@ -151,6 +199,6 @@ func buildTSE(s Snapshot, erstellung string) Table {
 		LogicalName: "Stamm_TSE",
 		Description: "Stammdaten der technischen Sicherheitseinrichtung",
 		Columns:     tseColumns,
-		Records:     [][]string{record},
+		Records:     records,
 	}
 }

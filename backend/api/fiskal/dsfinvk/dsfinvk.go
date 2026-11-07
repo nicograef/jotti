@@ -26,7 +26,10 @@ type Snapshot struct {
 	// KassensitzungNr is the closing's Z_NR.
 	KassensitzungNr int
 	Betreiber       betreiber.Betreiber
-	TSEStammdaten   tse.Stammdaten
+	// AktuelleTSE is the master data of the TSS configured now, which signs the Vorgänge still unsigned.
+	AktuelleTSE tse.Stammdaten
+	// TSEJeSeriennummer holds the master data of every TSS set up on this Kasse, keyed by serial.
+	TSEJeSeriennummer map[string]tse.Stammdaten
 	// SoftwareVersion is the jotti build version (KASSE_SW_VERSION), set via ldflags
 	// ("dev" in development).
 	SoftwareVersion string

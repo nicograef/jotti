@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/db/dbtest"
@@ -211,5 +212,40 @@ func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 	}
 	if offeneStoerungen != 1 {
 		t.Errorf("expected keine_konfiguration stoerung to stay open, got %d open", offeneStoerungen)
+	}
+}
+
+// A TSS change replaces the current TSS but keeps the old one's master data, which verify its signatures.
+func TestUpsertTSEStammdaten_BehaeltJedeTSS(t *testing.T) {
+	repo, _, teardown := setupEinrichtung(t)
+	defer teardown(t)
+	ctx := context.Background()
+
+	// The table refuses DELETE, so each run uses its own serials.
+	lauf := fmt.Sprintf("%d", time.Now().UnixNano())
+	alt := tse.NewStammdaten("ALT-"+lauf, "ecdsa-plain-SHA256", "ALTKEY==", "ALTCERT", "unixTime")
+	neu := tse.NewStammdaten("NEU-"+lauf, "ecdsa-plain-SHA256", "NEUKEY==", "NEUCERT", "unixTime")
+	for _, s := range []tse.Stammdaten{alt, neu} {
+		if err := repo.UpsertTSEStammdaten(ctx, s); err != nil {
+			t.Fatalf("UpsertTSEStammdaten(%s): %v", s.Seriennummer, err)
+		}
+	}
+
+	aktuell, err := repo.GetTSEStammdaten(ctx)
+	if err != nil {
+		t.Fatalf("GetTSEStammdaten: %v", err)
+	}
+	if aktuell.Seriennummer != neu.Seriennummer {
+		t.Errorf("current TSS = %q, want %q", aktuell.Seriennummer, neu.Seriennummer)
+	}
+	jeTSS, err := repo.GetTSEStammdatenJeTSS(ctx)
+	if err != nil {
+		t.Fatalf("GetTSEStammdatenJeTSS: %v", err)
+	}
+	for _, want := range []tse.Stammdaten{alt, neu} {
+		got := jeTSS[want.Seriennummer]
+		if got.PublicKey != want.PublicKey || got.Zertifikat != want.Zertifikat {
+			t.Errorf("stammdaten of %s = %+v, want key %q and certificate %q", want.Seriennummer, got, want.PublicKey, want.Zertifikat)
+		}
 	}
 }

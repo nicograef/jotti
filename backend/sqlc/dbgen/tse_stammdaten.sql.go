@@ -38,6 +38,41 @@ func (q *Queries) GetTSEStammdaten(ctx context.Context) (GetTSEStammdatenRow, er
 	return i, err
 }
 
+const getTSEStammdatenJeTSS = `-- name: GetTSEStammdatenJeTSS :many
+SELECT seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at
+FROM tse_stammdaten_je_tss ORDER BY seriennummer
+`
+
+func (q *Queries) GetTSEStammdatenJeTSS(ctx context.Context) ([]TseStammdatenJeTss, error) {
+	rows, err := q.db.QueryContext(ctx, getTSEStammdatenJeTSS)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TseStammdatenJeTss{}
+	for rows.Next() {
+		var i TseStammdatenJeTss
+		if err := rows.Scan(
+			&i.Seriennummer,
+			&i.SignaturAlgorithmus,
+			&i.PublicKey,
+			&i.Zertifikat,
+			&i.LogTimeFormat,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertTSEStammdaten = `-- name: UpsertTSEStammdaten :exec
 INSERT INTO tse_stammdaten (id, seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
 VALUES (1, $1, $2, $3, $4, $5, NOW())
@@ -60,6 +95,37 @@ type UpsertTSEStammdatenParams struct {
 
 func (q *Queries) UpsertTSEStammdaten(ctx context.Context, arg UpsertTSEStammdatenParams) error {
 	_, err := q.db.ExecContext(ctx, upsertTSEStammdaten,
+		arg.Seriennummer,
+		arg.SignaturAlgorithmus,
+		arg.PublicKey,
+		arg.Zertifikat,
+		arg.LogTimeFormat,
+	)
+	return err
+}
+
+const upsertTSEStammdatenJeTSS = `-- name: UpsertTSEStammdatenJeTSS :exec
+INSERT INTO tse_stammdaten_je_tss (seriennummer, signatur_algorithmus, public_key, zertifikat, log_time_format, updated_at)
+VALUES ($1, $2, $3, $4, $5, NOW())
+ON CONFLICT (seriennummer) DO UPDATE SET
+    signatur_algorithmus = EXCLUDED.signatur_algorithmus,
+    public_key = EXCLUDED.public_key,
+    zertifikat = EXCLUDED.zertifikat,
+    log_time_format = EXCLUDED.log_time_format,
+    updated_at = EXCLUDED.updated_at
+`
+
+type UpsertTSEStammdatenJeTSSParams struct {
+	Seriennummer        string
+	SignaturAlgorithmus string
+	PublicKey           string
+	Zertifikat          string
+	LogTimeFormat       string
+}
+
+// The serial is the SHA-256 of the public key, so a repeated setup of one TSS only refreshes its row.
+func (q *Queries) UpsertTSEStammdatenJeTSS(ctx context.Context, arg UpsertTSEStammdatenJeTSSParams) error {
+	_, err := q.db.ExecContext(ctx, upsertTSEStammdatenJeTSS,
 		arg.Seriennummer,
 		arg.SignaturAlgorithmus,
 		arg.PublicKey,

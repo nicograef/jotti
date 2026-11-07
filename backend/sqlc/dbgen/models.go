@@ -474,7 +474,7 @@ type TseSignaturauftraege struct {
 	QrCodeData sql.NullString
 }
 
-// TSE-Stammdaten (Singleton). Fiskalische Stammdaten der TSS fuer den DSFinV-K-Export (tse.csv); bei der Einrichtung von fiskaly gelesen.
+// TSE-Stammdaten der aktuell eingerichteten TSS (Singleton); tse_stammdaten_je_tss hält die jeder TSS.
 type TseStammdaten struct {
 	ID int
 	// Seriennummer der TSS (tss_serial_number aus fiskaly; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
@@ -488,6 +488,18 @@ type TseStammdaten struct {
 	// Format der TSE-Log-Zeitstempel (z. B. unixTime).
 	LogTimeFormat string
 	// Letzte Aenderung (UTC)
+	UpdatedAt time.Time
+}
+
+// TSE-Stammdaten jeder je eingerichteten TSS, Schlüssel ist die Seriennummer. Quelle der tse.csv im DSFinV-K-Export; die Signaturaufträge verweisen über tse_seriennummer darauf. Aufbewahrungspflichtig, kein DELETE.
+type TseStammdatenJeTss struct {
+	// Seriennummer der TSS (tss_serial_number aus fiskaly; SHA-256 des Public Key, hex-kodiert). DSFinV-K-Feld TSE_SERIAL.
+	Seriennummer        string
+	SignaturAlgorithmus string
+	PublicKey           string
+	Zertifikat          string
+	LogTimeFormat       string
+	// Letzter Abruf der Stammdaten bei fiskaly (UTC)
 	UpdatedAt time.Time
 }
 

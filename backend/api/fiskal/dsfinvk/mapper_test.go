@@ -34,7 +34,7 @@ func testSignatur(t *testing.T, txNr, sigZaehler int, start, ende, signatur stri
 	return &tse.Signatur{
 		TransaktionNummer: txNr,
 		SignaturZaehler:   sigZaehler,
-		TSESeriennummer:   "abc123serial",
+		TSESeriennummer:   testTSESerial,
 		LogTimeStart:      logStart,
 		LogTimeEnd:        logEnd,
 		Signatur:          signatur,
@@ -58,15 +58,18 @@ func testSnapshot() Snapshot {
 			Ort:          "Musterdorf",
 			Steuernummer: &steuernummer,
 		},
-		TSEStammdaten: tse.Stammdaten{
-			Seriennummer:        testTSESerial,
-			SignaturAlgorithmus: "ecdsa-plain-SHA256",
-			PublicKey:           "PUBKEY==",
-			Zertifikat:          "CERTBASE64",
-			LogTimeFormat:       "unixTime",
-		},
-		SoftwareVersion: testSWVersion,
+		AktuelleTSE:       testTSEStammdaten,
+		TSEJeSeriennummer: map[string]tse.Stammdaten{testTSESerial: testTSEStammdaten},
+		SoftwareVersion:   testSWVersion,
 	}
+}
+
+var testTSEStammdaten = tse.Stammdaten{
+	Seriennummer:        testTSESerial,
+	SignaturAlgorithmus: "ecdsa-plain-SHA256",
+	PublicKey:           "PUBKEY==",
+	Zertifikat:          "CERTBASE64",
+	LogTimeFormat:       "unixTime",
 }
 
 // barverkaufEvent builds the simplest fiscal payment: one beer (19 %) and one
@@ -192,14 +195,14 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 func TestMapZertifikatChunking(t *testing.T) {
 	passt := strings.Repeat("A", 1500)
 	snap := testSnapshot()
-	snap.TSEStammdaten.Zertifikat = passt
+	snap.TSEJeSeriennummer[testTSESerial] = tse.Stammdaten{Seriennummer: testTSESerial, Zertifikat: passt}
 
 	archive, err := Map(snap, []event.Event{barverkaufEvent(t)}, barverkaufSignaturen(t))
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
-	tse := tableByFile(t, archive, "tse.csv")
-	gotCert := field(t, tse, 0, "TSE_ZERTIFIKAT_I") + field(t, tse, 0, "TSE_ZERTIFIKAT_II")
+	tseTabelle := tableByFile(t, archive, "tse.csv")
+	gotCert := field(t, tseTabelle, 0, "TSE_ZERTIFIKAT_I") + field(t, tseTabelle, 0, "TSE_ZERTIFIKAT_II")
 	if gotCert != passt {
 		t.Errorf("zusammengesetztes Zertifikat = %d Zeichen, want %d", len(gotCert), len(passt))
 	}
@@ -208,7 +211,7 @@ func TestMapZertifikatChunking(t *testing.T) {
 	}
 
 	zuLang := strings.Repeat("B", 2500)
-	snap.TSEStammdaten.Zertifikat = zuLang
+	snap.TSEJeSeriennummer[testTSESerial] = tse.Stammdaten{Seriennummer: testTSESerial, Zertifikat: zuLang}
 	// The caller (export) logs a warning on this; the fields stay empty.
 	if !ZertifikatZuLang(zuLang) {
 		t.Error("Zertifikat > 2000 Zeichen muss als zu lang gelten (Log-Warnung im Export)")
@@ -217,8 +220,8 @@ func TestMapZertifikatChunking(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Map() error = %v", err)
 	}
-	tse = tableByFile(t, archive, "tse.csv")
-	if field(t, tse, 0, "TSE_ZERTIFIKAT_I") != "" || field(t, tse, 0, "TSE_ZERTIFIKAT_II") != "" {
+	tseTabelle = tableByFile(t, archive, "tse.csv")
+	if field(t, tseTabelle, 0, "TSE_ZERTIFIKAT_I") != "" || field(t, tseTabelle, 0, "TSE_ZERTIFIKAT_II") != "" {
 		t.Error("Zertifikat > 2000 Zeichen darf nicht abgeschnitten exportiert werden — Felder müssen leer bleiben")
 	}
 }
@@ -1665,6 +1668,87 @@ func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
 			transactions := tableByFile(t, archive, "transactions.csv")
 			if len(tseTabelle.Records) != len(transactions.Records) {
 				t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tseTabelle.Records), len(transactions.Records))
+			}
+		})
+	}
+}
+
+// After a TSS change each signature still names the TSS that made it: tse.csv lists every
+// signing TSS with its own key, and the current TSS only when it has Vorgänge left to sign.
+func TestMapTSEJeSignierenderTSS(t *testing.T) {
+	alt := tse.Stammdaten{Seriennummer: "TSS-ALT", SignaturAlgorithmus: "ecdsa-plain-SHA256", PublicKey: "ALTKEY==", Zertifikat: "ALTCERT", LogTimeFormat: "unixTime"}
+	neu := tse.Stammdaten{Seriennummer: "TSS-NEU", SignaturAlgorithmus: "ecdsa-plain-SHA256", PublicKey: "NEUKEY==", Zertifikat: "NEUCERT", LogTimeFormat: "unixTime"}
+	signiertVon := func(serial string) tse.EventSignatur {
+		sig := testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "SIG==")
+		sig.TSESeriennummer = serial
+		return tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Status: tse.StatusErledigt, Signatur: sig}
+	}
+	const erstellung = "2026-06-16T14:30:00Z"
+	altZeile := []string{testSerial, erstellung, "3", "1", "TSS-ALT", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "ALTKEY==", "ALTCERT", ""}
+
+	tests := []struct {
+		name       string
+		zweiteSig  tse.EventSignatur
+		wantTSE    [][]string
+		wantTSEIDs []string
+	}{
+		{
+			name:       "alte Sitzung nach dem Wechsel",
+			zweiteSig:  signiertVon("TSS-ALT"),
+			wantTSE:    [][]string{altZeile},
+			wantTSEIDs: []string{"1", "1"},
+		},
+		{
+			name:      "beide TSS signierten",
+			zweiteSig: signiertVon("TSS-NEU"),
+			wantTSE: [][]string{
+				altZeile,
+				{testSerial, erstellung, "3", "2", "TSS-NEU", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "NEUKEY==", "NEUCERT", ""},
+			},
+			wantTSEIDs: []string{"1", "2"},
+		},
+		{
+			name:      "unsignierter Vorgang wartet auf die aktuelle TSS",
+			zweiteSig: tse.EventSignatur{ProcessType: "Kassenbeleg-V1", Status: tse.StatusOffen},
+			wantTSE: [][]string{
+				altZeile,
+				{testSerial, erstellung, "3", "2", "TSS-NEU", "ecdsa-plain-SHA256", "unixTime", "UTF-8", "NEUKEY==", "NEUCERT", ""},
+			},
+			wantTSEIDs: []string{"1", "2"},
+		},
+		{
+			name:       "TSS ohne gespeicherte Stammdaten",
+			zweiteSig:  signiertVon("TSS-UNBEKANNT"),
+			wantTSE:    [][]string{altZeile, {testSerial, erstellung, "3", "2", "TSS-UNBEKANNT", "", "unixTime", "UTF-8", "", "", ""}},
+			wantTSEIDs: []string{"1", "2"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			snap := testSnapshot()
+			snap.AktuelleTSE = neu
+			snap.TSEJeSeriennummer = map[string]tse.Stammdaten{"TSS-ALT": alt, "TSS-NEU": neu}
+			events := []event.Event{
+				zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC)),
+				zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC)),
+			}
+			signaturen := map[int]tse.EventSignatur{1: signiertVon("TSS-ALT"), 2: tt.zweiteSig}
+
+			archive, err := Map(snap, events, signaturen)
+			if err != nil {
+				t.Fatalf("Map() error = %v", err)
+			}
+
+			if got := tableByFile(t, archive, "tse.csv").Records; !reflect.DeepEqual(got, tt.wantTSE) {
+				t.Errorf("tse.csv records =\n%#v\nwant\n%#v", got, tt.wantTSE)
+			}
+			transaktionen := tableByFile(t, archive, "transactions_tse.csv")
+			var ids []string
+			for i := range transaktionen.Records {
+				ids = append(ids, field(t, transaktionen, i, "TSE_ID"))
+			}
+			if !reflect.DeepEqual(ids, tt.wantTSEIDs) {
+				t.Errorf("transactions_tse.csv TSE_ID = %v, want %v", ids, tt.wantTSEIDs)
 			}
 		})
 	}

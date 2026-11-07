@@ -31,7 +31,6 @@ const (
 	gvTypDifferenzSollIst = "DifferenzSollIst"       // booked cash difference from the Kassensturz
 	zahlartBar            = "Bar"                    // Anhang D: jotti takes cash only
 	refTypTransaktion     = "Transaktion"            // Anhang E: REF_TYP for a reference inside the DSFinV-K (Storno → origin)
-	tseReferenzID         = "1"                      // one TSS per Kasse, referenced as ID 1 in the closing
 	tseFehlerAusfall      = "TSE-Ausfall"            // TSE_TA_FEHLER of a Vorgang whose signing failed for good
 	tseFehlerAusstehend   = "Signatur ausstehend"    // TSE_TA_FEHLER of a Vorgang still queued for signing
 	tseFehlerKeineTSE     = "keine TSE konfiguriert" // TSE_TA_FEHLER of a Vorgang recorded without a TSE
@@ -70,6 +69,7 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 	if len(belege) == 0 {
 		return Archive{}, ErrKeineVorgaenge
 	}
+	tses := tseVerzeichnisAus(snapshot, belege)
 
 	// All 20 files the official index.xml declares, in its order; unfilled ones as
 	// header-only CSV.
@@ -79,7 +79,7 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 		buildCashregister(snapshot, erstellung),
 		headerOnlyTable("slaves.csv", "Stamm_Terminals", "Terminal-Kassen (in jotti nicht vorhanden)", slavesColumns),
 		headerOnlyTable("pa.csv", "Stamm_Agenturen", "Agenturgeschäft (in jotti nicht vorhanden)", paColumns),
-		buildTSE(snapshot, erstellung),
+		buildTSE(snapshot, erstellung, tses),
 		buildVat(snapshot, erstellung),
 		buildBusinesscases(snapshot, erstellung, belege),
 		buildPayment(snapshot, erstellung, belege),
@@ -89,7 +89,7 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 		buildLines(snapshot, erstellung, belege),
 		headerOnlyTable("itemamounts.csv", "Bonpos_Preisfindung", "Preisfindung je Position (in jotti nicht vorhanden)", itemamountsColumns),
 		headerOnlyTable("subitems.csv", "Bonpos_Zusatzinfo", "Zusatzinformationen je Position (in jotti nicht vorhanden)", subitemsColumns),
-		buildTransactionsTSE(snapshot, erstellung, belege),
+		buildTransactionsTSE(snapshot, erstellung, belege, tses),
 		buildTransactionsVat(snapshot, erstellung, belege),
 		buildLinesVat(snapshot, erstellung, belege),
 		buildAllocationGroups(snapshot, erstellung, belege),

@@ -280,7 +280,7 @@ func (c Command) saveEinrichtung(ctx context.Context, log *slog.Logger, client t
 }
 
 // The DSFinV-K export fills tse.csv (serial, public key, certificate; docs/compliance.md §6.3) only
-// from tse_stammdaten, so a failure here fails the setup.
+// from the stored TSE master data, so a failure here fails the setup.
 func (c Command) fetchTSEStammdaten(ctx context.Context, log *slog.Logger, client tse.SetupClient, tssID string) error {
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {

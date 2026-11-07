@@ -42,6 +42,7 @@ type betreiberRepo interface {
 type tseRepo interface {
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 	GetTSEStammdaten(ctx context.Context) (tse.Stammdaten, error)
+	GetTSEStammdatenJeTSS(ctx context.Context) (map[string]tse.Stammdaten, error)
 }
 
 type tischRepo interface {
@@ -89,8 +90,10 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 		return Archiv{}, err
 	}
 
-	if dsfinvk.ZertifikatZuLang(snapshot.TSEStammdaten.Zertifikat) {
-		log.Warn("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export", "kassensitzung", ks.ZNr, "laenge", len(snapshot.TSEStammdaten.Zertifikat))
+	for seriennummer, stammdaten := range snapshot.TSEJeSeriennummer {
+		if dsfinvk.ZertifikatZuLang(stammdaten.Zertifikat) {
+			log.Warn("TSE certificate exceeds two DSFinV-K fields; TSE_ZERTIFIKAT left empty in export", "kassensitzung", ks.ZNr, "tse_seriennummer", seriennummer, "laenge", len(stammdaten.Zertifikat))
+		}
 	}
 
 	inhalt, err := dsfinvk.BuildArchive(snapshot, events, signaturen)
@@ -162,9 +165,14 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		log.Error("Failed to get betreiber", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
-	stammdaten, err := e.TSERepo.GetTSEStammdaten(ctx)
+	aktuelleTSE, err := e.TSERepo.GetTSEStammdaten(ctx)
 	if err != nil {
 		log.Error("Failed to get tse stammdaten", "error", err)
+		return dsfinvk.Snapshot{}, ErrDatabase
+	}
+	tseJeSeriennummer, err := e.TSERepo.GetTSEStammdatenJeTSS(ctx)
+	if err != nil {
+		log.Error("Failed to get tse stammdaten per tss", "error", err)
 		return dsfinvk.Snapshot{}, ErrDatabase
 	}
 	tischnamen, err := e.TischRepo.GetAlleTischNamen(ctx)
@@ -178,7 +186,8 @@ func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung
 		Erstellung:        erstellung,
 		KassensitzungNr:   ks.ZNr,
 		Betreiber:         betreiber,
-		TSEStammdaten:     stammdaten,
+		AktuelleTSE:       aktuelleTSE,
+		TSEJeSeriennummer: tseJeSeriennummer,
 		SoftwareVersion:   e.Version,
 		Tischnamen:        tischnamen,
 	}, nil
