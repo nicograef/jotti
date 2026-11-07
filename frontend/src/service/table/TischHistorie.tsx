@@ -239,9 +239,9 @@ function HistorieDetail({
     (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
     AuthSingleton.canCancel &&
     detail.stornierbarePositionen.length > 0
+  // Umbuchen ist geldneutral und für jede Servicekraft erlaubt (Endpunkt /service).
   const canUmbuchen =
     (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
-    AuthSingleton.canRebook &&
     detail.umbuchbarePositionen.length > 0
 
   return (

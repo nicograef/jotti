@@ -99,7 +99,6 @@ describe('Auth', () => {
 
       expect(AuthSingleton.isAdmin).toBe(true)
       expect(AuthSingleton.isServiceleitung).toBe(false)
-      expect(AuthSingleton.isService).toBe(false)
       expect(AuthSingleton.canCancel).toBe(true)
     })
 
@@ -118,7 +117,8 @@ describe('Auth', () => {
       const token = createMockToken(validTokenPayload({ role: 'service' }))
       AuthSingleton.validateAndSetToken(token)
 
-      expect(AuthSingleton.isService).toBe(true)
+      expect(AuthSingleton.isAdmin).toBe(false)
+      expect(AuthSingleton.isServiceleitung).toBe(false)
       expect(AuthSingleton.canCancel).toBe(false)
     })
   })

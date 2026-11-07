@@ -1,6 +1,5 @@
 import { AuthSingleton } from '@/lib/Auth'
-
-type Role = 'admin' | 'serviceleitung' | 'service'
+import type { UserRole } from '@/lib/identity'
 
 function base64Url(value: object): string {
   return btoa(JSON.stringify(value))
@@ -11,7 +10,7 @@ function base64Url(value: object): string {
 
 interface TokenClaims {
   userId?: number
-  role?: Role
+  role?: UserRole
 }
 
 /** An unsigned token; the client decodes JWTs without verifying them. */

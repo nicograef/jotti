@@ -51,17 +51,8 @@ class Auth {
     return this.token?.role === UserRole.SERVICELEITUNG
   }
 
-  public get isService(): boolean {
-    return this.token?.role === UserRole.SERVICE
-  }
-
   public get canCancel(): boolean {
     return this.isAdmin || this.isServiceleitung
-  }
-
-  // Umbuchen ist geldneutral und für jede Servicekraft erlaubt (Endpunkt /service).
-  public get canRebook(): boolean {
-    return this.isAdmin || this.isServiceleitung || this.isService
   }
 
   public logout(): void {
