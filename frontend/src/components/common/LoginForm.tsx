@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { NavLink, useNavigate } from 'react-router'
@@ -23,6 +24,7 @@ interface LoginFormProps {
 
 export function LoginForm(props: LoginFormProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const form = useForm<FormData>({
     resolver: zodResolver(LoginSchema),
@@ -37,6 +39,9 @@ export function LoginForm(props: LoginFormProps) {
     try {
       const token = await props.backend.login(data.username, data.password)
       AuthSingleton.validateAndSetToken(token)
+      // Jeder Weg zur Anmeldung (Abmelden, abgelaufenes Token) endet hier; auf
+      // einem geteilten Gerät sähe die neue Servicekraft sonst kurz fremde Daten.
+      queryClient.clear()
       if (AuthSingleton.isAdmin) {
         await navigate('/admin')
       } else {

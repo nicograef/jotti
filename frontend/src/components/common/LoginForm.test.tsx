@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -7,6 +7,7 @@ import { AuthBackend } from '@/lib/AuthBackend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signOut, testToken } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { LoginForm } from './LoginForm'
 
@@ -33,18 +34,19 @@ afterEach(() => {
 function renderLogin(
   fake = new FakeBackend().respond('auth/login', { token: testToken() }),
 ) {
-  render(
+  const { queryClient } = renderWithBackend(
     <MemoryRouter>
       <LoginForm backend={new AuthBackend(fake)} />
     </MemoryRouter>,
+    fake,
   )
-  return fake
+  return { fake, queryClient }
 }
 
 describe('LoginForm', () => {
   it('zeigt bei leerem Formular die Feldfehler und löst keinen Login aus', async () => {
     const user = userEvent.setup()
-    const fake = renderLogin()
+    const { fake } = renderLogin()
 
     await user.click(screen.getByRole('button', { name: /Anmelden/ }))
 
@@ -61,7 +63,7 @@ describe('LoginForm', () => {
 
   it('deaktiviert den Button während des Ladens (kein Doppel-Submit)', async () => {
     const user = userEvent.setup()
-    const fake = renderLogin(haengenderLogin())
+    const { fake } = renderLogin(haengenderLogin())
 
     await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
     await user.type(screen.getByPlaceholderText('Passwort'), 'geheim1')
@@ -75,7 +77,7 @@ describe('LoginForm', () => {
 
   it('submittet gültige Eingaben und ruft den Login-Backend-Aufruf auf', async () => {
     const user = userEvent.setup()
-    const fake = renderLogin()
+    const { fake } = renderLogin()
 
     await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
     await user.type(screen.getByPlaceholderText('Passwort'), 'geheim1')
@@ -85,6 +87,21 @@ describe('LoginForm', () => {
       expect(fake.bodies('auth/login')).toEqual([
         { username: 'anna', password: 'geheim1' },
       ])
+    })
+  })
+
+  // Auf einem geteilten Gerät sähe die neue Servicekraft sonst die Daten der vorigen.
+  it('verwirft beim Anmelden den Query-Cache der vorigen Sitzung', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = renderLogin()
+    queryClient.setQueryData(['service', 'eigene-uebersicht'], { offen: 1200 })
+
+    await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
+    await user.type(screen.getByPlaceholderText('Passwort'), 'geheim1')
+    await user.click(screen.getByRole('button', { name: /Anmelden/ }))
+
+    await waitFor(() => {
+      expect(queryClient.getQueryCache().getAll()).toHaveLength(0)
     })
   })
 })
