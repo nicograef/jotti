@@ -2,7 +2,6 @@ package kasse
 
 import (
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
@@ -89,9 +88,10 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 
 // NewDirektverkaufStorniertEvent: gesamtStornierungCents is computed by the caller from
 // the not-yet-cancelled positions.
-func NewDirektverkaufStorniertEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+// NewDirektverkaufStorniertEvent takes stornierungID from the client: it is the idempotency key.
+func NewDirektverkaufStorniertEvent(subject string, stornierungID string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := DirektverkaufStorniertV1Data{
-		StornierungID:          uuid.New().String(),
+		StornierungID:          stornierungID,
 		VerkaufID:              verkaufID,
 		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,

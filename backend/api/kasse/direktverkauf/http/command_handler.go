@@ -18,7 +18,7 @@ import (
 
 type command interface {
 	DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, positionen []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error
-	DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
+	DirektverkaufStornieren(ctx context.Context, userID int, userName string, stornierungID string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -75,16 +75,19 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 	}
 }
 
+// StornierungID is the client's idempotency key, kept per attempt.
 type direktverkaufStornierenRequest struct {
-	VerkaufID  string                `json:"verkaufId"`
-	Positionen []eingabe.PositionRef `json:"positionen"`
-	Kommentar  string                `json:"kommentar"`
+	StornierungID string                `json:"stornierungId"`
+	VerkaufID     string                `json:"verkaufId"`
+	Positionen    []eingabe.PositionRef `json:"positionen"`
+	Kommentar     string                `json:"kommentar"`
 }
 
 var direktverkaufStornierenSchema = z.Struct(z.Shape{
-	"VerkaufID":  z.String().UUID().Required(),
-	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
-	"Kommentar":  z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
+	"StornierungID": z.String().UUID().Required(),
+	"VerkaufID":     z.String().UUID().Required(),
+	"Positionen":    z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
+	"Kommentar":     z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
@@ -100,11 +103,12 @@ func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.VerkaufID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.DirektverkaufStornieren(r.Context(), userID, userName, body.StornierungID, body.VerkaufID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
 				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
+				{Err: application.ErrVorgangAbweichend, Code: "vorgang_abweichend", Status: http.StatusConflict},
 			}))
 			return
 		}

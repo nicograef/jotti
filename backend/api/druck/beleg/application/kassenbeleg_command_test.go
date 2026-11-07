@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -19,7 +20,7 @@ func TestKassenbelegDrucken_SuccessAndReprint(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-1111-1111-111111111111",
 			VarianteID:   1,
@@ -97,7 +98,7 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-1111-1111-111111111111",
 			VarianteID:   1,
@@ -185,7 +186,7 @@ func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-4111-8111-111111111111",
 			VarianteID:   1,
@@ -277,7 +278,7 @@ func TestKassenbelegDrucken_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-1111-1111-111111111111",
 			VarianteID:   1,
@@ -329,7 +330,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{{
 		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 2,
 	}}, 700, "")
 	var paymentData kasse.ZahlungKassiertV1Data
@@ -337,7 +338,7 @@ func TestKassenbelegDrucken_TischStorno_DruckbarAlsStornobeleg(t *testing.T) {
 		t.Fatalf("expected no unmarshal error, got %v", err)
 	}
 
-	stornoEvent, err := kasse.NewStornierungErteiltEvent(subject, 2, "Leitung", paymentData.ZahlungID, []kasse.Position{{
+	stornoEvent, err := kasse.NewStornierungErteiltEvent(subject, uuid.NewString(), 2, "Leitung", paymentData.ZahlungID, []kasse.Position{{
 		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 2,
 	}}, 700, "Rückgabe")
 	if err != nil {

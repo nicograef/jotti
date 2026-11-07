@@ -227,7 +227,7 @@ func bezahlteBestellungAmTisch(ctx context.Context, t *testing.T, db *sql.DB, us
 		bezahlt = append(bezahlt, kasse.PositionFromEventData(pos))
 	}
 
-	zahlung, err := kasse.NewZahlungKassiertEvent(subject, userID, "test", bezahlt, betragCents, "")
+	zahlung, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), userID, "test", bezahlt, betragCents, "")
 	if err != nil {
 		t.Fatalf("zahlung-kassiert bauen: %v", err)
 	}

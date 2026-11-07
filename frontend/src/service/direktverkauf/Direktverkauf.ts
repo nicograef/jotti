@@ -18,6 +18,7 @@ export const DirektverkaufTaetigenSchema = z.object({
 export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
 
 export const DirektverkaufStornierenSchema = z.object({
+  stornierungId: z.uuid(),
   verkaufId: z.uuid(),
   positionen: PositionRefSchema.array().min(1),
   kommentar: PflichtKommentarSchema,

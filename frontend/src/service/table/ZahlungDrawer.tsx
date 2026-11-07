@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import { DockActionButton } from '../DockActionButton'
@@ -20,8 +21,7 @@ interface ZahlungDrawerProps {
   totalCents: number
   anzahl: number
   restNachZahlungCents: number
-  kommentar: string
-  setKommentar: (kommentar: string) => void
+  vorgang: Vorgang<string>
   zahlungKassiert: () => void
   pfandAusgezahlt: () => void
 }
@@ -60,8 +60,7 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
         positionenToPay={props.positionenToPay}
         totalCents={props.totalCents}
         restNachZahlungCents={props.restNachZahlungCents}
-        kommentar={props.kommentar}
-        setKommentar={props.setKommentar}
+        vorgang={props.vorgang}
         zahlungKassiert={() => {
           setOpen(false)
           props.zahlungKassiert()

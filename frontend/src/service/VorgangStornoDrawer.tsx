@@ -11,7 +11,11 @@ interface VorgangStornoDrawerProps {
   // Der Titel lautet „<bezeichnung> stornieren“.
   bezeichnung: string
   offenePositionen: GebuchtePosition[]
-  stornieren: (positionen: PositionRef[], kommentar: string) => Promise<void>
+  stornieren: (
+    schluessel: string,
+    positionen: PositionRef[],
+    kommentar: string,
+  ) => Promise<void>
   onClose: () => void
   onStorniert: () => void
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	z "github.com/Oudwins/zog"
-	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
@@ -166,9 +165,10 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 }
 
 // NewZahlungKassiertEvent stores each position's Pfand flag; the caller sets it from the product.
-func NewZahlungKassiertEvent(subject string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
+// zahlungID comes from the client: it is the idempotency key of the payment.
+func NewZahlungKassiertEvent(subject string, zahlungID string, userID int, userName string, positionen []Position, gesamtZahlungCents int, kommentar string) (e.Event, error) {
 	data := ZahlungKassiertV2Data{
-		ZahlungID:          uuid.New().String(),
+		ZahlungID:          zahlungID,
 		Positionen:         toPositionenV2EventData(positionen),
 		GesamtZahlungCents: gesamtZahlungCents,
 		Kommentar:          kommentar,
@@ -182,9 +182,9 @@ func NewZahlungKassiertEvent(subject string, userID int, userName string, positi
 	return e.New(userID, userName, string(EventTypeZahlungKassiertV2), subject, data)
 }
 
-func NewStornierungErteiltEvent(subject string, userID int, userName string, zahlungID string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
+func NewStornierungErteiltEvent(subject string, stornierungID string, userID int, userName string, zahlungID string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := StornierungErteiltV1Data{
-		StornierungID:          uuid.New().String(),
+		StornierungID:          stornierungID,
 		ZahlungID:              zahlungID,
 		Positionen:             toPositionenEventData(positionen),
 		GesamtStornierungCents: gesamtStornierungCents,
@@ -198,9 +198,9 @@ func NewStornierungErteiltEvent(subject string, userID int, userName string, zah
 	return e.New(userID, userName, string(EventTypeStornierungErteiltV1), subject, data)
 }
 
-func NewBestellungKorrigiertEvent(subject string, userID int, userName string, positionen []Position, gesamtCents int, kommentar string) (e.Event, error) {
+func NewBestellungKorrigiertEvent(subject string, korrekturID string, userID int, userName string, positionen []Position, gesamtCents int, kommentar string) (e.Event, error) {
 	data := BestellungKorrigiertV1Data{
-		KorrekturID: uuid.New().String(),
+		KorrekturID: korrekturID,
 		Positionen:  toPositionenEventData(positionen),
 		GesamtCents: gesamtCents,
 		Kommentar:   kommentar,
@@ -215,9 +215,8 @@ func NewBestellungKorrigiertEvent(subject string, userID int, userName string, p
 
 // NewBestellungUmgebuchtEvents erzeugt das Event-Paar einer Umbuchung (Abgang/Zugang).
 // Beide müssen vom Aufrufer atomar geschrieben werden.
-func NewBestellungUmgebuchtEvents(zNr int, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string, benutzerKommentar string) (e.Event, e.Event, error) {
-	umbuchungID := uuid.New().String()
-
+// umbuchungID is the client's idempotency key; Abgang and Zugang carry it alike.
+func NewBestellungUmgebuchtEvents(zNr int, umbuchungID string, quellTischID int, zielTischID int, userID int, userName string, quellPositionen []Position, gesamtCents int, quellKommentar string, zielKommentar string, benutzerKommentar string) (e.Event, e.Event, error) {
 	zielPositionen := mitNeuenPositionIDs(quellPositionen)
 
 	quellData := BestellungUmgebuchtV1Data{

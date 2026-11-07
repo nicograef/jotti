@@ -150,10 +150,11 @@ func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *tes
 		Positionen:  []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}},
 	}
 
-	if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+	zahlungID := uuid.NewString()
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", zahlungID, tischID, refs, "", pfand); err != nil {
 		t.Fatalf("erster Aufruf: %v", err)
 	}
-	if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", zahlungID, tischID, refs, "", pfand); err != nil {
 		t.Errorf("zweiter Aufruf (Duplikat) erwartet nil, bekam: %v", err)
 	}
 
@@ -220,10 +221,10 @@ func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 		erst func(t *testing.T, f zahlungsFall) error
 	}{
 		{"andere Pfand-Menge", func(_ *testing.T, f zahlungsFall) error {
-			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", f.tischID, f.refs(1), "", f.pfand(3))
+			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", uuid.NewString(), f.tischID, f.refs(1), "", f.pfand(3))
 		}},
 		{"andere Zahlung", func(_ *testing.T, f zahlungsFall) error {
-			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", f.tischID, f.refs(2), "", f.pfand(2))
+			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", uuid.NewString(), f.tischID, f.refs(2), "", f.pfand(2))
 		}},
 		{"Rückgabe ohne Zahlung", func(t *testing.T, f zahlungsFall) error {
 			eingabe := f.pfand(2)
@@ -276,7 +277,7 @@ func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 				t.Fatalf("kassenjournal zählen: %v", err)
 			}
 
-			if err := cmd.ZahlungKassieren(ctx, userID, "test", tischID, f.refs(1), "", f.pfand(2)); !errors.Is(err, ErrPfandrueckgabeAbweichend) {
+			if err := cmd.ZahlungKassieren(ctx, userID, "test", uuid.NewString(), tischID, f.refs(1), "", f.pfand(2)); !errors.Is(err, ErrPfandrueckgabeAbweichend) {
 				t.Errorf("erwartet ErrPfandrueckgabeAbweichend, bekam: %v", err)
 			}
 
@@ -289,4 +290,94 @@ func TestZahlungKassieren_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTischVorgang_Wiederholung: a Vorgang retried with its key after a lost response books nothing
+// again, even for a partial quantity whose remainder still validates; the same key with other
+// content is refused with ErrVorgangAbweichend. Each case starts from four unpaid Bier, two of them
+// paid, so a Storno of three writes a Korrektur and a Warenrücknahme.
+func TestTischVorgang_Wiederholung(t *testing.T) {
+	tests := []struct {
+		name    string
+		vorgang func(f tischVorgangFall, schluessel uuid.UUID, menge int) error
+	}{
+		{"Zahlung", func(f tischVorgangFall, schluessel uuid.UUID, menge int) error {
+			return f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", schluessel.String(), f.tischID, f.refs(menge), "", nil)
+		}},
+		{"Stornierung", func(f tischVorgangFall, schluessel uuid.UUID, menge int) error {
+			return f.cmd.StornierungErteilen(f.ctx, f.userID, "test", schluessel, f.tischID, f.refs(menge+2), "Reklamation")
+		}},
+		{"Umbuchung", func(f tischVorgangFall, schluessel uuid.UUID, menge int) error {
+			return f.cmd.BestellungUmbuchen(f.ctx, f.userID, "test", schluessel.String(), f.tischID, f.zielTischID, f.refs(menge), "")
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := setupTischVorgangFall(t)
+			schluessel := uuid.New()
+
+			if err := tt.vorgang(f, schluessel, 1); err != nil {
+				t.Fatalf("erster Versuch: %v", err)
+			}
+			vorher := f.anzahlEvents(t)
+
+			if err := tt.vorgang(f, schluessel, 1); err != nil {
+				t.Errorf("Wiederholung erwartet nil, bekam: %v", err)
+			}
+			if err := tt.vorgang(f, schluessel, 2); !errors.Is(err, ErrVorgangAbweichend) {
+				t.Errorf("anderer Inhalt erwartet ErrVorgangAbweichend, bekam: %v", err)
+			}
+			if nachher := f.anzahlEvents(t); nachher != vorher {
+				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+			}
+		})
+	}
+}
+
+type tischVorgangFall struct {
+	ctx             context.Context
+	cmd             Command
+	db              *sql.DB
+	userID, tischID int
+	zielTischID     int
+	refs            func(menge int) []kasse.PositionRef
+}
+
+func (f tischVorgangFall) anzahlEvents(t *testing.T) int {
+	t.Helper()
+	var anzahl int
+	if err := f.db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&anzahl); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	return anzahl
+}
+
+func setupTischVorgangFall(t *testing.T) tischVorgangFall {
+	t.Helper()
+	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+
+	var zielTischID int
+	if err := db.QueryRow(
+		"INSERT INTO tische (name, status, created_at, updated_at) VALUES ('Tisch 2', 'active', now(), now()) RETURNING id",
+	).Scan(&zielTischID); err != nil {
+		t.Fatalf("create ziel-tisch: %v", err)
+	}
+
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 4}}
+	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.NewString(), tischID, inputs, ""); err != nil {
+		t.Fatalf("Bestellung aufnehmen: %v", err)
+	}
+	session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+	if err != nil {
+		t.Fatalf("Tisch-Session lesen: %v", err)
+	}
+	positionID := session.UnbezahltePositionen[0].PositionID
+	refs := func(menge int) []kasse.PositionRef {
+		return []kasse.PositionRef{{PositionID: positionID, Menge: menge}}
+	}
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", uuid.NewString(), tischID, refs(2), "", nil); err != nil {
+		t.Fatalf("zwei Bier kassieren: %v", err)
+	}
+
+	return tischVorgangFall{ctx: ctx, cmd: cmd, db: db, userID: userID, tischID: tischID, zielTischID: zielTischID, refs: refs}
 }

@@ -30,6 +30,10 @@ var ErrPositionNichtBezahlbar = errors.New("position nicht bezahlbar")
 // without the payment it was settled with.
 var ErrPfandrueckgabeAbweichend = errors.New("pfandrueckgabe abweichend")
 
+// ErrVorgangAbweichend: the client's key is booked, but with other content. Answering success would
+// hide that the requested Vorgang never happened; booking it would reuse the key.
+var ErrVorgangAbweichend = errors.New("vorgang abweichend")
+
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 var ErrPositionNichtUmbuchbar = errors.New("position nicht umbuchbar")

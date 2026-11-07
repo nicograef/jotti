@@ -232,7 +232,7 @@ func (b *sitzungsBuilder) kassieren(a kassieren) error {
 	}
 	auswahl = kasse.MitPfandKennzeichen(auswahl, b.pfandVarianten)
 	betrag := summeCents(auswahl)
-	evt, err := kasse.NewZahlungKassiertEvent(b.tischSubject(a.Tisch), a.User, name, auswahl, betrag, "")
+	evt, err := kasse.NewZahlungKassiertEvent(b.tischSubject(a.Tisch), uuid.NewString(), a.User, name, auswahl, betrag, "")
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 
 	subject := b.tischSubject(a.Tisch)
 	if len(aufteilung.Korrektur) > 0 {
-		evt, err := kasse.NewBestellungKorrigiertEvent(subject, a.User, name, aufteilung.Korrektur, aufteilung.KorrekturCents, a.Kommentar)
+		evt, err := kasse.NewBestellungKorrigiertEvent(subject, uuid.NewString(), a.User, name, aufteilung.Korrektur, aufteilung.KorrekturCents, a.Kommentar)
 		if err != nil {
 			return err
 		}
@@ -289,7 +289,7 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 		b.summen.StornierungenCents += aufteilung.KorrekturCents
 	}
 	for _, wr := range aufteilung.Warenruecknahmen {
-		evt, err := kasse.NewStornierungErteiltEvent(subject, a.User, name, wr.ZahlungID, wr.Positionen, wr.GesamtCents, a.Kommentar)
+		evt, err := kasse.NewStornierungErteiltEvent(subject, uuid.NewString(), a.User, name, wr.ZahlungID, wr.Positionen, wr.GesamtCents, a.Kommentar)
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ func (b *sitzungsBuilder) umbuchen(a umbuchen) error {
 	}
 	betrag := summeCents(auswahl)
 
-	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(b.sitzung.ZNr, a.VonTisch, a.NachTisch, a.User, name,
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(b.sitzung.ZNr, uuid.NewString(), a.VonTisch, a.NachTisch, a.User, name,
 		auswahl, betrag, "Umbuchung auf "+zielTisch, "Umbuchung von "+quellTisch, "")
 	if err != nil {
 		return err
@@ -375,7 +375,7 @@ func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	}
 	betrag := summeCents(auswahl)
 	subject := kasse.DirektverkaufSubject(b.sitzung.ZNr, a.VerkaufID)
-	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, a.VerkaufID, a.User, name, auswahl, betrag, a.Kommentar)
+	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, uuid.NewString(), a.VerkaufID, a.User, name, auswahl, betrag, a.Kommentar)
 	if err != nil {
 		return err
 	}

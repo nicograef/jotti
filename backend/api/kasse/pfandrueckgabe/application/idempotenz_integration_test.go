@@ -309,7 +309,7 @@ func verrechneMitZahlung(t *testing.T, db *sql.DB, userID, ksNr, tischID int, be
 		t.Fatalf("Tisch-Session lesen: %v", err)
 	}
 	refs := []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: bestellt.Menge}}
-	if err := tg.ZahlungKassieren(ctx, userID, "test", tischID, refs, "", pfand); err != nil {
+	if err := tg.ZahlungKassieren(ctx, userID, "test", uuid.NewString(), tischID, refs, "", pfand); err != nil {
 		t.Fatalf("Zahlung mit Pfand kassieren: %v", err)
 	}
 }

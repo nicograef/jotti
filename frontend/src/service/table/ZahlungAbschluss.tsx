@@ -1,3 +1,4 @@
+import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import { toPositionRefs, toReceiptItems } from '../drawerUtils'
@@ -16,18 +17,17 @@ interface ZahlungAbschlussProps {
   positionenToPay: Position[]
   totalCents: number
   restNachZahlungCents: number
-  // Liegt im Kassieren-Vorgang von TablePage, wie die Auswahl.
-  kommentar: string
-  setKommentar: (kommentar: string) => void
+  // Kassieren-Vorgang von TablePage: Kommentar und zahlungId überstehen wie die
+  // Auswahl das Aushängen des Abschlusses.
+  vorgang: Vorgang<string>
   zahlungKassiert: () => void
   pfandAusgezahlt: () => void
   variant: 'sheet' | 'spalte'
 }
 
-// Die Zahlung trägt keinen Client-Idempotenz-Schlüssel: die Idempotenz ist
-// zustandsbasiert (bereits bezahlte Positionen → position_nicht_bezahlbar), und
-// der Loading-Guard verhindert den Doppel-Submit. Eine Pfandrückgabe, allein
-// oder verrechnet, trägt ihre rueckgabeId.
+// Die zahlungId hängt an Positionen und Pfand, nicht am Kommentar: wer ihn nach
+// einer verlorenen Antwort ändert, wiederholt dieselbe Zahlung, statt eine
+// Teilzahlung doppelt zu buchen.
 export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
   return (
     <KassierAbschluss
@@ -41,15 +41,20 @@ export function ZahlungAbschluss(props: ZahlungAbschlussProps) {
       aktion={{ button: 'Kassieren', fehlerLabel: 'Zahlung kassieren' }}
       receiptItems={toReceiptItems(props.positionenToPay)}
       totalCents={props.totalCents}
-      kommentar={props.kommentar}
-      setKommentar={props.setKommentar}
-      kassieren={(eingabe) =>
-        tischBackend.zahlungKassieren({
+      kommentar={props.vorgang.kommentar}
+      setKommentar={props.vorgang.setKommentar}
+      kassieren={(eingabe) => {
+        const positionen = toPositionRefs(props.positionenToPay)
+        return tischBackend.zahlungKassieren({
+          zahlungId: props.vorgang.schluesselFuer({
+            positionen,
+            pfand: eingabe.pfand,
+          }),
           tischId: props.tisch.id,
-          positionen: toPositionRefs(props.positionenToPay),
+          positionen,
           ...eingabe,
         })
-      }
+      }}
       kassiert={props.zahlungKassiert}
       pfandProdukte={props.pfandProdukte}
       pfandVorgang={props.pfandVorgang}

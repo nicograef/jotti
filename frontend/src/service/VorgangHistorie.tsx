@@ -53,6 +53,7 @@ interface VorgangHistorieProps {
   leerHinweis: string
   stornieren: (
     id: string,
+    schluessel: string,
     positionen: PositionRef[],
     kommentar: string,
   ) => Promise<void>
@@ -163,8 +164,8 @@ export function VorgangHistorie({
         <VorgangStornoDrawer
           bezeichnung={bezeichnung}
           offenePositionen={stornoVorgang.offenePositionen}
-          stornieren={(positionen, kommentar) =>
-            stornieren(stornoVorgang.id, positionen, kommentar)
+          stornieren={(schluessel, positionen, kommentar) =>
+            stornieren(stornoVorgang.id, schluessel, positionen, kommentar)
           }
           onClose={() => {
             setStornoVorgang(null)

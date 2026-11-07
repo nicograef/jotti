@@ -53,7 +53,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "ZahlungKassiert.GesamtZahlungCents",
 			field: "GesamtZahlungCents",
 			run: func(summe int) error {
-				_, err := NewZahlungKassiertEvent(subject, 1, "TestUser", positionen, summe, "")
+				_, err := NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "TestUser", positionen, summe, "")
 				return err
 			},
 		},
@@ -61,7 +61,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "StornierungErteilt.GesamtStornierungCents",
 			field: "GesamtStornierungCents",
 			run: func(summe int) error {
-				_, err := NewStornierungErteiltEvent(subject, 1, "TestUser", zahlungID, positionen, summe, "Test")
+				_, err := NewStornierungErteiltEvent(subject, uuid.NewString(), 1, "TestUser", zahlungID, positionen, summe, "Test")
 				return err
 			},
 		},
@@ -69,7 +69,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "BestellungKorrigiert.GesamtCents",
 			field: "GesamtCents",
 			run: func(summe int) error {
-				_, err := NewBestellungKorrigiertEvent(subject, 1, "TestUser", positionen, summe, "Test")
+				_, err := NewBestellungKorrigiertEvent(subject, uuid.NewString(), 1, "TestUser", positionen, summe, "Test")
 				return err
 			},
 		},
@@ -77,7 +77,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "BestellungUmgebucht.GesamtCents",
 			field: "GesamtCents",
 			run: func(summe int) error {
-				_, _, err := NewBestellungUmgebuchtEvents(1, 1, 2, 1, "TestUser", positionen, summe, "auf Tisch 2", "von Tisch 1", "")
+				_, _, err := NewBestellungUmgebuchtEvents(1, uuid.NewString(), 1, 2, 1, "TestUser", positionen, summe, "auf Tisch 2", "von Tisch 1", "")
 				return err
 			},
 		},
@@ -85,7 +85,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "DirektverkaufStorniert.GesamtStornierungCents",
 			field: "GesamtStornierungCents",
 			run: func(summe int) error {
-				_, err := NewDirektverkaufStorniertEvent(DirektverkaufSubject(1, uuid.New().String()), uuid.New().String(), 1, "TestUser", positionen, summe, "Test")
+				_, err := NewDirektverkaufStorniertEvent(DirektverkaufSubject(1, uuid.New().String()), uuid.NewString(), uuid.New().String(), 1, "TestUser", positionen, summe, "Test")
 				return err
 			},
 		},

@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
+import { useVersuchsSchluessel } from '@/hooks/use-versuchs-schluessel'
 
 import { ActionHint } from '../ActionHint'
 import { KommentarField } from '../CommentField'
@@ -51,6 +52,7 @@ export function HistorieUmbuchungDrawer({
   const positionen = quelle.umbuchbarePositionen
   const [zielTischId, setZielTischId] = useState<number | null>(null)
   const [kommentar, setKommentar] = useState('')
+  const schluesselFuer = useVersuchsSchluessel()
   const {
     tische,
     isPending: tischeLoading,
@@ -102,10 +104,14 @@ export function HistorieUmbuchungDrawer({
     }
 
     await run(async () => {
+      // Der Kommentar gehört nicht zum Schlüssel: wer ihn nach einer verlorenen
+      // Antwort ändert, wiederholt dieselbe Umbuchung.
+      const positionen = toPositionRefs(selectedPositionen)
       await tischBackend.bestellungUmbuchen({
+        umbuchungId: schluesselFuer({ zielTischId, positionen }),
         quellTischId: tisch.id,
         zielTischId,
-        positionen: toPositionRefs(selectedPositionen),
+        positionen,
         benutzerKommentar: kommentar,
       })
     })

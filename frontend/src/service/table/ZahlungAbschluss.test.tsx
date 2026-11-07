@@ -18,15 +18,13 @@ import { ZahlungAbschluss } from './ZahlungAbschluss'
 function ZahlungAbschlussHarness(
   props: Omit<
     ComponentProps<typeof ZahlungAbschluss>,
-    'pfandVorgang' | 'kommentar' | 'setKommentar'
+    'pfandVorgang' | 'vorgang'
   >,
 ) {
-  const kassieren = useVorgang<string>()
   return (
     <ZahlungAbschluss
       {...props}
-      kommentar={kassieren.kommentar}
-      setKommentar={kassieren.setKommentar}
+      vorgang={useVorgang<string>()}
       pfandVorgang={useVorgang<number>()}
     />
   )
@@ -198,6 +196,8 @@ describe('ZahlungAbschluss (Spalte)', () => {
     await waitFor(() => {
       expect(zahlungen(fake)).toEqual([
         {
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
+          zahlungId: expect.stringMatching(UUID),
           tischId: 1,
           positionen: [{ positionId: position.positionId, menge: 2 }],
           kommentar: '',
@@ -409,7 +409,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
   })
 
-  it('kassiert mit genau einem Backend-Call und der erwarteten Nutzlast (ohne Schlüssel)', async () => {
+  it('kassiert mit genau einem Backend-Call und der erwarteten Nutzlast', async () => {
     const user = userEvent.setup()
     const { fake, zahlungKassiert } = renderSpalte()
 
@@ -420,11 +420,37 @@ describe('ZahlungAbschluss (Spalte)', () => {
     })
     expect(zahlungen(fake)).toEqual([
       {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        zahlungId: expect.stringMatching(UUID),
         tischId: 1,
         positionen: [{ positionId: position.positionId, menge: 2 }],
         kommentar: '',
       },
     ])
+  })
+
+  // Eine verlorene Antwort darf eine Teilzahlung nicht doppelt buchen: die
+  // Wiederholung trägt dieselbe zahlungId, auch mit geändertem Kommentar.
+  it('keeps the zahlungId for a retry of the same payment', async () => {
+    const user = userEvent.setup()
+    const { fake } = renderSpalte(
+      backend().fail('service/zahlung-kassieren', new Error('Netzwerkfehler')),
+    )
+    const kassieren = async (aufrufe: number) => {
+      await user.click(screen.getByRole('button', { name: 'Kassieren' }))
+      await waitFor(() => {
+        expect(zahlungen(fake)).toHaveLength(aufrufe)
+      })
+    }
+
+    await kassieren(1)
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Rest später')
+    await kassieren(2)
+
+    const [erster, wiederholung] = zahlungen(fake)
+    expect(erster.zahlungId).toMatch(UUID)
+    expect(wiederholung.kommentar).toBe('Rest später')
+    expect(wiederholung.zahlungId).toBe(erster.zahlungId)
   })
 
   it('löst bei Doppelklick keinen zweiten Aufruf aus', async () => {

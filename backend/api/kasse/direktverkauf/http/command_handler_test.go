@@ -21,7 +21,7 @@ func (m *mockCommand) DirektverkaufTaetigen(context.Context, int, string, string
 	return m.err
 }
 
-func (m *mockCommand) DirektverkaufStornieren(context.Context, int, string, string, []kasse.PositionRef, string) error {
+func (m *mockCommand) DirektverkaufStornieren(context.Context, int, string, string, string, []kasse.PositionRef, string) error {
 	return m.err
 }
 
@@ -35,7 +35,7 @@ func requestWithUser(body string) *http.Request {
 
 const (
 	validBody      = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":""}`
-	validStornoBod = `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`
+	validStornoBod = `{"stornierungId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`
 )
 
 // Each row is a request the handler must refuse: a body the schema rejects, or a
@@ -62,6 +62,8 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"tätigen: Rückgabe-ID gleich Verkaufs-ID", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":"","pfand":{"rueckgabeId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":2,"varianteId":2,"menge":1}]}}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Konflikt", stornieren, application.ErrConflict, validStornoBod, http.StatusConflict, "conflict"},
 		{"stornieren: Verkauf unbekannt", stornieren, application.ErrVerkaufNichtGefunden, validStornoBod, http.StatusBadRequest, "verkauf_not_found"},
+		{"stornieren: Storno-ID mit anderem Inhalt", stornieren, application.ErrVorgangAbweichend, validStornoBod, http.StatusConflict, "vorgang_abweichend"},
+		{"stornieren: ohne Storno-ID", stornieren, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Kommentar zu kurz", stornieren, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"ab"}`, http.StatusBadRequest, "validation_error"},
 	}
 	for _, tt := range tests {

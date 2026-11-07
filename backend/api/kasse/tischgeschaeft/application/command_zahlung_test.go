@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -23,7 +24,7 @@ func TestZahlungKassieren_NonOrderedPosition(t *testing.T) {
 		{PositionID: "00000000-0000-0000-0000-000000000001", Menge: 1},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, fakeRefs, "", nil)
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID, fakeRefs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -51,7 +52,7 @@ func TestZahlungKassieren_DoublePayment(t *testing.T) {
 	}
 
 	// Try to pay again — should fail
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "", nil)
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID, refs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -63,7 +64,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	konkurrierendesEvent, err := kasse.NewZahlungKassiertEvent(subject, 2, "Andere Servicekraft",
+	konkurrierendesEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 2, "Andere Servicekraft",
 		[]kasse.Position{{PositionID: "22222222-2222-4222-8222-222222222222", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1}},
 		350, "")
 	if err != nil {
@@ -96,7 +97,7 @@ func TestZahlungKassieren_KonfliktBeiParallelemCommit(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err = command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("expected ErrConflict, got %v", err)
@@ -131,7 +132,7 @@ func TestZahlungKassieren_VersionAusGelesenerProjektion(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -175,7 +176,7 @@ func TestZahlungKassieren_FriertPfandKennzeichenEin(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID, []kasse.PositionRef{
 		{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1},
 		{PositionID: "33333333-3333-4333-8333-333333333333", Menge: 1},
 	}, "", nil)
@@ -224,7 +225,7 @@ func TestZahlungKassieren_ParallelerVersuchMitPfand_Idempotent(t *testing.T) {
 	const positionID = "22222222-2222-4222-8222-222222222222"
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlung, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
+	zahlung, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User",
 		[]kasse.Position{{PositionID: positionID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1}},
 		350, "")
 	if err != nil {
@@ -254,7 +255,7 @@ func TestZahlungKassieren_ParallelerVersuchMitPfand_Idempotent(t *testing.T) {
 		RueckgabeID: rueckgabeID,
 		Positionen:  []enrichment.PositionInput{{ProduktID: 7, VarianteID: 7, Menge: 2}},
 	}
-	err = command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err = command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "", pfand)
 	if err != nil {
 		t.Fatalf("expected idempotent success, got %v", err)
@@ -296,7 +297,7 @@ func TestZahlungKassieren_UngueltigesPfand_KeinEvent(t *testing.T) {
 		RueckgabeID: "33333333-3333-4333-8333-333333333333",
 		Positionen:  []enrichment.PositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1}},
 	}
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID,
 		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", pfand)
 	if !errors.Is(err, enrichment.ErrKeinPfandProdukt) {
 		t.Fatalf("expected ErrKeinPfandProdukt, got %v", err)
@@ -334,7 +335,7 @@ func TestZahlungKassieren_ExceedsAvailableMenge(t *testing.T) {
 		{PositionID: "pos-1", Menge: 2},
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, refs, "", nil)
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID, refs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}
@@ -351,7 +352,7 @@ func TestZahlungKassieren_DuplikatPositionRefs(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID, duplikatRefs, "", nil)
+	err := command.ZahlungKassieren(ctx, 1, "Test User", uuid.NewString(), testActiveTisch.ID, duplikatRefs, "", nil)
 	if !errors.Is(err, ErrPositionNichtBezahlbar) {
 		t.Errorf("expected ErrPositionNichtBezahlbar, got %v", err)
 	}

@@ -177,7 +177,7 @@ func TestKassenbelegDrucken_DirektverkaufStorno_DruckbarAlsStornobeleg(t *testin
 		t.Fatalf("expected no event error, got %v", err)
 	}
 
-	stornoEvent, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []kasse.Position{{
+	stornoEvent, err := kasse.NewDirektverkaufStorniertEvent(subject, uuid.NewString(), verkaufID, 2, "Leitung", []kasse.Position{{
 		PositionID:   "11111111-1111-4111-8111-111111111111",
 		VarianteID:   1,
 		ProduktName:  "Cola",

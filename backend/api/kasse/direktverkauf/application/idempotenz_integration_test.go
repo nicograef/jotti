@@ -312,3 +312,46 @@ func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 		})
 	}
 }
+
+// TestDirektverkaufStornieren_Wiederholung: a partial Storno retried with its stornierungId after a
+// lost response books nothing again; the same ID with other content is refused with
+// ErrVorgangAbweichend.
+func TestDirektverkaufStornieren_Wiederholung(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+
+	verkaufID := uuid.NewString()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 3}}
+	if err := cmd.DirektverkaufTaetigen(ctx, userID, "test", verkaufID, inputs, "", nil); err != nil {
+		t.Fatalf("Verkauf: %v", err)
+	}
+	events, err := kassenjournal_repo.NewRepository(db).ReadEventsBySubject(ctx, kasse.DirektverkaufSubject(ksNr, verkaufID))
+	if err != nil {
+		t.Fatalf("Verkauf lesen: %v", err)
+	}
+	eintrag, err := kasse.BuildDirektverkaufHistorieEintrag(events)
+	if err != nil {
+		t.Fatalf("Verkauf abspielen: %v", err)
+	}
+	refs := func(menge int) []kasse.PositionRef {
+		return []kasse.PositionRef{{PositionID: eintrag.OffenePositionen[0].PositionID, Menge: menge}}
+	}
+	stornierungID := uuid.NewString()
+
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", stornierungID, verkaufID, refs(1), "Rückgabe"); err != nil {
+		t.Fatalf("erster Versuch: %v", err)
+	}
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", stornierungID, verkaufID, refs(1), "Rückgabe"); err != nil {
+		t.Errorf("Wiederholung erwartet nil, bekam: %v", err)
+	}
+	if err := cmd.DirektverkaufStornieren(ctx, userID, "test", stornierungID, verkaufID, refs(2), "Rückgabe"); !errors.Is(err, ErrVorgangAbweichend) {
+		t.Errorf("anderer Inhalt erwartet ErrVorgangAbweichend, bekam: %v", err)
+	}
+
+	var stornos int
+	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal WHERE type = 'direktverkauf-storniert:v1'").Scan(&stornos); err != nil {
+		t.Fatalf("kassenjournal zählen: %v", err)
+	}
+	if stornos != 1 {
+		t.Errorf("erwartet 1 Stornierung, gespeichert: %d", stornos)
+	}
+}

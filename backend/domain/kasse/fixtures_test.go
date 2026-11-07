@@ -3,6 +3,7 @@ package kasse
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -17,7 +18,7 @@ func mustCreateBestellungEvent(t *testing.T, subject string, userID int, product
 
 func mustCreateZahlungEvent(t *testing.T, subject string, userID int, positions []Position, gesamtZahlungCents int) e.Event {
 	t.Helper()
-	event, err := NewZahlungKassiertEvent(subject, userID, "TestUser", positions, gesamtZahlungCents, "")
+	event, err := NewZahlungKassiertEvent(subject, uuid.NewString(), userID, "TestUser", positions, gesamtZahlungCents, "")
 	if err != nil {
 		t.Fatalf("failed to create payment event: %v", err)
 	}
@@ -26,7 +27,7 @@ func mustCreateZahlungEvent(t *testing.T, subject string, userID int, positions 
 
 func mustCreateStornierungEvent(t *testing.T, subject string, userID int, zahlungID string, positions []Position, gesamtStornierungCents int) e.Event {
 	t.Helper()
-	event, err := NewStornierungErteiltEvent(subject, userID, "TestUser", zahlungID, positions, gesamtStornierungCents, "Test")
+	event, err := NewStornierungErteiltEvent(subject, uuid.NewString(), userID, "TestUser", zahlungID, positions, gesamtStornierungCents, "Test")
 	if err != nil {
 		t.Fatalf("failed to create cancelation event: %v", err)
 	}
@@ -35,7 +36,7 @@ func mustCreateStornierungEvent(t *testing.T, subject string, userID int, zahlun
 
 func mustCreateKorrekturEvent(t *testing.T, subject string, userID int, positions []Position, gesamtCents int) e.Event {
 	t.Helper()
-	event, err := NewBestellungKorrigiertEvent(subject, userID, "TestUser", positions, gesamtCents, "Test")
+	event, err := NewBestellungKorrigiertEvent(subject, uuid.NewString(), userID, "TestUser", positions, gesamtCents, "Test")
 	if err != nil {
 		t.Fatalf("failed to create korrektur event: %v", err)
 	}

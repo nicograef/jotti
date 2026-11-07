@@ -73,7 +73,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "Gast gewechselt")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "Gast gewechselt")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -186,7 +186,7 @@ func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -241,14 +241,14 @@ func TestBestellungUmbuchen_PositionNichtUmbuchbar(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrPositionNichtUmbuchbar) {
 		t.Errorf("expected ErrPositionNichtUmbuchbar, got %v", err)
 	}
 }
 
 func TestBestellungUmbuchen_GleicherTisch(t *testing.T) {
-	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := Command{}.BestellungUmbuchen(context.Background(), 1, "Test User", uuid.NewString(), 3, 3, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrUmbuchungGleicherTisch) {
 		t.Errorf("expected ErrUmbuchungGleicherTisch, got %v", err)
 	}
@@ -265,7 +265,7 @@ func TestBestellungUmbuchen_ZielTischNotActive(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrTischNotActive) {
 		t.Errorf("expected ErrTischNotActive, got %v", err)
 	}
@@ -283,7 +283,7 @@ func TestBestellungUmbuchen_ZielTischNotFound(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), quellTisch.ID, 99, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrTischNotFound) {
 		t.Errorf("expected ErrTischNotFound, got %v", err)
 	}
@@ -297,7 +297,7 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil),
 	}
 
-	err := command.BestellungUmbuchen(ctx, 1, "Test User", 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
+	err := command.BestellungUmbuchen(ctx, 1, "Test User", uuid.NewString(), 1, 2, []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}

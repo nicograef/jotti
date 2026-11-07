@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/db/dbtest"
@@ -581,7 +582,7 @@ func TestWriteEventsAtomic_UmbuchungCommitsBothEventsAndProjections(t *testing.T
 		Menge:            2,
 	}
 
-	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ksNr, uuid.NewString(), quellTischID, zielTischID, userID, "nico", []kasse.Position{umbuchPosition}, 700, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("Failed to build umbuchung events: %v", err)
 	}
@@ -724,7 +725,7 @@ func TestWriteEventsAtomic_UmbuchungRollsBackWhenTargetWriteFails(t *testing.T) 
 		Menge:            2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, uuid.NewString(), userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}
@@ -818,7 +819,7 @@ func TestWriteEventsAtomic_UmbuchungOCCConflictRollsBackBothSides(t *testing.T) 
 		Menge:            2,
 	}
 
-	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
+	stornierungEvent, err := kasse.NewStornierungErteiltEvent(quellSubject, uuid.NewString(), userID, "nico", "11111111-1111-1111-1111-111111111111", []kasse.Position{umbuchPosition}, 700, "Umbuchung")
 	if err != nil {
 		t.Fatalf("Failed to build stornierung event: %v", err)
 	}

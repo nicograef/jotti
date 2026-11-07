@@ -139,6 +139,8 @@ describe('VorgangHistorie', () => {
     })
     expect(aktion.stornieren).toHaveBeenCalledWith(
       verkaufId,
+      // oxlint-disable-next-line typescript/no-unsafe-argument
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
       [{ positionId, menge: 1 }],
       'Rückgabe',
     )

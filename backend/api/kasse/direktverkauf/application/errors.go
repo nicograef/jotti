@@ -18,6 +18,9 @@ var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
 // request's content or without its settled partner.
 var ErrPfandrueckgabeAbweichend = errors.New("pfandrueckgabe abweichend")
 
+// ErrVorgangAbweichend: the client's stornierungId is booked, but with other content.
+var ErrVorgangAbweichend = errors.New("vorgang abweichend")
+
 var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 
 // ErrConflict is deliberately per-context, not a shared kernel: the HTTP layer maps 409 via

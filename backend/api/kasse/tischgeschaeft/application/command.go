@@ -5,6 +5,8 @@ import (
 	"errors"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
+
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
@@ -182,7 +184,10 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
 
-func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
+// BestellungUmbuchen is idempotent via the client's umbuchungID. No index makes it unique, so the
+// source stream is searched before validating and again after a rejected write, see
+// pruefeGebuchteUmbuchung.
+func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, umbuchungID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	log := logging.FromContext(ctx)
 
 	if quellTischID == zielTischID {
@@ -207,6 +212,10 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellSubject := kasse.TischSessionSubject(ks.ZNr, quellTischID)
 	zielSubject := kasse.TischSessionSubject(ks.ZNr, zielTischID)
 
+	if gebucht, err := c.pruefeGebuchteUmbuchung(ctx, quellSubject, umbuchungID, quellTischID, zielTischID, positionen); gebucht || err != nil {
+		return err
+	}
+
 	quellState, err := c.EventRepo.ReadTischSession(ctx, quellSubject)
 	if err != nil {
 		log.Error("Failed to read source tisch session", "error", err, "tisch_id", quellTischID)
@@ -222,7 +231,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellKommentar := buildUmbuchungKommentar("Umbuchung auf ", zielTisch.Name)
 	zielKommentar := buildUmbuchungKommentar("Umbuchung von ", quellTisch.Name)
 
-	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar, benutzerKommentar)
+	quellEvent, zielEvent, err := kasse.NewBestellungUmgebuchtEvents(ks.ZNr, umbuchungID, quellTischID, zielTischID, userID, userName, resolvedPositionen, gesamtCents, quellKommentar, zielKommentar, benutzerKommentar)
 	if err != nil {
 		log.Error("Failed to create umbuchung events", "error", err, "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
 		return err
@@ -244,18 +253,55 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
 	})
 	if err != nil {
-		return sentinels.Schreibfehler(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
+		err = sentinels.Schreibfehler(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
+		if errors.Is(err, ErrConflict) {
+			if gebucht, err := c.pruefeGebuchteUmbuchung(ctx, quellSubject, umbuchungID, quellTischID, zielTischID, positionen); gebucht || err != nil {
+				return err
+			}
+		}
+		return err
 	}
 
 	log.Info("Bestellung umgebucht", "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
 	return nil
 }
 
+// pruefeGebuchteUmbuchung reports whether umbuchungID is booked in the source stream. A booked one
+// answers success only if it moves the same quantities between the same tables.
+func (c Command) pruefeGebuchteUmbuchung(ctx context.Context, quellSubject string, umbuchungID string, quellTischID, zielTischID int, positionen []kasse.PositionRef) (bool, error) {
+	log := logging.FromContext(ctx)
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, quellSubject)
+	if err != nil {
+		log.Error("Failed to read source events for umbuchung", "error", err, "quell_tisch_id", quellTischID)
+		return false, ErrDatabase
+	}
+	abgang, found, err := kasse.GebuchteUmbuchung(events, umbuchungID)
+	if err != nil {
+		log.Error("Failed to search booked umbuchung", "error", err, "umbuchung_id", umbuchungID)
+		return false, ErrDatabase
+	}
+	if !found {
+		return false, nil
+	}
+	gleich, err := kasse.GleicheUmbuchung(abgang, quellTischID, zielTischID, positionen)
+	if err != nil {
+		log.Error("Failed to compare booked umbuchung", "error", err, "umbuchung_id", umbuchungID)
+		return true, ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Umbuchung mit anderem Inhalt bereits gebucht", "umbuchung_id", umbuchungID)
+		return true, ErrVorgangAbweichend
+	}
+	log.Info("Idempotente Umbuchung: umbuchungId bereits vorhanden", "umbuchung_id", umbuchungID)
+	return true, nil
+}
+
 // ZahlungKassieren writes the payment and, with pfand, the settled Rückgabe in one transaction. The
-// rueckgabeId makes a payment with Pfand idempotent: it is checked before the payment, because the
-// retried payment would no longer find its positions unpaid. A stored Rückgabe answers success only
-// if it and the payment written with it match the request, see pruefeVerrechneteZahlung.
-func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error {
+// client's zahlungID makes it idempotent: a retry finds its positions paid or hits the BON_ID index,
+// and pruefeZahlungsWiederholung answers it. The rueckgabeId of a payment with Pfand is checked first,
+// see pruefeVerrechneteZahlung.
+func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName string, zahlungID string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
 	if pfand != nil {
@@ -272,18 +318,14 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	resolvedPositionen, gesamtZahlungCents, ok := kasse.ResolvePositionen(state.UnbezahltePositionen, positionen)
 	if !ok {
 		log.Warn("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar", "tisch_id", tischID)
-		// Ein paralleler Versuch derselben rueckgabeId kann seit der Vorprüfung gebucht haben.
-		if pfand != nil {
-			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrPositionNichtBezahlbar)
-		}
-		return ErrPositionNichtBezahlbar
+		return c.pruefeZahlungsWiederholung(ctx, subject, zahlungID, tischID, positionen, pfand, ErrPositionNichtBezahlbar)
 	}
 	resolvedPositionen, err = c.mitPfandKennzeichen(ctx, resolvedPositionen, tischID)
 	if err != nil {
 		return err
 	}
 
-	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
+	evt, err := kasse.NewZahlungKassiertEvent(subject, zahlungID, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
 		log.Error("Failed to create zahlung kassiert event", "error", err, "tisch_id", tischID)
 		return err
@@ -303,13 +345,52 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, events); err != nil {
 		err = sentinels.Schreibfehler(ctx, err, "subject", subject, "tisch_id", tischID)
-		if errors.Is(err, ErrConflict) && pfand != nil {
-			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrConflict)
+		if errors.Is(err, ErrConflict) {
+			return c.pruefeZahlungsWiederholung(ctx, subject, zahlungID, tischID, positionen, pfand, ErrConflict)
 		}
 		return err
 	}
 
 	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
+	return nil
+}
+
+// pruefeZahlungsWiederholung answers a payment whose positions are paid or whose write was rejected.
+// A booked zahlungID answers success only if it pays the same quantities; with pfand its Rückgabe
+// must match too. Without one, a parallel attempt of the same rueckgabeId may have booked since the
+// first check; otherwise fallback stands.
+func (c Command) pruefeZahlungsWiederholung(ctx context.Context, subject string, zahlungID string, tischID int, positionen []kasse.PositionRef, pfand *enrichment.PfandEingabe, fallback error) error {
+	log := logging.FromContext(ctx)
+
+	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		log.Error("Failed to read events for zahlung", "error", err, "tisch_id", tischID)
+		return ErrDatabase
+	}
+	zahlung, found, err := kasse.GebuchteZahlung(events, zahlungID)
+	if err != nil {
+		log.Error("Failed to search booked zahlung", "error", err, "zahlung_id", zahlungID)
+		return ErrDatabase
+	}
+	if !found {
+		if pfand != nil {
+			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, fallback)
+		}
+		return fallback
+	}
+	if pfand != nil {
+		return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrVorgangAbweichend)
+	}
+	gleich, err := kasse.GleicheZahlung(zahlung, positionen)
+	if err != nil {
+		log.Error("Failed to compare booked zahlung", "error", err, "zahlung_id", zahlungID)
+		return ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Zahlung mit anderem Inhalt bereits gebucht", "zahlung_id", zahlungID, "tisch_id", tischID)
+		return ErrVorgangAbweichend
+	}
+	log.Info("Idempotente Zahlung: zahlungId bereits vorhanden", "zahlung_id", zahlungID)
 	return nil
 }
 
@@ -394,8 +475,9 @@ func (c Command) gleicheVerrechneteZahlung(ctx context.Context, rueckgabe event.
 
 // StornierungErteilen splits by payment status: unpaid quantities become one bestellung-korrigiert,
 // paid ones one stornierung-erteilt per Zahlung (FIFO). Each event gets its own TSE transaction, all
-// are written atomically (docs/handbuch.md §3.7).
-func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error {
+// are written atomically (docs/handbuch.md §3.7). The client's stornoID makes it idempotent: every
+// event ID derives from it, see pruefeGebuchteStornierung.
+func (c Command) StornierungErteilen(ctx context.Context, userID int, userName string, stornoID uuid.UUID, tischID int, positionen []kasse.PositionRef, kommentar string) error {
 	log := logging.FromContext(ctx)
 
 	subject, kassensitzungNr, _, _, err := c.loadTischState(ctx, tischID)
@@ -409,6 +491,10 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
+	if gebucht, err := pruefeGebuchteStornierung(ctx, events, stornoID, positionen); gebucht || err != nil {
+		return err
+	}
+
 	// false = angeforderte Positionen sind nicht stornierbar: die Menge übersteigt die noch
 	// stornierbare Menge, oder eine PositionID ist doppelt referenziert.
 	aufteilung, ok := kasse.ComputeStornoAufteilung(events, positionen)
@@ -417,7 +503,7 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		return ErrPositionNichtStornierbar
 	}
 
-	stornoEvents, err := buildStornoEvents(ctx, subject, userID, userName, aufteilung, kommentar)
+	stornoEvents, err := buildStornoEvents(ctx, subject, stornoID, userID, userName, aufteilung, kommentar)
 	if err != nil {
 		return err
 	}
@@ -427,16 +513,54 @@ func (c Command) StornierungErteilen(ctx context.Context, userID int, userName s
 		expectedVersion = events[len(events)-1].Version
 	}
 
-	return c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
+	err = c.persistStornoEvents(ctx, stornoEvents, subject, expectedVersion, kassensitzungNr, tischID)
+	if errors.Is(err, ErrConflict) {
+		events, readErr := c.EventRepo.ReadEventsBySubject(ctx, subject)
+		if readErr != nil {
+			log.Error("Failed to read events after stornierung conflict", "error", readErr, "tisch_id", tischID)
+			return ErrDatabase
+		}
+		if gebucht, err := pruefeGebuchteStornierung(ctx, events, stornoID, positionen); gebucht || err != nil {
+			return err
+		}
+	}
+	return err
 }
 
-func buildStornoEvents(ctx context.Context, subject string, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
+// pruefeGebuchteStornierung reports whether stornoID is booked in the stream. A booked one answers
+// success only if its events cancel the same quantities.
+func pruefeGebuchteStornierung(ctx context.Context, events []event.Event, stornoID uuid.UUID, positionen []kasse.PositionRef) (bool, error) {
+	log := logging.FromContext(ctx)
+
+	gebucht, err := kasse.GebuchteTischStornierung(events, stornoID)
+	if err != nil {
+		log.Error("Failed to search booked stornierung", "error", err, "storno_id", stornoID)
+		return false, ErrDatabase
+	}
+	if len(gebucht) == 0 {
+		return false, nil
+	}
+	gleich, err := kasse.GleicheTischStornierung(gebucht, positionen)
+	if err != nil {
+		log.Error("Failed to compare booked stornierung", "error", err, "storno_id", stornoID)
+		return true, ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Stornierung mit anderem Inhalt bereits gebucht", "storno_id", stornoID)
+		return true, ErrVorgangAbweichend
+	}
+	log.Info("Idempotente Stornierung: stornoId bereits vorhanden", "storno_id", stornoID)
+	return true, nil
+}
+
+// buildStornoEvents numbers the events in write order; the n-th gets kasse.AbgeleiteteID(stornoID, n).
+func buildStornoEvents(ctx context.Context, subject string, stornoID uuid.UUID, userID int, userName string, aufteilung kasse.StornoAufteilung, kommentar string) ([]event.Event, error) {
 	log := logging.FromContext(ctx)
 
 	var events []event.Event
 
 	if len(aufteilung.Korrektur) > 0 {
-		evt, err := kasse.NewBestellungKorrigiertEvent(subject, userID, userName, aufteilung.Korrektur, aufteilung.KorrekturCents, kommentar)
+		evt, err := kasse.NewBestellungKorrigiertEvent(subject, kasse.AbgeleiteteID(stornoID, len(events)), userID, userName, aufteilung.Korrektur, aufteilung.KorrekturCents, kommentar)
 		if err != nil {
 			log.Error("Failed to create bestellung korrigiert event", "error", err, "subject", subject)
 			return nil, err
@@ -445,7 +569,7 @@ func buildStornoEvents(ctx context.Context, subject string, userID int, userName
 	}
 
 	for _, wr := range aufteilung.Warenruecknahmen {
-		evt, err := kasse.NewStornierungErteiltEvent(subject, userID, userName, wr.ZahlungID, wr.Positionen, wr.GesamtCents, kommentar)
+		evt, err := kasse.NewStornierungErteiltEvent(subject, kasse.AbgeleiteteID(stornoID, len(events)), userID, userName, wr.ZahlungID, wr.Positionen, wr.GesamtCents, kommentar)
 		if err != nil {
 			log.Error("Failed to create stornierung erteilt event", "error", err, "subject", subject)
 			return nil, err

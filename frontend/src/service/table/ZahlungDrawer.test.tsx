@@ -14,17 +14,12 @@ import { ZahlungDrawer } from './ZahlungDrawer'
 
 // Kassieren- und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function ZahlungDrawerHarness(
-  props: Omit<
-    ComponentProps<typeof ZahlungDrawer>,
-    'pfandVorgang' | 'kommentar' | 'setKommentar'
-  >,
+  props: Omit<ComponentProps<typeof ZahlungDrawer>, 'pfandVorgang' | 'vorgang'>,
 ) {
-  const kassieren = useVorgang<string>()
   return (
     <ZahlungDrawer
       {...props}
-      kommentar={kassieren.kommentar}
-      setKommentar={kassieren.setKommentar}
+      vorgang={useVorgang<string>()}
       pfandVorgang={useVorgang<number>()}
     />
   )

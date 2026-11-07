@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	z "github.com/Oudwins/zog"
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
@@ -19,9 +20,9 @@ import (
 
 type command interface {
 	BestellungAufnehmen(ctx context.Context, userID int, userName string, bestellungID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error
-	BestellungUmbuchen(ctx context.Context, userID int, userName string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
-	ZahlungKassieren(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error
-	StornierungErteilen(ctx context.Context, userID int, userName string, tischID int, positionen []kasse.PositionRef, kommentar string) error
+	BestellungUmbuchen(ctx context.Context, userID int, userName string, umbuchungID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error
+	ZahlungKassieren(ctx context.Context, userID int, userName string, zahlungID string, tischID int, positionen []kasse.PositionRef, kommentar string, pfand *enrichment.PfandEingabe) error
+	StornierungErteilen(ctx context.Context, userID int, userName string, stornoID uuid.UUID, tischID int, positionen []kasse.PositionRef, kommentar string) error
 }
 
 type CommandHandler struct {
@@ -33,6 +34,7 @@ var kasseFehler = []helper.ErrorCode{
 	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
 	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
 	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+	{Err: application.ErrVorgangAbweichend, Code: "vorgang_abweichend", Status: http.StatusConflict},
 }
 
 type bestellungAufnehmenRequest struct {
@@ -74,7 +76,9 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 	}
 }
 
+// ZahlungID is the client's idempotency key, kept per selection.
 type zahlungKassierenRequest struct {
+	ZahlungID  string                `json:"zahlungId"`
 	TischID    int                   `json:"tischId"`
 	Positionen []eingabe.PositionRef `json:"positionen"`
 	Kommentar  string                `json:"kommentar"`
@@ -82,6 +86,7 @@ type zahlungKassierenRequest struct {
 }
 
 var zahlungKassierenSchema = z.Struct(z.Shape{
+	"ZahlungID":  z.String().UUID().Required(),
 	"TischID":    tisch.TischIDSchema.Required(),
 	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"Kommentar":  z.String().TestFunc(zeichen.Max(100)),
@@ -100,7 +105,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar, eingabe.ToPfandEingabe(body.Pfand))
+		err := h.Command.ZahlungKassieren(r.Context(), userID, userName, body.ZahlungID, body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar, eingabe.ToPfandEingabe(body.Pfand))
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
@@ -115,13 +120,17 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 	}
 }
 
+// StornoID is the client's idempotency key, kept per attempt; every event ID derives from it.
 type stornierungErteilenRequest struct {
+	StornoID   string                `json:"stornoId"`
 	TischID    int                   `json:"tischId"`
 	Positionen []eingabe.PositionRef `json:"positionen"`
 	Kommentar  string                `json:"kommentar"`
 }
 
+// UmbuchungID is the client's idempotency key, kept per attempt.
 type bestellungUmbuchenRequest struct {
+	UmbuchungID       string                `json:"umbuchungId"`
 	QuellTischID      int                   `json:"quellTischId"`
 	ZielTischID       int                   `json:"zielTischId"`
 	Positionen        []eingabe.PositionRef `json:"positionen"`
@@ -129,12 +138,14 @@ type bestellungUmbuchenRequest struct {
 }
 
 var stornierungErteilenSchema = z.Struct(z.Shape{
+	"StornoID":   z.String().UUID().Required(),
 	"TischID":    tisch.TischIDSchema.Required(),
 	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
 	"Kommentar":  z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 var bestellungUmbuchenSchema = z.Struct(z.Shape{
+	"UmbuchungID":       z.String().UUID().Required(),
 	"QuellTischID":      tisch.TischIDSchema.Required(),
 	"ZielTischID":       tisch.TischIDSchema.Required(),
 	"Positionen":        z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
@@ -153,7 +164,7 @@ func (h *CommandHandler) StornierungErteilenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.StornierungErteilen(r.Context(), userID, userName, body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
+		err := h.Command.StornierungErteilen(r.Context(), userID, userName, uuid.MustParse(body.StornoID), body.TischID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
@@ -180,7 +191,7 @@ func (h *CommandHandler) BestellungUmbuchenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.QuellTischID, body.ZielTischID, eingabe.ToPositionRefs(body.Positionen), body.BenutzerKommentar)
+		err := h.Command.BestellungUmbuchen(r.Context(), userID, userName, body.UmbuchungID, body.QuellTischID, body.ZielTischID, eingabe.ToPositionRefs(body.Positionen), body.BenutzerKommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},

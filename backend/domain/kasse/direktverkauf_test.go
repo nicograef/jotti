@@ -45,7 +45,7 @@ func TestBuildDirektverkaufHistorieEintrag_PartialThenFullStorno(t *testing.T) {
 	beer, wurst := positionen[0], positionen[1]
 	beerID, wurstID := beer.PositionID, wurst.PositionID
 
-	storno1, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{stornoPosition(beer, 1)}, 500, "Vertippt")
+	storno1, err := NewDirektverkaufStorniertEvent(subject, uuid.NewString(), verkaufID, 2, "Leitung", []Position{stornoPosition(beer, 1)}, 500, "Vertippt")
 	if err != nil {
 		t.Fatalf("failed to create storno1 event: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestBuildDirektverkaufHistorieEintrag_PartialThenFullStorno(t *testing.T) {
 		t.Errorf("expected 1 Bratwurst remaining, got %d", got)
 	}
 
-	storno2, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 3, "Leitung", []Position{stornoPosition(beer, 1), stornoPosition(wurst, 1)}, 850, "Rest")
+	storno2, err := NewDirektverkaufStorniertEvent(subject, uuid.NewString(), verkaufID, 3, "Leitung", []Position{stornoPosition(beer, 1), stornoPosition(wurst, 1)}, 850, "Rest")
 	if err != nil {
 		t.Fatalf("failed to create storno2 event: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestBuildDirektverkaufHistorieEintrag_AggregatesStornos(t *testing.T) {
 	beer := verkaufPositionen(t, getaetigt)[0]
 	beerID := beer.PositionID
 
-	storno, err := NewDirektverkaufStorniertEvent(subject, verkaufID, 2, "Leitung", []Position{stornoPosition(beer, 1)}, 500, "Rückgabe")
+	storno, err := NewDirektverkaufStorniertEvent(subject, uuid.NewString(), verkaufID, 2, "Leitung", []Position{stornoPosition(beer, 1)}, 500, "Rückgabe")
 	if err != nil {
 		t.Fatalf("failed to create storno event: %v", err)
 	}

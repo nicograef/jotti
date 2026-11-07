@@ -126,6 +126,41 @@ describe('HistorieUmbuchungDrawer', () => {
     ])
   })
 
+  // Eine verlorene Antwort darf nicht doppelt umbuchen: die Wiederholung trägt
+  // dieselbe umbuchungId, auch mit geändertem Kommentar.
+  it('behält die umbuchungId für die Wiederholung derselben Umbuchung', async () => {
+    const user = userEvent.setup()
+    const fake = renderDrawer(
+      backend().fail(
+        'service/bestellung-umbuchen',
+        new Error('Netzwerkfehler'),
+      ),
+    )
+    await zielTischeGeladen()
+    await user.selectOptions(screen.getByRole('combobox'), 'Nebentisch')
+    await user.click(
+      screen.getByRole('button', { name: /^1 Position auswählen/ }),
+    )
+    const umbuchen = async (aufrufe: number) => {
+      await user.click(
+        screen.getByRole('button', { name: 'Umbuchung ausführen' }),
+      )
+      await waitFor(() => {
+        expect(fake.bodies('service/bestellung-umbuchen')).toHaveLength(aufrufe)
+      })
+    }
+
+    await umbuchen(1)
+    await user.type(screen.getByPlaceholderText(/Kommentar/), 'Gast zieht um')
+    await umbuchen(2)
+
+    const [erster, wiederholung] = fake.bodies(
+      'service/bestellung-umbuchen',
+    ) as { umbuchungId: string }[]
+    expect(erster.umbuchungId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(wiederholung.umbuchungId).toBe(erster.umbuchungId)
+  })
+
   it('leert die Auswahl beim zweiten Tap auf „Alle auswählen"', async () => {
     const user = userEvent.setup()
     renderDrawer()

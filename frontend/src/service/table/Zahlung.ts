@@ -25,6 +25,7 @@ export const ZahlungSchema = z.object({
 export type Zahlung = z.infer<typeof ZahlungSchema>
 
 export const ZahlungKassierenSchema = z.object({
+  zahlungId: z.uuid(),
   tischId: TischIdSchema,
   positionen: PositionRefSchema.array().min(1),
   kommentar: KommentarSchema,

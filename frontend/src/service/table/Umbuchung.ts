@@ -6,6 +6,7 @@ import { KommentarSchema, PositionRefSchema, TischIdSchema } from '../schemas'
 import { PositionSchema } from './Bestellung'
 
 export const BestellungUmbuchenSchema = z.object({
+  umbuchungId: z.uuid(),
   quellTischId: TischIdSchema,
   zielTischId: TischIdSchema,
   positionen: PositionRefSchema.array().min(1),

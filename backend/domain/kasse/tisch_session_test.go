@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -136,7 +137,7 @@ func TestApplyEvent_UmbuchungMovesPositionsBetweenTische(t *testing.T) {
 
 	// Eine von zwei Positionen auf den Zieltisch umbuchen.
 	umbuchPositionen := positionenAusBestellung(t, orderEvent, 1)
-	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
+	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, uuid.NewString(), quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "Umbuchung auf Tisch Ziel", "Umbuchung von Tisch Quelle", "")
 	if err != nil {
 		t.Fatalf("failed to create umbuchung events: %v", err)
 	}
@@ -502,7 +503,7 @@ func TestApplyEvent_SaldoAbgeleitetNachJedemEventtyp(t *testing.T) {
 	// bestellung-umgebucht (Abgang): eine Bierposition verlässt den Quelltisch.
 	umbuchPositionen := positionenAusBestellung(t, orderEvent, 1)
 	umbuchPositionen = []Position{umbuchPositionen[0]}
-	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "auf Ziel", "von Quelle", "")
+	quellEvent, zielEvent, err := NewBestellungUmgebuchtEvents(zNr, uuid.NewString(), quellTischID, zielTischID, 1, "TestUser", umbuchPositionen, 500, "auf Ziel", "von Quelle", "")
 	if err != nil {
 		t.Fatalf("umbuchung events: %v", err)
 	}

@@ -104,6 +104,9 @@ const commonErrorMessages: Record<string, string> = {
     'Die Variante wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   verkauf_not_found:
     'Der Verkauf wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
+  // Derselbe Schlüssel mit anderem Inhalt: gebucht ist eine andere Fassung.
+  vorgang_abweichend:
+    'Dieser Vorgang wurde mit anderer Auswahl schon gebucht. Bitte Historie prüfen und neu erfassen.',
   zahlung_not_found:
     'Die Zahlung wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
 }

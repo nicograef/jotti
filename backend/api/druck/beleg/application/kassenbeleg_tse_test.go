@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -18,7 +19,7 @@ func TestKassenbelegDrucken_MitSignaturAmAuftrag_ContainsTSEBlock(t *testing.T) 
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
 		{
 			PositionID:   "11111111-1111-1111-1111-111111111111",
 			VarianteID:   1,
@@ -122,7 +123,7 @@ func TestKassenbelegDrucken_AusstehendDannEingereiht(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{{
 		PositionID:       "11111111-1111-4111-8111-111111111111",
 		VarianteID:       1,
 		ProduktName:      "Cola",

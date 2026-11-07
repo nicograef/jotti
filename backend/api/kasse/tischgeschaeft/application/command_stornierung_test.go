@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/repository/repotest"
@@ -30,7 +31,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User",
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User",
 		[]kasse.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "")
@@ -54,7 +55,7 @@ func TestStornierungErteilen_AlreadyPaidPosition_Succeeds(t *testing.T) {
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Reklamation")
+	err := command.StornierungErteilen(ctx, 1, "Test User", uuid.New(), testActiveTisch.ID, refs, "Reklamation")
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -81,7 +82,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	// Die Position wurde bereits geldneutral korrigiert (unbezahlt) — ein erneuter
 	// Storno darf nicht mehr greifen.
-	cancelEvent, _ := kasse.NewBestellungKorrigiertEvent(subject, 1, "Test User",
+	cancelEvent, _ := kasse.NewBestellungKorrigiertEvent(subject, uuid.NewString(), 1, "Test User",
 		[]kasse.Position{
 			{PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
 		}, 350, "Test")
@@ -105,7 +106,7 @@ func TestStornierungErteilen_AlreadyCancelledPosition_Fails(t *testing.T) {
 
 	refs := []kasse.PositionRef{{PositionID: posID, Menge: 1}}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "")
+	err := command.StornierungErteilen(ctx, 1, "Test User", uuid.New(), testActiveTisch.ID, refs, "")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -146,7 +147,7 @@ func TestStornierungErteilen_DuplikatPositionRefs(t *testing.T) {
 		{PositionID: posID, Menge: 1},
 	}
 
-	err := command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, refs, "Duplikat")
+	err := command.StornierungErteilen(ctx, 1, "Test User", uuid.New(), testActiveTisch.ID, refs, "Duplikat")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -167,7 +168,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	}
 	posID := orderData.Positionen[0].PositionID
 
-	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+	paymentEvent, _ := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{{
 		PositionID: posID, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1,
 	}}, 350, "")
 
@@ -182,7 +183,7 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 	}
 
-	err := command.StornierungErteilen(ctx, 2, "Leitung", testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")
+	err := command.StornierungErteilen(ctx, 2, "Leitung", uuid.New(), testActiveTisch.ID, []kasse.PositionRef{{PositionID: posID, Menge: 3}}, "Reklamation")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

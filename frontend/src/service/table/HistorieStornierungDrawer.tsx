@@ -28,8 +28,9 @@ export function HistorieStornierungDrawer({
         </QuelleDrawerHeader>
       }
       positionen={quelle.stornierbarePositionen}
-      stornieren={(positionen, kommentar) =>
+      stornieren={(stornoId, positionen, kommentar) =>
         tischBackend.stornierungErteilen({
+          stornoId,
           tischId: tisch.id,
           positionen,
           kommentar,

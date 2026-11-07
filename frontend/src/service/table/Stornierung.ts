@@ -30,7 +30,10 @@ export const StornierungSchema = z.object({
 })
 export type Stornierung = z.infer<typeof StornierungSchema>
 
+// stornoId ist der Idempotenz-Schlüssel des Versuchs; das Backend leitet daraus
+// jede Event-ID der Stornierung ab.
 export const StornierungErteilenSchema = z.object({
+  stornoId: z.uuid(),
   tischId: TischIdSchema,
   positionen: PositionRefSchema.array().min(1),
   kommentar: PflichtKommentarSchema,

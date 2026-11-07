@@ -109,8 +109,9 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 
 // DirektverkaufStornieren appends an immutable cancellation event to the verkauf's own stream. The
 // returned cash reduces the Soll-Kassenbestand directly — no separate Auszahlung, because a
-// Direktverkauf has no open Saldo.
-func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
+// Direktverkauf has no open Saldo. stornierungID is the client's idempotency key, see
+// pruefeGebuchteStornierung.
+func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, stornierungID string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := logging.FromContext(ctx)
 
 	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
@@ -128,6 +129,9 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	if len(events) == 0 {
 		return ErrVerkaufNichtGefunden
 	}
+	if gebucht, err := pruefeGebuchteStornierung(ctx, events, stornierungID, positionen); gebucht || err != nil {
+		return err
+	}
 
 	eintrag, err := kasse.BuildDirektverkaufHistorieEintrag(events)
 	if err != nil {
@@ -142,7 +146,7 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return ErrPositionNichtStornierbar
 	}
 
-	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
+	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, stornierungID, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
 		log.Error("Failed to create direktverkauf storniert event", "error", err, "verkauf_id", verkaufID)
 		return err
@@ -150,9 +154,46 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	evt.Version = events[len(events)-1].Version + 1
 	if _, err := c.EventRepo.WriteEvent(ctx, evt, kasse.StreamTypeDirektverkauf, ks.ZNr); err != nil {
-		return sentinels.Schreibfehler(ctx, err, "subject", subject, "version", evt.Version, "type", evt.Type)
+		err = sentinels.Schreibfehler(ctx, err, "subject", subject, "version", evt.Version, "type", evt.Type)
+		if errors.Is(err, ErrConflict) {
+			events, readErr := c.EventRepo.ReadEventsBySubject(ctx, subject)
+			if readErr != nil {
+				log.Error("Failed to read direktverkauf events after conflict", "error", readErr, "verkauf_id", verkaufID)
+				return ErrDatabase
+			}
+			if gebucht, err := pruefeGebuchteStornierung(ctx, events, stornierungID, positionen); gebucht || err != nil {
+				return err
+			}
+		}
+		return err
 	}
 
 	log.Info("Direktverkauf storniert", "verkauf_id", verkaufID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
+}
+
+// pruefeGebuchteStornierung reports whether stornierungID is booked in the Verkauf stream. A booked
+// one answers success only if it cancels the same quantities.
+func pruefeGebuchteStornierung(ctx context.Context, events []event.Event, stornierungID string, positionen []kasse.PositionRef) (bool, error) {
+	log := logging.FromContext(ctx)
+
+	gespeichert, found, err := kasse.GebuchteDirektverkaufStornierung(events, stornierungID)
+	if err != nil {
+		log.Error("Failed to search booked direktverkauf stornierung", "error", err, "stornierung_id", stornierungID)
+		return false, ErrDatabase
+	}
+	if !found {
+		return false, nil
+	}
+	gleich, err := kasse.GleicheDirektverkaufStornierung(gespeichert, positionen)
+	if err != nil {
+		log.Error("Failed to compare booked direktverkauf stornierung", "error", err, "stornierung_id", stornierungID)
+		return true, ErrDatabase
+	}
+	if !gleich {
+		log.Warn("Direktverkauf-Stornierung mit anderem Inhalt bereits gebucht", "stornierung_id", stornierungID)
+		return true, ErrVorgangAbweichend
+	}
+	log.Info("Idempotente Direktverkauf-Stornierung: stornierungId bereits vorhanden", "stornierung_id", stornierungID)
+	return true, nil
 }

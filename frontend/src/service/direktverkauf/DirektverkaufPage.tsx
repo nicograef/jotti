@@ -94,8 +94,9 @@ export function DirektverkaufPage() {
         loading={historieLoading}
         bezeichnung="Verkauf"
         leerHinweis="Noch keine Direktverkäufe in dieser Kassensitzung."
-        stornieren={(verkaufId, positionen, kommentar) =>
+        stornieren={(verkaufId, stornierungId, positionen, kommentar) =>
           direktverkaufBackend.direktverkaufStornieren({
+            stornierungId,
             verkaufId,
             positionen,
             kommentar,

@@ -388,7 +388,7 @@ func getaetigtEvent(t *testing.T, einzelpreis, menge int) (event.Event, string, 
 func TestDirektverkaufStornieren_KasseNichtGeoeffnet(t *testing.T) {
 	command := newCommand(&spyEventRepo{}, nil)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
 		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
@@ -398,7 +398,7 @@ func TestDirektverkaufStornieren_VerkaufNichtGefunden(t *testing.T) {
 	spy := &spyEventRepo{streamEvents: nil}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), uuid.New().String(), []kasse.PositionRef{{PositionID: uuid.New().String(), Menge: 1}}, "Rückgabe")
 	if !errors.Is(err, ErrVerkaufNichtGefunden) {
 		t.Errorf("expected ErrVerkaufNichtGefunden, got %v", err)
 	}
@@ -412,7 +412,7 @@ func TestDirektverkaufStornieren_UeberVerfuegbareMenge(t *testing.T) {
 	spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 3}}, "Zu viel")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Errorf("expected ErrPositionNichtStornierbar, got %v", err)
 	}
@@ -433,7 +433,7 @@ func TestDirektverkaufStornieren_DuplikatPositionRefs(t *testing.T) {
 			{PositionID: positionID, Menge: menge},
 			{PositionID: positionID, Menge: menge},
 		}
-		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, refs, "Duplikat")
+		err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), verkaufID, refs, "Duplikat")
 		if !errors.Is(err, ErrPositionNichtStornierbar) {
 			t.Errorf("menge %d: expected ErrPositionNichtStornierbar, got %v", menge, err)
 		}
@@ -448,7 +448,7 @@ func TestDirektverkaufStornieren_WritesStornoEventWithNextVersion(t *testing.T) 
 	spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}}
 	command := newCommand(spy, testOpenKS)
 
-	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+	err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -495,7 +495,7 @@ func TestDirektverkaufStornieren_WriteErrors(t *testing.T) {
 			spy := &spyEventRepo{streamEvents: []event.Event{getaetigt}, writeErr: tc.writeErr}
 			command := newCommand(spy, testOpenKS)
 
-			err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
+			err := command.DirektverkaufStornieren(context.Background(), 2, "Leitung", uuid.NewString(), verkaufID, []kasse.PositionRef{{PositionID: positionID, Menge: 1}}, "Rückgabe")
 			if !errors.Is(err, tc.want) {
 				t.Errorf("expected %v, got %v", tc.want, err)
 			}

@@ -103,7 +103,7 @@ func belegZahlungFixture(t *testing.T) (*repotest.KassenjournalRepo, string) {
 	t.Helper()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
 
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, 1, "Test User", []kasse.Position{{
+	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{{
 		PositionID:       "11111111-1111-4111-8111-111111111111",
 		VarianteID:       1,
 		ProduktName:      "Cola",

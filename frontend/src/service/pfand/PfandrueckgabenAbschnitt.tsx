@@ -1,5 +1,3 @@
-import { useRef } from 'react'
-
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 
 import type { PositionRef } from '../schemas'
@@ -19,28 +17,18 @@ export function PfandrueckgabenAbschnitt({
   const { historie, isPending, isError, refetch } =
     usePfandrueckgabeHistorie(tischId)
 
-  // Ein Wiederholversuch derselben Auswahl behält die stornierungId, damit eine
-  // verlorene Antwort nicht doppelt bucht; eine andere Auswahl bekommt eine neue.
-  const versuch = useRef<{ schluessel: string; stornierungId: string } | null>(
-    null,
-  )
-  const stornieren = async (
+  const stornieren = (
     rueckgabeId: string,
+    stornierungId: string,
     positionen: PositionRef[],
     kommentar: string,
-  ) => {
-    const schluessel = JSON.stringify([rueckgabeId, positionen])
-    if (versuch.current?.schluessel !== schluessel) {
-      versuch.current = { schluessel, stornierungId: crypto.randomUUID() }
-    }
-    await pfandBackend.pfandrueckgabeStornieren({
-      stornierungId: versuch.current.stornierungId,
+  ) =>
+    pfandBackend.pfandrueckgabeStornieren({
+      stornierungId,
       rueckgabeId,
       positionen,
       kommentar,
     })
-    versuch.current = null
-  }
 
   if (isError) {
     return (

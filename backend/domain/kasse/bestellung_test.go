@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -72,7 +73,7 @@ func TestPersistiertesEventMitMenge1000_BleibtLesbarUndStornierbar(t *testing.T)
 	if !ok {
 		t.Fatal("expected the full menge to be stornierbar")
 	}
-	if _, err := NewStornierungErteiltEvent(testSubject, 2, "Leitung", testZahlungID, positionen, gesamtCents, "Rueckgabe"); err != nil {
+	if _, err := NewStornierungErteiltEvent(testSubject, uuid.NewString(), 2, "Leitung", testZahlungID, positionen, gesamtCents, "Rueckgabe"); err != nil {
 		t.Errorf("Stornierung einer Position mit Menge 1000 muss gelingen, got %v", err)
 	}
 }

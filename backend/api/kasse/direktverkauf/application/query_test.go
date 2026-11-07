@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/repotest"
@@ -42,7 +43,7 @@ func TestGetDirektverkaufHistorie_GroupsByVerkaufMostRecentFirst(t *testing.T) {
 	getaetigtB, verkaufB, posB := getaetigtEvent(t, 400, 3) // 1200 cents
 	subjectB := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufB)
 	stornoPosB := kasse.Position{PositionID: posB, VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 400, Menge: 1}
-	stornoB, err := kasse.NewDirektverkaufStorniertEvent(subjectB, verkaufB, 2, "Leitung", []kasse.Position{stornoPosB}, 400, "Rückgabe")
+	stornoB, err := kasse.NewDirektverkaufStorniertEvent(subjectB, uuid.NewString(), verkaufB, 2, "Leitung", []kasse.Position{stornoPosB}, 400, "Rückgabe")
 	if err != nil {
 		t.Fatalf("failed to create storno event: %v", err)
 	}

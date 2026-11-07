@@ -179,8 +179,7 @@ export function ZahlungTab({
             positionenToPay={positionenToPay}
             totalCents={auswahlSumme}
             restNachZahlungCents={restNachZahlung}
-            kommentar={vorgang.kommentar}
-            setKommentar={vorgang.setKommentar}
+            vorgang={vorgang}
             zahlungKassiert={zahlungKassiert}
             pfandAusgezahlt={pfandAusgezahlt}
           />
@@ -199,8 +198,7 @@ export function ZahlungTab({
         totalCents={auswahlSumme}
         anzahl={auswahlAnzahl}
         restNachZahlungCents={restNachZahlung}
-        kommentar={vorgang.kommentar}
-        setKommentar={vorgang.setKommentar}
+        vorgang={vorgang}
         zahlungKassiert={zahlungKassiert}
         pfandAusgezahlt={pfandAusgezahlt}
       />
