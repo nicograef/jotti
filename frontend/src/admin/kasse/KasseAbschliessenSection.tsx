@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 import { WarnKarte } from '@/admin/components/WarnKarte'
 import { useLiveReporting } from '@/admin/reporting/hooks'
+import type { LiveReportingData } from '@/admin/reporting/types'
 import { EuroField } from '@/components/common/FormFields'
 import {
   AlertDialog,
@@ -70,6 +71,171 @@ function offeneTischeWarnung(
 ): string | null {
   if (anzahl <= 0) return null
   return `${formatAnzahl(anzahl, 'Tisch ist', 'Tische sind')} noch offen (${formatEuro(saldoCents)}).`
+}
+
+function euroOderStrich(
+  cents: number | null,
+  format: (cents: number) => string = formatEuro,
+): string {
+  return cents === null ? '—' : format(cents)
+}
+
+function VergleichsWert({
+  label,
+  children,
+  className,
+}: {
+  label: string
+  children: string
+  className?: string
+}) {
+  return (
+    <div className="text-right">
+      <div className="text-muted-foreground">{label}</div>
+      <div className={cn('text-base', className ?? 'font-semibold')}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Live-Rechnung neben dem Eingabefeld; negativ = Fehlbetrag in Rot.
+function BestandVergleich({
+  sollBestandCents,
+  gezaehltCents,
+  differenzCents,
+}: {
+  sollBestandCents: number | null
+  gezaehltCents: number
+  differenzCents: number | null
+}) {
+  return (
+    <div className="flex gap-6 text-sm">
+      <VergleichsWert label="Soll">
+        {euroOderStrich(sollBestandCents)}
+      </VergleichsWert>
+      <VergleichsWert label="Gezählt">
+        {formatEuro(gezaehltCents)}
+      </VergleichsWert>
+      <VergleichsWert
+        label="Differenz"
+        className={cn(
+          'font-bold',
+          differenzCents !== null && differenzCents < 0 && 'text-destructive',
+        )}
+      >
+        {euroOderStrich(differenzCents, formatEuroMitVorzeichen)}
+      </VergleichsWert>
+    </div>
+  )
+}
+
+function Zeile({
+  label,
+  wert,
+  hervorgehoben = false,
+}: {
+  label: string
+  wert: string
+  hervorgehoben?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'flex justify-between gap-4',
+        hervorgehoben && 'font-medium',
+      )}
+    >
+      <dt className={hervorgehoben ? undefined : 'text-muted-foreground'}>
+        {label}
+      </dt>
+      <dd>{wert}</dd>
+    </div>
+  )
+}
+
+function AbschlussBestaetigungDialog({
+  open,
+  onOpenChange,
+  loading,
+  sollBestandCents,
+  istBestandCents,
+  differenzCents,
+  summary,
+  onAbschliessen,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  loading: boolean
+  sollBestandCents: number | null
+  istBestandCents: number | null
+  differenzCents: number | null
+  summary: LiveReportingData['summary'] | null
+  onAbschliessen: () => void
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Kasse abschließen?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Kassensturz und Tagesabschluss (Z-Bon) werden in einem Schritt
+            gebucht. Dieser Vorgang kann nicht rückgängig gemacht werden.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogBody className="space-y-4 text-sm">
+          <dl className="space-y-1">
+            <Zeile
+              label="Soll-Bestand"
+              wert={euroOderStrich(sollBestandCents)}
+            />
+            <Zeile
+              label="Ist-Bestand (gezählt)"
+              wert={euroOderStrich(istBestandCents)}
+            />
+            <Zeile
+              label="Differenz"
+              wert={euroOderStrich(differenzCents, formatEuroMitVorzeichen)}
+              hervorgehoben
+            />
+          </dl>
+
+          <div>
+            <p className="mb-1 font-medium">Z-Bon-Vorschau</p>
+            <dl className="space-y-1">
+              <Zeile
+                label="Umsatz"
+                wert={euroOderStrich(summary?.gesamtUmsatzCents ?? null)}
+              />
+              <Zeile
+                label="Stornierungen"
+                wert={euroOderStrich(summary?.gesamtStornierungenCents ?? null)}
+              />
+              <Zeile
+                label="Geldtransit"
+                wert={euroOderStrich(summary?.geldtransitCents ?? null)}
+              />
+            </dl>
+          </div>
+        </AlertDialogBody>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Abbrechen</AlertDialogCancel>
+          <AlertDialogAction
+            variant="warn"
+            disabled={loading}
+            onClick={(e) => {
+              e.preventDefault()
+              onAbschliessen()
+            }}
+          >
+            Kasse abschließen
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }
 
 type FormData = z.infer<typeof KasseAbschliessenSchema>
@@ -214,35 +380,11 @@ export function KasseAbschliessenSection({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-          <div className="flex gap-6 text-sm">
-            <div className="text-right">
-              <div className="text-muted-foreground">Soll</div>
-              <div className="text-base font-semibold">
-                {sollBestandCents !== null ? formatEuro(sollBestandCents) : '—'}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-muted-foreground">Gezählt</div>
-              <div className="text-base font-semibold">
-                {formatEuro(gezaehltCents)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-muted-foreground">Differenz</div>
-              <div
-                className={cn(
-                  'text-base font-bold',
-                  liveDifferenzCents !== null &&
-                    liveDifferenzCents < 0 &&
-                    'text-destructive',
-                )}
-              >
-                {liveDifferenzCents !== null
-                  ? formatEuroMitVorzeichen(liveDifferenzCents)
-                  : '—'}
-              </div>
-            </div>
-          </div>
+          <BestandVergleich
+            sollBestandCents={sollBestandCents}
+            gezaehltCents={gezaehltCents}
+            differenzCents={liveDifferenzCents}
+          />
           <Button type="submit" variant="warn">
             Kasse endgültig abschließen…
           </Button>
@@ -264,88 +406,16 @@ export function KasseAbschliessenSection({
         }}
       />
 
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Kasse abschließen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Kassensturz und Tagesabschluss (Z-Bon) werden in einem Schritt
-              gebucht. Dieser Vorgang kann nicht rückgängig gemacht werden.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <AlertDialogBody className="space-y-4 text-sm">
-            <dl className="space-y-1">
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Soll-Bestand</dt>
-                <dd>
-                  {sollBestandCents !== null
-                    ? formatEuro(sollBestandCents)
-                    : '—'}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Ist-Bestand (gezählt)</dt>
-                <dd>
-                  {istBestandCents !== null ? formatEuro(istBestandCents) : '—'}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-4 font-medium">
-                <dt>Differenz</dt>
-                <dd>
-                  {differenzCents !== null
-                    ? formatEuroMitVorzeichen(differenzCents)
-                    : '—'}
-                </dd>
-              </div>
-            </dl>
-
-            <div>
-              <p className="mb-1 font-medium">Z-Bon-Vorschau</p>
-              <dl className="space-y-1">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Umsatz</dt>
-                  <dd>
-                    {liveData
-                      ? formatEuro(liveData.summary.gesamtUmsatzCents)
-                      : '—'}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Stornierungen</dt>
-                  <dd>
-                    {liveData
-                      ? formatEuro(liveData.summary.gesamtStornierungenCents)
-                      : '—'}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">Geldtransit</dt>
-                  <dd>
-                    {liveData
-                      ? formatEuro(liveData.summary.geldtransitCents)
-                      : '—'}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </AlertDialogBody>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={loading}>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction
-              variant="warn"
-              disabled={loading}
-              onClick={(e) => {
-                e.preventDefault()
-                void handleAbschliessen()
-              }}
-            >
-              Kasse abschließen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AbschlussBestaetigungDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        loading={loading}
+        sollBestandCents={sollBestandCents}
+        istBestandCents={istBestandCents}
+        differenzCents={differenzCents}
+        summary={liveData?.summary ?? null}
+        onAbschliessen={() => void handleAbschliessen()}
+      />
     </>
   )
 }
