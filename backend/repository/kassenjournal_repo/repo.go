@@ -245,7 +245,7 @@ func (r Repository) handleTischSessionEvent(ctx context.Context, qtx *dbgen.Quer
 		return fmt.Errorf("parse tisch ID from subject %q: %w", e.Subject, err)
 	}
 
-	currentState, err := getTischSessionInTx(ctx, qtx, e.Subject)
+	currentState, err := getTischSession(ctx, qtx, e.Subject)
 	if err != nil {
 		return err
 	}
@@ -284,15 +284,7 @@ func upsertTischSessionState(ctx context.Context, qtx *dbgen.Queries, subject st
 
 // ReadTischSession returns a zero-value TischSession when no entry exists.
 func (r Repository) ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error) {
-	row, err := r.q.GetTischSession(ctx, subject)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return kasse.TischSession{}, nil
-		}
-		return kasse.TischSession{}, db.Error(err)
-	}
-
-	return toTischSession(row)
+	return getTischSession(ctx, r.q, subject)
 }
 
 type TischNameUndSession struct {
@@ -375,9 +367,10 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 	return result, nil
 }
 
-// getTischSessionInTx returns a zero-value TischSession when no entry exists.
-func getTischSessionInTx(ctx context.Context, qtx *dbgen.Queries, subject string) (kasse.TischSession, error) {
-	row, err := qtx.GetTischSession(ctx, subject)
+// getTischSession returns a zero-value TischSession when no entry exists; q is the
+// repository's queries or those of the write transaction.
+func getTischSession(ctx context.Context, q *dbgen.Queries, subject string) (kasse.TischSession, error) {
+	row, err := q.GetTischSession(ctx, subject)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return kasse.TischSession{}, nil
