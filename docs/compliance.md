@@ -348,6 +348,8 @@ Drei Module; jeweils offizieller Dateiname (englisch) und logische DSFinV-K-Beze
 | `subitems.csv`          | Bonpos_Zusatzinfo    | Zusatzinformationen je Position. Für jotti gegenstandslos, header-only exportiert                                                |
 | `transactions_tse.csv`  | TSE_Transaktionen    | Kritisch: TSE-Transaktionsnummer (`TSE_TANR`), Signaturzähler (`TSE_TA_SIGZ`), Krypto-Signatur (`TSE_TA_SIG`)                    |
 
+`BON_NR` ist die Event-ID des Vorgangs im Kassenjournal und damit die Bon-Nr, die der Kassenbeleg druckt.
+
 #### C. Kassenabschlussmodul (Z-Bon)
 
 | Dateiname (offiziell)   | Logische Bezeichnung | Inhalt                                                         |

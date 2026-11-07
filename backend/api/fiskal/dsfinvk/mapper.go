@@ -242,10 +242,10 @@ func Map(snapshot Snapshot, events []event.Event, signaturen map[int]tse.EventSi
 }
 
 // belegeFromEvents derives the Belege from events ordered by id, so an origin Bon
-// always precedes its Storno. BON_NR counts up; BON_ID is the Vorgang ID.
+// always precedes its Storno. BON_NR is the kassenjournal event ID, the Bon-Nr the printed
+// Kassenbeleg shows; BON_ID is the Vorgang ID.
 func belegeFromEvents(events []event.Event, tischnamen map[int]string, signaturen map[int]tse.EventSignatur) ([]beleg, error) {
 	var belege []beleg
-	bonNr := 0
 	// herkunft maps each PositionID to its order's BON_ID. PositionIDs are unique per
 	// order, so a Korrektur resolves its origin orders via its positions.
 	herkunft := map[string]string{}
@@ -484,13 +484,12 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				geldneutral: true,
 			})
 		}
-		// Each Beleg of this iteration counts up BON_NR, carries its event's time and operator, and
-		// takes its event's TSE state from the Signaturauftrag table, the single source for signature
-		// duty, signature and TSE_TA_VORGANGSART.
+		// Each Beleg of this iteration (at most one per event) takes its event's ID as BON_NR, carries
+		// its event's time and operator, and takes its event's TSE state from the Signaturauftrag
+		// table, the single source for signature duty, signature and TSE_TA_VORGANGSART.
 		sig, pflichtig := signaturen[ev.ID]
 		for i := vorher; i < len(belege); i++ {
-			bonNr++
-			belege[i].bonNr = bonNr
+			belege[i].bonNr = ev.ID
 			belege[i].zeitpunkt = zeit(ev)
 			belege[i].bedienerID = ev.UserID
 			belege[i].bedienerName = ev.UserName

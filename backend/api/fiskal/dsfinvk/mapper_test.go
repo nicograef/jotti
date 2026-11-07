@@ -1456,7 +1456,7 @@ func TestMapTagesabschlussSigniertErscheintAlsAVSonstigeBon(t *testing.T) {
 	letzte := len(transMit.Records) - 1
 	checks := map[string]string{
 		"BON_ID":     tagesabschlussBonID,
-		"BON_NR":     "5",
+		"BON_NR":     "20",
 		"BON_TYP":    "AVSonstige",
 		"BON_NAME":   "Tagesabschluss",
 		"BON_STORNO": "0",
