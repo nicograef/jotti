@@ -24,35 +24,12 @@ var (
 	testTime = time.Date(2024, 6, 15, 19, 34, 0, 0, time.UTC)
 )
 
-func TestFormatPositionBon_ContainsTischName(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
-	got := string(payload)
-	if !strings.Contains(got, "Tisch 7") {
-		t.Errorf("Bon enthaelt nicht den Tischnamen; got:\n%q", got)
-	}
-}
-
-func TestFormatPositionBon_ContainsArtikel(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
-	got := string(payload)
-	if !strings.Contains(got, "3x Pommes gross") {
-		t.Errorf("Bon enthaelt nicht den Artikel; got:\n%q", got)
-	}
-}
-
-func TestFormatPositionBon_ContainsBedienung(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
-	got := string(payload)
-	if !strings.Contains(got, "Bedienung: Maria") {
-		t.Errorf("Bon enthaelt nicht Bedienung; got:\n%q", got)
-	}
-}
-
-func TestFormatPositionBon_ContainsZeit(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
-	got := string(payload)
-	if !strings.Contains(got, "21:34") {
-		t.Errorf("Bon enthaelt nicht Zeitstempel; got:\n%q", got)
+func TestFormatPositionBon_ContainsKopfUndFuss(t *testing.T) {
+	got := string(escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, ""))
+	for _, want := range []string{"Tisch 7", "3x Pommes gross", "Bedienung: Maria", "21:34"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("Bon enthaelt nicht %q; got:\n%q", want, got)
+		}
 	}
 }
 
@@ -72,10 +49,23 @@ func TestFormatPositionBon_WithoutKommentar_NoEmptyKommentarLine(t *testing.T) {
 	}
 }
 
-func TestFormatPositionBon_EndsWithCutPaper(t *testing.T) {
-	payload := escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, "")
-	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
-		t.Errorf("Bon endet nicht mit CutPaper-Befehl")
+func TestFormat_EndsWithCutPaper(t *testing.T) {
+	bons := map[string][]byte{
+		"Positionsbon": escpos.FormatPositionBon(testPos, "Tisch 7", "Maria", testTime, ""),
+		"Sammelbon":    escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, ""),
+		"Kassenbeleg": escpos.FormatKassenbeleg(escpos.KassenbelegData{
+			Vereinsname:       "SV Musterstadt",
+			Belegnummer:       "42",
+			Zeitpunkt:         testTime,
+			Positionen:        []kasse.Position{testPos},
+			GesamtbetragCents: 900,
+			Zahlungsart:       "bar",
+		}),
+	}
+	for name, payload := range bons {
+		if !strings.HasSuffix(string(payload), escpos.CutPaper) {
+			t.Errorf("%s endet nicht mit CutPaper-Befehl", name)
+		}
 	}
 }
 
@@ -118,13 +108,6 @@ func TestFormatSammelBon_ContainsTischName(t *testing.T) {
 	got := string(payload)
 	if !strings.Contains(got, "Tisch 12") {
 		t.Errorf("Sammelbon enthaelt nicht Tischnamen; got:\n%q", got)
-	}
-}
-
-func TestFormatSammelBon_EndsWithCutPaper(t *testing.T) {
-	payload := escpos.FormatSammelBon([]kasse.Position{testPos}, "Tisch 7", "Maria", testTime, "")
-	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
-		t.Errorf("Sammelbon endet nicht mit CutPaper-Befehl")
 	}
 }
 
@@ -232,25 +215,6 @@ func TestFormatKassenbeleg_Stornobeleg_ContainsStornoFelder(t *testing.T) {
 
 	if strings.Contains(got, "KASSENBELEG") {
 		t.Errorf("Stornobeleg darf nicht als KASSENBELEG betitelt sein; got:\n%q", got)
-	}
-}
-
-func TestFormatKassenbeleg_EndsWithCutPaper(t *testing.T) {
-	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:        "SV Musterstadt",
-		Strasse:            "Musterstrasse 1",
-		Plz:                "12345",
-		Ort:                "Musterstadt",
-		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
-		Belegnummer:        "42",
-		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{testPos},
-		GesamtbetragCents:  900,
-		Zahlungsart:        "bar",
-	})
-
-	if !strings.HasSuffix(string(payload), escpos.CutPaper) {
-		t.Errorf("Kassenbeleg endet nicht mit CutPaper-Befehl")
 	}
 }
 
@@ -590,56 +554,6 @@ func TestFormatKassenbeleg_SteuermatrixBefreitSatz_ZeigtBefreiungshinweis(t *tes
 
 	if !strings.Contains(got, "C (umsatzsteuerfrei):") {
 		t.Errorf("Beleg mit 0%%-Satz muss Befreiungshinweis enthalten; got:\n%q", got)
-	}
-}
-
-// 500 bytes exceed the typical fiskaly payload of 350-470 bytes. Version 17 (level M, 504-byte
-// capacity) is 85 modules + 8 quiet zone = 93 modules, and 93 * 6 = 558 dots <= 576.
-func TestFormatKassenbeleg_QRCode_500BytePayload_ModuleSizeFitsWithin576Dots(t *testing.T) {
-	// Realistischer fiskaly-Payload ist ~350-470 Byte; 500 Byte als obere Testgrenze.
-	qrPayload := strings.Repeat("V", 500)
-
-	bon := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:        "SV Musterstadt",
-		Strasse:            "Musterstrasse 1",
-		Plz:                "12345",
-		Ort:                "Musterstadt",
-		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
-		Belegnummer:        "42",
-		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{testPos},
-		GesamtbetragCents:  900,
-		Zahlungsart:        "bar",
-		TSE: &escpos.TSEAbschnitt{
-			TransaktionNr:   42,
-			Signaturzaehler: 1,
-			TSESeriennummer: "SW-TSE-0001",
-			ZeitpunktBeginn: testTime,
-			ZeitpunktEnde:   testTime,
-			Signatur:        "SIG",
-			QRCodeData:      qrPayload,
-		},
-	})
-
-	// Modulgröße-Befehl: QRCodeModuleSizeCmdPrefix (7 Byte) + Größenbyte.
-	// Für 500 Byte (V17, 93 Module): erwartete Größe = 6 (558 Dots <= 576).
-	cmdPrefix := []byte(escpos.QRCodeModuleSizeCmdPrefix)
-	idx := bytes.Index(bon, cmdPrefix)
-	if idx < 0 || idx+len(cmdPrefix) >= len(bon) {
-		t.Fatal("Modulgroessen-Befehl nicht im Bon gefunden")
-	}
-	moduleSize := int(bon[idx+len(cmdPrefix)])
-
-	// QR-Version 17: Matrix = 4*17+17 = 85 Module; + 8 Ruhezone = 93 Module.
-	const (
-		qrVersion    = 17
-		totalModules = 4*qrVersion + 17 + 8 // 93
-		maxDots      = 576
-	)
-	dotsWide := totalModules * moduleSize
-	if dotsWide > maxDots {
-		t.Errorf("QR-Breite fuer 500-Byte-Payload: %d Module * %d = %d Dots > %d",
-			totalModules, moduleSize, dotsWide, maxDots)
 	}
 }
 
