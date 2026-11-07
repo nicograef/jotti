@@ -76,14 +76,22 @@ collect_pins() {
   done
 }
 
-# image_name prints a reference without its digest and tag.
-image_name() {
+# image_tag prints the tag of a reference without its digest, or nothing. Only
+# the last path segment can carry the tag, so the port of a registry host
+# (`registry:5000/image`) is not mistaken for one.
+image_tag() {
   local base="${1%%@*}" segment
   segment="${base##*/}"
   case "$segment" in
-    *:*) printf '%s\n' "${base%:"${segment##*:}"}" ;;
-    *) printf '%s\n' "$base" ;;
+    *:*) printf '%s\n' "${segment##*:}" ;;
   esac
+}
+
+# image_name prints a reference without its digest and tag.
+image_name() {
+  local base="${1%%@*}" tag
+  tag="$(image_tag "$1")"
+  printf '%s\n' "${base%:"$tag"}"
 }
 
 # collect_literal_pins prints the same lines for references in literal_files to
@@ -127,28 +135,13 @@ while IFS=$'\t' read -r ref loc; do
   esac
 
   # A digest pin carries its version after the "@"; what precedes it may still
-  # carry a tag. Split the tag off the last path segment only, so the port of a
-  # registry host (`registry:5000/image`) is not mistaken for one.
+  # carry a tag.
   digest=""
-  base="$ref"
   case "$ref" in
-    *@*)
-      digest="${ref#*@}"
-      base="${ref%%@*}"
-      ;;
+    *@*) digest="${ref#*@}" ;;
   esac
-
-  segment="${base##*/}"
-  case "$segment" in
-    *:*)
-      tag="${segment##*:}"
-      name="${base%:"$tag"}"
-      ;;
-    *)
-      tag=""
-      name="$base"
-      ;;
-  esac
+  name="$(image_name "$ref")"
+  tag="$(image_tag "$ref")"
 
   if [[ -n "$digest" ]]; then
     version="$digest"
