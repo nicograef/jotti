@@ -525,7 +525,6 @@ func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) 
 	}
 }
 
-// Mit konfigurierter TSE bleibt das Eröffnen warnungsfrei.
 // An unparsable sum-relevant event aborts the Tagesabschluss without writing its event: wrong Z-Bon
 // sums are worse than a blocked Abschluss. Reachable only with a corrupt store.
 func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
