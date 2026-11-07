@@ -513,7 +513,7 @@ func demoSzenario() szenario {
 					Kategorie:  druckstation.KategorieEssen,
 					NachStart:  3 * time.Hour,
 					Dauer:      25 * time.Minute,
-					Fehlertext: "Drucker meldet: Papier leer",
+					Fehlertext: "drucker 192.168.8.51: papier leer (status=0x72)",
 				}},
 				Aktionen: freitagsAktionen(),
 			},
@@ -543,7 +543,7 @@ func demoSzenario() szenario {
 					Kategorie:  druckstation.KategorieGetraenk,
 					NachStart:  2 * time.Hour,
 					Dauer:      15 * time.Minute,
-					Fehlertext: "Drucker nicht erreichbar: Zeitüberschreitung beim Verbindungsaufbau",
+					Fehlertext: "drucker 192.168.8.52: nicht erreichbar: dial tcp 192.168.8.52:9100: i/o timeout",
 				}},
 				Aktionen: samstagsAktionen(),
 			},
@@ -559,13 +559,13 @@ func demoSzenario() szenario {
 				// und ohne Fehlertext geseedet; ohne TSE-Konfiguration markiert der Worker sie
 				// nach dem App-Start tse_nicht_konfiguriert, statt zu signieren.
 				TSEAusfaelle: []tseAusfall{{NachStart: 4 * time.Hour, Dauer: 10 * time.Minute}},
-				// Abdeckung des Kassenbeleg-Druckers stand offen — fehlgeschlagene
+				// Kassenbeleg-Drucker brach die Übertragung ab — fehlgeschlagene
 				// Kassenbelege für die Fehlerliste des laufenden Tags.
 				DruckerAusfaelle: []druckerAusfall{{
 					Kategorie:  druckstation.KategorieKassenbeleg,
 					NachStart:  2 * time.Hour,
 					Dauer:      time.Hour,
-					Fehlertext: "Drucker meldet: Abdeckung offen",
+					Fehlertext: "drucker 192.168.8.54: senden fehlgeschlagen: write tcp 192.168.8.10:51234->192.168.8.54:9100: write: connection reset by peer",
 				}},
 				Aktionen: sonntagsAktionen(),
 			},

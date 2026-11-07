@@ -54,11 +54,9 @@ func ReferenzAnzeige(referenz string) string {
 	return label + " Nr. " + rest
 }
 
-// druckfehlerMeldungen matches the error texts of the print relay (windows/relay) and the demo seed's
-// cover-open text, in priority order.
+// druckfehlerMeldungen matches the error texts of the print relay (windows/relay), in priority order.
 var druckfehlerMeldungen = []struct{ schluessel, meldung string }{
 	{"papier", "Papier leer"},
-	{"abdeckung", "Abdeckung offen"},
 	{"nicht erreichbar", "Drucker nicht erreichbar"},
 	{"senden fehlgeschlagen", "Übertragung fehlgeschlagen"},
 }

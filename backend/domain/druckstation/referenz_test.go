@@ -29,8 +29,7 @@ func TestReferenzAnzeige(t *testing.T) {
 func TestDruckfehlerMeldung(t *testing.T) {
 	cases := []struct{ fehler, want string }{
 		{"drucker 192.168.1.5: nicht erreichbar: dial tcp", "Drucker nicht erreichbar"},
-		{"papier leer (status=0x08)", "Papier leer"},
-		{"Drucker meldet: Abdeckung offen", "Abdeckung offen"},
+		{"drucker 192.168.1.5: papier leer (status=0x72)", "Papier leer"},
 		{"drucker 192.168.1.5: senden fehlgeschlagen: EOF", "Übertragung fehlgeschlagen"},
 		{"ungueltiges Base64: illegal data", "Druckfehler"},
 	}
