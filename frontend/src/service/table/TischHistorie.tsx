@@ -21,7 +21,6 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { ItemGroup } from '@/components/ui/item'
-import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import {
   cn,
@@ -30,7 +29,7 @@ import {
   formatZeitpunkt,
 } from '@/lib/utils'
 
-import { belegDruckenMitNachfassen, meldeBelegStatus } from '../beleg'
+import { useBelegDrucken } from '../beleg'
 import type { Bestellung } from './Bestellung'
 import { Kommentar } from './CommentField'
 import { toReceiptItems } from './drawerUtils'
@@ -213,27 +212,7 @@ function HistorieDetail({
   setStornierenQuelle: Dispatch<SetStateAction<Quelle | null>>
   setUmbuchenQuelle: Dispatch<SetStateAction<Quelle | null>>
 }) {
-  const { loading: belegDruckenLoading, run: runBelegDrucken } =
-    useActionSubmit({
-      actionLabel: 'Kassenbeleg drucken',
-      // Nur Codes ohne zentrale Meldung stehen hier; alles andere kommt aus
-      // commonErrorMessages.
-      byCode: {
-        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
-      },
-    })
-
-  const stornobelegAnfordern = (stornierungId: string) => {
-    void runBelegDrucken(async () => {
-      const status = await belegDruckenMitNachfassen(() =>
-        tischBackend.stornobelegDrucken(tisch.id, stornierungId),
-      )
-      meldeBelegStatus(
-        status,
-        'Stornobeleg in die Druckwarteschlange eingereiht.',
-      )
-    })
-  }
+  const { loading: belegDruckenLoading, drucken } = useBelegDrucken()
 
   const canStornieren =
     (detail.art === 'bestellung' || detail.art === 'umbuchung') &&
@@ -278,15 +257,10 @@ function HistorieDetail({
               label: 'Kassenbeleg drucken',
               loading: belegDruckenLoading,
               onAction: () => {
-                void runBelegDrucken(async () => {
-                  const status = await belegDruckenMitNachfassen(() =>
-                    tischBackend.belegDrucken(tisch.id, detail.id),
-                  )
-                  meldeBelegStatus(
-                    status,
-                    'Kassenbeleg in die Druckwarteschlange eingereiht.',
-                  )
-                })
+                drucken(
+                  () => tischBackend.belegDrucken(tisch.id, detail.id),
+                  'Kassenbeleg in die Druckwarteschlange eingereiht.',
+                )
               },
             }
           : // Nur die kassenwirksame Warenrücknahme (Bargeld zurück)
@@ -296,7 +270,10 @@ function HistorieDetail({
                 label: 'Stornobeleg drucken',
                 loading: belegDruckenLoading,
                 onAction: () => {
-                  stornobelegAnfordern(detail.id)
+                  drucken(
+                    () => tischBackend.stornobelegDrucken(tisch.id, detail.id),
+                    'Stornobeleg in die Druckwarteschlange eingereiht.',
+                  )
                 },
               }
             : undefined

@@ -80,6 +80,7 @@ const commonErrorMessages: Record<string, string> = {
     'Zu viele Anfragen in kurzer Zeit. Bitte einen Moment warten und erneut versuchen.',
   request_too_large:
     'Die Anfrage ist zu groß. Bitte weniger Daten auf einmal senden und erneut versuchen.',
+  stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
   rueckgabe_not_found:
     'Die Pfandrückgabe wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
   tisch_saldo_offen:

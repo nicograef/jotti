@@ -13,7 +13,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import {
   formatEuro,
@@ -22,11 +21,7 @@ import {
   formatZeitpunkt,
 } from '@/lib/utils'
 
-import {
-  belegDruckenMitNachfassen,
-  type BelegStatus,
-  meldeBelegStatus,
-} from './beleg'
+import { type BelegStatus, useBelegDrucken } from './beleg'
 import type {
   GebuchtePosition,
   PositionRef,
@@ -78,26 +73,13 @@ export function VorgangHistorie({
   const [stornoVorgang, setStornoVorgang] = useState<VorgangEintrag | null>(
     null,
   )
-  const { loading: belegDruckenLoading, run: runBelegDrucken } =
-    useActionSubmit({
-      actionLabel: 'Kassenbeleg drucken',
-      // Nur Codes ohne zentrale Meldung stehen hier; alles andere kommt aus
-      // commonErrorMessages.
-      byCode: {
-        stornierung_not_found: 'Die Stornierung wurde nicht gefunden.',
-      },
-    })
+  const { loading: belegDruckenLoading, drucken } = useBelegDrucken()
 
   const belegAnfordern = (id: string, stornierungId?: string) => {
-    void runBelegDrucken(async () => {
-      const status = await belegDruckenMitNachfassen(() =>
-        belegDrucken(id, stornierungId),
-      )
-      meldeBelegStatus(
-        status,
-        'Kassenbeleg in die Druckwarteschlange eingereiht.',
-      )
-    })
+    drucken(
+      () => belegDrucken(id, stornierungId),
+      'Kassenbeleg in die Druckwarteschlange eingereiht.',
+    )
   }
 
   if (loading) {

@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { useActionSubmit } from '@/hooks/use-action-submit'
 import type { BackendClient } from '@/lib/Backend'
 
 // eingereiht = Druckauftrag angelegt; ausstehend = die TSE-Signatur fehlt noch,
@@ -46,7 +47,7 @@ export async function belegDruckenMitNachfassen(
   return status
 }
 
-export function meldeBelegStatus(status: BelegStatus, erfolgMeldung: string) {
+function meldeBelegStatus(status: BelegStatus, erfolgMeldung: string) {
   if (status === 'eingereiht') {
     toast.success(erfolgMeldung)
   } else {
@@ -54,4 +55,30 @@ export function meldeBelegStatus(status: BelegStatus, erfolgMeldung: string) {
       'Die TSE-Signatur steht noch aus. Bitte den Beleg gleich erneut anfordern.',
     )
   }
+}
+
+// Ein Ladezustand für alle Belege einer Ansicht: Während ein Druck läuft, sind
+// auch die übrigen Druck-Buttons gesperrt.
+export function useBelegDrucken(): {
+  loading: boolean
+  drucken: (
+    anfordern: () => Promise<BelegStatus>,
+    erfolgMeldung: string,
+  ) => void
+} {
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Kassenbeleg drucken',
+  })
+  const drucken = (
+    anfordern: () => Promise<BelegStatus>,
+    erfolgMeldung: string,
+  ) => {
+    void run(async () => {
+      meldeBelegStatus(
+        await belegDruckenMitNachfassen(anfordern),
+        erfolgMeldung,
+      )
+    })
+  }
+  return { loading, drucken }
 }
