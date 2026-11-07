@@ -55,8 +55,20 @@ type druckFunc func(a DruckAuftrag) error
 type meldeFunc func(ergebnis zyklusErgebnis) error
 
 type fehlversuch struct {
-	ID     int
-	Fehler string
+	ID     int    `json:"id"`
+	Fehler string `json:"fehler"`
+}
+
+// pollRequest und ergebnisRequest sind die Request-Bodies von /relay/poll und
+// /relay/ergebnis; das Backend decodiert sie in api/druck/relay/http.
+type pollRequest struct {
+	Token string `json:"token"`
+}
+
+type ergebnisRequest struct {
+	Token        string        `json:"token"`
+	GedruckteIDs []int         `json:"gedruckteIds"`
+	Fehlversuche []fehlversuch `json:"fehlversuche"`
 }
 
 type zyklusErgebnis struct {
@@ -269,9 +281,7 @@ func druckeAuftrag(a DruckAuftrag) error {
 }
 
 func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
-	reqBody, _ := json.Marshal(map[string]any{
-		"token": config.Token,
-	})
+	reqBody, _ := json.Marshal(pollRequest{Token: config.Token})
 	resp, err := client.Post(config.BackendURL+"/relay/poll", "application/json", bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, err
@@ -295,23 +305,19 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 // Fehlversuchs-Logik liegt im Backend (zählt hoch, markiert nach sechs Versuchen als
 // fehlgeschlagen — druckauftrag_repo.MaxDruckversuche).
 func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayConfig) error {
-	fehlversuche := make([]map[string]any, 0, len(ergebnis.fehlversuche))
-	for _, f := range ergebnis.fehlversuche {
-		fehlversuche = append(fehlversuche, map[string]any{
-			"id":     f.ID,
-			"fehler": f.Fehler,
-		})
-	}
-
 	gedruckteIDs := ergebnis.gedruckteIDs
 	if gedruckteIDs == nil {
 		gedruckteIDs = []int{}
 	}
+	fehlversuche := ergebnis.fehlversuche
+	if fehlversuche == nil {
+		fehlversuche = []fehlversuch{}
+	}
 
-	reqBody, _ := json.Marshal(map[string]any{
-		"token":        config.Token,
-		"gedruckteIds": gedruckteIDs,
-		"fehlversuche": fehlversuche,
+	reqBody, _ := json.Marshal(ergebnisRequest{
+		Token:        config.Token,
+		GedruckteIDs: gedruckteIDs,
+		Fehlversuche: fehlversuche,
 	})
 	resp, err := client.Post(config.BackendURL+"/relay/ergebnis", "application/json", bytes.NewReader(reqBody))
 	if err != nil {

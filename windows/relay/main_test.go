@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"sync"
@@ -370,5 +371,70 @@ func TestFuehreZyklusAusGibtMeldefehlerWeiter(t *testing.T) {
 	_, err := fuehreZyklusAus(auftraege, printer.druck, melde)
 	if err == nil || !strings.Contains(err.Error(), "backend nicht erreichbar") {
 		t.Fatalf("expected melde error, got %v", err)
+	}
+}
+
+// captureServer antwortet mit status und body und hält den letzten Request-Body fest.
+func captureServer(t *testing.T, status int, body string) (*httptest.Server, *string) {
+	t.Helper()
+	var got string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		got = r.URL.Path + " " + string(raw)
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &got
+}
+
+// Die Literale entsprechen den Bodies, die backend/api/druck/relay/http/handler_test.go decodiert.
+func TestPollSendetTokenUndLiestAuftraege(t *testing.T) {
+	srv, got := captureServer(t, http.StatusOK, `{"auftraege":[{"id":7,"zielIp":"10.0.0.9","payload":"AQI="}]}`)
+
+	auftraege, err := poll(srv.Client(), RelayConfig{BackendURL: srv.URL, Token: "relay-secret"})
+	if err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+	if want := `/relay/poll {"token":"relay-secret"}`; *got != want {
+		t.Fatalf("Request: got %s, want %s", *got, want)
+	}
+	if want := []DruckAuftrag{{ID: 7, ZielIP: "10.0.0.9", Payload: "AQI="}}; !reflect.DeepEqual(auftraege, want) {
+		t.Fatalf("auftraege: got %+v, want %+v", auftraege, want)
+	}
+}
+
+func TestMeldeErgebnisSendetErfolgeUndFehlversuche(t *testing.T) {
+	tests := []struct {
+		name     string
+		ergebnis zyklusErgebnis
+		want     string
+	}{
+		{
+			name: "Erfolge und Fehlversuche",
+			ergebnis: zyklusErgebnis{
+				gedruckteIDs: []int{4, 5},
+				fehlversuche: []fehlversuch{{ID: 9, Fehler: "drucker nicht erreichbar"}},
+			},
+			want: `/relay/ergebnis {"token":"relay-secret","gedruckteIds":[4,5],"fehlversuche":[{"id":9,"fehler":"drucker nicht erreichbar"}]}`,
+		},
+		{
+			name:     "leere Listen statt null",
+			ergebnis: zyklusErgebnis{},
+			want:     `/relay/ergebnis {"token":"relay-secret","gedruckteIds":[],"fehlversuche":[]}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, got := captureServer(t, http.StatusOK, `{}`)
+
+			if err := meldeErgebnis(srv.Client(), tt.ergebnis, RelayConfig{BackendURL: srv.URL, Token: "relay-secret"}); err != nil {
+				t.Fatalf("meldeErgebnis: %v", err)
+			}
+			if *got != tt.want {
+				t.Fatalf("Request: got %s, want %s", *got, tt.want)
+			}
+		})
 	}
 }
