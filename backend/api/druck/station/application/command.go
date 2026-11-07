@@ -73,7 +73,7 @@ func (c Command) TestbonDrucken(ctx context.Context, kategorie string) error {
 		ZielIP:   station.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
 		BonArt:   druckstation.BonArtTestbon,
-		Referenz: "testdruck:" + kategorie,
+		Referenz: druckstation.TestdruckReferenz(kat),
 	}
 
 	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckstation.NeuerDruckauftrag{auftrag}); err != nil {

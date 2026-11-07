@@ -19,14 +19,16 @@ type QueryHandler struct {
 	Query druckauftragQuery
 }
 
+// Referenz stays raw for the tooltip; ReferenzAnzeige and FehlerMeldung are the admin wording.
 type fehlgeschlagenerDruckauftragDTO struct {
-	ID            int       `json:"id"`
-	BonArt        string    `json:"bonArt"`
-	ZielIP        string    `json:"zielIp"`
-	Referenz      string    `json:"referenz"`
-	Versuche      int       `json:"versuche"`
-	LetzterFehler string    `json:"letzterFehler"`
-	ErstelltAm    time.Time `json:"erstelltAm"`
+	ID              int       `json:"id"`
+	BonArt          string    `json:"bonArt"`
+	ZielIP          string    `json:"zielIp"`
+	Referenz        string    `json:"referenz"`
+	ReferenzAnzeige string    `json:"referenzAnzeige"`
+	Versuche        int       `json:"versuche"`
+	FehlerMeldung   string    `json:"fehlerMeldung"`
+	ErstelltAm      time.Time `json:"erstelltAm"`
 }
 
 type getFehlgeschlageneResponse struct {
@@ -44,13 +46,14 @@ func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFun
 		dtos := make([]fehlgeschlagenerDruckauftragDTO, 0, len(auftraege))
 		for _, a := range auftraege {
 			dtos = append(dtos, fehlgeschlagenerDruckauftragDTO{
-				ID:            a.ID,
-				BonArt:        string(a.BonArt),
-				ZielIP:        a.ZielIP,
-				Referenz:      a.Referenz,
-				Versuche:      a.Versuche,
-				LetzterFehler: a.LetzterFehler,
-				ErstelltAm:    a.ErstelltAm,
+				ID:              a.ID,
+				BonArt:          string(a.BonArt),
+				ZielIP:          a.ZielIP,
+				Referenz:        a.Referenz,
+				ReferenzAnzeige: druckstation.ReferenzAnzeige(a.Referenz),
+				Versuche:        a.Versuche,
+				FehlerMeldung:   druckstation.DruckfehlerMeldung(a.LetzterFehler),
+				ErstelltAm:      a.ErstelltAm,
 			})
 		}
 

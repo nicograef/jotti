@@ -96,8 +96,9 @@ function backend({
         bonArt: 'arbeitsbon',
         zielIp: '192.168.1.50',
         referenz: '',
+        referenzAnzeige: '',
         versuche: 3,
-        letzterFehler: 'Papier leer',
+        fehlerMeldung: 'Papier leer',
         erstelltAm: '2026-06-18T12:00:00Z',
       })),
     })

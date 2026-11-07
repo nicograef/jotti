@@ -27,8 +27,6 @@ import {
   type Bonmodus,
   type DruckstationConfig,
   type FehlgeschlagenerDruckauftrag,
-  formatDruckauftragReferenz,
-  formatDruckfehler,
   type Kategorie,
   STATION_KATEGORIE_LABEL,
   validateDruckerIp,
@@ -324,12 +322,11 @@ function FehlgeschlagenerDruckauftragRow({
     <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-background p-3">
       <div className="min-w-[200px] flex-1">
         <div className="text-sm font-semibold" title={auftrag.referenz}>
-          {formatDruckauftragReferenz(auftrag.referenz)} → {auftrag.zielIp}
+          {auftrag.referenzAnzeige} → {auftrag.zielIp}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {formatUhrzeit(auftrag.erstelltAm)} Uhr ·{' '}
-          {formatDruckfehler(auftrag.letzterFehler)} · {auftrag.versuche}{' '}
-          Versuche
+          {formatUhrzeit(auftrag.erstelltAm)} Uhr · {auftrag.fehlerMeldung} ·{' '}
+          {auftrag.versuche} Versuche
         </div>
       </div>
       <div className="flex gap-2">

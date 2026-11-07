@@ -25,8 +25,9 @@ function makeAuftrag(
     bonArt,
     zielIp: '192.168.1.51',
     referenz: `bestellung-aufgenommen:${String(id)}`,
+    referenzAnzeige: `Bestellung Nr. ${String(id)}`,
     versuche: 6,
-    letzterFehler: 'drucker nicht erreichbar',
+    fehlerMeldung: 'Drucker nicht erreichbar',
     erstelltAm: new Date().toISOString(),
   }
 }

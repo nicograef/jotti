@@ -328,7 +328,7 @@ func (c Command) resolveDirektverkaufStornobeleg(ctx context.Context, ks *kasse.
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
-		Referenz:            fmt.Sprintf("direktverkauf-storniert:%d", stornoEvent.ID),
+		Referenz:            druckstation.EventReferenz(druckstation.ReferenzDirektverkaufStorno, stornoEvent.ID),
 		Negativ:             true,
 		Stornobeleg:         true,
 		StornoZuBelegnummer: fmt.Sprintf("%d", verkaufEvent.ID),
@@ -354,7 +354,7 @@ func (c Command) resolvePfandbeleg(ctx context.Context, ks *kasse.Kassensitzung,
 		Event:             rueckgabeEvent,
 		Positionen:        kasse.PositionenFromEventData(rueckgabeData.Positionen),
 		GesamtbetragCents: rueckgabeData.GesamtbetragCents,
-		Referenz:          fmt.Sprintf("pfand-zurueckgegeben:%d", rueckgabeEvent.ID),
+		Referenz:          druckstation.EventReferenz(druckstation.ReferenzPfandrueckgabe, rueckgabeEvent.ID),
 		Negativ:           true,
 	}, nil
 }
@@ -384,7 +384,7 @@ func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensi
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
-		Referenz:            fmt.Sprintf("pfandrueckgabe-storniert:%d", stornoEvent.ID),
+		Referenz:            druckstation.EventReferenz(druckstation.ReferenzPfandrueckgabeStorno, stornoEvent.ID),
 		Stornobeleg:         true,
 		StornoZuBelegnummer: fmt.Sprintf("%d", rueckgabeEvent.ID),
 	}, nil
@@ -415,7 +415,7 @@ func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensi
 		Event:               stornoEvent,
 		Positionen:          kasse.PositionenFromEventData(stornoData.Positionen),
 		GesamtbetragCents:   stornoData.GesamtStornierungCents,
-		Referenz:            fmt.Sprintf("stornierung-erteilt:%d", stornoEvent.ID),
+		Referenz:            druckstation.EventReferenz(druckstation.ReferenzStornierung, stornoEvent.ID),
 		Negativ:             true,
 		Stornobeleg:         true,
 		StornoZuBelegnummer: fmt.Sprintf("%d", zahlungEvent.ID),
@@ -441,7 +441,7 @@ func (c Command) resolveDirektverkaufBeleg(ctx context.Context, ks *kasse.Kassen
 		Event:             verkaufEvent,
 		Positionen:        kasse.PositionenFromEventData(verkaufData.Positionen),
 		GesamtbetragCents: verkaufData.GesamtbetragCents,
-		Referenz:          fmt.Sprintf("direktverkauf-getaetigt:%d", verkaufEvent.ID),
+		Referenz:          druckstation.EventReferenz(druckstation.ReferenzDirektverkauf, verkaufEvent.ID),
 	}, nil
 }
 
@@ -470,7 +470,7 @@ func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassen
 		Event:                    zahlungEvent,
 		Positionen:               kasse.PositionenFromEventData(zahlungData.Positionen),
 		GesamtbetragCents:        zahlungData.GesamtZahlungCents,
-		Referenz:                 fmt.Sprintf("zahlung-kassiert:%d", zahlungEvent.ID),
+		Referenz:                 druckstation.EventReferenz(druckstation.ReferenzZahlung, zahlungEvent.ID),
 		ErsteBestellungZeitpunkt: state.ErsteBestellungLogTime,
 	}, nil
 }

@@ -32,8 +32,9 @@ function druckauftrag(id: number): FehlgeschlagenerDruckauftrag {
     bonArt: 'arbeitsbon',
     zielIp: '192.168.1.51',
     referenz: `bestellung-aufgenommen:${String(id)}`,
+    referenzAnzeige: `Bestellung Nr. ${String(id)}`,
     versuche: 6,
-    letzterFehler: 'drucker nicht erreichbar',
+    fehlerMeldung: 'Drucker nicht erreichbar',
     erstelltAm: '2026-07-12T14:05:00+02:00',
   }
 }

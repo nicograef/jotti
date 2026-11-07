@@ -72,12 +72,13 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_Success(t *testing.T) {
 
 	var resp struct {
 		Druckauftraege []struct {
-			ID            int    `json:"id"`
-			BonArt        string `json:"bonArt"`
-			ZielIP        string `json:"zielIp"`
-			Referenz      string `json:"referenz"`
-			Versuche      int    `json:"versuche"`
-			LetzterFehler string `json:"letzterFehler"`
+			ID              int    `json:"id"`
+			BonArt          string `json:"bonArt"`
+			ZielIP          string `json:"zielIp"`
+			Referenz        string `json:"referenz"`
+			ReferenzAnzeige string `json:"referenzAnzeige"`
+			Versuche        int    `json:"versuche"`
+			FehlerMeldung   string `json:"fehlerMeldung"`
 		} `json:"druckauftraege"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -87,7 +88,8 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_Success(t *testing.T) {
 		t.Fatalf("expected 1 auftrag, got %d", len(resp.Druckauftraege))
 	}
 	a := resp.Druckauftraege[0]
-	if a.ID != 7 || a.BonArt != "arbeitsbon" || a.ZielIP != "192.168.1.51" || a.Versuche != 3 || a.LetzterFehler != "drucker nicht erreichbar" {
+	if a.ID != 7 || a.BonArt != "arbeitsbon" || a.ZielIP != "192.168.1.51" || a.Versuche != 3 ||
+		a.ReferenzAnzeige != "Bestellung Nr. 3" || a.FehlerMeldung != "Drucker nicht erreichbar" {
 		t.Errorf("unexpected auftrag DTO: %+v", a)
 	}
 }

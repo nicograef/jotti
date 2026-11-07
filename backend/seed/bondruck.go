@@ -220,7 +220,7 @@ func (b *bondruckBuilder) kassenbeleg(evt event.Event) (druckauftragZeile, bool,
 		}
 		positionen = kasse.PositionenFromEventData(data.Positionen)
 		gesamtbetragCents = data.GesamtZahlungCents
-		referenz = fmt.Sprintf("zahlung-kassiert:%d", evt.ID)
+		referenz = druckstation.EventReferenz(druckstation.ReferenzZahlung, evt.ID)
 		if t, ok := b.ersteBestellung[evt.Subject]; ok {
 			ersteBestellung = &t
 		}
@@ -232,7 +232,7 @@ func (b *bondruckBuilder) kassenbeleg(evt event.Event) (druckauftragZeile, bool,
 		}
 		positionen = kasse.PositionenFromEventData(data.Positionen)
 		gesamtbetragCents = data.GesamtbetragCents
-		referenz = fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
+		referenz = druckstation.EventReferenz(druckstation.ReferenzDirektverkauf, evt.ID)
 
 	case kasse.EventTypeDirektverkaufStorniertV1,
 		kasse.EventTypePfandZurueckgegebenV1,

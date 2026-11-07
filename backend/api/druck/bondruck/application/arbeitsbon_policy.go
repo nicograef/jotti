@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
@@ -33,7 +32,7 @@ func CreateArbeitsbonAuftraegeFromEvent(
 ) []druckstation.NeuerDruckauftrag {
 	switch kasse.EventType(evt.Type) {
 	case kasse.EventTypeBestellungAufgenommenV1:
-		return createStationsAuftraege(evt, druckstationen, tischName, fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
+		return createStationsAuftraege(evt, druckstationen, tischName, druckstation.EventReferenz(druckstation.ReferenzBestellung, evt.ID))
 	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
 		return createDirektverkaufAuftraege(evt, druckstationen)
 	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2, kasse.EventTypeStornierungErteiltV1,
@@ -56,7 +55,7 @@ func createDirektverkaufAuftraege(
 		return nil
 	}
 
-	referenz := fmt.Sprintf("direktverkauf-getaetigt:%d", evt.ID)
+	referenz := druckstation.EventReferenz(druckstation.ReferenzDirektverkauf, evt.ID)
 
 	abholbon, ok := druckstationen[string(druckstation.KategorieAbholbon)]
 	if ok && abholbon.Bonmodus == druckstation.BonmodusKeinBon {
