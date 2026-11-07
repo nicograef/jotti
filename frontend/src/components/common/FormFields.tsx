@@ -41,7 +41,6 @@ export interface FieldProps<TField extends FieldValues> {
   form: UseFormReturn<TField>
   withLabel?: boolean
   placeholder?: string
-  description?: string
 }
 
 export function NameField<AllFormFields extends FieldValues>({
@@ -220,7 +219,6 @@ interface EuroFieldProps<TField extends FieldValues> {
   label?: string
   withLabel?: boolean
   placeholder?: string
-  description?: string
   className?: string
 }
 
@@ -231,7 +229,6 @@ export function EuroField<TField extends FieldValues>({
   label,
   withLabel,
   placeholder,
-  description,
   className,
 }: EuroFieldProps<TField>) {
   return (
@@ -246,7 +243,6 @@ export function EuroField<TField extends FieldValues>({
           label={label}
           withLabel={withLabel}
           placeholder={placeholder}
-          description={description}
           className={className}
         />
       )}
@@ -261,7 +257,6 @@ function EuroFieldControl({
   label,
   withLabel,
   placeholder,
-  description,
   className,
 }: {
   field: ControllerRenderProps
@@ -270,7 +265,6 @@ function EuroFieldControl({
   label?: string
   withLabel?: boolean
   placeholder?: string
-  description?: string
   className?: string
 }) {
   const cents = field.value as number
@@ -289,7 +283,6 @@ function EuroFieldControl({
   return (
     <Field data-invalid={fieldState.invalid} className="gap-1">
       {withLabel && <FieldLabel htmlFor={id}>{label ?? 'Betrag'}</FieldLabel>}
-      {description && <FieldDescription>{description}</FieldDescription>}
       <EuroInput
         id={id}
         aria-invalid={fieldState.invalid}

@@ -26,7 +26,6 @@ interface EuroInputProps {
   id?: string
   placeholder?: string
   className?: string
-  disabled?: boolean
   'aria-invalid'?: boolean
 }
 
@@ -38,7 +37,6 @@ export function EuroInput({
   id,
   placeholder = '0,00',
   className,
-  disabled,
   'aria-invalid': ariaInvalid,
 }: EuroInputProps) {
   return (
@@ -54,7 +52,6 @@ export function EuroInput({
         autoComplete="off"
         spellCheck={false}
         placeholder={placeholder}
-        disabled={disabled}
         aria-invalid={ariaInvalid}
         value={value}
         onChange={(e) => {
