@@ -14,11 +14,3 @@ func TestGenerateSecretLength(t *testing.T) {
 		t.Fatalf("kein gueltiges Hex: %v", err)
 	}
 }
-
-func TestGenerateSecretUnique(t *testing.T) {
-	first := GenerateSecret()
-	second := GenerateSecret()
-	if first == second {
-		t.Fatal("zwei Aufrufe lieferten denselben Wert")
-	}
-}

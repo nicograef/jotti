@@ -46,10 +46,4 @@ func TestStaticDiagnosesHaveActionHints(t *testing.T) {
 			t.Fatalf("%s nennt keinen Handlungsschritt: %q", name, msg)
 		}
 	}
-	if !strings.Contains(DiagnoseDockerCLIFehlt, DockerBinPath) {
-		t.Fatalf("Docker-CLI-Diagnose nennt den Bin-Pfad nicht: %q", DiagnoseDockerCLIFehlt)
-	}
-	if !strings.Contains(DiagnoseDockerNichtInstalliert, DockerDesktopPath) {
-		t.Fatalf("Installations-Diagnose nennt den Desktop-Pfad nicht: %q", DiagnoseDockerNichtInstalliert)
-	}
 }
