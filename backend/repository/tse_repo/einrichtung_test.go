@@ -216,7 +216,7 @@ func TestSaveEinrichtung_LeereKonfigurationSweeptNicht(t *testing.T) {
 }
 
 // A TSS change replaces the current TSS but keeps the old one's master data, which verify its signatures.
-func TestUpsertTSEStammdaten_BehaeltJedeTSS(t *testing.T) {
+func TestSaveEinrichtungMitStammdaten_BehaeltJedeTSS(t *testing.T) {
 	repo, _, teardown := setupEinrichtung(t)
 	defer teardown(t)
 	ctx := context.Background()
@@ -226,8 +226,8 @@ func TestUpsertTSEStammdaten_BehaeltJedeTSS(t *testing.T) {
 	alt := tse.NewStammdaten("ALT-"+lauf, "ecdsa-plain-SHA256", "ALTKEY==", "ALTCERT", "unixTime")
 	neu := tse.NewStammdaten("NEU-"+lauf, "ecdsa-plain-SHA256", "NEUKEY==", "NEUCERT", "unixTime")
 	for _, s := range []tse.Stammdaten{alt, neu} {
-		if err := repo.UpsertTSEStammdaten(ctx, s); err != nil {
-			t.Fatalf("UpsertTSEStammdaten(%s): %v", s.Seriennummer, err)
+		if err := repo.SaveEinrichtungMitStammdaten(ctx, gueltigeKonfiguration(t, "tss-"+s.Seriennummer), s); err != nil {
+			t.Fatalf("SaveEinrichtungMitStammdaten(%s): %v", s.Seriennummer, err)
 		}
 	}
 

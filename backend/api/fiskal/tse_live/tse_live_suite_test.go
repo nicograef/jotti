@@ -604,9 +604,13 @@ func pruefeStammdatenVollstaendigkeit(t *testing.T, u *liveTestUmgebung, credent
 		tssStammdaten.Zertifikat,
 		tssStammdaten.LogTimeFormat,
 	)
+	konf, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, credentials.TssID, credentials.ClientID)
+	if err != nil {
+		t.Fatalf("Konfiguration bauen: %v", err)
+	}
 	repo := tse_repo.NewRepository(u.db)
-	if err := repo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
-		t.Fatalf("UpsertTSEStammdaten: %v", err)
+	if err := repo.SaveEinrichtungMitStammdaten(ctx, konf, stammdaten); err != nil {
+		t.Fatalf("SaveEinrichtungMitStammdaten: %v", err)
 	}
 	gespeichert, err := repo.GetTSEStammdaten(ctx)
 	if err != nil {

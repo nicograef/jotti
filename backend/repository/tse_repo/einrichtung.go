@@ -105,14 +105,8 @@ func (r Repository) GetTSEStammdatenJeTSS(ctx context.Context) (map[string]tse.S
 	return stammdaten, nil
 }
 
-// UpsertTSEStammdaten stores the master data as the current TSS's and keeps them under the TSS serial,
+// upsertStammdaten stores the master data as the current TSS's and keeps them under the TSS serial,
 // so a later TSS change cannot overwrite the data that verify this TSS's signatures.
-func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
-	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		return upsertStammdaten(ctx, qtx, s)
-	})
-}
-
 func upsertStammdaten(ctx context.Context, qtx *dbgen.Queries, s tse.Stammdaten) error {
 	params := dbgen.UpsertTSEStammdatenJeTSSParams{
 		Seriennummer:        s.Seriennummer,
