@@ -60,6 +60,20 @@ function geldtransitIds(fake: FakeBackend): unknown[] {
 }
 
 describe('GeldtransitDialog', () => {
+  it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
+    const user = userEvent.setup()
+    const { rerender } = renderWithBackend(dialog(true), new FakeBackend())
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+
+    await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
+
+    // Beim Schließen bleiben die Werte stehen, das nächste Öffnen verwirft sie
+    // — der Vorgang ist damit erledigt.
+    rerender(dialog(false))
+    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+
   it('erneuert den geldtransitId beim erneuten Öffnen nach einem Fehlversuch', async () => {
     const geldtransitBuchen = vi
       .fn()

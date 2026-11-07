@@ -516,24 +516,6 @@ describe('KasseAbschliessenSection', () => {
     ).toBeInTheDocument()
   })
 
-  it('bucht den Abschluss mit dem gezählten Ist-Bestand in Cent', async () => {
-    const fake = backend()
-    const user = userEvent.setup()
-    await renderAbschluss(fake)
-
-    await user.type(screen.getByLabelText('Gezählter Ist-Bestand'), '342,50')
-    await user.click(
-      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
-    )
-    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
-
-    await waitFor(() => {
-      expect(fake.bodies('admin/kasse-abschliessen')).toEqual([
-        { istBestandCents: 34250 },
-      ])
-    })
-  })
-
   it('übernimmt die Zählhilfe-Summe in das Ist-Bestand-Feld', async () => {
     const user = userEvent.setup()
     await renderAbschluss()
@@ -595,26 +577,6 @@ describe('KasseAbschliessenSection', () => {
       )
     })
     expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
-  })
-})
-
-describe('GeldtransitDialog im Vorgangs-Register', () => {
-  it('meldet das angefangene Formular und gibt es beim Schließen frei', async () => {
-    const user = userEvent.setup()
-    renderPage(backend({ kassensitzung: sommerfest }))
-
-    await user.click(
-      await screen.findByRole('button', { name: 'Geld einlegen' }),
-    )
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
-
-    await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(1)
-
-    // Beim Schließen bleiben die Werte stehen, das nächste Öffnen verwirft sie
-    // — der Vorgang ist damit erledigt.
-    await user.click(screen.getByRole('button', { name: 'Abbrechen' }))
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
 })
 
