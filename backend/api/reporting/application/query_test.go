@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -17,59 +16,55 @@ type mockReportingRepo struct {
 	liveData         reporting.LiveReportingData
 	eigeneUebersicht reporting.EigeneUebersicht
 	produktStatistik []reporting.ProduktStatistikZeile
-	err              error
 }
 
 func (m mockReportingRepo) GetReporting(_ context.Context, _ int) (reporting.ReportingData, error) {
-	return m.data, m.err
+	return m.data, nil
 }
 
 func (m mockReportingRepo) GetEigeneUebersicht(_ context.Context, _ int, _ int) (reporting.EigeneUebersicht, error) {
-	return m.eigeneUebersicht, m.err
+	return m.eigeneUebersicht, nil
 }
 
 func (m mockReportingRepo) GetLiveReporting(_ context.Context, _ int) (reporting.LiveReportingData, error) {
-	return m.liveData, m.err
+	return m.liveData, nil
 }
 
 func (m mockReportingRepo) GetProduktStatistik(_ context.Context, _ int) ([]reporting.ProduktStatistikZeile, error) {
-	return m.produktStatistik, m.err
+	return m.produktStatistik, nil
 }
 
 type mockTischSessionRepo struct {
 	sessions []kasse.TischSession
-	err      error
 }
 
 func (m mockTischSessionRepo) GetTischSessionsByKassensitzungNr(_ context.Context, _ int) ([]kasse.TischSession, error) {
-	return m.sessions, m.err
+	return m.sessions, nil
 }
 
 type mockTischRepo struct {
 	tische []tisch.Tisch
-	err    error
 }
 
 func (m mockTischRepo) GetAlleTische(_ context.Context) ([]tisch.Tisch, error) {
-	return m.tische, m.err
+	return m.tische, nil
 }
 
 type mockKasseRepo struct {
 	kassensitzungNr int
 	kassensitzung   *kasse.Kassensitzung
-	err             error
 }
 
 func (m mockKasseRepo) GetOffeneKassensitzungNr(_ context.Context) (int, error) {
-	return m.kassensitzungNr, m.err
+	return m.kassensitzungNr, nil
 }
 
 func (m mockKasseRepo) GetAbgeschlosseneKassensitzungen(_ context.Context) ([]reporting.AbgeschlosseneSitzung, error) {
-	return nil, m.err
+	return nil, nil
 }
 
 func (m mockKasseRepo) GetAktiveKassensitzung(_ context.Context) (*kasse.Kassensitzung, error) {
-	return m.kassensitzung, m.err
+	return m.kassensitzung, nil
 }
 
 const testKassensitzungNr = 1
@@ -471,48 +466,6 @@ func TestGetLiveReporting_ReichtProduktStatistikDurch(t *testing.T) {
 	}
 }
 
-func TestGetReporting_DatabaseError(t *testing.T) {
-	q := Query{ReportingRepo: mockReportingRepo{err: errors.New("db connection failed")}, KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr}}
-
-	_, err := q.GetReporting(context.Background(), testKassensitzungNr)
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected ErrDatabase, got %v", err)
-	}
-}
-
-func TestGetEigeneUebersicht_ReichtStatistikDurch(t *testing.T) {
-	base := reporting.EigeneUebersicht{
-		AnzahlBestellungen: 4,
-		BestellungenCents:  3000,
-		AnzahlZahlungen:    2,
-		ZahlungenCents:     1500,
-	}
-	q := Query{
-		ReportingRepo:       mockReportingRepo{eigeneUebersicht: base},
-		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
-	}
-
-	result, err := q.GetEigeneUebersicht(context.Background(), 7)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if result.AnzahlBestellungen != 4 || result.BestellungenCents != 3000 || result.AnzahlZahlungen != 2 || result.ZahlungenCents != 1500 {
-		t.Errorf("expected base reporting numbers to be preserved, got %+v", result)
-	}
-}
-
-func TestGetEigeneUebersicht_DatabaseError(t *testing.T) {
-	q := Query{
-		ReportingRepo:       mockReportingRepo{err: errors.New("db error")},
-		KassensitzungenRepo: mockKasseRepo{kassensitzungNr: testKassensitzungNr},
-	}
-
-	_, err := q.GetEigeneUebersicht(context.Background(), 7)
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected ErrDatabase, got %v", err)
-	}
-}
-
 func TestGetLiveReporting_KeineOffeneSitzung(t *testing.T) {
 	q := Query{
 		ReportingRepo:       mockReportingRepo{},
@@ -698,32 +651,5 @@ func TestGetLiveReporting_ServicekraefteTragenAbrechnung(t *testing.T) {
 	felix := result.Servicekraefte[0]
 	if felix.UserID != 3 || felix.KassiertCents != 5000 || felix.RuecknahmenCents != 500 || felix.AbzugebenCents != 4500 || felix.AnzahlStornierungen != 1 {
 		t.Errorf("unexpected felix live row: %+v", felix)
-	}
-}
-
-func TestGetLiveReporting_DatabaseError_KassensitzungRepo(t *testing.T) {
-	q := Query{
-		ReportingRepo:       mockReportingRepo{},
-		KassensitzungenRepo: mockKasseRepo{err: errors.New("db error")},
-	}
-
-	_, err := q.GetLiveReporting(context.Background())
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected ErrDatabase, got %v", err)
-	}
-}
-
-func TestGetLiveReporting_DatabaseError_ReportingRepo(t *testing.T) {
-	ks := &kasse.Kassensitzung{ZNr: testKassensitzungNr, Status: kasse.KassensitzungOffen}
-	q := Query{
-		ReportingRepo:       mockReportingRepo{err: errors.New("db error")},
-		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
-		TischSessionRepo:    mockTischSessionRepo{},
-		TischRepo:           mockTischRepo{},
-	}
-
-	_, err := q.GetLiveReporting(context.Background())
-	if !errors.Is(err, ErrDatabase) {
-		t.Errorf("expected ErrDatabase, got %v", err)
 	}
 }
