@@ -270,12 +270,11 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrDatabase
 	}
 
-	if !kasse.ValidatePositionRefs(quellState.UnbezahltePositionen, positionen) {
+	resolvedPositionen, gesamtCents, ok := kasse.ResolvePositionen(quellState.UnbezahltePositionen, positionen)
+	if !ok {
 		log.Warn("Umbuchungsinvariante verletzt: Positionen nicht umbuchbar", "quell_tisch_id", quellTischID)
 		return ErrPositionNichtUmbuchbar
 	}
-
-	resolvedPositionen, gesamtCents := kasse.ResolvePositionen(quellState.UnbezahltePositionen, positionen)
 
 	quellKommentar := buildUmbuchungKommentar("Umbuchung auf ", zielTisch.Name)
 	zielKommentar := buildUmbuchungKommentar("Umbuchung von ", quellTisch.Name)
@@ -323,7 +322,8 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		return err
 	}
 
-	if !kasse.ValidatePositionRefs(state.UnbezahltePositionen, positionen) {
+	resolvedPositionen, gesamtZahlungCents, ok := kasse.ResolvePositionen(state.UnbezahltePositionen, positionen)
+	if !ok {
 		log.Warn("Bezahl-Invariante verletzt: angeforderte Positionen nicht verfügbar", "tisch_id", tischID)
 		// Ein paralleler Versuch derselben rueckgabeId kann seit der Vorprüfung gebucht haben.
 		if pfand != nil {
@@ -331,8 +331,6 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		}
 		return ErrPositionNichtBezahlbar
 	}
-
-	resolvedPositionen, gesamtZahlungCents := kasse.ResolvePositionen(state.UnbezahltePositionen, positionen)
 	// The Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
 	varianteIDs := make([]int, len(resolvedPositionen))
 	for i, p := range resolvedPositionen {

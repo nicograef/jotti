@@ -68,11 +68,10 @@ func TestPersistiertesEventMitMenge1000_BleibtLesbarUndStornierbar(t *testing.T)
 	}
 
 	refs := []PositionRef{{PositionID: positionID, Menge: 1000}}
-	if !ValidatePositionRefs(bestellung.Positionen, refs) {
+	positionen, gesamtCents, ok := ResolvePositionen(bestellung.Positionen, refs)
+	if !ok {
 		t.Fatal("expected the full menge to be stornierbar")
 	}
-
-	positionen, gesamtCents := ResolvePositionen(bestellung.Positionen, refs)
 	if _, err := NewStornierungErteiltEvent(testSubject, 2, "Leitung", testZahlungID, positionen, gesamtCents, "Rueckgabe"); err != nil {
 		t.Errorf("Stornierung einer Position mit Menge 1000 muss gelingen, got %v", err)
 	}

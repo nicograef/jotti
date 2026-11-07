@@ -109,12 +109,11 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 		return ErrRueckgabeNichtGefunden
 	}
 
-	if !kasse.ValidatePositionRefs(eintrag.OffenePositionen, positionen) {
+	resolved, gesamtStornierungCents, ok := kasse.ResolvePositionen(eintrag.OffenePositionen, positionen)
+	if !ok {
 		log.Warn("Storno-Invariante verletzt: angeforderte Pfand-Positionen nicht stornierbar", "rueckgabe_id", rueckgabeID)
 		return ErrPositionNichtStornierbar
 	}
-
-	resolved, gesamtStornierungCents := kasse.ResolvePositionen(eintrag.OffenePositionen, positionen)
 
 	evt, err := kasse.NewPfandrueckgabeStorniertEvent(subject, stornierungID, rueckgabeID, eintrag.TischID, userID, userName, resolved, gesamtStornierungCents, kommentar)
 	if err != nil {

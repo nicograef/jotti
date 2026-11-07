@@ -24,54 +24,25 @@ func mitNeuenPositionIDs(positionen []Position) []Position {
 	return out
 }
 
-// ValidatePositionRefs rejects duplicate PositionIDs — their quantities would add up unnoticed.
-func ValidatePositionRefs(available []Position, requested []PositionRef) bool {
+// ResolvePositionen returns the requested positions as fat positions (name, category and
+// price included, so the event is self-contained) and their total in cents. It returns false
+// for an unknown PositionID, a Menge above the available one, or a repeated PositionID, whose
+// quantities would otherwise add up unnoticed.
+func ResolvePositionen(available []Position, requested []PositionRef) ([]Position, int, bool) {
+	resolved := make([]Position, 0, len(requested))
+	totalCents := 0
 	seen := make(map[string]bool, len(requested))
 	for _, ref := range requested {
 		if seen[ref.PositionID] {
-			return false
+			return nil, 0, false
 		}
 		seen[ref.PositionID] = true
-		found := false
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				if ref.Menge > pos.Menge {
-					return false
-				}
-				found = true
-				break
-			}
+		idx := slices.IndexFunc(available, func(pos Position) bool { return pos.PositionID == ref.PositionID })
+		if idx < 0 || ref.Menge > available[idx].Menge {
+			return nil, 0, false
 		}
-		if !found {
-			return false
-		}
+		resolved = append(resolved, mitMenge(available[idx], ref.Menge))
+		totalCents += available[idx].EinzelpreisCents * ref.Menge
 	}
-	return true
-}
-
-// ResolvePositionen returns the requested positions as fat positions (name, category and
-// price included, so the event is self-contained) and their total in cents.
-func ResolvePositionen(available []Position, requested []PositionRef) ([]Position, int) {
-	resolved := make([]Position, 0, len(requested))
-	totalCents := 0
-	for _, ref := range requested {
-		for _, pos := range available {
-			if pos.PositionID == ref.PositionID {
-				resolved = append(resolved, Position{
-					PositionID:       pos.PositionID,
-					VarianteID:       pos.VarianteID,
-					ProduktName:      pos.ProduktName,
-					VarianteName:     pos.VarianteName,
-					Kategorie:        pos.Kategorie,
-					Steuersatz:       pos.Steuersatz,
-					EinzelpreisCents: pos.EinzelpreisCents,
-					Menge:            ref.Menge,
-					Pfand:            pos.Pfand,
-				})
-				totalCents += pos.EinzelpreisCents * ref.Menge
-				break
-			}
-		}
-	}
-	return resolved, totalCents
+	return resolved, totalCents, true
 }

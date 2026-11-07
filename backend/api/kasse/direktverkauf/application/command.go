@@ -181,12 +181,11 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	}
 	nichtStorniert := eintrag.OffenePositionen
 
-	if !kasse.ValidatePositionRefs(nichtStorniert, positionen) {
+	resolvedPositionen, gesamtStornierungCents, ok := kasse.ResolvePositionen(nichtStorniert, positionen)
+	if !ok {
 		log.Warn("Storno-Invariante verletzt: angeforderte Positionen nicht stornierbar", "verkauf_id", verkaufID)
 		return ErrPositionNichtStornierbar
 	}
-
-	resolvedPositionen, gesamtStornierungCents := kasse.ResolvePositionen(nichtStorniert, positionen)
 
 	evt, err := kasse.NewDirektverkaufStorniertEvent(subject, verkaufID, userID, userName, resolvedPositionen, gesamtStornierungCents, kommentar)
 	if err != nil {
