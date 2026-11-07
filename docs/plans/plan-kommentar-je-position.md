@@ -148,13 +148,13 @@ Demo: Ein Bestellkommentar aus 100 Umlauten lässt sich vollständig eingeben un
 
 ### Acceptance criteria
 
-- [ ] Zod-Grenze und Kürzung zählen Codepoints (Fall „zählt Umlaute und Emoji als je ein Zeichen" in `frontend/src/lib/zeichen.test.ts`): `set -o pipefail; cd frontend && pnpm exec vitest run src/lib/zeichen.test.ts -t 'zählt Umlaute und Emoji als je ein Zeichen' --reporter=verbose | grep -- '✓ .*zählt Umlaute und Emoji als je ein Zeichen'`
-- [ ] Das Kommentarfeld kappt Einfügungen auf 100 Zeichen (fünf Fälle in `frontend/src/service/CommentField.test.tsx`): `cd frontend && out="$(pnpm exec vitest run src/service/CommentField.test.tsx -t 'kürzt die Einfügung auf 100 Zeichen' --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -c '✓ .*kürzt die Einfügung auf 100 Zeichen')" -eq 5`
-- [ ] Keine Byte-Zählung bleibt im Frontend: `test ! -e frontend/src/lib/utf8.ts && ! grep -rnE 'utf8Bytes|maxUtf8Bytes|kuerzeAufUtf8Bytes|KOMMENTAR_MAX_BYTES|UTF-8-Bytes' frontend/src`
-- [ ] Der Backlog-Punkt ist erledigt und entfernt: `! grep -q 'Zeichen gegen Bytes' docs/backlog.md`
-- [ ] Gate: `make check check-repo check-format`
-- [ ] Lint: `make lint`
-- [ ] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
+- [x] Zod-Grenze und Kürzung zählen Codepoints (Fall „zählt Umlaute und Emoji als je ein Zeichen" in `frontend/src/lib/zeichen.test.ts`): `set -o pipefail; cd frontend && pnpm exec vitest run src/lib/zeichen.test.ts -t 'zählt Umlaute und Emoji als je ein Zeichen' --reporter=verbose | grep -- '✓ .*zählt Umlaute und Emoji als je ein Zeichen'`
+- [x] Das Kommentarfeld kappt Einfügungen auf 100 Zeichen (fünf Fälle in `frontend/src/service/CommentField.test.tsx`): `cd frontend && out="$(pnpm exec vitest run src/service/CommentField.test.tsx -t 'kürzt die Einfügung auf 100 Zeichen' --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -c '✓ .*kürzt die Einfügung auf 100 Zeichen')" -eq 5`
+- [x] Keine Byte-Zählung bleibt im Frontend: `test ! -e frontend/src/lib/utf8.ts && ! grep -rnE 'utf8Bytes|maxUtf8Bytes|kuerzeAufUtf8Bytes|KOMMENTAR_MAX_BYTES|UTF-8-Bytes' frontend/src`
+- [x] Der Backlog-Punkt ist erledigt und entfernt: `! grep -q 'Zeichen gegen Bytes' docs/backlog.md`
+- [x] Gate: `make check check-repo check-format`
+- [x] Lint: `make lint`
+- [x] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
 
 ## Phase 2: Positionskommentar am Tisch
 
