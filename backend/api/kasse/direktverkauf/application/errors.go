@@ -11,13 +11,7 @@ var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 // ErrKasseWirdAbgeschlossen signals the transient status 'wird_abgeschlossen' — the Kassenabschluss barrier is active.
 var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 
-var ErrTischNichtGefunden = errors.New("tisch nicht gefunden")
-
-var ErrTischNichtAktiv = errors.New("tisch nicht aktiv")
-
 var ErrVerkaufNichtGefunden = errors.New("verkauf nicht gefunden")
-
-var ErrRueckgabeNichtGefunden = errors.New("pfandrueckgabe nicht gefunden")
 
 // ErrPfandrueckgabeAbweichend: the rueckgabeId or the verkaufId is booked, but not with the
 // request's content or without its settled partner.

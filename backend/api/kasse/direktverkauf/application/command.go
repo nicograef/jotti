@@ -11,7 +11,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
-	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
@@ -24,7 +23,6 @@ type eventRepo interface {
 	ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungNr int, tischID int) ([]event.Event, error)
 	GetDirektverkauf(ctx context.Context, verkaufID string) (event.Event, bool, error)
 	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
-	GetPfandrueckgabeStornierung(ctx context.Context, stornierungID string) (event.Event, bool, error)
 }
 
 type kassensitzungenRepo interface {
@@ -36,10 +34,6 @@ type produktRepo interface {
 	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
 }
 
-type tischRepo interface {
-	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
-}
-
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
@@ -49,10 +43,9 @@ type Command struct {
 	ProduktRepo         produktRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
-	TischRepo           tischRepo
 }
 
-// getOffeneKassensitzungOderFehler rejects the Direktverkauf or Pfandrückgabe before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
+// getOffeneKassensitzungOderFehler rejects the Direktverkauf before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {

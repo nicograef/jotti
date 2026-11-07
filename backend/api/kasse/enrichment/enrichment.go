@@ -1,5 +1,5 @@
-// Package enrichment turns thin position inputs into fat kasse.Position values and builds the
-// Pfandrückgabe settled with a Zahlung or a Direktverkauf, shared by both command paths.
+// Package enrichment turns thin position inputs into fat kasse.Position values for the Kasse commands
+// and builds the Pfandrückgabe settled with a Zahlung or a Direktverkauf.
 package enrichment
 
 import (

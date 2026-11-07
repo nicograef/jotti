@@ -9,8 +9,11 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
+	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -19,10 +22,122 @@ import (
 	"github.com/nicograef/jotti/backend/repository/tisch_repo"
 )
 
+func cleanPfandDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+	stmts := []string{
+		"DELETE FROM tse_signaturauftraege",
+		"DELETE FROM druckauftraege",
+		"DELETE FROM tisch_sessions",
+		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
+		"DELETE FROM kassenjournal",
+		"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",
+		"DELETE FROM kassensitzungen",
+		"DELETE FROM tische",
+		"DELETE FROM produkt_varianten",
+		"DELETE FROM produkte",
+		"DELETE FROM users",
+	}
+	for _, stmt := range stmts {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("cleanPfandDB %q: %v", stmt, err)
+		}
+	}
+}
+
+func setupPfandIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql.DB, userID, ksNr, produktID, varianteID int) {
+	t.Helper()
+	db = dbtest.Open()
+	cleanPfandDB(t, db)
+	t.Cleanup(func() {
+		cleanPfandDB(t, db)
+		_ = db.Close()
+	})
+
+	ctx = context.Background()
+
+	if err := db.QueryRow(
+		"INSERT INTO users (name, username, role, status, password_hash, onetime_password_hash, created_at, updated_at) VALUES ('Test', 'test', 'admin', 'active', 'hash', 'hash', now(), now()) RETURNING id",
+	).Scan(&userID); err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	if err := db.QueryRow(
+		"INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, 'Test', 'offen', now(), now()) RETURNING z_nr",
+	).Scan(&ksNr); err != nil {
+		t.Fatalf("create kassensitzung: %v", err)
+	}
+
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, created_at, updated_at) VALUES ('Bier', 'getraenk', 'regel', 'active', now(), now()) RETURNING id",
+	).Scan(&produktID); err != nil {
+		t.Fatalf("create produkt: %v", err)
+	}
+
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, '0.5L', 350, 'active', now(), now()) RETURNING id",
+		produktID,
+	).Scan(&varianteID); err != nil {
+		t.Fatalf("create variante: %v", err)
+	}
+
+	cmd = Command{
+		EventRepo:           kassenjournal_repo.NewRepository(db),
+		ProduktRepo:         produkt_repo.NewRepository(db),
+		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
+		TischRepo:           tisch_repo.NewRepository(db),
+	}
+	return
+}
+
+// keineDruckstationen leaves the Direktverkauf without Arbeitsbons.
+type keineDruckstationen struct{}
+
+func (keineDruckstationen) GetKonfigurierteDruckstationen(context.Context) (map[string]druckstation.Druckstation, error) {
+	return nil, nil
+}
+
+// newDirektverkaufCommand books a Direktverkauf with settled Pfand, the partner a pure Rückgabe must not match.
+func newDirektverkaufCommand(db *sql.DB) direktverkaufApp.Command {
+	return direktverkaufApp.Command{
+		EventRepo:           kassenjournal_repo.NewRepository(db),
+		ProduktRepo:         produkt_repo.NewRepository(db),
+		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
+		DruckstationRepo:    keineDruckstationen{},
+	}
+}
+
+// insertPfandVariante legt ein aktives Pfand-Produkt „Pfand" mit der Variante „Glas" zu 200 Cent an.
+func insertPfandVariante(t *testing.T, db *sql.DB) (produktID, varianteID int) {
+	t.Helper()
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfand', 'sonstiges', 'regel', 'active', true, now(), now()) RETURNING id",
+	).Scan(&produktID); err != nil {
+		t.Fatalf("create pfand produkt: %v", err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Glas', 200, 'active', now(), now()) RETURNING id",
+		produktID,
+	).Scan(&varianteID); err != nil {
+		t.Fatalf("create pfand variante: %v", err)
+	}
+	return produktID, varianteID
+}
+
+// verrechnungsFall carries what a case of the Abweichend test needs to book its first Vorgang and
+// its retry.
+type verrechnungsFall struct {
+	ctx                    context.Context
+	cmd                    Command
+	direktverkauf          direktverkaufApp.Command
+	userID                 int
+	verkaufID, rueckgabeID string
+	verkauf, pfand         func(menge int) []enrichment.PositionInput
+}
+
 // TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg: two calls with the same rueckgabeId store one event
 // and one Signaturauftrag; the second call answers success.
 func TestPfandZurueckgeben_DuplikatRueckgabeId_IdempotenterErfolg(t *testing.T) {
-	ctx, cmd, db, userID, _, produktID, varianteID := setupDVIntegration(t)
+	ctx, cmd, db, userID, _, produktID, varianteID := setupPfandIntegration(t)
 
 	if _, err := db.Exec("UPDATE produkte SET pfand = true WHERE id = $1", produktID); err != nil {
 		t.Fatalf("Pfand-Kennzeichen setzen: %v", err)
@@ -68,15 +183,15 @@ func TestPfandZurueckgeben_AbweichendeRueckgabe_KeinEvent(t *testing.T) {
 			return f.cmd.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(3), "")
 		}},
 		{"mit Verkauf verrechnet", func(f verrechnungsFall) error {
-			return f.cmd.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
+			return f.direktverkauf.DirektverkaufTaetigen(f.ctx, f.userID, "test", f.verkaufID, f.verkauf(2), "", &enrichment.PfandEingabe{RueckgabeID: f.rueckgabeID, Positionen: f.pfand(2)})
 		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cmd, db, userID, _, produktID, varianteID := setupDVIntegration(t)
+			ctx, cmd, db, userID, _, produktID, varianteID := setupPfandIntegration(t)
 			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 			f := verrechnungsFall{
-				ctx: ctx, cmd: cmd, userID: userID,
+				ctx: ctx, cmd: cmd, direktverkauf: newDirektverkaufCommand(db), userID: userID,
 				verkaufID: uuid.New().String(), rueckgabeID: uuid.New().String(),
 				verkauf: func(menge int) []enrichment.PositionInput {
 					return []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
@@ -127,7 +242,7 @@ func TestPfandZurueckgeben_AmTisch(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+			ctx, cmd, db, userID, ksNr, produktID, varianteID := setupPfandIntegration(t)
 			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 			pfand := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}}
 			rueckgabeID := uuid.New().String()
@@ -202,7 +317,7 @@ func verrechneMitZahlung(t *testing.T, db *sql.DB, userID, ksNr, tischID int, be
 // TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg: two cancellations with the
 // same stornierungId store one event and one Signaturauftrag; the second call answers success.
 func TestPfandrueckgabeStornieren_DuplikatStornierungId_IdempotenterErfolg(t *testing.T) {
-	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupDVIntegration(t)
+	ctx, cmd, db, userID, ksNr, produktID, varianteID := setupPfandIntegration(t)
 
 	if _, err := db.Exec("UPDATE produkte SET pfand = true WHERE id = $1", produktID); err != nil {
 		t.Fatalf("Pfand-Kennzeichen setzen: %v", err)
@@ -263,7 +378,7 @@ func TestPfandrueckgabeStornieren_AbweichendeStornierungId_KeinEvent(t *testing.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cmd, db, userID, ksNr, _, _ := setupDVIntegration(t)
+			ctx, cmd, db, userID, ksNr, _, _ := setupPfandIntegration(t)
 			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 			inputs := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 2}}
 
@@ -315,7 +430,7 @@ func TestPfandrueckgabeStornieren_AbweichendeStornierungId_KeinEvent(t *testing.
 // A stornierungId equal to the rueckgabeId of another Rückgabe would export two Belege with one
 // BON_ID; the cross-type BON_ID index refuses it and nothing is booked.
 func TestPfandrueckgabeStornieren_StornierungIdGleichFremderRueckgabeId_KeinEvent(t *testing.T) {
-	ctx, cmd, db, userID, ksNr, _, _ := setupDVIntegration(t)
+	ctx, cmd, db, userID, ksNr, _, _ := setupPfandIntegration(t)
 	pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 	inputs := []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 1}}
 

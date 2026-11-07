@@ -8,9 +8,57 @@ import (
 	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
+
+type eventRepo interface {
+	WriteEvent(ctx context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+	ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
+	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
+	GetPfandrueckgabeStornierung(ctx context.Context, stornierungID string) (event.Event, bool, error)
+}
+
+type kassensitzungenRepo interface {
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+}
+
+type produktRepo interface {
+	GetVariantenByIDs(ctx context.Context, ids []int) (map[int]produkt.VarianteMitProdukt, error)
+	GetProdukteByIDs(ctx context.Context, ids []int) (map[int]produkt.Produkt, error)
+}
+
+type tischRepo interface {
+	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
+}
+
+// Command books the pure Pfandrückgabe and its Storno, a Vorgang of its own (D19). A Rückgabe
+// settled with a Zahlung or a Direktverkauf is written by those commands.
+type Command struct {
+	EventRepo           eventRepo
+	ProduktRepo         produktRepo
+	KassensitzungenRepo kassensitzungenRepo
+	TischRepo           tischRepo
+}
+
+// getOffeneKassensitzungOderFehler rejects the Pfandrückgabe before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
+func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
+	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
+	if err != nil {
+		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
+		return nil, ErrDatabase
+	}
+	if ks == nil {
+		return nil, ErrKasseNichtGeoeffnet
+	}
+	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
+		return nil, ErrKasseWirdAbgeschlossen
+	}
+	return ks, nil
+}
 
 // PfandZurueckgeben writes the Rückgabe as version 1 of its own stream; tischID 0 is the
 // Direktverkauf. rueckgabeID is the client's idempotency key: on an OCC conflict see
@@ -42,7 +90,7 @@ func (c Command) PfandZurueckgeben(ctx context.Context, userID int, userName str
 		return err
 	}
 
-	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, 0, ks.ZNr); err != nil {
+	if err := c.writeEventOCC(ctx, evt, subject, 0, ks.ZNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			return c.pruefeReineRueckgabe(ctx, rueckgabeID, tischID, inputs)
 		}
@@ -121,7 +169,7 @@ func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userN
 		return err
 	}
 
-	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypePfandrueckgabe, subject, events[len(events)-1].Version, ks.ZNr); err != nil {
+	if err := c.writeEventOCC(ctx, evt, subject, events[len(events)-1].Version, ks.ZNr); err != nil {
 		if errors.Is(err, ErrConflict) {
 			if gebucht, err := c.pruefeGebuchteStornierung(ctx, stornierungID, rueckgabeID, positionen); gebucht || err != nil {
 				return err
@@ -161,90 +209,6 @@ func (c Command) pruefeGebuchteStornierung(ctx context.Context, stornierungID st
 	return true, nil
 }
 
-// pruefeVerrechnetenVerkauf answers a conflicting settled Direktverkauf: success only if the
-// Rückgabe and the Verkauf written with it both match the request. A Verkauf without this Rückgabe,
-// or a Rückgabe without this Verkauf, is a different Vorgang under a reused ID.
-func (c Command) pruefeVerrechnetenVerkauf(ctx context.Context, verkaufID string, inputs []enrichment.PositionInput, pfand *enrichment.PfandEingabe) error {
-	log := logging.FromContext(ctx)
-
-	rueckgabe, rueckgabeGefunden, err := c.getPfandrueckgabe(ctx, pfand.RueckgabeID)
-	if err != nil {
-		return err
-	}
-	verkauf, verkaufGefunden, err := c.getDirektverkauf(ctx, verkaufID)
-	if err != nil {
-		return err
-	}
-	if !rueckgabeGefunden && !verkaufGefunden {
-		return ErrConflict
-	}
-
-	gleich := rueckgabeGefunden && verkaufGefunden
-	if gleich {
-		gleich, err = gleicheVerrechnung(rueckgabe, enrichment.MengenJeVariante(pfand.Positionen), verkauf, enrichment.MengenJeVariante(inputs))
-		if err != nil {
-			log.Error("Failed to compare stored direktverkauf with pfand", "error", err, "verkauf_id", verkaufID)
-			return ErrDatabase
-		}
-	}
-	if !gleich {
-		log.Warn("Verrechneter Direktverkauf weicht vom gebuchten ab", "verkauf_id", verkaufID, "rueckgabe_id", pfand.RueckgabeID)
-		return ErrPfandrueckgabeAbweichend
-	}
-	log.Info("Idempotenter Direktverkauf mit Pfand: beide Vorgänge bereits vorhanden", "verkauf_id", verkaufID, "rueckgabe_id", pfand.RueckgabeID)
-	return nil
-}
-
-func gleicheVerrechnung(rueckgabe event.Event, pfandMengen map[int]int, verkauf event.Event, verkaufMengen map[int]int) (bool, error) {
-	gleich, err := kasse.GleicheRueckgabe(rueckgabe, 0, pfandMengen)
-	if err != nil || !gleich {
-		return false, err
-	}
-	if _, found := kasse.VerrechnungsPartner(rueckgabe, []event.Event{verkauf}, kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2); !found {
-		return false, nil
-	}
-	return kasse.GleicherVerkauf(verkauf, verkaufMengen)
-}
-
-// pruefeUnverrechnetenVerkauf answers a conflicting Direktverkauf without Pfand: success only if the
-// stored Verkauf was booked without a Rückgabe too, else it collected only the net price under this ID.
-func (c Command) pruefeUnverrechnetenVerkauf(ctx context.Context, verkaufID string) error {
-	log := logging.FromContext(ctx)
-
-	verkauf, found, err := c.getDirektverkauf(ctx, verkaufID)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return ErrConflict
-	}
-	verrechnet, err := c.verkaufVerrechnet(ctx, verkauf)
-	if err != nil {
-		log.Error("Failed to look up the pfandrueckgabe of a direktverkauf", "error", err, "verkauf_id", verkaufID)
-		return ErrDatabase
-	}
-	if verrechnet {
-		log.Warn("Direktverkauf mit Pfandrückgabe bereits gebucht", "verkauf_id", verkaufID)
-		return ErrPfandrueckgabeAbweichend
-	}
-	log.Info("Idempotenter Direktverkauf: verkaufId bereits vorhanden", "verkauf_id", verkaufID)
-	return nil
-}
-
-// verkaufVerrechnet reports whether a Rückgabe was written with the stored Verkauf.
-func (c Command) verkaufVerrechnet(ctx context.Context, verkauf event.Event) (bool, error) {
-	zNr, err := kasse.ParseZNrFromSubject(verkauf.Subject)
-	if err != nil {
-		return false, err
-	}
-	rueckgaben, err := c.EventRepo.ReadPfandrueckgabeEvents(ctx, zNr, 0)
-	if err != nil {
-		return false, err
-	}
-	_, found := kasse.VerrechnungsPartner(verkauf, rueckgaben, kasse.EventTypePfandZurueckgegebenV1)
-	return found, nil
-}
-
 // rueckgabeVerrechnet reports whether a Zahlung (tischID > 0) or a Verkauf (tischID 0) was written
 // with the stored Rückgabe.
 func (c Command) rueckgabeVerrechnet(ctx context.Context, rueckgabe event.Event, tischID int) (bool, error) {
@@ -265,15 +229,6 @@ func (c Command) rueckgabeVerrechnet(ctx context.Context, rueckgabe event.Event,
 	}
 	_, found := kasse.VerrechnungsPartner(rueckgabe, partner, typen...)
 	return found, nil
-}
-
-func (c Command) getDirektverkauf(ctx context.Context, verkaufID string) (event.Event, bool, error) {
-	verkauf, found, err := c.EventRepo.GetDirektverkauf(ctx, verkaufID)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to read direktverkauf", "error", err, "verkauf_id", verkaufID)
-		return event.Event{}, false, ErrDatabase
-	}
-	return verkauf, found, nil
 }
 
 func (c Command) getPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error) {
@@ -318,4 +273,36 @@ func (c Command) pruefeAktivenTisch(ctx context.Context, tischID int) error {
 		return ErrTischNichtAktiv
 	}
 	return nil
+}
+
+// writeEventOCC writes at expectedVersion+1: 0 for a fresh stream, the replay's highest version for
+// a Storno.
+func (c Command) writeEventOCC(ctx context.Context, e event.Event, subject string, expectedVersion int, kassensitzungNr int) error {
+	e.Version = expectedVersion + 1
+
+	if _, err := c.EventRepo.WriteEvent(ctx, e, kasse.StreamTypePfandrueckgabe, kassensitzungNr); err != nil {
+		return fromWriteError(ctx, err, "subject", subject, "version", e.Version, "type", e.Type)
+	}
+	return nil
+}
+
+// fromWriteError maps an event-write error: a UNIQUE(subject, version) violation or a deadlock means
+// the stream changed since reading (ErrConflict), a Kassensitzung closed since reading is
+// ErrKasseNichtGeoeffnet.
+func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
+	log := logging.FromContext(ctx)
+	switch {
+	case errors.Is(err, db.ErrAlreadyExists):
+		log.Warn("OCC conflict", logArgs...)
+		return ErrConflict
+	case errors.Is(err, db.ErrConflict):
+		log.Warn("Deadlock on event write", logArgs...)
+		return ErrConflict
+	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
+		log.Warn("Kassensitzung nicht mehr offen", logArgs...)
+		return ErrKasseNichtGeoeffnet
+	default:
+		log.Error("Failed to write events", append([]any{"error", err}, logArgs...)...)
+		return ErrDatabase
+	}
 }

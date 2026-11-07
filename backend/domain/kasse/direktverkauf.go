@@ -108,3 +108,28 @@ func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieE
 	}
 	return DirektverkaufHistorieEintrag{VorgangHistorieEintrag: eintrag, VerkaufID: data.VerkaufID}, nil
 }
+
+// BuildVorgangHistorie groups the events by subject and builds one entry per stream, most recent first.
+func BuildVorgangHistorie[T any](events []e.Event, buildEintrag func([]e.Event) (T, error)) ([]T, error) {
+	subjectOrder := []string{}
+	eventsBySubject := map[string][]e.Event{}
+	for _, evt := range events {
+		if _, seen := eventsBySubject[evt.Subject]; !seen {
+			subjectOrder = append(subjectOrder, evt.Subject)
+		}
+		eventsBySubject[evt.Subject] = append(eventsBySubject[evt.Subject], evt)
+	}
+
+	historie := make([]T, 0, len(subjectOrder))
+	for _, subject := range subjectOrder {
+		eintrag, err := buildEintrag(eventsBySubject[subject])
+		if err != nil {
+			return nil, err
+		}
+		historie = append(historie, eintrag)
+	}
+
+	slices.Reverse(historie)
+
+	return historie, nil
+}

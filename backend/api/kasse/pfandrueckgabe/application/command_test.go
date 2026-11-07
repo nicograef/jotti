@@ -15,6 +15,63 @@ import (
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
+const testKassensitzungNr = 1
+
+var testOpenKS = &kasse.Kassensitzung{
+	ZNr:    testKassensitzungNr,
+	Status: kasse.KassensitzungOffen,
+}
+
+var testProduct = produkt.Produkt{
+	ID:         1,
+	Name:       "Cola",
+	Kategorie:  produkt.GetraenkKategorie,
+	Steuersatz: steuer.RegelSteuersatz,
+	Status:     produkt.ActiveStatus,
+}
+
+var testVariant = produkt.Variante{
+	ID:         1,
+	Name:       "Cola 0,5l",
+	PreisCents: 350,
+	Status:     produkt.ActiveStatus,
+}
+
+// spyEventRepo records WriteEvent calls so tests can assert the exact write contract
+// (single event, stream type, version, subject).
+type spyEventRepo struct {
+	written      []writtenEvent
+	streamEvents []event.Event
+}
+
+type writtenEvent struct {
+	event           event.Event
+	streamType      kasse.StreamType
+	kassensitzungNr int
+}
+
+func (s *spyEventRepo) ReadEventsBySubject(_ context.Context, _ string) ([]event.Event, error) {
+	return s.streamEvents, nil
+}
+
+func (s *spyEventRepo) WriteEvent(_ context.Context, e event.Event, streamType kasse.StreamType, kassensitzungNr int) (int, error) {
+	s.written = append(s.written, writtenEvent{event: e, streamType: streamType, kassensitzungNr: kassensitzungNr})
+	return len(s.written), nil
+}
+
+// The lookups find nothing: the idempotency path is not exercised in these unit tests.
+func (s *spyEventRepo) ReadDirektverkaufEvents(_ context.Context, _ int) ([]event.Event, error) {
+	return nil, nil
+}
+
+func (s *spyEventRepo) GetPfandrueckgabe(_ context.Context, _ string) (event.Event, bool, error) {
+	return event.Event{}, false, nil
+}
+
+func (s *spyEventRepo) GetPfandrueckgabeStornierung(_ context.Context, _ string) (event.Event, bool, error) {
+	return event.Event{}, false, nil
+}
+
 func newPfandCommand(eventRepo eventRepo) Command {
 	pfandProdukt := produkt.Produkt{ID: 2, Name: "Pfand", Kategorie: produkt.SonstigesKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus, Pfand: true}
 	produkte := repotest.NewProduktRepo([]produkt.Produkt{testProduct, pfandProdukt}, nil)
@@ -24,7 +81,6 @@ func newPfandCommand(eventRepo eventRepo) Command {
 		EventRepo:           eventRepo,
 		ProduktRepo:         produkte,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 }
 

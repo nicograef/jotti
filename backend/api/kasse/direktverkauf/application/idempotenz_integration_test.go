@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	pfandrueckgabeApp "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
 	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
@@ -83,7 +84,6 @@ func setupDVIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql
 		ProduktRepo:         produkt_repo.NewRepository(db),
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		DruckstationRepo:    &mockDruckstationRepo{},
-		TischRepo:           tisch_repo.NewRepository(db),
 	}
 	return
 }
@@ -227,6 +227,7 @@ func TestDirektverkaufTaetigen_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t
 type verrechnungsFall struct {
 	ctx                    context.Context
 	cmd                    Command
+	rueckgabe              pfandrueckgabeApp.Command
 	userID                 int
 	verkaufID, rueckgabeID string
 	verkauf, pfand         func(menge int) []enrichment.PositionInput
@@ -259,7 +260,7 @@ func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
 		{"Rückgabe ohne Verkauf",
 			func(f verrechnungsFall) error {
-				return f.cmd.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(2), "")
+				return f.rueckgabe.PfandZurueckgeben(f.ctx, f.userID, "test", f.rueckgabeID, 0, f.pfand(2), "")
 			},
 			func(f verrechnungsFall) error { return mitPfand(f, 2) }},
 		{"Verkauf mit Rückgabe, Wiederholung ohne Pfand",
@@ -274,6 +275,12 @@ func TestDirektverkaufTaetigen_MitPfand_Abweichend_KeinEvent(t *testing.T) {
 			pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
 			f := verrechnungsFall{
 				ctx: ctx, cmd: cmd, userID: userID,
+				rueckgabe: pfandrueckgabeApp.Command{
+					EventRepo:           kassenjournal_repo.NewRepository(db),
+					ProduktRepo:         produkt_repo.NewRepository(db),
+					KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
+					TischRepo:           tisch_repo.NewRepository(db),
+				},
 				verkaufID: uuid.New().String(), rueckgabeID: uuid.New().String(),
 				verkauf: func(menge int) []enrichment.PositionInput {
 					return []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}

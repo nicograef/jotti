@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	"github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
+	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
@@ -26,15 +27,23 @@ func (m *mockPfandCommand) PfandrueckgabeStornieren(context.Context, int, string
 	return m.err
 }
 
+func requestWithUser(body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(req.Context(), middleware.UserIDKey, 1)
+	ctx = context.WithValue(ctx, middleware.UserNameKey, "Test User")
+	return req.WithContext(ctx)
+}
+
 const validPfandStornoBody = `{"stornierungId":"11111111-1111-4111-8111-111111111111","rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"positionId":"33333333-3333-4333-8333-333333333333","menge":1}],"kommentar":"Falsch gezählt"}`
 
 // Each row is a request the handler must refuse: a body the schema rejects, or a
 // domain error and the status and wire code it maps to.
-func TestPfandCommandHandler_Abweisungen(t *testing.T) {
-	stornieren := (*PfandCommandHandler).PfandrueckgabeStornierenHandler
+func TestCommandHandler_Abweisungen(t *testing.T) {
+	stornieren := (*CommandHandler).PfandrueckgabeStornierenHandler
 	tests := []struct {
 		name       string
-		handler    func(*PfandCommandHandler) http.HandlerFunc
+		handler    func(*CommandHandler) http.HandlerFunc
 		err        error
 		body       string
 		wantStatus int
@@ -47,7 +56,7 @@ func TestPfandCommandHandler_Abweisungen(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
 
-			tt.handler(&PfandCommandHandler{Command: &mockPfandCommand{err: tt.err}}).ServeHTTP(rec, requestWithUser(tt.body))
+			tt.handler(&CommandHandler{Command: &mockPfandCommand{err: tt.err}}).ServeHTTP(rec, requestWithUser(tt.body))
 
 			if rec.Code != tt.wantStatus {
 				t.Fatalf("expected status %d, got %d: %s", tt.wantStatus, rec.Code, rec.Body.String())
@@ -61,7 +70,6 @@ func TestPfandCommandHandler_Abweisungen(t *testing.T) {
 
 // mockQuery records the tischId of a Pfandrückgabe-Historie call.
 type mockQuery struct {
-	query
 	pfandTischID int
 }
 
@@ -76,7 +84,7 @@ func TestPfandHandler_TischID(t *testing.T) {
 	const nichtAufgerufen = -1
 	zurueckgeben := func(rec *httptest.ResponseRecorder, body string) int {
 		cmd := &mockPfandCommand{tischID: nichtAufgerufen}
-		(&PfandCommandHandler{Command: cmd}).PfandZurueckgebenHandler().ServeHTTP(rec, requestWithUser(body))
+		(&CommandHandler{Command: cmd}).PfandZurueckgebenHandler().ServeHTTP(rec, requestWithUser(body))
 		return cmd.tischID
 	}
 	historie := func(rec *httptest.ResponseRecorder, body string) int {

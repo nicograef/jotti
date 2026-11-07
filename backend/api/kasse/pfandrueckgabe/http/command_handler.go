@@ -8,20 +8,34 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
-	"github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	"github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
-type pfandCommand interface {
+type command interface {
 	PfandZurueckgeben(ctx context.Context, userID int, userName string, rueckgabeID string, tischID int, positionen []enrichment.PositionInput, kommentar string) error
 	PfandrueckgabeStornieren(ctx context.Context, userID int, userName string, stornierungID string, rueckgabeID string, positionen []kasse.PositionRef, kommentar string) error
 }
 
-type PfandCommandHandler struct {
-	Command pfandCommand
+type CommandHandler struct {
+	Command command
+}
+
+// kasseFehler opens every Kasse handler's table: a stale write or a closed Kasse is a 409.
+var kasseFehler = []helper.ErrorCode{
+	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
+	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
+	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
+}
+
+// pfandEingabeFehler covers the Pfand and product checks of the position enrichment.
+var pfandEingabeFehler = []helper.ErrorCode{
+	{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
+	{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
+	{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 }
 
 type pfandZurueckgebenRequest struct {
@@ -39,7 +53,7 @@ var pfandZurueckgebenSchema = z.Struct(z.Shape{
 	"Kommentar":  z.String().Max(100),
 })
 
-func (h *PfandCommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
+func (h *CommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := pfandZurueckgebenRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, pfandZurueckgebenSchema) {
@@ -84,7 +98,7 @@ var pfandrueckgabeStornierenSchema = z.Struct(z.Shape{
 	return ok && body.StornierungID != body.RueckgabeID
 }, z.Message("Stornierungs-ID muss sich von der Rückgabe-ID unterscheiden"))
 
-func (h *PfandCommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc {
+func (h *CommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := pfandrueckgabeStornierenRequest{}
 		if !helper.ReadAndValidateBody(w, r, &body, pfandrueckgabeStornierenSchema) {

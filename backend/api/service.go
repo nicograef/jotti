@@ -7,6 +7,8 @@ import (
 	belegHTTP "github.com/nicograef/jotti/backend/api/druck/beleg/http"
 	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/http"
+	pfandrueckgabeApp "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
+	pfandrueckgabeHTTP "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/http"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
 	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
@@ -56,12 +58,16 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 		ProduktRepo:         deps.ProduktRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
-		TischRepo:           deps.TischRepo,
 	}
 	dc := direktverkaufHTTP.CommandHandler{Command: dvCommand}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 
-	pc := direktverkaufHTTP.PfandCommandHandler{Command: dvCommand}
+	pc := pfandrueckgabeHTTP.CommandHandler{Command: pfandrueckgabeApp.Command{
+		EventRepo:           deps.KassenjournalRepo,
+		ProduktRepo:         deps.ProduktRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		TischRepo:           deps.TischRepo,
+	}}
 	r.HandleFunc("/pfand-zurueckgeben", pc.PfandZurueckgebenHandler())
 
 	dq := direktverkaufHTTP.QueryHandler{Query: direktverkaufApp.Query{
@@ -69,7 +75,12 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 	}}
 	r.HandleFunc("/get-direktverkauf-historie", dq.GetDirektverkaufHistorieHandler())
-	r.HandleFunc("/get-pfandrueckgabe-historie", dq.GetPfandrueckgabeHistorieHandler())
+
+	pfq := pfandrueckgabeHTTP.QueryHandler{Query: pfandrueckgabeApp.Query{
+		EventRepo:           deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+	}}
+	r.HandleFunc("/get-pfandrueckgabe-historie", pfq.GetPfandrueckgabeHistorieHandler())
 
 	tq := tischgeschaeftHTTP.QueryHandler{Query: tischgeschaeftApp.Query{
 		TischRepo:           deps.TischRepo,

@@ -5,6 +5,8 @@ import (
 
 	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	direktverkaufHTTP "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/http"
+	pfandrueckgabeApp "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
+	pfandrueckgabeHTTP "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/http"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
 )
@@ -26,12 +28,16 @@ func NewServiceleitungApi(deps Deps) (http.Handler, []string) {
 		ProduktRepo:         deps.ProduktRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
-		TischRepo:           deps.TischRepo,
 	}
 	dc := direktverkaufHTTP.CommandHandler{Command: dvCommand}
 	r.HandleFunc("/direktverkauf-stornieren", dc.DirektverkaufStornierenHandler())
 
-	pc := direktverkaufHTTP.PfandCommandHandler{Command: dvCommand}
+	pc := pfandrueckgabeHTTP.CommandHandler{Command: pfandrueckgabeApp.Command{
+		EventRepo:           deps.KassenjournalRepo,
+		ProduktRepo:         deps.ProduktRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		TischRepo:           deps.TischRepo,
+	}}
 	r.HandleFunc("/pfandrueckgabe-stornieren", pc.PfandrueckgabeStornierenHandler())
 
 	return r.Handler(), r.Paths()
