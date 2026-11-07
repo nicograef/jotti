@@ -117,7 +117,7 @@ Namenskonvention: deutsch, Partizip-Form, Pattern `{Substantiv}-{Partizip}:v{N}`
 | Event                        | Semantik                                                     | Tragende Constraints                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | `direktverkauf-getaetigt:v1` | Barverkauf an der Theke: Bestellen + Zahlen in einem Schritt | Immer `version = 1` des Streams                                                                                                 |
-| `direktverkauf-getaetigt:v2` | Wie v1, mit Pfand-Kennzeichen je Position                    | `pfand` je Position aus dem Produkt eingefroren; neue Verkäufe schreiben nur v2                                                 |
+| `direktverkauf-getaetigt:v2` | Wie v1, mit Pfand-Kennzeichen je Position                    | `pfand` je Position aus dem Produkt eingefroren; optional `kommentar` je Position (D22); neue Verkäufe schreiben nur v2         |
 | `direktverkauf-storniert:v1` | Positionsgenauer Storno eines Direktverkaufs                 | Folge-Version im selben Stream; Fat-Positionen; Bargeld-Rückgabe inklusive (→ [3.3](#33-subject-design-hierarchische-subjects)) |
 
 **Pfand-Events** (Subject `kassensitzung-{nr}/pfandrueckgabe-{rueckgabeId}`):
@@ -329,7 +329,7 @@ Der Pfandbeleg ist ein Kassenbeleg mit negativen Positionen, negativer Steuermat
 **Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt` wird aus den konfigurierten Druckstationen abgeleitet:
 
 - Trägt die Abholbon-Station den Bonmodus `kein_bon`, entsteht kein Auftrag, auch nicht an den Produktstationen. Ihre IP spielt dann keine Rolle.
-- Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit.
+- Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit. Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon.
 - Sonst entstehen Arbeitsbons an die Produktstationen.
 - Ohne konfigurierte Stationen entsteht kein Auftrag.
 
