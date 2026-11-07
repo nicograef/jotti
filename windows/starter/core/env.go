@@ -15,9 +15,9 @@ func StateDir(goos, programData, fallback string) string {
 	return fallback
 }
 
-// PostgresUser ist der Postgres-Rollenname und die einzige Quelle der Wahrheit
-// dafuer: EnvContent schreibt ihn in die .env, das Pre-Update-Backup dumpt als
-// dieser Rolle. Wert wie .env.example / scripts/init-env.sh.
+// PostgresUser ist der Postgres-Rollenname: EnvContent schreibt ihn in die .env, das
+// Pre-Update-Backup dumpt als diese Rolle. Wert wie .env.example und
+// scripts/init-env.sh; stack_contract_test.go haelt die Windows-Skripte daran fest.
 const PostgresUser = "admin"
 
 // EnvContent erzeugt den .env-Inhalt mit frisch erzeugten Secrets. Die erste Zeile

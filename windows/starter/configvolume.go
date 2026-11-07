@@ -11,11 +11,6 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-// configVolume ist das von Compose verwaltete jotti-config-Volume. Compose stellt
-// benannten Volumes den Projektnamen (jotti-local) voran, daher lautet der Name,
-// den der Starter ansprechen muss, "jotti-local_jotti-config".
-const configVolume = "jotti-local_jotti-config"
-
 const configVolumePath = "/config/.env"
 
 // configHelperImage liest/schreibt das Volume in einem Wegwerf-Container: bewusst
@@ -101,8 +96,8 @@ func ensureConfigVolume() error {
 		return nil
 	}
 	out, err := exec.Command("docker", "volume", "create",
-		"--label", "com.docker.compose.project=jotti-local",
-		"--label", "com.docker.compose.volume=jotti-config",
+		"--label", "com.docker.compose.project="+composeProject,
+		"--label", "com.docker.compose.volume="+configVolumeKey,
 		configVolume).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("jotti-config-Volume anlegen fehlgeschlagen: %w: %s", err, strings.TrimSpace(string(out)))

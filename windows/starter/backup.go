@@ -12,16 +12,6 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-// postgresContainer ist der feste container_name des postgres-Service. pg_dump
-// laeuft per `docker exec` darin: lokale Socket-Verbindungen sind dort
-// trust-authentifiziert, also braucht das Backup kein Passwort.
-const postgresContainer = "jotti-postgres-local"
-
-const postgresDataVolume = "jotti-local_postgres-data"
-
-// backupDir ist der Mountpunkt des jotti-backups-Volumes im postgres-Container.
-const backupDir = "/jotti-backups"
-
 const keptBackups = 5
 
 // hostBackupDirName ist der Unterordner im Zustandsverzeichnis (unter Windows
