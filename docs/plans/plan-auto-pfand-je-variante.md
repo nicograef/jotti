@@ -12,6 +12,7 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 ## Architectural decisions
 
 - **Schema:** Eine additive Migration `17_pfand_verknuepfung.up.sql` (Nummer: nächste freie ab 17; landet #145 vorher mit eigener Migration, wird es 18; der Lead legt die Nummer beim Landen fest).
+  - In `BEGIN; … COMMIT;`; der Kopfkommentar übernimmt aus Migration 09 den Satz, dass die Feldliste der View `jsonVariante` spiegelt.
   - `ALTER TABLE produkt_varianten ADD COLUMN pfand_variante_id INT REFERENCES produkt_varianten(id)`, nullable, mit `COMMENT ON COLUMN`.
   - `CREATE OR REPLACE VIEW produkt_varianten_json` mit zusätzlichem Schlüssel `'pfandVarianteId', pfand_variante_id`; Spaltenliste der View bleibt gleich.
   - Kein Index, kein CHECK: Dutzende Varianten je Verein, Selbstverweis schließt die Domänenregel aus. Kein Datenschreiben.
@@ -19,8 +20,8 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 - **Domäne:** `produkt.Variante.PfandVarianteID *int` (nil = kein Pfand), ohne json-Tag.
   - `produkt.PruefePfandVerknuepfung(quelle Produkt, ziel Produkt, zielVarianteID int) error` ist die reine Regel.
   - Reihenfolge der Prüfung: Ziel-Variante fehlt, ist gelöscht oder gehört zu keinem Pfand-Produkt → `ErrPfandZielUngueltig`; Quelle ist Pfand-Produkt → `ErrPfandVerkettet`; Steuersatz verschieden → `ErrPfandSteuersatzAbweichend`.
-  - `produkt.PruefePfandVerknuepfungen(katalog []Produkt, produktID int) error` prüft jede Verknüpfung, die von Varianten des Produkts ausgeht oder auf sie zeigt.
-  - Verliert das Ziel-Produkt dabei sein Pfand-Kennzeichen, meldet sie `ErrPfandNochVerknuepft` statt `ErrPfandZielUngueltig`.
+  - `produkt.PruefePfandVerknuepfungen(katalog []Produkt, produktID int) error` (Phase 3) prüft jede Verknüpfung, die von Varianten des Produkts ausgeht oder auf sie zeigt.
+  - Verliert das Ziel-Produkt dabei sein Pfand-Kennzeichen, meldet sie `ErrPfandNochVerknuepft` (Phase 3) statt `ErrPfandZielUngueltig`.
 - **Fehlercodes (400), Texte zentral in `frontend/src/lib/errorMessages.ts`:**
 
   | Code                          | Meldung                                                                                                     |
@@ -41,8 +42,11 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 - **Frontend-Admin:** Auswahl und Lösch-Hinweis leitet das Frontend aus der Admin-Produktliste ab (reine Funktionen in `admin/products/pfandVerknuepfung.ts`). `Products` reicht die Liste als `katalog` an `ProductItem`, `VariantChip`, `NewVariantDialog` und `EditVariantDialog` weiter.
 - **Frontend-Service:** Reine Kopplung `mitPfand()` in `service/pfandKopplung.ts`; `useMengen().setAll` nimmt zusätzlich eine Updater-Funktion, damit Plus und Minus funktional auf den aktuellen Stand wirken. Kein globaler Store.
 - **Abholbon:** `createAbholbonAuftraege` filtert Pfand-Positionen vor der Bonmodus-Verzweigung; eine leere Restliste ergibt keinen Auftrag. Der Rückfall ohne Abholbon-IP an die Produktstationen bleibt unverändert.
-- **Parallelität:** Phasen 1 und 2 teilen `docs/handbuch.md` und laufen nacheinander. Phasen 3 und 4 berühren disjunkte Dateien und laufen parallel.
-- **Gates:** Backend-Phase: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration`. Phasen mit Frontend zusätzlich `E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`.
+- **Parallelität:** Phasen 1, 2 und 3 teilen `docs/handbuch.md` und laufen nacheinander. Phase 4 berührt keine Datei der Phasen 1 und 3 und darf neben jeder von ihnen laufen.
+- **Gates:** Backend-Teil: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration`.
+  - Phasen 2 und 3 zusätzlich `E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`.
+  - Phase 4 nutzt einen eigenen E2E-Stack (`jotti-autopfand-e2e-4`, Port 8092), weil sie neben Phase 3 läuft.
+  - Ein `-run`- oder `-t`-Filter ohne Treffer läuft grün durch: Ein Häkchen braucht den genannten Test in der Ausgabe (`-v` bzw. Vitest-Bericht).
 
 ## Inventory
 
@@ -86,7 +90,7 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 7. **Risiko #145 (landet vorher):** gibt `direktverkauf-getaetigt:v2` eine eigene Positionsform mit `pfand` und `kommentar` und ändert `positionenMitKommentarEventData` sowie `arbeitsbon_policy_test.go`. Phase 1 baut auf dieser Form auf und wird nach dem Landen von #145 rebased.
 8. **Risiko Zusatzdrucker (landet danach):** schreibt das Direktverkauf-Routing in `arbeitsbon_policy.go` um. Sein Plan muss den Pfand-Filter des Abholbons übernehmen.
 9. **Risiko `fix/q-cross`:** fügt Idempotenzschlüssel für Tisch-/Direktverkauf-Storno und Umbuchung hinzu. Überschneidung: `frontend/src/hooks/use-mengen.ts` (Storno- und Umbuchungs-Drawer nutzen `useMengen`), `frontend/src/lib/errorMessages.ts` (neue Codes) und die `DirektverkaufTab`-Tests. Der Kassenbeleg mit TSE-Start- und Endzeit berührt diesen Plan nicht. Die Feature-Spur startet erst nach dem Programm-Abschluss; jede Phase baut auf dem Stand von main mit `fix/q-cross` auf und rebased bei Konflikt dorthin.
-10. **Bekannte Unschärfe (PRD):** Nach dem Abzug für ein eigenes Glas zieht ein weiteres Minus am Getränk noch ein Pfand ab; die Vorschau zeigt das Ergebnis.
+10. **Bekannte Unschärfe (PRD):** Nach dem Abzug für ein eigenes Glas zieht ein weiteres Minus am Getränk noch ein Pfand ab; die Vorschau zeigt das Ergebnis. Empfehlung: hinnehmen wie im PRD; eine Zuordnung Pfand je Stück ist Out of Scope.
 
 ## Phase 1: Abholbon ohne Pfand-Positionen
 
@@ -112,7 +116,6 @@ Tischbestellungen und der Rückfall an die Produktstationen bleiben unverändert
 ### Acceptance criteria
 
 - [ ] Neuer Tabellentest `TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand` über `pro_bestellung`, `pro_position` und `pro_stueck`: Bier ×2 plus Pfand ×2 ergibt nur Abholbons mit Bier, ein reiner Pfand-Verkauf keinen Auftrag. Verify: `cd backend && go test ./api/druck/bondruck/application/ -run 'TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand' -v`
-- [ ] Der Seed-Bondruck bleibt bei genau einem Sammel-Abholbon je Direktverkauf. Verify: `cd backend && go test ./seed/ -run 'TestBuildDruckauftraege_ReferenzenUndPayloads'`
 - [ ] Handbuch §4.5 nennt die Pfand-Regel des Abholbons. Verify: `grep -n 'Pfand-Positionen' docs/handbuch.md`
 - [ ] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration`
 
@@ -124,7 +127,7 @@ Tischbestellungen und der Rückfall an die Produktstationen bleiben unverändert
 
 - `database/migrations/09_produkt_varianten_json.up.sql` — Feldliste der View, die `jsonVariante` spiegelt.
 - `backend/sqlc/queries/produkte.sql — GetVariante, CreateVariante, UpdateVariante, GetProdukt` — Spalte ergänzen, Kommentar „Migration 09" auf die neue Migration umstellen.
-- `backend/domain/produkt/variante.go — Variante, VarianteSchema, NewVariante(), UpdateDetails()` — Feld `PfandVarianteID`, Regel-Funktionen und Domänenfehler.
+- `backend/domain/produkt/variante.go — Variante, VarianteSchema, NewVariante(), UpdateDetails()` — Feld `PfandVarianteID`, Regel-Funktion und drei Domänenfehler.
 - `backend/domain/produkt/variante_test.go — TestNewVariante_Preisgrenze()` — Vorbild des Tabellentests.
 - `backend/repository/produkt_repo/types.go — jsonVariante, toDomain(), varianteRowToDomain()` — Verweis lesen; Kommentar auf die neue Migration umstellen.
 - `backend/repository/produkt_repo/variant.go — CreateVariante()` und `backend/repository/produkt_repo/repo.go — updateVarianteParams()` — Verweis schreiben.
@@ -156,7 +159,7 @@ Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert 
 - Die Queries `GetVariante`, `CreateVariante` und `UpdateVariante` lesen und schreiben `pfand_variante_id`.
 - Neue Query `EntfernePfandVerweise :exec` (`UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = $1 WHERE pfand_variante_id = ANY($2::int[])`); Phase 3 ruft sie auf.
 - Domäne: Feld, `NewVariante(name, preisCents, pfandVarianteID *int)`, `UpdateDetails(name, preisCents, pfandVarianteID *int)`.
-- Domäne: `PruefePfandVerknuepfung()`, `PruefePfandVerknuepfungen()` und die vier Fehler `ErrPfandZielUngueltig`, `ErrPfandVerkettet`, `ErrPfandSteuersatzAbweichend`, `ErrPfandNochVerknuepft`.
+- Domäne: `PruefePfandVerknuepfung()` und die drei Fehler `ErrPfandZielUngueltig`, `ErrPfandVerkettet`, `ErrPfandSteuersatzAbweichend`.
 - Repository: `jsonVariante.PfandVarianteID *int` mit `json:"pfandVarianteId"`, `varianteRowToDomain()`, `CreateVariante()`, `updateVarianteParams()`.
 - Anwendung: `CreateVariante(ctx, produktID, name, preisCents, pfandVarianteID *int)` und `UpdateVariante(ctx, varianteID, name, preisCents, pfandVarianteID *int)`.
   - Mit Verweis laden beide den Katalog per `GetAllProdukte` und suchen Quell- und Zielprodukt.
@@ -177,12 +180,12 @@ Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert 
 
 - [ ] Migration läuft auf frischer DB, sqlc ist synchron. Verify: `make check-sqlc && TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' make check-integration`
 - [ ] Tabellentest `TestPruefePfandVerknuepfung`: gültig; Ziel ohne Pfand-Kennzeichen; Ziel-Variante gelöscht; Quelle ist Pfand-Produkt; `regel` gegen `ermaessigt`; `kombi` gegen `kombi` gültig; `kombi` gegen `regel` abgelehnt. Verify: `cd backend && go test ./domain/produkt/ -run TestPruefePfandVerknuepfung -v`
-- [ ] Integrationstest `TestPfandVerknuepfung_Roundtrip`: Der Verweis kommt aus `GetProdukt`, `GetAllProdukte` und `GetVariante` zurück und übersteht Deaktivieren und Aktivieren der Variante. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestPfandVerknuepfung' make check-integration`
+- [ ] Integrationstest `TestPfandVerknuepfung_Roundtrip`: Der Verweis kommt aus `GetProdukt`, `GetAllProdukte` und `GetVariante` zurück und übersteht Deaktivieren und Aktivieren der verknüpfenden Variante über `UpdateVariante()`. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestPfandVerknuepfung' make check-integration`
 - [ ] `CreateVariante` und `UpdateVariante` lehnen einen Steuersatzbruch mit `ErrPfandSteuersatzAbweichend` ab und schreiben nichts; ein gültiger Verweis wird gespeichert. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestVariantePfandVerknuepfung' -v`
 - [ ] Der Service-Lesepfad liefert null für eine inaktive Pfand-Variante, der Admin-Lesepfad ihre ID. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestGetActiveProdukte_PfandVerweis' -v`
 - [ ] `create-variante` nimmt Bodies ohne `pfandVarianteId` und mit `null` an und weist `0` mit 400 ab. Verify: `cd backend && go test ./api/stammdaten/produkt/http/ -run 'TestCommandHandler_PfandVarianteId' -v`
 - [ ] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
-- [ ] Admin: Ohne passende Pfand-Variante fehlt das Feld „Pfand"; mit Pfand-Produkten zu 19 % und 7 % bietet es an einem 19-%-Produkt nur das 19-%-Pfand an. Die Auswahl sendet `pfandVarianteId`, und der Chip zeigt „+ Pfand". Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'Pfand'`
+- [ ] Admin, Tests mit „Pfand-Verknüpfung" im Namen: Ohne passende Pfand-Variante fehlt das Feld „Pfand"; mit Pfand-Produkten zu 19 % und 7 % bietet es an einem 19-%-Produkt nur das 19-%-Pfand an. Die Auswahl sendet `pfandVarianteId`, und der Chip zeigt „+ Pfand". Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'Pfand-Verknüpfung'`
 - [ ] Frontend-Typen und Fixtures passen. Verify: `cd frontend && pnpm typecheck`
 - [ ] Handbuch §4.1 beschreibt die Pfand-Verknüpfung. Verify: `grep -n 'pfandVarianteId' docs/handbuch.md`
 - [ ] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
@@ -195,7 +198,7 @@ Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert 
 
 - `backend/api/stammdaten/produkt/application/command.go — UpdateProdukt(), DeleteVariante(), DeleteProdukt(), produktRepo` — Katalogprüfung und transaktionales Löschen.
 - `backend/api/stammdaten/produkt/application/errors.go` — Alias `ErrPfandNochVerknuepft`.
-- `backend/domain/produkt/variante.go — PruefePfandVerknuepfungen()` — aus Phase 2.
+- `backend/domain/produkt/variante.go — PruefePfandVerknuepfung()` — aus Phase 2; daneben entstehen `PruefePfandVerknuepfungen()` und `ErrPfandNochVerknuepft`.
 - `backend/repository/produkt_repo/repo.go — DeleteProduktMitVarianten()` — Verweise in derselben Transaktion entfernen.
 - `backend/repository/produkt_repo/variant.go` — neue Methode `DeleteVariante(ctx, v produkt.Variante)`.
 - `backend/sqlc/dbgen/produkte.sql.go — EntfernePfandVerweise()` — aus Phase 2.
@@ -214,6 +217,7 @@ Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert 
 
 Keine Produktänderung und kein Löschen hinterlässt eine Verknüpfung, die eine Regel bricht.
 
+- Domäne: `PruefePfandVerknuepfungen()` und `ErrPfandNochVerknuepft` wie in den Architekturentscheidungen.
 - `UpdateProdukt()` lädt den Katalog, ersetzt darin das geänderte Produkt und ruft `PruefePfandVerknuepfungen(katalog, produktID)`.
   - Ein Steuersatzwechsel mit bestehender Verknüpfung scheitert mit `ErrPfandSteuersatzAbweichend`.
   - Pfand-Kennzeichen aus, solange Varianten auf das Produkt zeigen, scheitert mit `ErrPfandNochVerknuepft`.
@@ -228,7 +232,7 @@ Keine Produktänderung und kein Löschen hinterlässt eine Verknüpfung, die ein
 ### Acceptance criteria
 
 - [ ] Steuersatzwechsel, Kennzeichen aus und Kennzeichen an scheitern bei bestehender Verknüpfung mit ihrem Sentinel und schreiben nichts; ohne Verknüpfung gelingt jede dieser Änderungen. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestUpdateProdukt_PfandVerknuepfung' -v`
-- [ ] Löschen einer Pfand-Variante und Löschen eines Pfand-Produkts setzen jeden Verweis darauf auf NULL; ein Verweis auf eine andere Variante bleibt. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestDelete.*Pfand' make check-integration`
+- [ ] `TestDeleteVariante_EntferntPfandVerweise` und `TestDeleteProduktMitVarianten_EntferntPfandVerweise`: Löschen einer Pfand-Variante und eines Pfand-Produkts setzt jeden Verweis darauf auf NULL; ein Verweis auf eine andere Variante bleibt. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestDelete.*_EntferntPfandVerweise$' make check-integration`
 - [ ] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
 - [ ] Admin: Beide Lösch-Dialoge nennen „Verknüpfte Varianten verlieren ihr Pfand." genau dann, wenn eine Variante auf das Gelöschte zeigt. Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'verlieren ihr Pfand'`
 - [ ] Handbuch §4.1 beschreibt Prüfung und Löschen. Verify: `grep -n 'pfand_noch_verknuepft' docs/handbuch.md`
@@ -259,14 +263,14 @@ Plus auf „Bier 0,5 l" legt im Warenkorb ein Glaspfand dazu, am Tisch wie im Di
 - Neue Datei `frontend/src/service/pfandKopplung.ts`:
   - `pfandVerknuepfungen(produkte)` liefert `Map<varianteId, { varianteId, preisCents }>` aus den Varianten mit `pfandVarianteId`, deren Ziel in `produkte` steht.
   - `mitPfand(mengen, varianteId, schritt: 'plus' | 'minus', verknuepfungen)` ist rein.
-  - Plus erhöht Variante und Pfand um je eins. Minus senkt die Variante um eins, sofern sie über null liegt, und das Pfand um eins, solange es über null liegt.
+  - Plus erhöht Variante und Pfand um je eins. Minus senkt die Variante um eins und das Pfand um eins, solange es über null liegt; steht die Variante auf null, ändert Minus nichts.
   - Plus und Minus am Pfand selbst ändern nur das Pfand.
 - `useMengen().setAll` nimmt einen Wert oder einen Updater.
 - `BestellungTab` und `DirektverkaufTab` übergeben `ProductList` die Handler `onAdd={(id) => setAll((m) => mitPfand(m, id, 'plus', verknuepfungen))}` und entsprechend `onRemove`.
 - `VariantRow` zeigt bei verknüpfter Variante unter dem Preis „+ 2,00 € Pfand" (Betrag der Pfand-Variante über `formatEuro`); `ProductList` berechnet `pfandVerknuepfungen(props.products)` selbst.
 - `docs/language.md`: Einleitungssatz zu Pfand umschreiben (Pfand kommt aus der Verknüpfung oder wird getippt).
   - Dazu zwei Zeilen „Pfand-Variante" und „Pfand-Verknüpfung" mit Code-Mapping: Go `Variante.PfandVarianteID`, JSON/TS `pfandVarianteId`, DB `produkt_varianten.pfand_variante_id`, TS `mitPfand`.
-- `docs/leitfaden/belege-steuersaetze.md`: Pfand-Absatz um die Einrichtung im Variantendialog ergänzen (Feld „Pfand", nur gleicher Steuersatz, Abzug beim eigenen Glas). Kein Kombi-Rat.
+- `docs/leitfaden/belege-steuersaetze.md`: Pfand-Absatz um die Einrichtung ergänzen: Dialoge „Neue Variante anlegen" und „Variante bearbeiten", Feld „Pfand", nur gleicher Steuersatz, Abzug beim eigenen Glas. Kein Kombi-Rat.
 - `docs/decisions.md`: eine Zeile (nächste freie D-Nummer) ohne Dateipfad.
   - Inhalt: Auto-Pfand als Stammdaten-Verknüpfung einer Variante auf eine Pfand-Variante gleichen Steuersatzes, ohne Kombi-Sonderfall. Der Warenkorb legt das Pfand sichtbar als gewöhnliche Position dazu; Events, Bestell-API und Export bleiben unverändert.
   - Begründung: Ein Aufschlag am Preis bräche D20, ein Anhängen im Backend versteckte das Pfand bis nach dem Buchen.
@@ -275,8 +279,8 @@ Plus auf „Bier 0,5 l" legt im Warenkorb ein Glaspfand dazu, am Tisch wie im Di
 ### Acceptance criteria
 
 - [ ] Tabellentest `mitPfand`: Plus; Minus; Boden bei null für Variante und Pfand; zwei Varianten mit einem Pfand summieren sich; Plus und Minus am Pfand von Hand ändern nur das Pfand. Verify: `cd frontend && pnpm exec vitest run src/service/pfandKopplung.test.ts`
-- [ ] Am Tisch zeigt die verknüpfte Zeile „+ 2,00 € Pfand", und Plus auf sie sendet Variante und Pfand mit je Menge 1 an `service/bestellung-aufnehmen`. Verify: `cd frontend && pnpm exec vitest run src/service/table/BestellungTab.test.tsx -t 'Pfand'`
-- [ ] Im Direktverkauf sendet Plus auf eine verknüpfte Variante Variante und Pfand an `service/direktverkauf-taetigen`. Verify: `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufTab.test.tsx -t 'Pfand'`
-- [ ] Jedes im Leitfaden zitierte UI-Label existiert im Frontend. Verify: `./scripts/check-ui-labels.sh`
-- [ ] Glossar und Entscheidung stehen. Verify: `grep -n 'Pfand-Verknüpfung' docs/language.md docs/decisions.md`
-- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
+- [ ] Am Tisch zeigt die verknüpfte Zeile „+ 2,00 € Pfand", und Plus auf sie sendet Variante und Pfand mit je Menge 1 an `service/bestellung-aufnehmen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/table/BestellungTab.test.tsx -t 'Auto-Pfand'`
+- [ ] Im Direktverkauf sendet Plus auf eine verknüpfte Variante Variante und Pfand an `service/direktverkauf-taetigen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufTab.test.tsx -t 'Auto-Pfand'`
+- [ ] Der Leitfaden beschreibt die Einrichtung, und jedes zitierte UI-Label existiert im Frontend. Verify: `grep -n 'Neue Variante anlegen' docs/leitfaden/belege-steuersaetze.md && ./scripts/check-ui-labels.sh`
+- [ ] Glossar und Entscheidung stehen. Verify: `grep -q 'Pfand-Verknüpfung' docs/language.md && grep -q 'Pfand-Verknüpfung' docs/decisions.md`
+- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && E2E_STACK_PROJECT=jotti-autopfand-e2e-4 E2E_STACK_PORT=8092 make test-e2e`
