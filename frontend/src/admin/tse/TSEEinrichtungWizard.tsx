@@ -25,18 +25,10 @@ import { SETUP_FEHLER, ZUGANGSDATEN_FEHLER } from './setupFehler'
 import {
   type TSEEinrichtenErgebnis,
   type TSESetupBefund,
-  type TSSBefund,
   type Umgebung,
 } from './TSEBackend'
 import { TSSListe, UmgebungAnzeige } from './TSSAnzeige'
 import { UebernahmeSchritt } from './UebernahmeSchritt'
-
-// Ab UNINITIALIZED verlangt die Übernahme die Admin-PIN (siehe brauchtPin).
-const UEBERNEHMBARE_ZUSTAENDE = ['CREATED', 'UNINITIALIZED', 'INITIALIZED']
-
-function istUebernehmbar(tss: TSSBefund): boolean {
-  return UEBERNEHMBARE_ZUSTAENDE.includes(tss.state)
-}
 
 export function TSEEinrichtungWizard() {
   const [apiKey, setApiKey] = useState('')
@@ -182,14 +174,11 @@ function BefundSchritt({
   // Die „eigene" TSS (diese Kasse ist dort schon angemeldet) zuerst, damit der
   // Admin bei mehreren TSS den naheliegenden Übernahme-Kandidaten oben findet.
   const uebernehmbar = befund.vorhandeneTss
-    .filter(istUebernehmbar)
+    .filter((tss) => tss.uebernehmbar)
     .sort(
       (a, b) =>
         Number(b.passenderClient !== null) - Number(a.passenderClient !== null),
     )
-  const nurDisabledOderLeer = befund.vorhandeneTss.every(
-    (tss) => tss.state === 'DISABLED',
-  )
   const istTest = befund.umgebung === 'TEST'
 
   return (
@@ -220,7 +209,7 @@ function BefundSchritt({
             />
           )}
         </div>
-      ) : nurDisabledOderLeer ? (
+      ) : befund.neuanlageMoeglich ? (
         <BestaetigungSchritt
           apiKey={apiKey}
           apiSecret={apiSecret}

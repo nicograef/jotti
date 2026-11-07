@@ -92,6 +92,35 @@ func TestCheckTSESetup_ErkenntPassendenClient(t *testing.T) {
 	if befund.VorhandeneTSS[1].PassenderClient != nil {
 		t.Errorf("expected no matching client for tss-2, got %+v", befund.VorhandeneTSS[1].PassenderClient)
 	}
+	if want := (Uebernahme{Moeglich: true, Einsatzbereit: true}); tss1.Uebernahme != want {
+		t.Errorf("expected tss-1 Uebernahme %+v, got %+v", want, tss1.Uebernahme)
+	}
+	if befund.NeuanlageMoeglich {
+		t.Error("expected no new setup while an active TSS exists")
+	}
+}
+
+func TestBewerteUebernahme(t *testing.T) {
+	registriert := &ClientBefund{State: tse.ClientRegistered}
+	abgemeldet := &ClientBefund{State: tse.ClientDeregistered}
+	cases := []struct {
+		state     tse.TSSZustand
+		passender *ClientBefund
+		want      Uebernahme
+	}{
+		{tse.TSSCreated, nil, Uebernahme{Moeglich: true}},
+		{tse.TSSUninitialized, nil, Uebernahme{Moeglich: true, PINErforderlich: true}},
+		{tse.TSSInitialized, registriert, Uebernahme{Moeglich: true, Einsatzbereit: true}},
+		{tse.TSSInitialized, abgemeldet, Uebernahme{Moeglich: true, PINErforderlich: true}},
+		{tse.TSSInitialized, nil, Uebernahme{Moeglich: true, PINErforderlich: true}},
+		{tse.TSSDisabled, nil, Uebernahme{}},
+		{tse.TSSDefective, registriert, Uebernahme{}},
+	}
+	for _, tc := range cases {
+		if got := bewerteUebernahme(tc.state, tc.passender); got != tc.want {
+			t.Errorf("bewerteUebernahme(%s, %+v) = %+v, want %+v", tc.state, tc.passender, got, tc.want)
+		}
+	}
 }
 
 // ErrTSESetupZugangsdaten drives the wizard's readable error message.
@@ -127,6 +156,9 @@ func TestCheckTSESetup_LeeresKonto(t *testing.T) {
 	}
 	if len(befund.VorhandeneTSS) != 0 {
 		t.Errorf("expected no TSS for an empty account, got %d", len(befund.VorhandeneTSS))
+	}
+	if !befund.NeuanlageMoeglich {
+		t.Error("expected a new setup to be possible on an empty account")
 	}
 }
 

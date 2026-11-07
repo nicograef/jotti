@@ -44,6 +44,7 @@ type tseVerbindungResponse struct {
 	ClientState         string `json:"clientState"`
 	ClientSerialNumber  string `json:"clientSerialNumber"`
 	SeriennummerKorrekt bool   `json:"seriennummerKorrekt"`
+	Signiertfaehig      bool   `json:"signiertfaehig"`
 }
 
 type tseStatusResponse struct {
@@ -62,14 +63,18 @@ var checkTSESetupSchema = z.Struct(z.Shape{
 })
 
 type tseSetupBefundResponse struct {
-	Umgebung      string              `json:"umgebung"`
-	VorhandeneTSS []tssBefundResponse `json:"vorhandeneTss"`
+	Umgebung          string              `json:"umgebung"`
+	VorhandeneTSS     []tssBefundResponse `json:"vorhandeneTss"`
+	NeuanlageMoeglich bool                `json:"neuanlageMoeglich"`
 }
 
 type tssBefundResponse struct {
 	ID              string                `json:"id"`
 	State           string                `json:"state"`
 	PassenderClient *clientBefundResponse `json:"passenderClient"`
+	Uebernehmbar    bool                  `json:"uebernehmbar"`
+	Einsatzbereit   bool                  `json:"einsatzbereit"`
+	PINErforderlich bool                  `json:"pinErforderlich"`
 }
 
 type clientBefundResponse struct {
@@ -135,6 +140,7 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 			ClientState:         string(status.ClientState),
 			ClientSerialNumber:  status.ClientSerialNumber,
 			SeriennummerKorrekt: status.SeriennummerKorrekt,
+			Signiertfaehig:      status.Signiertfaehig(),
 		})
 	}
 }
@@ -176,12 +182,16 @@ func (h *QueryHandler) CheckTSESetupHandler() http.HandlerFunc {
 				ID:              t.ID,
 				State:           string(t.State),
 				PassenderClient: client,
+				Uebernehmbar:    t.Uebernahme.Moeglich,
+				Einsatzbereit:   t.Uebernahme.Einsatzbereit,
+				PINErforderlich: t.Uebernahme.PINErforderlich,
 			})
 		}
 
 		helper.SendResponse(w, tseSetupBefundResponse{
-			Umgebung:      befund.Umgebung,
-			VorhandeneTSS: tssListe,
+			Umgebung:          befund.Umgebung,
+			VorhandeneTSS:     tssListe,
+			NeuanlageMoeglich: befund.NeuanlageMoeglich,
 		})
 	}
 }

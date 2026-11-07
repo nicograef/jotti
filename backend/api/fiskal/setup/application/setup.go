@@ -158,11 +158,13 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
+	bewertung := bewerteUebernahme(state, passenderClient(clients, seriennummer))
+	if !bewertung.Moeglich {
+		return TSESetupErgebnis{}, ErrTSESetupUebernahmeNichtMoeglich
+	}
 	clientID, aktion := passendeClientAktion(clients, seriennummer)
 
-	// Only this case runs no privileged fiskaly operation and therefore needs no admin PIN.
-	einsatzbereit := state == tse.TSSInitialized && aktion == clientFertig
-	zugang, err := bereiteAdminPINVor(ctx, log, client, state, tssID, pin, puk, einsatzbereit)
+	zugang, err := bereiteAdminPINVor(ctx, log, client, state, tssID, pin, puk, bewertung.PINErforderlich)
 	if err != nil {
 		return TSESetupErgebnis{}, err
 	}
@@ -266,6 +268,29 @@ func (c Command) fetchTSEStammdaten(ctx context.Context, log *slog.Logger, clien
 	return nil
 }
 
+// Uebernahme is the one decision on taking over an existing TSS; CheckTSESetup shows it, UebernimmTSE enforces it.
+// Einsatzbereit needs no privileged fiskaly operation, so only it and CREATED (jotti fetches the PUK) need no admin PIN.
+type Uebernahme struct {
+	Moeglich        bool
+	Einsatzbereit   bool
+	PINErforderlich bool
+}
+
+func bewerteUebernahme(state tse.TSSZustand, passender *ClientBefund) Uebernahme {
+	switch state {
+	case tse.TSSCreated:
+		return Uebernahme{Moeglich: true}
+	case tse.TSSUninitialized:
+		return Uebernahme{Moeglich: true, PINErforderlich: true}
+	case tse.TSSInitialized:
+		bereit := passender != nil && passender.State == tse.ClientRegistered
+		return Uebernahme{Moeglich: true, Einsatzbereit: bereit, PINErforderlich: !bereit}
+	case tse.TSSDisabled, tse.TSSDeleted, tse.TSSDefective, tse.TSSEvicted:
+		return Uebernahme{}
+	}
+	return Uebernahme{}
+}
+
 // clientAktion is the client step of an INITIALIZED TSS: register a new client,
 // reactivate a DEREGISTERED one, or nothing when the matching client is REGISTERED.
 type clientAktion int
@@ -300,7 +325,7 @@ type adminZugang struct {
 
 // bereiteAdminPINVor provides the admin PIN per start state (docs/handbuch.md §3.13): CREATED gets a fresh
 // one via the re-read PUK, later states use the stored PIN or reset it with the user's PUK.
-func bereiteAdminPINVor(ctx context.Context, log *slog.Logger, client tse.SetupClient, start tse.TSSZustand, tssID, pin, puk string, einsatzbereit bool) (adminZugang, error) {
+func bereiteAdminPINVor(ctx context.Context, log *slog.Logger, client tse.SetupClient, start tse.TSSZustand, tssID, pin, puk string, pinErforderlich bool) (adminZugang, error) {
 	switch start {
 	case tse.TSSCreated:
 		neuerPUK, err := client.GetAdminPUK(ctx, tssID)
@@ -328,7 +353,7 @@ func bereiteAdminPINVor(ctx context.Context, log *slog.Logger, client tse.SetupC
 			}
 			return adminZugang{pin: neuePIN, neuePIN: neuePIN}, nil
 		}
-		if !einsatzbereit && strings.TrimSpace(pin) == "" {
+		if pinErforderlich && strings.TrimSpace(pin) == "" {
 			return adminZugang{}, ErrTSESetupPINErforderlich
 		}
 		return adminZugang{pin: pin}, nil

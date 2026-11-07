@@ -10,7 +10,6 @@ import { useTSEKonfiguration } from './hooks'
 import {
   type TSEEinrichtenErgebnis,
   type TSEVerbindungStatus,
-  verbindungIstSigniertfaehig,
 } from './TSEBackend'
 
 export function ErgebnisSchritt({
@@ -132,7 +131,7 @@ export function ErgebnisSchritt({
 }
 
 function AbschlussTest({ status }: { status: TSEVerbindungStatus }) {
-  if (verbindungIstSigniertfaehig(status)) {
+  if (status.signiertfaehig) {
     return (
       <Alert>
         <AlertTitle>Verbindung bestätigt</AlertTitle>

@@ -26,8 +26,12 @@ const uebernehmbarerBefund: TSESetupBefund = {
       id: 'tss-1',
       state: 'UNINITIALIZED',
       passenderClient: null,
+      uebernehmbar: true,
+      einsatzbereit: false,
+      pinErforderlich: true,
     },
   ],
+  neuanlageMoeglich: false,
 }
 
 // INITIALIZED plus REGISTERED Client: einsatzbereit ohne Admin-PIN.
@@ -42,8 +46,12 @@ const einsatzbereiterBefund: TSESetupBefund = {
         serialNumber: 'jotti-1',
         state: 'REGISTERED',
       },
+      uebernehmbar: true,
+      einsatzbereit: true,
+      pinErforderlich: false,
     },
   ],
+  neuanlageMoeglich: false,
 }
 
 const neueTseErgebnis: TSEEinrichtenErgebnis = {
@@ -60,6 +68,7 @@ const bestaetigteVerbindung: TSEVerbindungStatus = {
   clientState: 'REGISTERED',
   clientSerialNumber: 'jotti-1',
   seriennummerKorrekt: true,
+  signiertfaehig: true,
 }
 
 // useTSEKonfiguration in the result step queries the stored configuration.
@@ -101,7 +110,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     const user = userEvent.setup()
     renderWithBackend(
       <TSEEinrichtungWizard />,
-      backend({ umgebung: 'TEST', vorhandeneTss: [] }),
+      backend({ umgebung: 'TEST', vorhandeneTss: [], neuanlageMoeglich: true }),
     )
 
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
@@ -148,7 +157,10 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 
   it('meldet die begonnene LIVE-Tippbestätigung', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, backend({ umgebung: 'LIVE', vorhandeneTss: [] }))
+    await bisZumBefund(
+      user,
+      backend({ umgebung: 'LIVE', vorhandeneTss: [], neuanlageMoeglich: true }),
+    )
 
     const vorher = VorgangsRegisterSingleton.anzahlOffen()
 
@@ -160,7 +172,7 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     const user = userEvent.setup()
     await bisZumBefund(
       user,
-      backend({ umgebung: 'TEST', vorhandeneTss: [] })
+      backend({ umgebung: 'TEST', vorhandeneTss: [], neuanlageMoeglich: true })
         .respond('admin/tse-einrichten', neueTseErgebnis)
         .respond('admin/test-tse-verbindung', bestaetigteVerbindung),
     )
@@ -190,7 +202,10 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
 describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
   it('sperrt die LIVE-Anlage, bis „LIVE" abgetippt ist', async () => {
     const user = userEvent.setup()
-    await bisZumBefund(user, backend({ umgebung: 'LIVE', vorhandeneTss: [] }))
+    await bisZumBefund(
+      user,
+      backend({ umgebung: 'LIVE', vorhandeneTss: [], neuanlageMoeglich: true }),
+    )
 
     const einrichten = screen.getByRole('button', { name: 'TSE einrichten' })
     expect(einrichten).toBeDisabled()
@@ -237,8 +252,16 @@ describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {
       backend({
         umgebung: 'TEST',
         vorhandeneTss: [
-          { id: 'tss-alt', state: 'DISABLED', passenderClient: null },
+          {
+            id: 'tss-alt',
+            state: 'DISABLED',
+            passenderClient: null,
+            uebernehmbar: false,
+            einsatzbereit: false,
+            pinErforderlich: false,
+          },
         ],
+        neuanlageMoeglich: true,
       }),
     )
 

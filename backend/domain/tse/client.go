@@ -112,6 +112,11 @@ type VerbindungStatus struct {
 	SeriennummerKorrekt bool
 }
 
+// Signiertfaehig: an initialized TSS with this Kasse's client registered signs every Vorgang.
+func (v VerbindungStatus) Signiertfaehig() bool {
+	return v.TSSState == TSSInitialized && v.ClientState == ClientRegistered && v.SeriennummerKorrekt
+}
+
 func (v VerbindungStatus) Validate() error {
 	if strings.TrimSpace(string(v.Umgebung)) == "" {
 		return fmt.Errorf("umgebung is required")

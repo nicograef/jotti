@@ -20,18 +20,6 @@ import {
   type Umgebung,
 } from './TSEBackend'
 
-// Eine INITIALIZED TSS mit registriertem (REGISTERED) Client braucht keine
-// privilegierte fiskaly-Operation und damit keine Admin-PIN.
-function istEinsatzbereit(tss: TSSBefund): boolean {
-  return (
-    tss.state === 'INITIALIZED' && tss.passenderClient?.state === 'REGISTERED'
-  )
-}
-
-function brauchtPin(tss: TSSBefund): boolean {
-  return tss.state !== 'CREATED' && !istEinsatzbereit(tss)
-}
-
 export function UebernahmeSchritt({
   apiKey,
   apiSecret,
@@ -75,9 +63,8 @@ export function UebernahmeSchritt({
     },
   })
 
-  const pinErforderlich = brauchtPin(tss)
+  const { pinErforderlich, einsatzbereit } = tss
   const pinFehlt = pinErforderlich && pin.trim() === ''
-  const einsatzbereit = istEinsatzbereit(tss)
 
   const handleUebernehmen = async () => {
     setPinUnbekannt(false)

@@ -31,15 +31,18 @@ type TSEStatus struct {
 }
 
 // TSESetupBefund marks per TSS a client whose serial number equals the Kassen-Seriennummer.
+// NeuanlageMoeglich is the lock RichteTSEEin applies without the TEST override.
 type TSESetupBefund struct {
-	Umgebung      string
-	VorhandeneTSS []TSSBefund
+	Umgebung          string
+	VorhandeneTSS     []TSSBefund
+	NeuanlageMoeglich bool
 }
 
 type TSSBefund struct {
 	ID              string
 	State           tse.TSSZustand
 	PassenderClient *ClientBefund
+	Uebernahme      Uebernahme
 }
 
 type ClientBefund struct {
@@ -134,8 +137,9 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 	seriennummer := identitaet.Seriennummer.String()
 
 	befund := TSESetupBefund{
-		Umgebung:      string(umgebung),
-		VorhandeneTSS: make([]TSSBefund, 0, len(tssList)),
+		Umgebung:          string(umgebung),
+		VorhandeneTSS:     make([]TSSBefund, 0, len(tssList)),
+		NeuanlageMoeglich: !hatAktiveTSS(tssList),
 	}
 	for _, t := range tssList {
 		clients, err := client.ListClients(ctx, t.ID)
@@ -144,10 +148,12 @@ func (q Query) CheckTSESetup(ctx context.Context, credentials tse.SetupCredentia
 			return TSESetupBefund{}, ErrTSEVerbindungFehlgeschlagen
 		}
 
+		passender := passenderClient(clients, seriennummer)
 		befund.VorhandeneTSS = append(befund.VorhandeneTSS, TSSBefund{
 			ID:              t.ID,
 			State:           t.State,
-			PassenderClient: passenderClient(clients, seriennummer),
+			PassenderClient: passender,
+			Uebernahme:      bewerteUebernahme(t.State, passender),
 		})
 	}
 

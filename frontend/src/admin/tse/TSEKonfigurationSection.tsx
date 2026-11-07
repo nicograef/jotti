@@ -32,7 +32,6 @@ import {
   type TSEKonfigurationSpeichern,
   TSEKonfigurationSpeichernSchema,
   type TSEVerbindungStatus,
-  verbindungIstSigniertfaehig,
 } from './TSEBackend'
 
 // Speichern und Leeren scheitern am selben Backend-Guard: offene Kassensitzung
@@ -117,7 +116,7 @@ function TSEKonfigurationForm({
     await runTestConnection(async () => {
       const status = await onTestConnection()
       setVerbindungStatus(status)
-      if (verbindungIstSigniertfaehig(status)) {
+      if (status.signiertfaehig) {
         toast.success('TSE-Verbindung erfolgreich getestet.')
       } else {
         toast.error('Verbindung steht, aber die TSE ist nicht signierfähig.')

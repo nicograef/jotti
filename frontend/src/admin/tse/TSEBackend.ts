@@ -21,18 +21,9 @@ const TSEVerbindungStatusSchema = z.object({
   clientState: z.string().min(1, 'Client-Status fehlt'),
   clientSerialNumber: z.string().min(1, 'Client-Seriennummer fehlt'),
   seriennummerKorrekt: z.boolean(),
+  signiertfaehig: z.boolean(),
 })
 export type TSEVerbindungStatus = z.infer<typeof TSEVerbindungStatusSchema>
-
-export function verbindungIstSigniertfaehig(
-  status: TSEVerbindungStatus,
-): boolean {
-  return (
-    status.tssState === 'INITIALIZED' &&
-    status.clientState === 'REGISTERED' &&
-    status.seriennummerKorrekt
-  )
-}
 
 const TSEClientBefundSchema = z.object({
   id: z.string(),
@@ -40,16 +31,21 @@ const TSEClientBefundSchema = z.object({
   state: z.string(),
 })
 
+// Ob und wie eine TSS übernommen werden kann, entscheidet das Backend.
 const TSSBefundSchema = z.object({
   id: z.string(),
   state: z.string(),
   passenderClient: TSEClientBefundSchema.nullable(),
+  uebernehmbar: z.boolean(),
+  einsatzbereit: z.boolean(),
+  pinErforderlich: z.boolean(),
 })
 export type TSSBefund = z.infer<typeof TSSBefundSchema>
 
 const TSESetupBefundSchema = z.object({
   umgebung: UmgebungSchema,
   vorhandeneTss: z.array(TSSBefundSchema),
+  neuanlageMoeglich: z.boolean(),
 })
 export type TSESetupBefund = z.infer<typeof TSESetupBefundSchema>
 
