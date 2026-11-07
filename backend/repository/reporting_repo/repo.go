@@ -252,11 +252,10 @@ func toAbrechnungServicekraft(rows []dbgen.GetKassiertProServicekraftRow) []repo
 	abrechnung := make([]reporting.AbrechnungServicekraft, len(rows))
 	for i, row := range rows {
 		abrechnung[i] = reporting.AbrechnungServicekraft{
-			UserID:          row.UserID,
-			UserName:        row.UserName,
-			Name:            row.Name,
-			KassiertCents:   row.KassiertCents,
-			AnzahlZahlungen: row.AnzahlZahlungen,
+			UserID:        row.UserID,
+			UserName:      row.UserName,
+			Name:          row.Name,
+			KassiertCents: row.KassiertCents,
 		}
 	}
 	return abrechnung

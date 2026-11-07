@@ -194,8 +194,8 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 		KassensitzungNr: testKassensitzungNr,
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{
-				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000, AnzahlZahlungen: 4},
-				{UserID: 7, UserName: "sophie", Name: "Sophie B.", KassiertCents: 4800, AnzahlZahlungen: 2},
+				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000},
+				{UserID: 7, UserName: "sophie", Name: "Sophie B.", KassiertCents: 4800},
 			},
 		},
 		Stornierungen: []reporting.StornierungDetail{
@@ -256,8 +256,8 @@ func TestGetReporting_AggregiertAbrechnungProServicekraft(t *testing.T) {
 // − Σ table Pfand, direct sales excluded on both sides. A Pfand-only row may turn negative.
 func TestGetReporting_SummeAbzugebenEntsprichtTischservice(t *testing.T) {
 	kassiert := []reporting.AbrechnungServicekraft{
-		{UserID: 3, UserName: "felix", KassiertCents: 5000, AnzahlZahlungen: 4},
-		{UserID: 7, UserName: "sophie", KassiertCents: 4000, AnzahlZahlungen: 2},
+		{UserID: 3, UserName: "felix", KassiertCents: 5000},
+		{UserID: 7, UserName: "sophie", KassiertCents: 4000},
 	}
 	stornierungen := []reporting.StornierungDetail{
 		{
@@ -534,8 +534,8 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		KassensitzungNr: testKassensitzungNr,
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{
-				{UserID: 7, UserName: "Anna", Name: "Anna A.", KassiertCents: 1500, AnzahlZahlungen: 2},
-				{UserID: 9, UserName: "Cleo", Name: "Cleo C.", KassiertCents: 900, AnzahlZahlungen: 1},
+				{UserID: 7, UserName: "Anna", Name: "Anna A.", KassiertCents: 1500},
+				{UserID: 9, UserName: "Cleo", Name: "Cleo C.", KassiertCents: 900},
 			},
 		},
 	}
@@ -618,7 +618,7 @@ func TestGetLiveReporting_ServicekraefteTragenAbrechnung(t *testing.T) {
 		KassensitzungNr: testKassensitzungNr,
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{
-				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000, AnzahlZahlungen: 3},
+				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000},
 			},
 		},
 		Stornierungen: []reporting.StornierungDetail{

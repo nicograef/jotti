@@ -32,7 +32,6 @@ const sommerfest: AktiveKassensitzung = {
 
 function liveReporting(offeneTische: OffenerTisch[], offeneSaldiCents: number) {
   return {
-    kassensitzungNr: 12,
     bezeichnung: 'Sommerfest Tag 2',
     datum: '2026-07-11',
     offeneTische,

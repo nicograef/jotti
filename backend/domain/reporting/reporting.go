@@ -13,7 +13,6 @@ type AbrechnungServicekraft struct {
 	UserName            string // eingefrorener Username
 	Name                string // live aus users aufgelöster Klarname (nur Admin-Anzeige)
 	KassiertCents       int
-	AnzahlZahlungen     int
 	RuecknahmenCents    int
 	AnzahlStornierungen int
 	PfandCents          int

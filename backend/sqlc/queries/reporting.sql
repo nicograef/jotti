@@ -66,8 +66,7 @@ SELECT
     e.user_id,
     MAX(e.user_name)::text AS user_name,
     COALESCE(MAX(u.name), '')::text AS name,
-    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents,
-    COUNT(CASE WHEN e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2') THEN 1 END)::int AS anzahl_zahlungen
+    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents
 FROM kassenjournal e
 LEFT JOIN users u ON u.id = e.user_id
 WHERE e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2')

@@ -85,7 +85,7 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 		},
 		Breakdowns: reporting.Breakdowns{
 			AbrechnungProServicekraft: []reporting.AbrechnungServicekraft{
-				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000, AnzahlZahlungen: 4, RuecknahmenCents: 800, AnzahlStornierungen: 2, AbzugebenCents: 4200},
+				{UserID: 3, UserName: "felix", Name: "Felix W.", KassiertCents: 5000, RuecknahmenCents: 800, AnzahlStornierungen: 2, AbzugebenCents: 4200},
 			},
 		},
 		UmsatzProSteuersatz: []reporting.UmsatzSteuersatz{
@@ -136,7 +136,6 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 			AbrechnungProServicekraft []struct {
 				UserID              int `json:"userId"`
 				KassiertCents       int `json:"kassiertCents"`
-				AnzahlZahlungen     int `json:"anzahlZahlungen"`
 				RuecknahmenCents    int `json:"ruecknahmenCents"`
 				AnzahlStornierungen int `json:"anzahlStornierungen"`
 				AbzugebenCents      int `json:"abzugebenCents"`
@@ -170,7 +169,7 @@ func TestGetReportingHandler_ValidRequest_ReturnsReportingData(t *testing.T) {
 	if len(resp.Breakdowns.AbrechnungProServicekraft) != 1 {
 		t.Fatalf("expected 1 abrechnungProServicekraft row, got %+v", resp.Breakdowns.AbrechnungProServicekraft)
 	}
-	if sk := resp.Breakdowns.AbrechnungProServicekraft[0]; sk.UserID != 3 || sk.KassiertCents != 5000 || sk.AnzahlZahlungen != 4 || sk.RuecknahmenCents != 800 || sk.AnzahlStornierungen != 2 || sk.AbzugebenCents != 4200 {
+	if sk := resp.Breakdowns.AbrechnungProServicekraft[0]; sk.UserID != 3 || sk.KassiertCents != 5000 || sk.RuecknahmenCents != 800 || sk.AnzahlStornierungen != 2 || sk.AbzugebenCents != 4200 {
 		t.Errorf("unexpected abrechnungProServicekraft row: %+v", resp.Breakdowns.AbrechnungProServicekraft[0])
 	}
 	if resp.Metadaten.EroeffnetAm == nil || !resp.Metadaten.EroeffnetAm.Equal(eroeffnetAm) {
@@ -305,7 +304,6 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	}
 
 	var resp struct {
-		KassensitzungNr  int    `json:"kassensitzungNr"`
 		Bezeichnung      string `json:"bezeichnung"`
 		OffeneSaldiCents int    `json:"offeneSaldiCents"`
 		OffeneTische     []struct {
@@ -335,9 +333,6 @@ func TestGetLiveReportingHandler_OffeneSitzung_ReturnsDaten(t *testing.T) {
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("expected valid JSON response: %v", err)
-	}
-	if resp.KassensitzungNr != 42 {
-		t.Errorf("expected kassensitzungNr 42, got %d", resp.KassensitzungNr)
 	}
 	if resp.Bezeichnung != "Sommerfest" {
 		t.Errorf("expected Bezeichnung 'Sommerfest', got %q", resp.Bezeichnung)

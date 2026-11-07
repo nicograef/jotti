@@ -23,9 +23,8 @@ const sommerfestTag1: AbgeschlosseneSitzung = {
   abgeschlossenAm: '2026-07-05T21:12:00Z',
 }
 
-function makeReport(zNr: number): ReportingData {
+function makeReport(): ReportingData {
   return {
-    kassensitzungNr: zNr,
     metadaten: {
       eroeffnetAm: '2026-07-05T07:58:00Z',
       abgeschlossenAm: '2026-07-05T21:12:00Z',
@@ -63,9 +62,7 @@ function backend({
   return new FakeBackend()
     .respond('admin/get-abgeschlossene-kassensitzungen', { kassensitzungen })
     .respond('admin/get-aktive-kassensitzung', aktiveSitzung)
-    .respond('admin/get-abrechnung', (body: unknown) =>
-      makeReport((body as { kassensitzungNr: number }).kassensitzungNr),
-    )
+    .respond('admin/get-abrechnung', makeReport())
 }
 
 afterEach(() => {

@@ -5,7 +5,6 @@ import { ReportingResults } from './ReportingResults'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
 
 const reportingResult: ReportingData = {
-  kassensitzungNr: 1,
   metadaten: {
     eroeffnetAm: '2026-07-05T07:58:00Z',
     abgeschlossenAm: '2026-07-05T21:12:00Z',
@@ -31,7 +30,6 @@ const reportingResult: ReportingData = {
         userName: 'Bea',
         name: 'Bea B.',
         kassiertCents: 6789,
-        anzahlZahlungen: 3,
         ruecknahmenCents: 300,
         anzahlStornierungen: 1,
         pfandCents: 0,
@@ -232,7 +230,6 @@ describe('ReportingResults', () => {
                 userName: 'Bea',
                 name: 'Bea B.',
                 kassiertCents: 6789,
-                anzahlZahlungen: 3,
                 ruecknahmenCents: 300,
                 anzahlStornierungen: 1,
                 pfandCents: 0,
@@ -244,7 +241,6 @@ describe('ReportingResults', () => {
                 userName: 'lena',
                 name: 'Lena C.',
                 kassiertCents: 1000,
-                anzahlZahlungen: 1,
                 ruecknahmenCents: 0,
                 anzahlStornierungen: 0,
                 pfandCents: 0,

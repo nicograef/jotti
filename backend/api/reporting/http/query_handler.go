@@ -33,7 +33,6 @@ type metadatenResponse struct {
 }
 
 type reportingResponse struct {
-	KassensitzungNr     int                        `json:"kassensitzungNr"`
 	Metadaten           metadatenResponse          `json:"metadaten"`
 	Summary             summaryResponse            `json:"summary"`
 	Breakdowns          breakdownsResponse         `json:"breakdowns"`
@@ -88,7 +87,6 @@ type abrechnungServicekraft struct {
 	UserName            string `json:"userName"`
 	Name                string `json:"name"`
 	KassiertCents       int    `json:"kassiertCents"`
-	AnzahlZahlungen     int    `json:"anzahlZahlungen"`
 	RuecknahmenCents    int    `json:"ruecknahmenCents"`
 	AnzahlStornierungen int    `json:"anzahlStornierungen"`
 	PfandCents          int    `json:"pfandCents"`
@@ -154,7 +152,6 @@ func toAbrechnungProServicekraft(werte []reporting.AbrechnungServicekraft) []abr
 			UserName:            w.UserName,
 			Name:                w.Name,
 			KassiertCents:       w.KassiertCents,
-			AnzahlZahlungen:     w.AnzahlZahlungen,
 			RuecknahmenCents:    w.RuecknahmenCents,
 			AnzahlStornierungen: w.AnzahlStornierungen,
 			PfandCents:          w.PfandCents,
@@ -281,7 +278,6 @@ func toProduktStatistikList(werte []reporting.ProduktStatistik) []produktStatist
 
 func toReportingResponse(d reporting.ReportingData) reportingResponse {
 	return reportingResponse{
-		KassensitzungNr: d.KassensitzungNr,
 		Metadaten: metadatenResponse{
 			EroeffnetAm:               d.Metadaten.EroeffnetAm,
 			AbgeschlossenAm:           d.Metadaten.AbgeschlossenAm,
@@ -402,7 +398,6 @@ type liveBreakdownsResponse struct {
 }
 
 type liveReportingResponse struct {
-	KassensitzungNr  int                        `json:"kassensitzungNr"`
 	Bezeichnung      string                     `json:"bezeichnung"`
 	Datum            string                     `json:"datum"` // calendar day YYYY-MM-DD
 	OffeneTische     []offenerTischResponse     `json:"offeneTische"`
@@ -454,7 +449,6 @@ func toLiveReportingResponse(d reporting.LiveReportingData) liveReportingRespons
 		}
 	}
 	return liveReportingResponse{
-		KassensitzungNr:  d.KassensitzungNr,
 		Bezeichnung:      d.Bezeichnung,
 		Datum:            d.Datum.Format("2006-01-02"),
 		OffeneTische:     offeneTische,

@@ -28,7 +28,6 @@ const ServicekraftRefSchema = z.object({
 // anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
 const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
   kassiertCents: z.number().int(),
-  anzahlZahlungen: z.number().int(),
   ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),
   pfandCents: z.number().int(),
@@ -133,7 +132,6 @@ const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
 })
 
 export const LiveReportingDataSchema = z.object({
-  kassensitzungNr: z.number().int(),
   bezeichnung: z.string(),
   datum: z.string(),
   offeneTische: z.array(OffenerTischSchema),
@@ -148,7 +146,6 @@ export const LiveReportingDataSchema = z.object({
 export type LiveReportingData = z.infer<typeof LiveReportingDataSchema>
 
 export const ReportingDataSchema = z.object({
-  kassensitzungNr: z.number().int(),
   metadaten: MetadatenSchema,
   summary: SummarySchema,
   breakdowns: z.object({

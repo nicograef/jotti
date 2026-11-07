@@ -146,8 +146,7 @@ SELECT
     e.user_id,
     MAX(e.user_name)::text AS user_name,
     COALESCE(MAX(u.name), '')::text AS name,
-    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents,
-    COUNT(CASE WHEN e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2') THEN 1 END)::int AS anzahl_zahlungen
+    COALESCE(SUM(kj_extract_zahlung_cents(e.type, e.data)), 0)::int AS kassiert_cents
 FROM kassenjournal e
 LEFT JOIN users u ON u.id = e.user_id
 WHERE e.type IN ('zahlung-kassiert:v1', 'zahlung-kassiert:v2')
@@ -157,11 +156,10 @@ ORDER BY kassiert_cents DESC
 `
 
 type GetKassiertProServicekraftRow struct {
-	UserID          int
-	UserName        string
-	Name            string
-	KassiertCents   int
-	AnzahlZahlungen int
+	UserID        int
+	UserName      string
+	Name          string
+	KassiertCents int
 }
 
 // Tagesabrechnung: kassierte Zahlungen gruppiert nach Servicekraft pro Kassensitzung — die
@@ -184,7 +182,6 @@ func (q *Queries) GetKassiertProServicekraft(ctx context.Context, kassensitzungN
 			&i.UserName,
 			&i.Name,
 			&i.KassiertCents,
-			&i.AnzahlZahlungen,
 		); err != nil {
 			return nil, err
 		}

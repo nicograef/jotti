@@ -19,7 +19,6 @@ vi.mock('react-router', () => ({
 
 function makeLiveData(): LiveReportingData {
   return {
-    kassensitzungNr: 1,
     bezeichnung: 'Sommerfest',
     datum: '2026-06-18',
     offeneTische: [],
