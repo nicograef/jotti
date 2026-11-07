@@ -28,6 +28,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { useTSEKonfiguration } from './hooks'
+import { ZUGANGSDATEN_FEHLER } from './setupFehler'
 import {
   type TSEKonfigurationSpeichern,
   TSEKonfigurationSpeichernSchema,
@@ -75,6 +76,10 @@ function TSEKonfigurationForm({
     byCode: {
       // Ohne zentrale Meldung.
       tse_konfiguration_kassensitzung_offen: `Die TSE-Konfiguration kann nicht geändert werden, ${KASSENSITZUNG_AKTIV_GRUND}`,
+      // Vor dem Speichern liest jotti die Stammdaten der TSS bei fiskaly.
+      ...ZUGANGSDATEN_FEHLER,
+      tse_verbindung_fehlgeschlagen:
+        'Die TSS-Daten konnten bei fiskaly nicht gelesen werden. Bitte TSS-ID prüfen und erneut versuchen; gespeichert wurde nichts.',
     },
   })
   const { loading: clearing, run: runClear } = useActionSubmit({

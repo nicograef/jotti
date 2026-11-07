@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -57,6 +58,14 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 		return err
 	}
 
+	// tse.csv of the DSFinV-K export names the configured TSS, so its Stammdaten are stored first;
+	// they are keyed per TSS, so a later failed save leaves nothing wrong behind.
+	if conf.IstKonfiguriert() {
+		if err := c.speichereStammdatenVonHand(ctx, conf); err != nil {
+			return err
+		}
+	}
+
 	// SaveEinrichtung, because this path can also make the transition to configured;
 	// otherwise the keine_konfiguration outage would stay open forever.
 	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
@@ -66,5 +75,28 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 
 	log.Info("TSE-Konfiguration saved", "ist_konfiguriert", conf.IstKonfiguriert())
 
+	return nil
+}
+
+func (c Command) speichereStammdatenVonHand(ctx context.Context, conf tse.Konfiguration) error {
+	log := logging.FromContext(ctx)
+
+	client, err := c.NewTSESetupClient(tse.SetupCredentials{ApiKey: conf.ApiKey, ApiSecret: conf.ApiSecret})
+	if err != nil {
+		log.Error("Failed to create TSE setup client for manual configuration", "error", err)
+		return ErrTSEVerbindungFehlgeschlagen
+	}
+	stammdaten, err := client.RetrieveTSSStammdaten(ctx, conf.TssID)
+	if err != nil {
+		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
+			return ErrTSESetupZugangsdaten
+		}
+		log.Warn("Failed to retrieve TSE Stammdaten for manual configuration", "error", err, "tss_id", conf.TssID)
+		return ErrTSEVerbindungFehlgeschlagen
+	}
+	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
+		log.Error("Failed to save TSE Stammdaten for manual configuration", "error", err, "tss_id", conf.TssID)
+		return ErrDatabase
+	}
 	return nil
 }

@@ -820,3 +820,49 @@ func TestUebernimmTSE_MitOffenerKassensitzungAbgelehnt(t *testing.T) {
 		t.Errorf("expected no configuration to be saved, got %+v", repo.gespeichert)
 	}
 }
+
+// A hand-entered tssId must bring that TSS's Stammdaten along, or tse.csv names the wrong TSE or none.
+func TestUpdateTSEKonfiguration_PersistiertStammdatenDerNeuenTSS(t *testing.T) {
+	repo := &stubCommandRepo{}
+	client := &tsetest.FakeSetupClient{StammdatenResponse: stammdatenAntwort()}
+	konfiguration, err := tse.NewKonfiguration("api-key", "api-secret", "tss-von-hand", "client-von-hand")
+	if err != nil {
+		t.Fatalf("unexpected error building konfiguration: %v", err)
+	}
+
+	if err := commandMit(repo, client).UpdateTSEKonfiguration(context.Background(), konfiguration); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.StammdatenTssID != "tss-von-hand" {
+		t.Errorf("expected stammdaten to be fetched for the entered TSS, got %q", client.StammdatenTssID)
+	}
+	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
+	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-von-hand" {
+		t.Errorf("expected the configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+func TestUpdateTSEKonfiguration_StammdatenFehlerSpeichertNichts(t *testing.T) {
+	cases := []struct {
+		fiskalyErr error
+		want       error
+	}{
+		{tse.ErrSetupAuthFehlgeschlagen, ErrTSESetupZugangsdaten},
+		{errors.New("tss not found"), ErrTSEVerbindungFehlgeschlagen},
+	}
+	for _, tc := range cases {
+		repo := &stubCommandRepo{}
+		client := &tsetest.FakeSetupClient{StammdatenErr: tc.fiskalyErr}
+		konfiguration, err := tse.NewKonfiguration("api-key", "api-secret", "tss-von-hand", "client-von-hand")
+		if err != nil {
+			t.Fatalf("unexpected error building konfiguration: %v", err)
+		}
+
+		if err := commandMit(repo, client).UpdateTSEKonfiguration(context.Background(), konfiguration); !errors.Is(err, tc.want) {
+			t.Errorf("fiskaly error %v: expected %v, got %v", tc.fiskalyErr, tc.want, err)
+		}
+		if repo.gespeichert != nil || repo.gespeicherteStammdaten != nil {
+			t.Errorf("fiskaly error %v: expected no write, got %+v / %+v", tc.fiskalyErr, repo.gespeichert, repo.gespeicherteStammdaten)
+		}
+	}
+}

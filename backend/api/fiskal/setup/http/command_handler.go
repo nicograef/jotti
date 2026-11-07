@@ -118,8 +118,12 @@ type tseEinrichtenResponse struct {
 	Umgebung string `json:"umgebung"`
 }
 
+// UpdateTSEKonfigurationHandler reads the TSS Stammdaten from fiskaly before saving, so it budgets
+// the write like the setup handlers.
 func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+
 		var body updateTSEKonfigurationRequest
 		if !helper.ReadAndValidateBody(w, r, &body, updateTSEKonfigurationSchema) {
 			return
@@ -131,11 +135,15 @@ func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Command.UpdateTSEKonfiguration(r.Context(), conf); err != nil {
+		err = h.Command.UpdateTSEKonfiguration(r.Context(), conf)
+		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
+		if err != nil {
 			// 409: this path shares the setup lock with RichteTSEEin and UebernimmTSE.
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrTSESetupLaeuftBereits, Code: "tse_setup_laeuft_bereits", Status: http.StatusConflict},
 				{Err: application.ErrTSEKonfigurationKassensitzungOffen, Code: "tse_konfiguration_kassensitzung_offen"},
+				{Err: application.ErrTSESetupZugangsdaten, Code: "tse_setup_zugangsdaten_ungueltig"},
+				{Err: application.ErrTSEVerbindungFehlgeschlagen, Code: "tse_verbindung_fehlgeschlagen"},
 			})
 			return
 		}

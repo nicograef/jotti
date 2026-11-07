@@ -120,7 +120,7 @@ func TestUpdateTSEKonfiguration_WaehrendLaufenderEinrichtungAbgelehnt(t *testing
 	lauf := starteBlockierteEinrichtung(t)
 
 	manuellesRepo := &stubCommandRepo{}
-	manuell := Command{TSERepo: manuellesRepo, KassensitzungenRepo: stubKassensitzungReader{}}
+	manuell := commandMit(manuellesRepo, &tsetest.FakeSetupClient{StammdatenResponse: stammdatenAntwort()})
 	konfiguration, err := tse.NewKonfiguration("api-key", "api-secret", "tss-von-hand", "client-von-hand")
 	if err != nil {
 		t.Fatalf("unexpected error building konfiguration: %v", err)
