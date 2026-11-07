@@ -163,7 +163,7 @@ Jeder Typ existiert als Go-Struct (`domain/reporting/`) und als Zod-Schema mit a
 | ReportingData          | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik                                            |
 | Summary                | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Bestellungen, Stornierungen, Geldtransit, Direktverkauf, Pfandrückgaben, Anzahlen)                    |
 | Breakdowns             | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                                                                     |
-| AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice: `kassiertCents`, `ruecknahmenCents`, `pfandCents`, `abzugebenCents`, `anzahlZahlungen`, `anzahlStornierungen`        |
+| AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice: `kassiertCents`, `ruecknahmenCents`, `pfandCents`, `abzugebenCents`, `anzahlStornierungen`                           |
 | StornierungDetail      | Einzelne Stornierung im Reporting: Zeitpunkt, Tisch, `akteur`, `betroffene`, Betrag, `kommentar`, Positionen, `barRueckgabe`                              |
 | ServicekraftRef        | Geteilte Servicekraft-Referenz einer Reporting-Zeile: `userId`, `userName` (eingefroren), `name` (live aufgelöster Klarname)                              |
 | StornierungPosition    | Position innerhalb einer StornierungDetail (Produktname, Variantenname, Menge, Einzelpreis)                                                               |
