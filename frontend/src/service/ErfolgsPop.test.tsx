@@ -7,9 +7,10 @@ import {
   waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { type ComponentProps, useState } from 'react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useErfolgsPop } from '@/hooks/use-erfolgs-pop'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -102,28 +103,19 @@ describe('ErfolgsPop', () => {
   })
 })
 
-// Spiegelt die Verdrahtung der Buchungsseiten: Der Erfolg öffnet den Pop, der
-// Refetch (hier `reload`) läuft erst beim Schließen.
+// Verdrahtet wie die Buchungsseiten: Der Erfolg öffnet den Pop, der Refetch
+// (hier `reload`) läuft erst beim Schließen.
 function DirektverkaufMitPop({ reload }: { reload: () => void }) {
-  const [erfolg, setErfolg] = useState({ open: false, text: '' })
+  const { zeigeErfolg, pop } = useErfolgsPop(reload)
   return (
     <ServiceDock leiste={null}>
       <DirektverkaufTabHarness
         pfandProdukte={[]}
         products={[testProdukt]}
         productsLoading={false}
-        onErfolg={(nachricht) => {
-          setErfolg({ open: true, text: nachricht })
-        }}
+        onErfolg={zeigeErfolg}
       />
-      <ErfolgsPop
-        open={erfolg.open}
-        text={erfolg.text}
-        onDismiss={() => {
-          setErfolg((prev) => ({ ...prev, open: false }))
-          reload()
-        }}
-      />
+      <ErfolgsPop {...pop} />
     </ServiceDock>
   )
 }

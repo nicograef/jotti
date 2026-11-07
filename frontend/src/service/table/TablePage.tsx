@@ -7,16 +7,18 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCountUp } from '@/hooks/use-count-up'
+import { useErfolgsPop } from '@/hooks/use-erfolgs-pop'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useVorgang } from '@/hooks/use-vorgang'
-import { formatEuro } from '@/lib/utils'
+import { cn, formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
+import { seitenHoehe } from '../ServiceLayout'
 import { BestellungTab } from './BestellungTab'
 import { toMengen } from './drawerUtils'
 import { useTischHistorie, useTischState } from './hooks'
@@ -113,16 +115,7 @@ export function TablePage() {
     })
   }, [reloadState, reloadHistorie, queryClient])
 
-  // Der nachgelagerte Refetch (reload) läuft erst beim Schließen des Pops, damit
-  // sichtbare Statuswechsel (Saldo, Badge, Listen) dem Pop folgen.
-  const [erfolg, setErfolg] = useState({ open: false, text: '' })
-  const zeigeErfolg = useCallback((nachricht: string) => {
-    setErfolg({ open: true, text: nachricht })
-  }, [])
-  const erfolgSchliessen = useCallback(() => {
-    setErfolg((prev) => ({ ...prev, open: false }))
-    reload()
-  }, [reload])
+  const { zeigeErfolg, pop } = useErfolgsPop(reload)
 
   // Korb, Auswahl, Kommentar und Vorgangs-Schlüssel liegen hier, damit sie das
   // Aus- und Wiedereinhängen der Radix-Tab-Inhalte überstehen; ein Tab-Wechsel
@@ -305,12 +298,8 @@ export function TablePage() {
           </Tabs>
         </>
       ) : (
-        // Höhenbegrenzte Flex-Spalte: Viewport minus Header und Content-Padding
-        // aus ServiceLayout; der aktive Tab füllt via flex-1 den Rest.
-        <Tabs
-          defaultValue="order"
-          className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]"
-        >
+        // Höhenbegrenzte Flex-Spalte; der aktive Tab füllt via flex-1 den Rest.
+        <Tabs defaultValue="order" className={cn('flex flex-col', seitenHoehe)}>
           {kopf}
           <div className="mt-4 mb-4 max-w-md space-y-1">
             {tabsLockedHinweis}
@@ -330,11 +319,7 @@ export function TablePage() {
           </TabsContent>
         </Tabs>
       )}
-      <ErfolgsPop
-        open={erfolg.open}
-        text={erfolg.text}
-        onDismiss={erfolgSchliessen}
-      />
+      <ErfolgsPop {...pop} />
     </>
   )
 }

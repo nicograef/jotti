@@ -1,16 +1,19 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useErfolgsPop } from '@/hooks/use-erfolgs-pop'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useVorgang } from '@/hooks/use-vorgang'
+import { cn } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
+import { seitenHoehe } from '../ServiceLayout'
 import { VorgangHistorie } from '../VorgangHistorie'
 import { DirektverkaufTab } from './DirektverkaufTab'
 import { direktverkaufBackend, useDirektverkaufHistorie } from './hooks'
@@ -36,19 +39,13 @@ export function DirektverkaufPage() {
   const verkauf = useVorgang<number>()
   const pfandVorgang = useVorgang<number>()
 
-  // Der Refetch der Historie läuft erst beim Schließen des Pops, damit die
-  // Änderung dem Pop folgt.
-  const [erfolg, setErfolg] = useState({ open: false, text: '' })
-  const zeigeErfolg = useCallback((nachricht: string) => {
-    setErfolg({ open: true, text: nachricht })
-  }, [])
-  const erfolgSchliessen = useCallback(() => {
-    setErfolg((prev) => ({ ...prev, open: false }))
+  const reload = useCallback(() => {
     void reloadHistorie()
     void queryClient.invalidateQueries({
       queryKey: [PFANDRUECKGABE_HISTORIE_KEY],
     })
   }, [reloadHistorie, queryClient])
+  const { zeigeErfolg, pop } = useErfolgsPop(reload)
 
   const tabTrigger = (
     <TabsList className="h-10 w-full">
@@ -126,9 +123,8 @@ export function DirektverkaufPage() {
             </TabsContent>
           </ServiceDock>
         ) : (
-          // Höhenbegrenzte Flex-Spalte: Viewport minus Header und Content-
-          // Padding aus ServiceLayout; der Split füllt via h-full den Rest.
-          <div className="flex h-[calc(100dvh-5.5rem)] flex-col xl:h-[calc(100dvh-6.5rem)]">
+          // Höhenbegrenzte Flex-Spalte; der Split füllt via h-full den Rest.
+          <div className={cn('flex flex-col', seitenHoehe)}>
             <div className="mb-4 max-w-md">{tabTrigger}</div>
             <TabsContent value="verkaufen" className="min-h-0 flex-1">
               {verkaufenInhalt}
@@ -142,11 +138,7 @@ export function DirektverkaufPage() {
           </div>
         )}
       </Tabs>
-      <ErfolgsPop
-        open={erfolg.open}
-        text={erfolg.text}
-        onDismiss={erfolgSchliessen}
-      />
+      <ErfolgsPop {...pop} />
     </>
   )
 }

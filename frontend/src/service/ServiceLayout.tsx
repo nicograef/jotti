@@ -3,6 +3,10 @@ import { Link, Outlet, useMatch } from 'react-router'
 
 import { UserDropdown } from '@/components/common/UserDropdown'
 
+// Höhe einer Seite mit fester Spalte ab lg: Viewport minus Header (h-14) und
+// vertikalem Main-Padding (md:py-4, xl:py-6); ändert sich eins, muss sie mit.
+export const seitenHoehe = 'h-[calc(100dvh-5.5rem)] xl:h-[calc(100dvh-6.5rem)]'
+
 export function ServiceLayout() {
   const onTableDetail = useMatch('/service/tische/:tischId')
   const onDirektverkauf = useMatch('/service/direktverkauf')
