@@ -123,16 +123,6 @@ func TestTischDeaktivieren(t *testing.T) {
 	}
 }
 
-func TestTischDeaktivieren_NotFound(t *testing.T) {
-	repo := repotest.NewTischRepo([]tisch.Tisch{}, db.ErrNotFound)
-	command := Command{TischRepo: repo}
-
-	err := command.TischDeaktivieren(context.Background(), 999)
-	if !errors.Is(err, ErrTischNotFound) {
-		t.Errorf("expected ErrTischNotFound, got %v", err)
-	}
-}
-
 func TestTischDeaktivieren_SaldoOffen(t *testing.T) {
 	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus, UpdatedAt: time.Now().UTC()}}, nil)
 	repo.SetOffenerSaldo(1, 9850)

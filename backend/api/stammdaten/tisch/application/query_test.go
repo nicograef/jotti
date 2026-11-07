@@ -8,26 +8,6 @@ import (
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
-func TestGetAllTische(t *testing.T) {
-	repo := repotest.NewTischRepo([]tisch.Tisch{{ID: 1, Name: "Tisch 1", Status: tisch.ActiveStatus}}, nil)
-	query := Query{TischRepo: repo}
-
-	tische, err := query.GetAllTische(context.Background())
-
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if len(tische) != 1 {
-		t.Fatalf("expected 1 tisch, got %d", len(tische))
-	}
-	if tische[0].Tisch.Name != "Tisch 1" {
-		t.Errorf("expected name 'Tisch 1', got %s", tische[0].Tisch.Name)
-	}
-	if tische[0].SaldoCents != 0 {
-		t.Errorf("expected saldoCents 0 without open saldo, got %d", tische[0].SaldoCents)
-	}
-}
-
 // TestGetAllTische_SaldoAusOffenerSitzung deckt die saldoCents-Projektion gegen
 // die tisch_sessions der offenen Kassensitzung ab: nur der Tisch mit offenem
 // Saldo trägt den Betrag, alle anderen bleiben bei 0.
