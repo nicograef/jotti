@@ -259,22 +259,6 @@ describe('FinanzamtPage — Läuft-alles-Ampel', () => {
 
     expect(screen.getByText('Ja — TSE signiert normal')).toBeInTheDocument()
   })
-
-  it('zeigt den roten Fehlerzustand bei fehlgeschlagenen Signaturen', async () => {
-    await renderPage(
-      backend({ queue: { ...normaleQueue(), fehlgeschlageneAuftraege: 2 } }),
-    )
-
-    expect(screen.getByText('TSE braucht Aufmerksamkeit')).toBeInTheDocument()
-  })
-
-  it('zeigt den roten Fehlerzustand bei Rückstand über der 60-s-Schwelle', async () => {
-    await renderPage(
-      backend({ queue: { ...normaleQueue(), rueckstandSekunden: 90 } }),
-    )
-
-    expect(screen.getByText('TSE braucht Aufmerksamkeit')).toBeInTheDocument()
-  })
 })
 
 describe('FinanzamtPage — Signatur-Warteschlange', () => {

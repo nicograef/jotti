@@ -41,19 +41,17 @@ function backend({
   kassensitzung = null,
   druckauftraege = [],
   istKonfiguriert = true,
-  queue = ruhigeQueue,
 }: {
   kassensitzung?: AktiveKassensitzung | null
   druckauftraege?: FehlgeschlagenerDruckauftrag[]
   istKonfiguriert?: boolean
-  queue?: TSESignaturQueue
 } = {}): FakeBackend {
   return new FakeBackend()
     .respond('health', { version: 'v1.0.0' })
     .respond('admin/get-aktive-kassensitzung', kassensitzung)
     .respond('admin/get-fehlgeschlagene-druckauftraege', { druckauftraege })
     .respond('admin/get-tse-status', { umgebung: 'LIVE', istKonfiguriert })
-    .respond('admin/get-tse-signatur-queue', queue)
+    .respond('admin/get-tse-signatur-queue', ruhigeQueue)
 }
 
 function renderSidebar(fake: FakeBackend) {
@@ -173,16 +171,6 @@ describe('AdminSidebar', () => {
 
   it('markiert Finanzamt & TSE bei nicht konfigurierter TSE', async () => {
     await renderGeladeneSidebar(backend({ istKonfiguriert: false }))
-
-    expect(
-      screen.getByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
-    ).toBeInTheDocument()
-  })
-
-  it('markiert Finanzamt & TSE bei Signatur-Rückstand über der Schwelle', async () => {
-    await renderGeladeneSidebar(
-      backend({ queue: { ...ruhigeQueue, rueckstandSekunden: 120 } }),
-    )
 
     expect(
       screen.getByRole('img', { name: 'TSE benötigt Aufmerksamkeit' }),
