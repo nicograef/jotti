@@ -180,17 +180,17 @@ Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert 
 
 ### Acceptance criteria
 
-- [ ] Migration läuft auf frischer DB, sqlc ist synchron. Verify: `make check-sqlc && TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' make check-integration`
-- [ ] Tabellentest `TestPruefePfandVerknuepfung`: gültig; Ziel ohne Pfand-Kennzeichen; Ziel-Variante gelöscht; Quelle ist Pfand-Produkt; `regel` gegen `ermaessigt`; `kombi` gegen `kombi` gültig; `kombi` gegen `regel` abgelehnt. Verify: `cd backend && go test ./domain/produkt/ -run TestPruefePfandVerknuepfung -v`
-- [ ] Integrationstest `TestPfandVerknuepfung_Roundtrip`: Der Verweis kommt aus `GetProdukt`, `GetAllProdukte` und `GetVariante` zurück und übersteht Deaktivieren und Aktivieren der verknüpfenden Variante über `UpdateVariante()`. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestPfandVerknuepfung' make check-integration`
-- [ ] `CreateVariante` und `UpdateVariante` lehnen einen Steuersatzbruch mit `ErrPfandSteuersatzAbweichend` ab und schreiben nichts; ein gültiger Verweis wird gespeichert. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestVariantePfandVerknuepfung' -v`
-- [ ] Der Service-Lesepfad liefert null für eine inaktive Pfand-Variante, der Admin-Lesepfad ihre ID. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestGetActiveProdukte_PfandVerweis' -v`
-- [ ] `create-variante` nimmt Bodies ohne `pfandVarianteId` und mit `null` an und weist `0` mit 400 ab. Verify: `cd backend && go test ./api/stammdaten/produkt/http/ -run 'TestCommandHandler_PfandVarianteId' -v`
-- [ ] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
-- [ ] Admin, Tests mit „Pfand-Verknüpfung" im Namen: Ohne passende Pfand-Variante fehlt das Feld „Pfand"; mit Pfand-Produkten zu 19 % und 7 % bietet es an einem 19-%-Produkt nur das 19-%-Pfand an. Die Auswahl sendet `pfandVarianteId`, und der Chip zeigt „+ Pfand". Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'Pfand-Verknüpfung'`
-- [ ] Frontend-Typen und Fixtures passen. Verify: `cd frontend && pnpm typecheck`
-- [ ] Handbuch §4.1 beschreibt die Pfand-Verknüpfung. Verify: `grep -n 'pfandVarianteId' docs/handbuch.md`
-- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
+- [x] Migration läuft auf frischer DB, sqlc ist synchron. Verify: `make check-sqlc && TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' make check-integration`
+- [x] Tabellentest `TestPruefePfandVerknuepfung`: gültig; Ziel ohne Pfand-Kennzeichen; Ziel-Variante gelöscht; Quelle ist Pfand-Produkt; `regel` gegen `ermaessigt`; `kombi` gegen `kombi` gültig; `kombi` gegen `regel` abgelehnt. Verify: `cd backend && go test ./domain/produkt/ -run TestPruefePfandVerknuepfung -v`
+- [x] Integrationstest `TestPfandVerknuepfung_Roundtrip`: Der Verweis kommt aus `GetProdukt`, `GetAllProdukte` und `GetVariante` zurück und übersteht Deaktivieren und Aktivieren der verknüpfenden Variante über `UpdateVariante()`. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestPfandVerknuepfung' make check-integration`
+- [x] `CreateVariante` und `UpdateVariante` lehnen einen Steuersatzbruch mit `ErrPfandSteuersatzAbweichend` ab und schreiben nichts; ein gültiger Verweis wird gespeichert. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestVariantePfandVerknuepfung' -v`
+- [x] Der Service-Lesepfad liefert null für eine inaktive Pfand-Variante, der Admin-Lesepfad ihre ID. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestGetActiveProdukte_PfandVerweis' -v`
+- [x] `create-variante` nimmt Bodies ohne `pfandVarianteId` und mit `null` an und weist `0` mit 400 ab. Verify: `cd backend && go test ./api/stammdaten/produkt/http/ -run 'TestCommandHandler_PfandVarianteId' -v`
+- [x] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
+- [x] Admin, Tests mit „Pfand-Verknüpfung" im Namen: Ohne passende Pfand-Variante fehlt das Feld „Pfand"; mit Pfand-Produkten zu 19 % und 7 % bietet es an einem 19-%-Produkt nur das 19-%-Pfand an. Die Auswahl sendet `pfandVarianteId`, und der Chip zeigt „+ Pfand". Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'Pfand-Verknüpfung'`
+- [x] Frontend-Typen und Fixtures passen. Verify: `cd frontend && pnpm typecheck`
+- [x] Handbuch §4.1 beschreibt die Pfand-Verknüpfung. Verify: `grep -n 'pfandVarianteId' docs/handbuch.md`
+- [x] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
 
 ## Phase 3: Verknüpfungen bleiben konsistent
 
