@@ -117,9 +117,9 @@ Tischbestellungen und der Rückfall an die Produktstationen bleiben unverändert
 
 ### Acceptance criteria
 
-- [ ] Neuer Tabellentest `TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand` über `pro_bestellung`, `pro_position` und `pro_stueck`: Bier ×2 plus Pfand ×2 ergibt nur Abholbons mit Bier, ein reiner Pfand-Verkauf keinen Auftrag. Verify: `cd backend && go test ./api/druck/bondruck/application/ -run 'TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand' -v`
-- [ ] Handbuch §4.5 nennt die Pfand-Regel des Abholbons. Verify: `grep -n 'Pfand-Positionen' docs/handbuch.md`
-- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration`
+- [x] Neuer Tabellentest `TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand` über `pro_bestellung`, `pro_position` und `pro_stueck`: Bier ×2 plus Pfand ×2 ergibt nur Abholbons mit Bier, ein reiner Pfand-Verkauf keinen Auftrag. Verify: `cd backend && go test ./api/druck/bondruck/application/ -run 'TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand' -v`
+- [x] Handbuch §4.5 nennt die Pfand-Regel des Abholbons. Verify: `grep -n 'Pfand-Positionen' docs/handbuch.md`
+- [x] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration`
 
 ## Phase 2: Pfand-Verknüpfung einrichten
 
