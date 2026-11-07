@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { maxUtf8Bytes } from '@/lib/utf8'
+import { maxZeichen } from '@/lib/zeichen'
 
 export const GeldtransitRichtung = {
   EINLAGE: 'einlage',
@@ -25,7 +25,7 @@ export type KassensitzungStatus =
   (typeof KassensitzungStatus)[keyof typeof KassensitzungStatus]
 
 // Das Backend zählt beide Grenzen in Zeichen.
-export const BezeichnungSchema = maxUtf8Bytes(
+export const BezeichnungSchema = maxZeichen(
   z.string().min(1, { message: 'Bezeichnung ist erforderlich.' }),
   200,
   'Bezeichnung darf maximal 200 Zeichen lang sein.',
@@ -36,7 +36,7 @@ export const BetragCentsSchema = z
   .int()
   .gte(0, { message: 'Betrag muss mindestens 0 Cent sein.' })
 
-export const KommentarSchema = maxUtf8Bytes(
+export const KommentarSchema = maxZeichen(
   z
     .string()
     .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' }),

@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
 import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
-import { maxUtf8Bytes } from '@/lib/utf8'
 import { DateStringSchema } from '@/lib/utils'
+import { maxZeichen } from '@/lib/zeichen'
 
 // Die eingefrorenen Event-Schemas begrenzen den Kommentar auf 100 Zeichen.
-export const KOMMENTAR_MAX_BYTES = 100
+export const KOMMENTAR_MAX_ZEICHEN = 100
 
-export const KommentarSchema = maxUtf8Bytes(z.string(), KOMMENTAR_MAX_BYTES)
-export const PflichtKommentarSchema = maxUtf8Bytes(
+export const KommentarSchema = maxZeichen(z.string(), KOMMENTAR_MAX_ZEICHEN)
+export const PflichtKommentarSchema = maxZeichen(
   z.string().min(3),
-  KOMMENTAR_MAX_BYTES,
+  KOMMENTAR_MAX_ZEICHEN,
 )
 
 export const TischIdSchema = z.number().int().min(1)

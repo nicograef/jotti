@@ -2,17 +2,17 @@ import { useRef, useState } from 'react'
 
 import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { kuerzeAufUtf8Bytes, utf8Bytes } from '@/lib/utf8'
+import { kuerzeAufZeichen, zeichenAnzahl } from '@/lib/zeichen'
 
-import { KOMMENTAR_MAX_BYTES } from './schemas'
+import { KOMMENTAR_MAX_ZEICHEN } from './schemas'
 
-// Kürzt nur den neu eingefügten Teil auf das Byte-Budget; der bestehende Text bleibt.
-// cursor ist das Ende der Einfügung in nachher.
+// Kürzt nur den neu eingefügten Teil auf das Zeichen-Budget; der bestehende Text bleibt.
+// cursor ist das Ende der Einfügung in nachher, wie setSelectionRange in UTF-16-Einheiten.
 function begrenzeEinfuegung(
   vorher: string,
   nachher: string,
   cursor: number,
-  maxBytes: number,
+  maxZeichen: number,
 ): { text: string; cursor: number } {
   let suffix = nachher.length - cursor
   if (!vorher.endsWith(nachher.slice(cursor))) {
@@ -36,8 +36,8 @@ function begrenzeEinfuegung(
   }
   const davor = nachher.slice(0, prefix)
   const danach = nachher.slice(nachher.length - suffix)
-  const budget = maxBytes - utf8Bytes(davor) - utf8Bytes(danach)
-  const eingefuegt = kuerzeAufUtf8Bytes(
+  const budget = maxZeichen - zeichenAnzahl(davor) - zeichenAnzahl(danach)
+  const eingefuegt = kuerzeAufZeichen(
     nachher.slice(prefix, nachher.length - suffix),
     Math.max(budget, 0),
   )
@@ -80,12 +80,12 @@ export function KommentarField({
           // maxLength zählt UTF-16-Einheiten, das Backend Codepoints: Emoji sprengen sonst das Limit.
           const vorher = value ?? letzterWert.current
           let neu = e.target.value
-          if (utf8Bytes(neu) > KOMMENTAR_MAX_BYTES) {
+          if (zeichenAnzahl(neu) > KOMMENTAR_MAX_ZEICHEN) {
             const begrenzt = begrenzeEinfuegung(
               vorher,
               neu,
               e.target.selectionEnd,
-              KOMMENTAR_MAX_BYTES,
+              KOMMENTAR_MAX_ZEICHEN,
             )
             neu = begrenzt.text
             e.target.value = neu
