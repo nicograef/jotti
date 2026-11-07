@@ -240,6 +240,26 @@ describe('TSEEinrichtungWizard — gescheiterte Einrichtung', () => {
     ).toBeInTheDocument()
     expect(screen.queryByText('PUK-123456')).not.toBeInTheDocument()
   })
+
+  it.each(['tse_bereits_eingerichtet', 'tse_einrichtung_fehlgeschlagen'])(
+    'prüft nach %s erneut und bietet die angelegte TSE zur Übernahme an',
+    async (code) => {
+      const user = userEvent.setup()
+      const befunde = [leererBefund, uebernehmbarerBefund]
+      await bisZumBefund(
+        user,
+        backend(leererBefund)
+          .respond('admin/tse-setup-pruefen', () => befunde.shift())
+          .fail('admin/tse-einrichten', new BackendError(400, code)),
+      )
+
+      await user.click(screen.getByRole('button', { name: 'TSE einrichten' }))
+
+      expect(
+        await screen.findByRole('button', { name: 'TSE übernehmen' }),
+      ).toBeInTheDocument()
+    },
+  )
 })
 
 describe('TSEEinrichtungWizard — Sperren der Einrichtung', () => {

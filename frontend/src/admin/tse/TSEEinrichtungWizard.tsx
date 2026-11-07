@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
+import { BackendError } from '@/lib/Backend'
 
 import { ErgebnisSchritt, UnvollstaendigSchritt } from './ErgebnisSchritt'
 import { checkTSESetup, useTSEEinrichtung } from './hooks'
@@ -100,6 +101,7 @@ export function TSEEinrichtungWizard() {
             befund={befund}
             onEingerichtet={setErgebnis}
             onUnvollstaendig={setUnvollstaendig}
+            onErneutPruefen={() => void handlePruefen()}
             onZuruck={zurueckZuZugangsdaten}
           />
         ) : (
@@ -179,6 +181,7 @@ function BefundSchritt({
   befund,
   onEingerichtet,
   onUnvollstaendig,
+  onErneutPruefen,
   onZuruck,
 }: {
   apiKey: string
@@ -186,6 +189,7 @@ function BefundSchritt({
   befund: TSESetupBefund
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
   onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
+  onErneutPruefen: () => void
   onZuruck: () => void
 }) {
   // Die „eigene" TSS (diese Kasse ist dort schon angemeldet) zuerst, damit der
@@ -225,6 +229,7 @@ function BefundSchritt({
               apiSecret={apiSecret}
               onEingerichtet={onEingerichtet}
               onUnvollstaendig={onUnvollstaendig}
+              onErneutPruefen={onErneutPruefen}
             />
           )}
         </div>
@@ -235,6 +240,7 @@ function BefundSchritt({
           umgebung={befund.umgebung}
           onEingerichtet={onEingerichtet}
           onUnvollstaendig={onUnvollstaendig}
+          onErneutPruefen={onErneutPruefen}
         />
       ) : (
         <Alert variant="destructive">
@@ -260,11 +266,13 @@ function NeueTseTrotzdemAnlegen({
   apiSecret,
   onEingerichtet,
   onUnvollstaendig,
+  onErneutPruefen,
 }: {
   apiKey: string
   apiSecret: string
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
   onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
+  onErneutPruefen: () => void
 }) {
   const [offen, setOffen] = useState(false)
 
@@ -283,6 +291,7 @@ function NeueTseTrotzdemAnlegen({
           neuAnlegenTrotzVorhandener
           onEingerichtet={onEingerichtet}
           onUnvollstaendig={onUnvollstaendig}
+          onErneutPruefen={onErneutPruefen}
         />
       </CollapsibleContent>
     </Collapsible>
@@ -296,6 +305,7 @@ function BestaetigungSchritt({
   neuAnlegenTrotzVorhandener = false,
   onEingerichtet,
   onUnvollstaendig,
+  onErneutPruefen,
 }: {
   apiKey: string
   apiSecret: string
@@ -303,6 +313,7 @@ function BestaetigungSchritt({
   neuAnlegenTrotzVorhandener?: boolean
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
   onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
+  onErneutPruefen: () => void
 }) {
   const [tippBestaetigung, setTippBestaetigung] = useState('')
   const { richteTSEEin } = useTSEEinrichtung()
@@ -316,13 +327,24 @@ function BestaetigungSchritt({
     byCode: {
       ...SETUP_FEHLER,
       tse_bereits_eingerichtet:
-        'In diesem Konto existiert bereits eine TSE. Es wird keine neue angelegt.',
+        'In diesem Konto existiert bereits eine TSE. Es wird keine neue angelegt. jotti prüft die TSE erneut und bietet sie zur Übernahme an.',
       tse_setup_tss_limit_erreicht:
         'In der Test-Umgebung sind bereits fünf TSE vorhanden (fiskaly-Grenze). Alte werden bei Inaktivität automatisch bereinigt – bitte später erneut versuchen oder eine vorhandene übernehmen.',
       tse_einrichtung_fehlgeschlagen:
-        'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
+        'Die Einrichtung ist fehlgeschlagen. jotti prüft die TSE erneut; hat fiskaly sie schon angelegt, bietet jotti sie zur Übernahme an.',
     },
     onCode: unvollstaendigAnzeigen(onUnvollstaendig),
+    // Ein Wiederholversuch träfe die womöglich schon angelegte TSE; erst der
+    // neue Befund bietet sie zur Übernahme an.
+    onError: (error) => {
+      if (
+        error instanceof BackendError &&
+        (error.code === 'tse_bereits_eingerichtet' ||
+          error.code === 'tse_einrichtung_fehlgeschlagen')
+      ) {
+        onErneutPruefen()
+      }
+    },
   })
 
   const istLive = umgebung === 'LIVE'
