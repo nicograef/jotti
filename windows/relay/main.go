@@ -271,10 +271,18 @@ func druckeAuftrag(a DruckAuftrag) error {
 	if err != nil {
 		return fmt.Errorf("ungueltiges Base64: %w", err)
 	}
-	if err := checkPrinter(a.ZielIP); err != nil {
+	// Statusabfrage und Druckdaten teilen eine Verbindung: Drucker mit nur einem
+	// TCP-Slot können die zweite Verbindung sonst noch ablehnen.
+	conn, err := net.DialTimeout("tcp", a.ZielIP+":9100", dialTimeout)
+	if err != nil {
+		return fmt.Errorf("drucker %s: nicht erreichbar: %w", a.ZielIP, err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if err := checkPrinter(conn, a.ZielIP); err != nil {
 		return fmt.Errorf("drucker %s: %w", a.ZielIP, err)
 	}
-	if err := sendToPrinter(a.ZielIP, escposData); err != nil {
+	if err := sendToPrinter(conn, escposData); err != nil {
 		return fmt.Errorf("drucker %s: senden fehlgeschlagen: %w", a.ZielIP, err)
 	}
 	return nil
@@ -346,23 +354,17 @@ func pruefeRelayStatus(resp *http.Response) error {
 	return fmt.Errorf("unerwarteter HTTP-Status: %d", resp.StatusCode)
 }
 
-func checkPrinter(ip string) error {
-	conn, err := net.DialTimeout("tcp", ip+":9100", dialTimeout)
-	if err != nil {
-		return fmt.Errorf("nicht erreichbar: %w", err)
-	}
-	defer func() { _ = conn.Close() }()
-
+func checkPrinter(conn net.Conn, ip string) error {
 	if _, err := conn.Write([]byte{0x10, 0x04, 0x04}); err != nil {
 		return fmt.Errorf("status-abfrage fehlgeschlagen: %w", err)
 	}
 
 	_ = conn.SetReadDeadline(time.Now().Add(readTimeout))
 	reply := make([]byte, 1)
-	if _, err := conn.Read(reply); err != nil {
+	if n, _ := conn.Read(reply); n == 0 {
 		// Nicht jeder ESC/POS-Drucker beantwortet die DLE-EOT-Statusabfrage. Eine
-		// ausbleibende Antwort gilt daher als erreichbar-und-OK: der TCP-Connect oben
-		// war erfolgreich, mehr lässt sich ohne Antwort nicht prüfen.
+		// ausbleibende Antwort gilt daher als erreichbar-und-OK: der TCP-Connect war
+		// erfolgreich, mehr lässt sich ohne Antwort nicht prüfen.
 		return nil
 	}
 
@@ -379,15 +381,10 @@ func checkPrinter(ip string) error {
 	return nil
 }
 
-func sendToPrinter(ip string, data []byte) error {
-	conn, err := net.DialTimeout("tcp", ip+":9100", dialTimeout)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = conn.Close() }()
+func sendToPrinter(conn net.Conn, data []byte) error {
 	if err := conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return fmt.Errorf("set write deadline: %w", err)
 	}
-	_, err = conn.Write(data)
+	_, err := conn.Write(data)
 	return err
 }
