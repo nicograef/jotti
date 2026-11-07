@@ -9,7 +9,7 @@ Postgres 17, Migrationen, Backend, Caddy mit App, Status-Seite und Relay laufen 
 Bestehende Docker-Installationen ziehen per Übernahme verlustfrei um; der Linux-Betrieb bleibt bei Compose.
 
 Stufe 1 (Phasen 1–6) ist ein Durchstich mit Messung auf einem Windows-Runner der CI.
-Phase 6 ist das Go/Stop-Gate: Alle späteren Phasen hängen davon ab, und Nico entscheidet anhand der Messwerte.
+Phase 6 ist das Go/Stop-Gate: Alle späteren Phasen hängen davon ab. Es entscheidet automatisch anhand der Messwerte; Nico entscheidet nur, wenn ein Wert auch nach den Abhilfen reißt.
 
 ## Architectural decisions
 
