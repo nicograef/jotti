@@ -68,6 +68,16 @@ export function useTischState(
 }
 
 export const AKTIVE_TISCHE_MIT_FAVORITEN_KEY = 'aktive-tische-mit-favoriten'
+
+// Numerisch, damit „Tisch 2" vor „Tisch 10" steht; modulweit für eine stabile select-Referenz.
+function sortiereNachName(
+  tische: AktiverTischMitFavorit[],
+): AktiverTischMitFavorit[] {
+  return [...tische].sort((a, b) =>
+    a.name.localeCompare(b.name, 'de', { numeric: true }),
+  )
+}
+
 export function useAktiveTischeMitFavoriten(): Omit<
   QueryResult<AktiverTischMitFavorit[]>,
   'isPending'
@@ -79,6 +89,7 @@ export function useAktiveTischeMitFavoriten(): Omit<
   } = useQuery({
     queryKey: [AKTIVE_TISCHE_MIT_FAVORITEN_KEY],
     queryFn: () => tischBackend.getAktiveTischeMitFavoriten(),
+    select: sortiereNachName,
   })
   return { tische, isError, refetch }
 }

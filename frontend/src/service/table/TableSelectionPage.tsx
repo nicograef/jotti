@@ -68,9 +68,7 @@ export function TableSelectionPage() {
   const suchTreffer = useMemo(() => {
     if (!sucheAktiv) return []
     const q = sucheGetrimmt.toLowerCase()
-    return alleTische
-      .filter((t) => t.name.toLowerCase().includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+    return alleTische.filter((t) => t.name.toLowerCase().includes(q))
   }, [alleTische, sucheAktiv, sucheGetrimmt])
 
   const erstAufbau = useErstAufbau(

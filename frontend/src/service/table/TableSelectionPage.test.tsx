@@ -130,6 +130,25 @@ describe('TableSelectionPage', () => {
     expect(navigate).toHaveBeenCalledWith('/service/tische/2')
   })
 
+  it('listet Suchtreffer numerisch nach Name wie die Tischauswahl', async () => {
+    const user = userEvent.setup()
+    renderPage(
+      backend({
+        alleTische: [
+          { id: 1, name: 'Tisch 10', istFavorit: false, saldoCents: 0 },
+          { id: 2, name: 'Tisch 2', istFavorit: false, saldoCents: 0 },
+        ],
+      }),
+    )
+
+    await user.type(await screen.findByPlaceholderText(/Tisch suchen/), 'Tisch')
+
+    const namen = screen
+      .getAllByText(/^Tisch \d+$/)
+      .map((name) => name.textContent)
+    expect(namen).toEqual(['Tisch 2', 'Tisch 10'])
+  })
+
   it('meldet, wenn kein aktiver Tisch zur Suche passt', async () => {
     const user = userEvent.setup()
     renderPage(

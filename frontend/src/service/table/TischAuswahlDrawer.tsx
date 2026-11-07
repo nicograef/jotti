@@ -20,13 +20,6 @@ import {
 } from './hooks'
 import type { AktiverTischMitFavorit } from './Tisch'
 
-function sortiereTische(
-  a: AktiverTischMitFavorit,
-  b: AktiverTischMitFavorit,
-): number {
-  return a.name.localeCompare(b.name, 'de', { numeric: true })
-}
-
 interface TischAuswahlDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -45,7 +38,6 @@ export function TischAuswahlDrawer({
 
   // Reine Durchblätter-/Favorisier-Liste — die Suche über alle Tische ist Teil
   // der Hauptseite (TableSelectionPage), kein zweites Suchfeld hier.
-  const sortierteTische = [...tische].sort(sortiereTische)
 
   const toggleFavorit = async (tisch: AktiverTischMitFavorit) => {
     if (tisch.istFavorit) {
@@ -83,7 +75,7 @@ export function TischAuswahlDrawer({
               }}
             />
           )}
-          {sortierteTische.map((tisch) => (
+          {tische.map((tisch) => (
             <div
               key={tisch.id}
               className="flex items-center border-b last:border-b-0"
