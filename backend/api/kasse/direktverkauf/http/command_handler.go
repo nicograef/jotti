@@ -32,15 +32,15 @@ var kasseFehler = []helper.ErrorCode{
 }
 
 type direktverkaufTaetigenRequest struct {
-	VerkaufID  string                  `json:"verkaufId"`
-	Positionen []eingabe.PositionInput `json:"positionen"`
-	Kommentar  string                  `json:"kommentar"`
-	Pfand      *eingabe.PfandRequest   `json:"pfand"`
+	VerkaufID  string                              `json:"verkaufId"`
+	Positionen []eingabe.KommentiertePositionInput `json:"positionen"`
+	Kommentar  string                              `json:"kommentar"`
+	Pfand      *eingabe.PfandRequest               `json:"pfand"`
 }
 
 var direktverkaufTaetigenSchema = z.Struct(z.Shape{
 	"VerkaufID":  z.String().UUID().Required(),
-	"Positionen": z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
+	"Positionen": z.Slice(eingabe.KommentiertePositionInputSchema).Min(1).Required(),
 	"Kommentar":  z.String().TestFunc(zeichen.Max(100)),
 	"Pfand":      z.Ptr(eingabe.PfandSchema),
 }).TestFunc(func(val any, _ z.Ctx) bool {
@@ -62,7 +62,7 @@ func (h *CommandHandler) DirektverkaufTaetigenHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, eingabe.ToPositionInputs(body.Positionen), body.Kommentar, eingabe.ToPfandEingabe(body.Pfand))
+		err := h.Command.DirektverkaufTaetigen(r.Context(), userID, userName, body.VerkaufID, eingabe.ToKommentiertePositionInputs(body.Positionen), body.Kommentar, eingabe.ToPfandEingabe(body.Pfand))
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},

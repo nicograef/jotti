@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -14,10 +15,12 @@ import (
 )
 
 type mockCommand struct {
-	err error
+	err        error
+	positionen []enrichment.PositionInput
 }
 
-func (m *mockCommand) DirektverkaufTaetigen(context.Context, int, string, string, []enrichment.PositionInput, string, *enrichment.PfandEingabe) error {
+func (m *mockCommand) DirektverkaufTaetigen(_ context.Context, _ int, _ string, _ string, positionen []enrichment.PositionInput, _ string, _ *enrichment.PfandEingabe) error {
+	m.positionen = positionen
 	return m.err
 }
 
@@ -60,6 +63,7 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"tätigen: Menge über 999", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"tätigen: Pfand ohne Rückgabe-ID", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":"","pfand":{"positionen":[{"produktId":2,"varianteId":2,"menge":1}]}}`, http.StatusBadRequest, "validation_error"},
 		{"tätigen: Rückgabe-ID gleich Verkaufs-ID", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":2}],"kommentar":"","pfand":{"rueckgabeId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":2,"varianteId":2,"menge":1}]}}`, http.StatusBadRequest, "validation_error"},
+		{"tätigen: Positionskommentar über 100 Zeichen", taetigen, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"produktId":1,"varianteId":1,"menge":1,"kommentar":"` + strings.Repeat("ä", 101) + `"}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Konflikt", stornieren, application.ErrConflict, validStornoBod, http.StatusConflict, "conflict"},
 		{"stornieren: Verkauf unbekannt", stornieren, application.ErrVerkaufNichtGefunden, validStornoBod, http.StatusBadRequest, "verkauf_not_found"},
 		{"stornieren: Storno-ID mit anderem Inhalt", stornieren, application.ErrVorgangAbweichend, validStornoBod, http.StatusConflict, "vorgang_abweichend"},
@@ -79,5 +83,26 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 				t.Errorf("expected code %s, got %s", tt.wantCode, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestDirektverkaufTaetigenHandler_ReichtPositionskommentarDurch(t *testing.T) {
+	body := `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[` +
+		`{"produktId":1,"varianteId":1,"menge":2,"kommentar":"1 davon ohne Senf"},` +
+		`{"produktId":2,"varianteId":2,"menge":1}],"kommentar":""}`
+	rec := httptest.NewRecorder()
+	cmd := &mockCommand{}
+
+	(&CommandHandler{Command: cmd}).DirektverkaufTaetigenHandler().ServeHTTP(rec, requestWithUser(body))
+
+	if rec.Code >= http.StatusBadRequest {
+		t.Fatalf("expected success, got %d: %s", rec.Code, rec.Body.String())
+	}
+	want := []enrichment.PositionInput{
+		{ProduktID: 1, VarianteID: 1, Menge: 2, Kommentar: "1 davon ohne Senf"},
+		{ProduktID: 2, VarianteID: 2, Menge: 1, Kommentar: ""},
+	}
+	if !slices.Equal(cmd.positionen, want) {
+		t.Errorf("positionen = %+v, want %+v", cmd.positionen, want)
 	}
 }
