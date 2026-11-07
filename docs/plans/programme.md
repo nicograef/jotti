@@ -50,7 +50,7 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | 3 Distill | fix/q-distill | landed | b908ad0d, 42 FLAGs im Commit d5fd6dd0 |
 | 4 Distill verify | fix/q-verify | landed | b0f6993c: 728 Behauptungen, 53 korrigiert, 69 UNREACHED |
 | 5 Abschluss | — | landed | Dependabot 08811709, Folgebefunde a8eeede3; `@hookform/resolvers` 7 (Major) wartet auf Nico |
-| F1 #145 Kommentar je Position | feat/kommentar-je-position | waiting | |
+| F1 #145 Kommentar je Position | plan/kommentar-je-position | running | Basis 8d621ae9 |
 | F2 Auto-Pfand je Variante | feat/auto-pfand | waiting | |
 | F3 Stationsmodell | feat/stationsmodell | waiting | |
 | F4 Windows-Einzeldatei Stufe 1 | feat/windows-einzeldatei | waiting | |
