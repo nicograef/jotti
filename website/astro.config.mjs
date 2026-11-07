@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'astro/config'
 
+import { docGroups, docSlug } from './src/lib/published-docs.ts'
 import { remarkDocLinks } from './src/lib/remark-doc-links.ts'
 import { externalizeInlineScripts } from './src/lib/externalize-inline-scripts.ts'
 
@@ -37,97 +38,15 @@ export default defineConfig({
         root: { label: 'Deutsch', lang: 'de' },
       },
       customCss: ['./src/styles/starlight.css'],
-      // Slugs liegen unter /docs/ (generateId in content.config.ts); / bleibt die
+      // Slugs liegen unter /docs/ (docSlug in src/lib/published-docs.ts); / bleibt die
       // Landing.
-      sidebar: [
-        {
-          label: 'Erste Schritte',
-          items: [
-            { label: 'Was ist jotti?', slug: 'docs/leitfaden/was-ist-jotti' },
-            {
-              label: 'Welcher Modus passt?',
-              slug: 'docs/leitfaden/betriebsarten',
-            },
-          ],
-        },
-        {
-          label: 'Vereinsbetrieb (Standardweg)',
-          items: [
-            {
-              label: 'Installation und Start',
-              slug: 'docs/leitfaden/installation',
-            },
-            {
-              label: 'TSE einrichten (fiskaly)',
-              slug: 'docs/leitfaden/tse-einrichten',
-            },
-            {
-              label: 'Der Veranstaltungstag',
-              slug: 'docs/leitfaden/veranstaltungstag',
-            },
-            { label: 'Aktualisieren', slug: 'docs/leitfaden/aktualisieren' },
-            { label: 'Checkliste', slug: 'docs/leitfaden/checkliste' },
-          ],
-        },
-        {
-          label: 'Recht und Steuern',
-          items: [
-            {
-              label: 'Pflichten im Überblick',
-              slug: 'docs/leitfaden/pflichten',
-            },
-            {
-              label: 'Kasse beim Finanzamt anmelden',
-              slug: 'docs/leitfaden/finanzamt-anmelden',
-            },
-            {
-              label: 'Belege und Steuersätze',
-              slug: 'docs/leitfaden/belege-steuersaetze',
-            },
-            {
-              label: 'Datenaufbewahrung',
-              slug: 'docs/leitfaden/datenaufbewahrung',
-            },
-            { label: 'Steuerrecht Gastronomie', slug: 'docs/steuerrecht' },
-            {
-              label: 'Muster-Verfahrensdokumentation',
-              slug: 'docs/verfahrensdokumentation',
-            },
-            { label: 'Compliance-Anforderungen', slug: 'docs/compliance' },
-          ],
-        },
-        {
-          label: 'Self-Hosting (Experten-Weg)',
-          items: [
-            {
-              label: 'Eigener Server (Ersteinrichtung)',
-              slug: 'docs/leitfaden/self-hosting',
-            },
-            {
-              label: 'Server aktualisieren und Backups',
-              slug: 'docs/leitfaden/aktualisieren-backups',
-            },
-          ],
-        },
-        {
-          label: 'Hilfe',
-          items: [
-            { label: 'Fehlersuche', slug: 'docs/leitfaden/fehlersuche' },
-            {
-              label: 'TSE-Sonderfälle',
-              slug: 'docs/leitfaden/tse-sonderfaelle',
-            },
-            { label: 'Häufige Fragen', slug: 'docs/leitfaden/haeufige-fragen' },
-          ],
-        },
-        {
-          label: 'Über jotti',
-          items: [
-            { label: 'Produktbeschreibung', slug: 'docs/produktbeschreibung' },
-            { label: 'Lizenzmodell', slug: 'docs/lizenzmodell' },
-          ],
-        },
-      ],
+      sidebar: docGroups.map((group) => ({
+        label: group.label,
+        items: group.items.map((item) => ({
+          label: item.label,
+          slug: docSlug(item.path),
+        })),
+      })),
     }),
     // Externalisiert nach dem Build Starlights verbliebene is:inline-Skripte
     // (Produktiv-CSP `script-src 'self'`).
