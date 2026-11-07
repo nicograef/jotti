@@ -23,6 +23,14 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 - Port 5434 gehört `gyva-db-1` (anderes Projekt) und bleibt unberührt.
 - Entfernen mit externen Konsumenten oder persistierten Daten, Docker- oder Reverse-Proxy-Änderungen und neue Abhängigkeiten gehen vorher an Nico.
 
+## Übergabe
+
+- Die laufende Session landet die drei Fix-Lanes backend, frontend und edges und trägt sie hier als `landed` ein. Eine neue Session, auch auf einem anderen Rechner, übernimmt ab der ersten Zeile mit `waiting`.
+- `programme-befunde.json` hält die noch offenen, verifizierten Befunde mit ihrer Lane: `cross` für `fix/q-cross` und `docs` für Wave 3. Nico hat #135 freigegeben, die Idempotenzschlüssel für Tisch- und Direktverkauf-Storno und die Umbuchung. Migration 14 macht die `stornierungId` bereits eindeutig.
+- Meldet `fix/q-backend` für #52 (Sitzungen nach Passwort-Reset ungültig) eine nötige Frontend-Änderung, gehört sie zu `fix/q-cross`.
+- Die Abschluss-Session löscht `programme.md` und `programme-befunde.json` und wendet danach die Dependabot-PRs an. Den Resolver auf jotti.rocks deployt Nico, sobald `fix/q-edges` gelandet ist.
+- RAM-Grenze und Port 5434 gelten für Nicos Arbeitsrechner. Auf einem anderen Rechner zählen dessen Speicher und freie Ports.
+
 ## Status
 
 | Phase | Lane | Status | Note |
