@@ -52,19 +52,8 @@ docker run --rm -d --name "$CONTAINER" \
   -e POSTGRES_DB=jotti \
   "$PG_IMAGE" >/dev/null
 
-# Probe over TCP, not the socket: the entrypoint's temporary init server listens
-# on the socket only, so a socket probe would report "ready" mid-initialisation
-# and the restore would race the real server's restart. TCP answers only once
-# the real server is up. Restore then uses the socket (trust-authenticated).
-ready=""
-for ((i = 0; i < 30; i++)); do
-  if docker exec "$CONTAINER" pg_isready -h 127.0.0.1 -p 5432 -U "$PG_USER" &>/dev/null; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-[[ -n "$ready" ]] || fatal "Throwaway postgres did not become ready in time."
+# Restore uses the socket (trust-authenticated) once the real server is up.
+wait_for_postgres_tcp "$CONTAINER" "$PG_USER" || fatal "Throwaway postgres did not become ready in time."
 
 info "Restoring $SELECTED into the throwaway database ..."
 if ! decompress | docker exec -i "$CONTAINER" \
