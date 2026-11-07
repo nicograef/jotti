@@ -49,8 +49,8 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | 2 Fix edges | fix/q-edges | landed | 07cda43f |
 | 2 Fix cross | fix/q-cross | landed | 46a1fd0c, Migration 17 |
 | 3 Distill | fix/q-distill | landed | b908ad0d, 42 FLAGs im Commit d5fd6dd0 |
-| 4 Distill verify | fix/q-verify | running | |
-| 5 Abschluss | — | waiting | |
+| 4 Distill verify | fix/q-verify | landed | b0f6993c: 728 Behauptungen, 53 korrigiert, 69 UNREACHED |
+| 5 Abschluss | — | running | |
 | F1 #145 Kommentar je Position | feat/kommentar-je-position | waiting | |
 | F2 Auto-Pfand je Variante | feat/auto-pfand | waiting | |
 | F3 Stationsmodell | feat/stationsmodell | waiting | |
