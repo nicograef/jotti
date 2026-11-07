@@ -1,8 +1,6 @@
 package kasse
 
 import (
-	"encoding/json"
-
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -37,89 +35,119 @@ type zahlungRest struct {
 // per position the unpaid quantity first (Korrektur), the rest FIFO from the settling payments.
 // It returns false when a quantity exceeds what remains stornierbar or a PositionID repeats.
 func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAufteilung, bool) {
-	details := map[string]Position{}
-	unbezahlt := map[string]int{}
-	var zahlungen []*zahlungRest
-
-	merke := func(positionen []PositionEventData) {
-		for _, p := range positionen {
-			details[p.PositionID] = PositionFromEventData(p)
-		}
+	bestand, ok := stornoBestandAus(events)
+	if !ok {
+		return StornoAufteilung{}, false
 	}
+	return bestand.teileAuf(refs)
+}
 
+// stornoBestand is what a Tisch-Session still holds for a Storno: per PositionID the position
+// details and the unpaid quantity, and per Zahlung (FIFO) the quantities it still settles.
+type stornoBestand struct {
+	details   map[string]Position
+	unbezahlt map[string]int
+	zahlungen []*zahlungRest
+}
+
+func (b *stornoBestand) merke(positionen []PositionEventData) {
+	for _, p := range positionen {
+		b.details[p.PositionID] = PositionFromEventData(p)
+	}
+}
+
+func (b *stornoBestand) aendereUnbezahlt(positionen []PositionEventData, vorzeichen int) {
+	for _, p := range positionen {
+		b.unbezahlt[p.PositionID] += vorzeichen * p.Menge
+	}
+}
+
+// stornoBestandAus replays the stream; false means an unreadable or foreign event.
+func stornoBestandAus(events []e.Event) (*stornoBestand, bool) {
+	b := &stornoBestand{details: map[string]Position{}, unbezahlt: map[string]int{}}
 	for _, evt := range events {
-		switch evt.Type {
-		case string(EventTypeBestellungAufgenommenV1):
-			var data BestellungAufgenommenV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return StornoAufteilung{}, false
-			}
-			merke(data.Positionen)
-			for _, p := range data.Positionen {
-				unbezahlt[p.PositionID] += p.Menge
-			}
-
-		case string(EventTypeBestellungUmgebuchtV1):
-			var data BestellungUmgebuchtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return StornoAufteilung{}, false
-			}
-			tischID, err := ParseTischIDFromSubject(evt.Subject)
-			if err != nil {
-				return StornoAufteilung{}, false
-			}
-			if tischID == data.QuellTischID {
-				for _, p := range data.Positionen {
-					unbezahlt[p.PositionID] -= p.Menge
-				}
-			} else {
-				merke(data.Positionen)
-				for _, p := range data.Positionen {
-					unbezahlt[p.PositionID] += p.Menge
-				}
-			}
-
-		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
-			var data ZahlungKassiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return StornoAufteilung{}, false
-			}
-			bucket := &zahlungRest{id: data.ZahlungID, rest: map[string]int{}}
-			for _, p := range data.Positionen {
-				unbezahlt[p.PositionID] -= p.Menge
-				bucket.rest[p.PositionID] += p.Menge
-			}
-			zahlungen = append(zahlungen, bucket)
-
-		case string(EventTypeBestellungKorrigiertV1):
-			var data BestellungKorrigiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return StornoAufteilung{}, false
-			}
-			for _, p := range data.Positionen {
-				unbezahlt[p.PositionID] -= p.Menge
-			}
-
-		case string(EventTypeStornierungErteiltV1):
-			var data StornierungErteiltV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return StornoAufteilung{}, false
-			}
-			for _, z := range zahlungen {
-				if z.id == data.ZahlungID {
-					for _, p := range data.Positionen {
-						z.rest[p.PositionID] -= p.Menge
-					}
-					break
-				}
-			}
-
-		default:
-			// Unbekannter Event-Typ: verweigern statt raten — eine stille Fehlaufteilung wäre schlimmer.
-			return StornoAufteilung{}, false
+		if !b.apply(evt) {
+			return nil, false
 		}
 	}
+	return b, true
+}
 
+func (b *stornoBestand) apply(evt e.Event) bool {
+	switch EventType(evt.Type) {
+	case EventTypeBestellungAufgenommenV1:
+		data, err := e.Decode[BestellungAufgenommenV1Data](evt)
+		if err != nil {
+			return false
+		}
+		b.merke(data.Positionen)
+		b.aendereUnbezahlt(data.Positionen, 1)
+
+	case EventTypeBestellungUmgebuchtV1:
+		data, err := e.Decode[BestellungUmgebuchtV1Data](evt)
+		if err != nil {
+			return false
+		}
+		tischID, err := ParseTischIDFromSubject(evt.Subject)
+		if err != nil {
+			return false
+		}
+		if tischID == data.QuellTischID {
+			b.aendereUnbezahlt(data.Positionen, -1)
+		} else {
+			b.merke(data.Positionen)
+			b.aendereUnbezahlt(data.Positionen, 1)
+		}
+
+	case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
+		data, err := e.Decode[ZahlungKassiertV1Data](evt)
+		if err != nil {
+			return false
+		}
+		bucket := &zahlungRest{id: data.ZahlungID, rest: map[string]int{}}
+		for _, p := range data.Positionen {
+			bucket.rest[p.PositionID] += p.Menge
+		}
+		b.aendereUnbezahlt(data.Positionen, -1)
+		b.zahlungen = append(b.zahlungen, bucket)
+
+	case EventTypeBestellungKorrigiertV1:
+		data, err := e.Decode[BestellungKorrigiertV1Data](evt)
+		if err != nil {
+			return false
+		}
+		b.aendereUnbezahlt(data.Positionen, -1)
+
+	case EventTypeStornierungErteiltV1:
+		data, err := e.Decode[StornierungErteiltV1Data](evt)
+		if err != nil {
+			return false
+		}
+		for _, z := range b.zahlungen {
+			if z.id == data.ZahlungID {
+				for _, p := range data.Positionen {
+					z.rest[p.PositionID] -= p.Menge
+				}
+				break
+			}
+		}
+
+	case EventTypeKassensitzungEroeffnetV1, EventTypeGeldtransitGebuchtV1, EventTypeKassensturzDurchgefuehrtV1,
+		EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1,
+		EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2, EventTypeDirektverkaufStorniertV1,
+		EventTypePfandZurueckgegebenV1, EventTypePfandrueckgabeStorniertV1:
+		return false
+
+	default:
+		// Unbekannter Event-Typ: verweigern statt raten — eine stille Fehlaufteilung wäre schlimmer.
+		return false
+	}
+	return true
+}
+
+// teileAuf allocates refs: per position the unpaid quantity first, the rest FIFO across the
+// payments. It consumes the Bestand and returns false on a repeated, unknown or excess position.
+func (b *stornoBestand) teileAuf(refs []PositionRef) (StornoAufteilung, bool) {
 	var aufteilung StornoAufteilung
 	seen := make(map[string]bool, len(refs))
 	for _, ref := range refs {
@@ -128,21 +156,21 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 		}
 		seen[ref.PositionID] = true
 
-		det, ok := details[ref.PositionID]
+		det, ok := b.details[ref.PositionID]
 		if !ok {
 			return StornoAufteilung{}, false
 		}
 		offen := ref.Menge
 
-		if frei := unbezahlt[ref.PositionID]; frei > 0 {
+		if frei := b.unbezahlt[ref.PositionID]; frei > 0 {
 			take := min(offen, frei)
-			unbezahlt[ref.PositionID] -= take
+			b.unbezahlt[ref.PositionID] -= take
 			offen -= take
 			aufteilung.Korrektur = append(aufteilung.Korrektur, mitMenge(det, take))
 			aufteilung.KorrekturCents += det.EinzelpreisCents * take
 		}
 
-		for _, z := range zahlungen {
+		for _, z := range b.zahlungen {
 			if offen == 0 {
 				break
 			}
@@ -162,7 +190,7 @@ func ComputeStornoAufteilung(events []e.Event, refs []PositionRef) (StornoAuftei
 		}
 	}
 
-	for _, z := range zahlungen {
+	for _, z := range b.zahlungen {
 		if len(z.genommen) == 0 {
 			continue
 		}

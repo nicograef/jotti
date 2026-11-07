@@ -34,39 +34,45 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 	history := []HistorieEintrag{}
 
 	for _, event := range events {
-		switch event.Type {
-		case string(EventTypeBestellungAufgenommenV1):
+		switch EventType(event.Type) {
+		case EventTypeBestellungAufgenommenV1:
 			bestellung, err := buildBestellungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragBestellung, Bestellung: &bestellung})
-		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
+		case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
 			zahlung, err := buildZahlungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragZahlung, Zahlung: &zahlung})
-		case string(EventTypeStornierungErteiltV1):
+		case EventTypeStornierungErteiltV1:
 			stornierung, err := buildStornierungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &stornierung})
 
-		case string(EventTypeBestellungKorrigiertV1):
+		case EventTypeBestellungKorrigiertV1:
 			korrektur, err := buildKorrekturFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragStornierung, Stornierung: &korrektur})
 
-		case string(EventTypeBestellungUmgebuchtV1):
+		case EventTypeBestellungUmgebuchtV1:
 			umbuchung, err := buildUmbuchungFromEvent(event)
 			if err != nil {
 				return nil, err
 			}
 			history = append(history, HistorieEintrag{Art: HistorieEintragUmbuchung, Umbuchung: &umbuchung})
+
+		case EventTypeKassensitzungEroeffnetV1, EventTypeGeldtransitGebuchtV1, EventTypeKassensturzDurchgefuehrtV1,
+			EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1,
+			EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2, EventTypeDirektverkaufStorniertV1,
+			EventTypePfandZurueckgegebenV1, EventTypePfandrueckgabeStorniertV1:
+			return nil, fmt.Errorf("event type %s does not belong to a tisch session", event.Type)
 
 		default:
 			return nil, fmt.Errorf("unknown event type: %s", event.Type)

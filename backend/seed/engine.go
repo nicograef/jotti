@@ -253,12 +253,18 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 		return err
 	}
 	events := b.tischEvents[a.Tisch]
-	kandidaten, err := kasse.ComputeNichtStorniertePositionen(events)
+	historie, err := kasse.GetHistorieFromEvents(events)
 	if err != nil {
 		return err
 	}
-	// Jüngste Positionen zuerst, damit die Varianten-Auswahl die letzte Bestellung trifft.
-	slices.Reverse(kandidaten)
+	// Die Historie steht jüngste zuerst; die Positionen einer Quelle ebenfalls umgedreht, damit die
+	// Varianten-Auswahl die letzte Bestellung trifft.
+	var kandidaten []kasse.Position
+	for _, eintrag := range historie {
+		for _, pos := range slices.Backward(eintrag.StornierbarePositionen) {
+			kandidaten = append(kandidaten, pos)
+		}
+	}
 	auswahl, err := selectPositionen(kandidaten, a.Posten)
 	if err != nil {
 		return fmt.Errorf("nicht stornierte Positionen: %w", err)

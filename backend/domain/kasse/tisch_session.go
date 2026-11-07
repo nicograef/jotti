@@ -1,7 +1,6 @@
 package kasse
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -23,21 +22,21 @@ type TischSession struct {
 }
 
 func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
-	switch evt.Type {
-	case string(EventTypeBestellungAufgenommenV1):
-		var data BestellungAufgenommenV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal bestellung data: %w", err)
+	switch EventType(evt.Type) {
+	case EventTypeBestellungAufgenommenV1:
+		data, err := e.Decode[BestellungAufgenommenV1Data](evt)
+		if err != nil {
+			return state, err
 		}
 		neuePositionen := tagBesteller(PositionenFromEventData(data.Positionen), evt.UserID, evt.UserName)
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
 		setErsteBestellungLogTime(&state, evt.Time)
 
-	case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
-		var data ZahlungKassiertV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal zahlung data: %w", err)
+	case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
+		data, err := e.Decode[ZahlungKassiertV1Data](evt)
+		if err != nil {
+			return state, err
 		}
 		state.GesamtZahlungenCents += data.GesamtZahlungCents
 		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, PositionenFromEventData(data.Positionen))
@@ -46,19 +45,19 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 		state.UnbezahltePositionen = unbezahlt
 
-	case string(EventTypeStornierungErteiltV1):
+	case EventTypeStornierungErteiltV1:
 		// Warenrücknahme bezahlter Positionen: der offene Betrag bleibt unverändert (sie
 		// waren bereits bezahlt), die Bar-Rückgabe mindert die vereinnahmten Zahlungen.
-		var data StornierungErteiltV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal stornierung data: %w", err)
+		data, err := e.Decode[StornierungErteiltV1Data](evt)
+		if err != nil {
+			return state, err
 		}
 		state.GesamtZahlungenCents -= data.GesamtStornierungCents
 
-	case string(EventTypeBestellungKorrigiertV1):
-		var data BestellungKorrigiertV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal korrektur data: %w", err)
+	case EventTypeBestellungKorrigiertV1:
+		data, err := e.Decode[BestellungKorrigiertV1Data](evt)
+		if err != nil {
+			return state, err
 		}
 		unbezahlt, err := reduceByPositionStrict(state.UnbezahltePositionen, PositionenFromEventData(data.Positionen))
 		if err != nil {
@@ -66,10 +65,10 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		}
 		state.UnbezahltePositionen = unbezahlt
 
-	case string(EventTypeBestellungUmgebuchtV1):
-		var data BestellungUmgebuchtV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
-			return state, fmt.Errorf("unmarshal umbuchung data: %w", err)
+	case EventTypeBestellungUmgebuchtV1:
+		data, err := e.Decode[BestellungUmgebuchtV1Data](evt)
+		if err != nil {
+			return state, err
 		}
 		tischID, err := ParseTischIDFromSubject(evt.Subject)
 		if err != nil {
@@ -90,6 +89,12 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 
 			setErsteBestellungLogTime(&state, evt.Time)
 		}
+
+	case EventTypeKassensitzungEroeffnetV1, EventTypeGeldtransitGebuchtV1, EventTypeKassensturzDurchgefuehrtV1,
+		EventTypeDifferenzSollIstGebuchtV1, EventTypeTagesabschlussErstelltV1,
+		EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2, EventTypeDirektverkaufStorniertV1,
+		EventTypePfandZurueckgegebenV1, EventTypePfandrueckgabeStorniertV1:
+		return state, fmt.Errorf("event type %s does not belong to a tisch session", evt.Type)
 
 	default:
 		return state, fmt.Errorf("unknown event type: %s", evt.Type)
@@ -115,61 +120,6 @@ func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 
 	logTime := eventTime.UTC()
 	state.ErsteBestellungLogTime = &logTime
-}
-
-// ComputeNichtStorniertePositionen replays events to the positions that were ordered but
-// not yet cancelled. Seed helper: its only non-test caller is the seed engine.
-func ComputeNichtStorniertePositionen(events []e.Event) ([]Position, error) {
-	var nichtStorniert []Position
-
-	for _, evt := range events {
-		switch evt.Type {
-		case string(EventTypeBestellungAufgenommenV1):
-			var data BestellungAufgenommenV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal bestellung data: %w", err)
-			}
-			nichtStorniert = accumulatePositionen(nichtStorniert, PositionenFromEventData(data.Positionen))
-
-		case string(EventTypeStornierungErteiltV1):
-			var data StornierungErteiltV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal stornierung data: %w", err)
-			}
-			nichtStorniert = reduceByPosition(nichtStorniert, PositionenFromEventData(data.Positionen))
-
-		case string(EventTypeBestellungKorrigiertV1):
-			var data BestellungKorrigiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal korrektur data: %w", err)
-			}
-			nichtStorniert = reduceByPosition(nichtStorniert, PositionenFromEventData(data.Positionen))
-
-		case string(EventTypeBestellungUmgebuchtV1):
-			var data BestellungUmgebuchtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return nil, fmt.Errorf("unmarshal umbuchung data: %w", err)
-			}
-			tischID, err := ParseTischIDFromSubject(evt.Subject)
-			if err != nil {
-				return nil, err
-			}
-			positionen := PositionenFromEventData(data.Positionen)
-			if tischID == data.QuellTischID {
-				nichtStorniert = reduceByPosition(nichtStorniert, positionen)
-			} else {
-				nichtStorniert = accumulatePositionen(nichtStorniert, positionen)
-			}
-
-		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
-			continue
-
-		default:
-			return nil, fmt.Errorf("unknown event type: %s", evt.Type)
-		}
-	}
-
-	return nichtStorniert, nil
 }
 
 // tagBesteller stamps the ordering Servicekraft (from the event envelope) onto each freshly
@@ -206,8 +156,7 @@ func accumulatePositionen(list []Position, positionen []Position) []Position {
 }
 
 // reduceByPosition subtracts positions from a clone of list, dropping entries at quantity zero.
-// It tolerates missing positions and over-reductions, so use it only where that is legitimate
-// (ComputeNichtStorniertePositionen: a position may already have been moved away).
+// It tolerates missing positions and over-reductions, so use it only where that is legitimate.
 func reduceByPosition(list []Position, reductions []Position) []Position {
 	out := make([]Position, len(list))
 	copy(out, list)

@@ -1,7 +1,6 @@
 package kasse
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"time"
@@ -58,9 +57,11 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 	for _, evt := range events {
 		switch {
 		case slices.Contains(vorgangTypen, EventType(evt.Type)):
-			if err := json.Unmarshal(evt.Data, &vorgangData); err != nil {
-				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", evt.Type, err)
+			data, err := e.Decode[V](evt)
+			if err != nil {
+				return VorgangHistorieEintrag{}, vorgangData, err
 			}
+			vorgangData = data
 			kern := vorgang(vorgangData)
 			positionen := PositionenFromEventData(kern.Positionen)
 			eintrag.UserID = evt.UserID
@@ -72,9 +73,9 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 			eintrag.OffenePositionen = accumulatePositionen(nil, positionen)
 
 		case evt.Type == string(stornoTyp):
-			var data S
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return VorgangHistorieEintrag{}, vorgangData, fmt.Errorf("unmarshal %s data: %w", stornoTyp, err)
+			data, err := e.Decode[S](evt)
+			if err != nil {
+				return VorgangHistorieEintrag{}, vorgangData, err
 			}
 			kern := storno(data)
 			eintrag.OffenePositionen = reduceByPosition(eintrag.OffenePositionen, PositionenFromEventData(kern.Positionen))

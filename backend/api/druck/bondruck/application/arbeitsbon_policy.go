@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
@@ -33,11 +32,17 @@ func CreateArbeitsbonAuftraegeFromEvent(
 	druckstationen map[string]druckstation.Druckstation,
 	tischName string,
 ) []druckauftrag_repo.NeuerDruckauftrag {
-	switch evt.Type {
-	case string(kasse.EventTypeBestellungAufgenommenV1):
+	switch kasse.EventType(evt.Type) {
+	case kasse.EventTypeBestellungAufgenommenV1:
 		return createStationsAuftraege(evt, druckstationen, tischName, fmt.Sprintf("bestellung-aufgenommen:%d", evt.ID))
-	case string(kasse.EventTypeDirektverkaufGetaetigtV1), string(kasse.EventTypeDirektverkaufGetaetigtV2):
+	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
 		return createDirektverkaufAuftraege(evt, druckstationen)
+	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2, kasse.EventTypeStornierungErteiltV1,
+		kasse.EventTypeBestellungKorrigiertV1, kasse.EventTypeBestellungUmgebuchtV1,
+		kasse.EventTypeDirektverkaufStorniertV1, kasse.EventTypePfandZurueckgegebenV1, kasse.EventTypePfandrueckgabeStorniertV1,
+		kasse.EventTypeKassensitzungEroeffnetV1, kasse.EventTypeGeldtransitGebuchtV1, kasse.EventTypeKassensturzDurchgefuehrtV1,
+		kasse.EventTypeDifferenzSollIstGebuchtV1, kasse.EventTypeTagesabschlussErstelltV1:
+		return nil
 	default:
 		return nil
 	}
@@ -182,8 +187,8 @@ func createStationsAuftraegeFromData(
 }
 
 func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
-	var data positionenMitKommentarEventData
-	if err := json.Unmarshal(evt.Data, &data); err != nil {
+	data, err := event.Decode[positionenMitKommentarEventData](evt)
+	if err != nil {
 		return arbeitsbonDaten{}, false
 	}
 

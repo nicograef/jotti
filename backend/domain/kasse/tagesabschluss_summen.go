@@ -1,9 +1,6 @@
 package kasse
 
 import (
-	"encoding/json"
-	"fmt"
-
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
 
@@ -21,53 +18,53 @@ func ComputeAbschlussSummen(events []e.Event) (AbschlussSummen, error) {
 	for _, evt := range events {
 		switch EventType(evt.Type) {
 		case EventTypeZahlungKassiertV1, EventTypeZahlungKassiertV2:
-			var data ZahlungKassiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[ZahlungKassiertV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents += data.GesamtZahlungCents
 		case EventTypeStornierungErteiltV1:
-			var data StornierungErteiltV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[StornierungErteiltV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents -= data.GesamtStornierungCents
 			s.StornierungCents += data.GesamtStornierungCents
 		case EventTypeBestellungKorrigiertV1:
-			var data BestellungKorrigiertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[BestellungKorrigiertV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.StornierungCents += data.GesamtCents
 		case EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2:
-			var data DirektverkaufGetaetigtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[DirektverkaufGetaetigtV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents += data.GesamtbetragCents
 		case EventTypeDirektverkaufStorniertV1:
-			var data DirektverkaufStorniertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[DirektverkaufStorniertV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents -= data.GesamtStornierungCents
 			s.StornierungCents += data.GesamtStornierungCents
 		case EventTypePfandZurueckgegebenV1:
-			var data PfandZurueckgegebenV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[PfandZurueckgegebenV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents -= data.GesamtbetragCents
 		case EventTypePfandrueckgabeStorniertV1:
-			var data PfandrueckgabeStorniertV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[PfandrueckgabeStorniertV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			s.UmsatzCents += data.GesamtStornierungCents
 		case EventTypeGeldtransitGebuchtV1:
-			var data GeldtransitGebuchtV1Data
-			if err := json.Unmarshal(evt.Data, &data); err != nil {
-				return AbschlussSummen{}, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			data, err := e.Decode[GeldtransitGebuchtV1Data](evt)
+			if err != nil {
+				return AbschlussSummen{}, err
 			}
 			if data.Richtung == GeldtransitRichtungEinlage {
 				s.GeldtransitCents += data.BetragCents

@@ -255,8 +255,8 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 
 	for _, ev := range events {
 		vorher := len(belege)
-		switch ev.Type {
-		case string(kasse.EventTypeBestellungAufgenommenV1):
+		switch kasse.EventType(ev.Type) {
+		case kasse.EventTypeBestellungAufgenommenV1:
 			data, err := event.Decode[kasse.BestellungAufgenommenV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -275,7 +275,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeZahlungKassiertV1), string(kasse.EventTypeZahlungKassiertV2):
+		case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2:
 			// v1 has no pfand key, so its positions read as no Pfand.
 			data, err := event.Decode[kasse.ZahlungKassiertV2Data](ev)
 			if err != nil {
@@ -295,7 +295,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeStornierungErteiltV1):
+		case kasse.EventTypeStornierungErteiltV1:
 			data, err := event.Decode[kasse.StornierungErteiltV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -316,7 +316,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeBestellungKorrigiertV1):
+		case kasse.EventTypeBestellungKorrigiertV1:
 			data, err := event.Decode[kasse.BestellungKorrigiertV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -336,7 +336,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeBestellungUmgebuchtV1):
+		case kasse.EventTypeBestellungUmgebuchtV1:
 			data, err := event.Decode[kasse.BestellungUmgebuchtV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -367,7 +367,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			}
 			belege = append(belege, bon)
 
-		case string(kasse.EventTypeDirektverkaufGetaetigtV1), string(kasse.EventTypeDirektverkaufGetaetigtV2):
+		case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
 			// v1 has no pfand key, so its positions read as no Pfand.
 			data, err := event.Decode[kasse.DirektverkaufGetaetigtV2Data](ev)
 			if err != nil {
@@ -386,7 +386,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:       data.Kommentar,
 			})
 
-		case string(kasse.EventTypeDirektverkaufStorniertV1):
+		case kasse.EventTypeDirektverkaufStorniertV1:
 			data, err := event.Decode[kasse.DirektverkaufStorniertV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -404,7 +404,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:       data.Kommentar,
 			})
 
-		case string(kasse.EventTypePfandZurueckgegebenV1):
+		case kasse.EventTypePfandZurueckgegebenV1:
 			data, err := event.Decode[kasse.PfandZurueckgegebenV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -423,7 +423,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypePfandrueckgabeStorniertV1):
+		case kasse.EventTypePfandrueckgabeStorniertV1:
 			data, err := event.Decode[kasse.PfandrueckgabeStorniertV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -441,7 +441,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 				notiz:            data.Kommentar,
 			})
 
-		case string(kasse.EventTypeKassensitzungEroeffnetV1):
+		case kasse.EventTypeKassensitzungEroeffnetV1:
 			data, err := event.Decode[kasse.KassensitzungEroeffnetV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -453,14 +453,14 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			}
 			belege = append(belege, geldbewegung(fmt.Sprintf("anfangsbestand-%d", ev.ID), gvTypAnfangsbestand, data.BetragCents, false, data.Bezeichnung))
 
-		case string(kasse.EventTypeGeldtransitGebuchtV1):
+		case kasse.EventTypeGeldtransitGebuchtV1:
 			data, err := event.Decode[kasse.GeldtransitGebuchtV1Data](ev)
 			if err != nil {
 				return nil, err
 			}
 			belege = append(belege, geldbewegung(data.GeldtransitID, gvTypGeldtransit, data.BetragCents, data.Richtung == "entnahme", data.Kommentar))
 
-		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
+		case kasse.EventTypeDifferenzSollIstGebuchtV1:
 			data, err := event.Decode[kasse.DifferenzSollIstGebuchtV1Data](ev)
 			if err != nil {
 				return nil, err
@@ -469,7 +469,10 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			// balance), negative a surplus.
 			belege = append(belege, geldbewegung(fmt.Sprintf("differenz-soll-ist-%d", ev.ID), gvTypDifferenzSollIst, abs(data.BetragCents), data.BetragCents > 0, ""))
 
-		case string(kasse.EventTypeTagesabschlussErstelltV1):
+		case kasse.EventTypeKassensturzDurchgefuehrtV1:
+			// The count itself moves no cash; its Differenz is booked as its own event.
+
+		case kasse.EventTypeTagesabschlussErstelltV1:
 			if _, err := event.Decode[kasse.TagesabschlussErstelltV1Data](ev); err != nil {
 				return nil, err
 			}
@@ -554,7 +557,7 @@ func isoZeit(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.00
 // closed session, else fallback (the export time of an open session).
 func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	for _, ev := range events {
-		if ev.Type == string(kasse.EventTypeTagesabschlussErstelltV1) {
+		if kasse.EventType(ev.Type) == kasse.EventTypeTagesabschlussErstelltV1 {
 			return ev.Time
 		}
 	}

@@ -2,9 +2,7 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
@@ -432,10 +430,10 @@ func (c Command) findeVorhandenenKassensturz(ctx context.Context, subject string
 		if kasse.EventType(evt.Type) != kasse.EventTypeKassensturzDurchgefuehrtV1 {
 			continue
 		}
-		var data kasse.KassensturzDurchgefuehrtV1Data
-		if err := json.Unmarshal(evt.Data, &data); err != nil {
+		data, err := event.Decode[kasse.KassensturzDurchgefuehrtV1Data](evt)
+		if err != nil {
 			log.Error("Unparsebares Kassensturz-Event verhindert Kassenabschluss", "error", err, "event_id", evt.ID)
-			return nil, false, fmt.Errorf("event %d (%s): %w", evt.ID, evt.Type, err)
+			return nil, false, err
 		}
 		sturz = &data
 	}

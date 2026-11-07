@@ -236,8 +236,8 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 // handleKassensitzungEvent handles only tagesabschluss-erstellt:v1: EroeffneKassensitzung inserts the row
 // before kassensitzung-eroeffnet:v1 because kassenjournal has an FK to kassensitzungen.
 func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Queries, e event.Event, kassensitzungNr int) error {
-	switch e.Type {
-	case string(kasse.EventTypeTagesabschlussErstelltV1):
+	switch kasse.EventType(e.Type) {
+	case kasse.EventTypeTagesabschlussErstelltV1:
 		err := qtx.UpdateKassensitzung(ctx, dbgen.UpdateKassensitzungParams{
 			ZNr:    kassensitzungNr,
 			Status: string(kasse.KassensitzungAbgeschlossen),
@@ -246,8 +246,18 @@ func (r Repository) handleKassensitzungEvent(ctx context.Context, qtx *dbgen.Que
 			return db.Error(err)
 		}
 
+	case kasse.EventTypeKassensitzungEroeffnetV1, kasse.EventTypeGeldtransitGebuchtV1,
+		kasse.EventTypeKassensturzDurchgefuehrtV1, kasse.EventTypeDifferenzSollIstGebuchtV1:
+		// These kassensitzung events don't change the CRUD entity.
+
+	case kasse.EventTypeBestellungAufgenommenV1, kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2,
+		kasse.EventTypeStornierungErteiltV1, kasse.EventTypeBestellungKorrigiertV1, kasse.EventTypeBestellungUmgebuchtV1,
+		kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2, kasse.EventTypeDirektverkaufStorniertV1,
+		kasse.EventTypePfandZurueckgegebenV1, kasse.EventTypePfandrueckgabeStorniertV1:
+		return fmt.Errorf("event type %s does not belong to the kassensitzung stream", e.Type)
+
 	default:
-		// Other kassensitzung events don't change the CRUD entity.
+		return fmt.Errorf("unknown event type: %s", e.Type)
 	}
 
 	return nil
