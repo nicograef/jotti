@@ -165,22 +165,12 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 		return err
 	}
 
-	if err := c.writeEventOCC(ctx, evt, kasse.StreamTypeDirektverkauf, subject, events[len(events)-1].Version, ks.ZNr); err != nil {
-		return err
+	evt.Version = events[len(events)-1].Version + 1
+	if _, err := c.EventRepo.WriteEvent(ctx, evt, kasse.StreamTypeDirektverkauf, ks.ZNr); err != nil {
+		return fromWriteError(ctx, err, "subject", subject, "version", evt.Version, "type", evt.Type)
 	}
 
 	log.Info("Direktverkauf storniert", "verkauf_id", verkaufID, "gesamt_stornierung_cents", gesamtStornierungCents)
-	return nil
-}
-
-// writeEventOCC writes at expectedVersion+1: 0 for a fresh stream, the replay's highest version for
-// a Storno.
-func (c Command) writeEventOCC(ctx context.Context, e event.Event, streamType kasse.StreamType, subject string, expectedVersion int, kassensitzungNr int) error {
-	e.Version = expectedVersion + 1
-
-	if _, err := c.EventRepo.WriteEvent(ctx, e, streamType, kassensitzungNr); err != nil {
-		return fromWriteError(ctx, err, "subject", subject, "version", e.Version, "type", e.Type)
-	}
 	return nil
 }
 
