@@ -15,7 +15,7 @@ Der Qualitäts-Durchgang über das ganze Repo (Waves 1 bis 5, Basis `eb16138a`) 
 ## Feature-Spur
 
 1. **#145 Kommentar je Position** (gelandet): freigegeben mit den Empfehlungen des PRD. Additives Feld als Freeze-Ausnahme mit D22, kein DSFinV-K-Export, Kommentar auf jedem Stückbon, AGENTS.md-Freeze-Satz umformuliert.
-2. **Auto-Pfand je Variante** (`plan-auto-pfand-je-variante.md`): Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release; die Regel „gleicher Steuersatz“ gilt ohne Kombi-Sonderfall.
+2. **Auto-Pfand je Variante** (gelandet): Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release; die Regel „gleicher Steuersatz“ gilt ohne Kombi-Sonderfall.
 3. **Zusatzdrucker** (`plan-zusatzdrucker.md`, Stationsmodell-PRD als Variante Z): Die heutige Druckerkonfiguration bleibt Standard, zusätzliche Drucker sind optional je Produkt.
 4. **Windows-Einzeldatei Stufe 1** (`plan-windows-einzeldatei.md`, Phasen 1 bis 6): Windows 10 22H2 und 11, nur x64; jotti läuft als Windows-Dienst; die Übernahme wird gebaut. Phase 6 entscheidet automatisch über die Messung auf dem Windows-Runner der CI: Go bei höchstens 120 MB, höchstens 60 s bis zur Anmeldeseite beim ersten und 15 s bei späteren Starts und ohne Defender-Sperre. Reißt ein Wert auch nach den Abhilfen des Plans, entscheidet Nico.
 

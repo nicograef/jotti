@@ -19,6 +19,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - „Meine Tische“: Favoriten als große Tischkarten auf dem Dashboard, Schnellsuche nach Name oder Nummer.
 - Direktverkauf ohne Tisch: bestellen und kassieren in einem Schritt, mit Historie und Storno.
 - Pfandrückgabe: Pfandgut bar auszahlen oder beim Kassieren und im Direktverkauf verrechnen. Admins kennzeichnen Pfand-Produkte, die Serviceleitung storniert Rückgaben positionsgenau.
+- Auto-Pfand: Admins verknüpfen eine Variante mit einem Pfand gleichen Steuersatzes. Beim Bestellen kommt das Pfand mit, am Tisch und im Direktverkauf. Abholbons lassen Pfand-Positionen weg.
 
 ### Küche
 
