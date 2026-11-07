@@ -10,7 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
-	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
@@ -201,7 +201,7 @@ func (b *bondruckBuilder) setStatus(z *druckauftragZeile) {
 
 // kassenbeleg builds the Kassenbeleg print job like KassenbelegDrucken in production, shortly after the signature acknowledgement.
 // Without an acknowledged signature it returns false: the receipt request would have answered "ausstehend" without a print job.
-func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, error) {
+func (b *bondruckBuilder) kassenbeleg(evt event.Event) (druckauftragZeile, bool, error) {
 	signatur := b.signaturen[evt.ID]
 	if signatur == nil {
 		return druckauftragZeile{}, false, nil
@@ -214,7 +214,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 
 	switch kasse.EventType(evt.Type) {
 	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2:
-		data, err := e.Decode[kasse.ZahlungKassiertV1Data](evt)
+		data, err := event.Decode[kasse.ZahlungKassiertV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}
@@ -226,7 +226,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 		}
 
 	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
-		data, err := e.Decode[kasse.DirektverkaufGetaetigtV1Data](evt)
+		data, err := event.Decode[kasse.DirektverkaufGetaetigtV1Data](evt)
 		if err != nil {
 			return druckauftragZeile{}, false, err
 		}

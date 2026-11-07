@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 // seedEvent bündelt ein Domain-Event mit der Kassensitzungs-Zuordnung, die der Writer für die
 // Persistenz im Kassenjournal benötigt.
 type seedEvent struct {
-	event           e.Event
+	event           event.Event
 	kassensitzungNr int
 }
 
@@ -82,9 +82,9 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 			benutzer:       benutzerIdx,
 			tische:         tischIdx,
 			versionen:      map[string]int{},
-			tischEvents:    map[int][]e.Event{},
-			verkaufEvents:  map[string][]e.Event{},
-			pfandEvents:    map[string][]e.Event{},
+			tischEvents:    map[int][]event.Event{},
+			verkaufEvents:  map[string][]event.Event{},
+			pfandEvents:    map[string][]event.Event{},
 		}
 		events, err := bauer.buildEvents(start, ende)
 		if err != nil {
@@ -135,16 +135,16 @@ type sitzungsBuilder struct {
 	tische         map[int]tisch
 
 	versionen       map[string]int
-	events          []e.Event
-	tischEvents     map[int][]e.Event
-	verkaufEvents   map[string][]e.Event
-	pfandEvents     map[string][]e.Event
+	events          []event.Event
+	tischEvents     map[int][]event.Event
+	verkaufEvents   map[string][]event.Event
+	pfandEvents     map[string][]event.Event
 	bestandCents    int
 	summen          tagesSummen
 	kassensturzDone bool
 }
 
-func (b *sitzungsBuilder) buildEvents(start, ende time.Time) ([]e.Event, error) {
+func (b *sitzungsBuilder) buildEvents(start, ende time.Time) ([]event.Event, error) {
 	name, err := b.benutzerName(b.sitzung.EroeffnetVon)
 	if err != nil {
 		return nil, err
@@ -413,7 +413,7 @@ func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	if err != nil {
 		return err
 	}
-	data, err := e.Decode[kasse.PfandZurueckgegebenV1Data](evt)
+	data, err := event.Decode[kasse.PfandZurueckgegebenV1Data](evt)
 	if err != nil {
 		return err
 	}
@@ -537,22 +537,22 @@ func (b *sitzungsBuilder) schliesseTagAb(start, ende time.Time) error {
 // add weist dem Event die nächste Version seines Subjects zu, hängt es an die Sitzung an
 // und gibt das versionierte Event zurück. Der Zeitstempel wird später über
 // verteileZeitstempel vergeben.
-func (b *sitzungsBuilder) add(evt e.Event) e.Event {
+func (b *sitzungsBuilder) add(evt event.Event) event.Event {
 	b.versionen[evt.Subject]++
 	evt.Version = b.versionen[evt.Subject]
 	b.events = append(b.events, evt)
 	return evt
 }
 
-func (b *sitzungsBuilder) addTisch(tischID int, evt e.Event) {
+func (b *sitzungsBuilder) addTisch(tischID int, evt event.Event) {
 	b.tischEvents[tischID] = append(b.tischEvents[tischID], b.add(evt))
 }
 
-func (b *sitzungsBuilder) addVerkauf(verkaufID string, evt e.Event) {
+func (b *sitzungsBuilder) addVerkauf(verkaufID string, evt event.Event) {
 	b.verkaufEvents[verkaufID] = append(b.verkaufEvents[verkaufID], b.add(evt))
 }
 
-func (b *sitzungsBuilder) addPfandrueckgabe(rueckgabeID string, evt e.Event) {
+func (b *sitzungsBuilder) addPfandrueckgabe(rueckgabeID string, evt event.Event) {
 	b.pfandEvents[rueckgabeID] = append(b.pfandEvents[rueckgabeID], b.add(evt))
 }
 
@@ -592,7 +592,7 @@ func (b *sitzungsBuilder) tischName(tischID int) (string, error) {
 // verteileZeitstempel verteilt die Event-Zeitstempel streng monoton über das Sitzungsfenster.
 // Das optionale Tagesprofil staucht die Verteilung zu Stoßzeiten; abgeschlossene Sitzungen
 // enden exakt am Fensterende (Tagesabschluss), offene lassen das Fensterende frei.
-func verteileZeitstempel(events []e.Event, start, ende time.Time, abgeschlossen bool, profil []profilPunkt) error {
+func verteileZeitstempel(events []event.Event, start, ende time.Time, abgeschlossen bool, profil []profilPunkt) error {
 	if err := validateProfil(profil); err != nil {
 		return err
 	}

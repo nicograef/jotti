@@ -3,12 +3,12 @@ package application
 import (
 	"context"
 
-	t "github.com/nicograef/jotti/backend/domain/tisch"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type tischQueryRepo interface {
-	GetAlleTische(ctx context.Context) ([]t.Tisch, error)
+	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
 	GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int, error)
 }
 
@@ -20,7 +20,7 @@ type Query struct {
 // (0 ohne offenen Saldo oder ohne offene Sitzung). Der Saldo ist keine
 // Domäneneigenschaft, sondern eine tisch_sessions-Projektion.
 type TischMitSaldo struct {
-	Tisch      t.Tisch
+	Tisch      tisch.Tisch
 	SaldoCents int
 }
 
