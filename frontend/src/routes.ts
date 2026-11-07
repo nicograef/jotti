@@ -19,20 +19,15 @@ function AuthRedirect() {
   return redirect(AuthSingleton.isAdmin ? '/admin' : '/service')
 }
 
-export function AdminGuard() {
+function AdminGuard() {
   if (!AuthSingleton.isAuthenticated || !AuthSingleton.isAdmin) {
     return redirect('/')
   }
 }
 
-export function ServiceGuard() {
-  const hasServiceAccess =
-    AuthSingleton.isAuthenticated &&
-    (AuthSingleton.isService ||
-      AuthSingleton.isServiceleitung ||
-      AuthSingleton.isAdmin)
-
-  if (!hasServiceAccess) {
+// Every role the token schema admits may use /service.
+function ServiceGuard() {
+  if (!AuthSingleton.isAuthenticated) {
     return redirect('/')
   }
 }
