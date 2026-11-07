@@ -87,6 +87,7 @@ Entschieden von Nico am 7. November:
   - Die Verzeichnisrechte aus #174 prüft ein Test auf dem Windows-Runner mit echten Rechten (`icacls`).
   - Die Übernahme prüfen die Integrationstests unter Linux; das erste Release mit Übernahme heißt im Leitfaden Beta, bis ein Verein sie bestätigt.
 - Das Go/Stop-Gate entscheidet automatisch (Phase 6); bei Stop landet nur die Entscheidungszeile.
+- Frage 14 freigegeben: `reverse-proxy/Dockerfile` und sein `.dockerignore` übernehmen alle Go-Quellen unter `reverse-proxy/` ohne Tests.
 - Für alle übrigen Fragen unten gilt die jeweilige Empfehlung.
 
 
