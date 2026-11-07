@@ -297,7 +297,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	}
 
 	var (
-		data     reporting.LiveReportingData
+		data          reporting.LiveReportingData
 		sessions      []kasse.TischSession
 		nameByTischID map[int]string
 		zeilen        []reporting.ProduktStatistikZeile
