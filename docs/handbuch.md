@@ -403,7 +403,7 @@ Onboarding in vier Schritten; am Ende kennt nur der Benutzer sein Passwort:
 3. **Admin aktiviert:** Erst ein expliziter Admin-Klick setzt den Status auf `active` (`ActivateUser`). Ohne aktiven Status weist eine reguläre Anmeldung `ErrNotActive` zurück, auch mit gesetztem Passwort.
 4. **Regulärer Login:** Mit Benutzername und selbst gesetztem Passwort.
 
-**Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `password_hash` → Benutzer durchläuft Onboarding erneut. Reset und Passwortwechsel beenden alle laufenden Sitzungen des Benutzers: Ein früher ausgestelltes Token beantwortet die Middleware mit 401 `session_revoked`. So sperrt ein Reset ein verlorenes Telefon aus.
+**Passwort-Reset:** Admin-Reset generiert neues Einmalpasswort, leert `password_hash` → Benutzer durchläuft Onboarding erneut. Reset und Passwortwechsel beenden alle laufenden Sitzungen des Benutzers: Ein davor ausgestelltes Token beantwortet die Middleware mit 401 `session_revoked`. So sperrt ein Reset ein verlorenes Telefon aus.
 
 **Sperre des Einmalpassworts:** Nach fünf Fehlversuchen wird das Einmalpasswort ungültig (`MaxOnetimePasswordAttempts`, `backend/domain/user/user.go`); der Admin muss ein neues erzeugen.
 
