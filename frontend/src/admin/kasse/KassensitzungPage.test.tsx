@@ -19,7 +19,7 @@ import type { GeldtransitBuchung } from './Kassensitzung'
 import { KassensitzungPage } from './KassensitzungPage'
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
 }))
 
 const sommerfest: AktiveKassensitzung = {
@@ -231,6 +231,78 @@ describe('KassensitzungPage', () => {
     expect(screen.getByText('Soll-Bestand')).toBeInTheDocument()
     expect(screen.getByText('Heutige Kassenbewegungen')).toBeInTheDocument()
   })
+
+  // Retry nach verlorener Antwort: die Sitzung ist schon eröffnet; die Seite
+  // lädt sie nach, statt beim Eröffnen-Formular stehen zu bleiben.
+  it('lädt nach kasse_bereits_geoeffnet die offene Sitzung nach', async () => {
+    const fake = backend({ tseKonfiguriert: true })
+      .respond(
+        'admin/get-aktive-kassensitzung',
+        vi.fn().mockReturnValueOnce(null).mockReturnValue(sommerfest),
+      )
+      .fail(
+        'admin/kassensitzung-eroeffnen',
+        new BackendError(409, 'kasse_bereits_geoeffnet'),
+      )
+    const user = userEvent.setup()
+    const { queryClient } = renderPage(fake)
+    await geladen(queryClient, TSE_KONFIGURATION_KEY)
+
+    await user.type(
+      await screen.findByLabelText('Bezeichnung'),
+      'Sommerfest Tag 2',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+    )
+
+    expect(
+      await screen.findByText('Kassentag Nr. 12 — Sommerfest Tag 2'),
+    ).toBeInTheDocument()
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  // kasse_nicht_geoeffnet: der erste Versuch hat schon abgeschlossen.
+  // 503: der Abschluss kann in wird_abgeschlossen stecken geblieben sein.
+  it.each([
+    [
+      'kasse_nicht_geoeffnet',
+      new BackendError(409, 'kasse_nicht_geoeffnet'),
+      null,
+      'Die Kasse für den Verkaufstag öffnen',
+    ],
+    [
+      'einem Serverfehler',
+      new BackendError(503, 'service_unavailable'),
+      { ...sommerfest, status: 'wird_abgeschlossen' as const },
+      'Abschluss unterbrochen — erneut abschließen',
+    ],
+  ])(
+    'lädt nach %s beim Abschluss den Sitzungsstatus nach',
+    async (_fall, fehler, danach, erwartet) => {
+      const fake = backend()
+        .respond(
+          'admin/get-aktive-kassensitzung',
+          vi.fn().mockReturnValueOnce(sommerfest).mockReturnValue(danach),
+        )
+        .fail('admin/kasse-abschliessen', fehler)
+      const user = userEvent.setup()
+      renderPage(fake)
+
+      await user.type(
+        await screen.findByLabelText('Gezählter Ist-Bestand'),
+        '342,50',
+      )
+      await user.click(
+        screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+      )
+      await user.click(
+        screen.getByRole('button', { name: 'Kasse abschließen' }),
+      )
+
+      expect(await screen.findByText(erwartet)).toBeInTheDocument()
+    },
+  )
 
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {
     const fake = backend({ kassensitzung: sommerfest })

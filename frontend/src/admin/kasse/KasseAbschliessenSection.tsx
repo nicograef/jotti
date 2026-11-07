@@ -100,11 +100,18 @@ export function KasseAbschliessenSection({
   // laufenden Abschluss meldet useActionSubmit.
   useOffenerVorgang(form.formState.isDirty || dialogOpen)
 
+  const abgeschlossen = () => {
+    setDialogOpen(false)
+    form.reset()
+    setIstBestandCents(null)
+    onSuccess()
+  }
+
   const { loading, run } = useActionSubmit({
     actionLabel: 'Kasse abschließen',
-    // Gate-Block bei noch ausstehenden Signaturen (409): der Dialog bleibt
-    // offen, derselbe Button fordert den Abschluss erneut an.
     onCode: {
+      // Gate-Block bei noch ausstehenden Signaturen (409): der Dialog bleibt
+      // offen, derselbe Button fordert den Abschluss erneut an.
       signaturen_ausstehend: (error) => {
         const details = SignaturenAusstehendDetailsSchema.safeParse(
           error.details,
@@ -115,7 +122,15 @@ export function KasseAbschliessenSection({
           ),
         )
       },
+      // Retry nach verlorener Antwort: der erste Versuch hat schon abgeschlossen.
+      kasse_nicht_geoeffnet: () => {
+        toast.info('Die Kasse ist bereits abgeschlossen.')
+        abgeschlossen()
+      },
     },
+    // Ein abgebrochener Abschluss kann die Sitzung in wird_abgeschlossen
+    // zurücklassen; erst der neu geladene Status zeigt das an.
+    onError: onSuccess,
   })
 
   const sollBestandCents = kassenbestand?.sollBestandCents ?? null
@@ -151,10 +166,7 @@ export function KasseAbschliessenSection({
     await run(async () => {
       const ergebnis = await kasseBackend.kasseAbschliessen(istBestandCents)
       toast.success(abschlussErfolgMeldung(ergebnis))
-      setDialogOpen(false)
-      form.reset()
-      setIstBestandCents(null)
-      onSuccess()
+      abgeschlossen()
     })
   }
 

@@ -31,7 +31,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { kasseBackend } from './hooks'
 import { BetragCentsSchema, BezeichnungSchema } from './Kassensitzung'
@@ -56,9 +56,16 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
     mode: 'onTouched',
   })
 
-  const { loading, run } = useFormActionSubmit({
-    form,
+  const { loading, run } = useActionSubmit({
     actionLabel: 'Kassensitzung eröffnen',
+    onCode: {
+      // Retry nach verlorener Antwort: der erste Versuch hat schon eröffnet.
+      kasse_bereits_geoeffnet: () => {
+        toast.info('Die Kasse ist bereits geöffnet.')
+        setTseDialogOpen(false)
+        onSuccess()
+      },
+    },
   })
 
   const eroeffnen = async (data: FormData) => {
