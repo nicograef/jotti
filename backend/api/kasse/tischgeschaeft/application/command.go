@@ -316,17 +316,10 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 		}
 		return ErrPositionNichtBezahlbar
 	}
-	// The Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
-	varianteIDs := make([]int, len(resolvedPositionen))
-	for i, p := range resolvedPositionen {
-		varianteIDs[i] = p.VarianteID
-	}
-	pfandVarianten, err := c.ProduktRepo.GetPfandVarianten(ctx, varianteIDs)
+	resolvedPositionen, err = c.mitPfandKennzeichen(ctx, resolvedPositionen, tischID)
 	if err != nil {
-		log.Error("Failed to read the pfand flag of the paid positions", "error", err, "tisch_id", tischID)
-		return ErrDatabase
+		return err
 	}
-	resolvedPositionen = kasse.MitPfandKennzeichen(resolvedPositionen, pfandVarianten)
 
 	evt, err := kasse.NewZahlungKassiertEvent(subject, userID, userName, resolvedPositionen, gesamtZahlungCents, kommentar)
 	if err != nil {
@@ -339,18 +332,10 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeTischSession}}
 
 	if pfand != nil {
-		pfandPositionen, err := enrichment.EnrichPfandPositionen(ctx, c.ProduktRepo, pfand.Positionen)
+		rueckgabe, err := enrichment.VerrechneteRueckgabe(ctx, c.ProduktRepo, kassensitzungNr, *pfand, tischID, evt)
 		if err != nil {
 			return err
 		}
-		// Der Kommentar gehört zur Zahlung; die verrechnete Rückgabe trägt keinen.
-		rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(kassensitzungNr, pfand.RueckgabeID), pfand.RueckgabeID, tischID, userID, userName, pfandPositionen, "")
-		if err != nil {
-			log.Error("Failed to create pfand zurueckgegeben event", "error", err, "tisch_id", tischID)
-			return err
-		}
-		rueckgabe = kasse.Verrechne(rueckgabe, evt)
-		rueckgabe.Version = 1
 		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
 	}
 
@@ -367,6 +352,20 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 
 	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
 	return nil
+}
+
+// mitPfandKennzeichen: the Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
+func (c Command) mitPfandKennzeichen(ctx context.Context, positionen []kasse.Position, tischID int) ([]kasse.Position, error) {
+	varianteIDs := make([]int, len(positionen))
+	for i, p := range positionen {
+		varianteIDs[i] = p.VarianteID
+	}
+	pfandVarianten, err := c.ProduktRepo.GetPfandVarianten(ctx, varianteIDs)
+	if err != nil {
+		logging.FromContext(ctx).Error("Failed to read the pfand flag of the paid positions", "error", err, "tisch_id", tischID)
+		return nil, ErrDatabase
+	}
+	return kasse.MitPfandKennzeichen(positionen, pfandVarianten), nil
 }
 
 // pruefeGebuchteRueckgabe answers with pruefeVerrechneteZahlung when pfand.RueckgabeID is already

@@ -1,5 +1,5 @@
-// Package enrichment turns thin position inputs into fat kasse.Position values, shared by the
-// tischgeschaeft and direktverkauf command paths.
+// Package enrichment turns thin position inputs into fat kasse.Position values and builds the
+// Pfandrückgabe settled with a Zahlung or a Direktverkauf, shared by both command paths.
 package enrichment
 
 import (
@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/internal/logging"
@@ -51,6 +52,25 @@ var ErrKeinPfandProdukt = errors.New("kein pfand produkt")
 // EnrichPfandPositionen enriches like EnrichPositionen and accepts only variants of Pfand products.
 func EnrichPfandPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {
 	return enrich(ctx, repo, inputs, true)
+}
+
+// VerrechneteRueckgabe builds the Rückgabe settled with partner, the Zahlung or Verkauf it is written
+// with, as version 1 of its own stream; tischID 0 is the Direktverkauf. It takes the partner's user
+// and timestamp, the pairing kasse.VerrechnungsPartner finds it by, and no Kommentar: that belongs
+// to the partner.
+func VerrechneteRueckgabe(ctx context.Context, repo produktRepo, kassensitzungNr int, pfand PfandEingabe, tischID int, partner event.Event) (event.Event, error) {
+	positionen, err := EnrichPfandPositionen(ctx, repo, pfand.Positionen)
+	if err != nil {
+		return event.Event{}, err
+	}
+	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(kassensitzungNr, pfand.RueckgabeID), pfand.RueckgabeID, tischID, partner.UserID, partner.UserName, positionen, "")
+	if err != nil {
+		logging.FromContext(ctx).Error("Failed to create pfand zurueckgegeben event", "error", err, "tisch_id", tischID)
+		return event.Event{}, err
+	}
+	rueckgabe = kasse.Verrechne(rueckgabe, partner)
+	rueckgabe.Version = 1
+	return rueckgabe, nil
 }
 
 func EnrichPositionen(ctx context.Context, repo produktRepo, inputs []PositionInput) ([]kasse.Position, error) {

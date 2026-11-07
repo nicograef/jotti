@@ -110,18 +110,10 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeDirektverkauf, BuildAuftraege: buildAuftraege}}
 
 	if pfand != nil {
-		pfandPositionen, err := enrichment.EnrichPfandPositionen(ctx, c.ProduktRepo, pfand.Positionen)
+		rueckgabe, err := enrichment.VerrechneteRueckgabe(ctx, c.ProduktRepo, ks.ZNr, *pfand, 0, evt)
 		if err != nil {
 			return err
 		}
-		// Der Kommentar gehört zum Verkauf; die verrechnete Rückgabe trägt keinen.
-		rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(kasse.PfandrueckgabeSubject(ks.ZNr, pfand.RueckgabeID), pfand.RueckgabeID, 0, userID, userName, pfandPositionen, "")
-		if err != nil {
-			log.Error("Failed to create pfand zurueckgegeben event", "error", err)
-			return err
-		}
-		rueckgabe = kasse.Verrechne(rueckgabe, evt)
-		rueckgabe.Version = 1
 		events = append(events, kassenjournal_repo.NeuesEvent{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe})
 	}
 
