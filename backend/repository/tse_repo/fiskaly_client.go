@@ -203,18 +203,27 @@ func klassifiziereSignierFehler(err error) error {
 	}
 }
 
-// StartTransaction sends no schema: processType and processData must be empty at start (DSFinV-K Anhang I, docs/compliance.md §3.2).
-func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (tse.StartResult, error) {
+// txPfad is the escaped path of one transaction of this client's TSS.
+func (c *FiskalyTSEClient) txPfad(txID string) (string, error) {
 	txID = strings.TrimSpace(txID)
 	if txID == "" {
-		return tse.StartResult{}, fmt.Errorf("tx id is required")
+		return "", fmt.Errorf("tx id is required")
+	}
+	return fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)), nil
+}
+
+// StartTransaction sends no schema: processType and processData must be empty at start (DSFinV-K Anhang I, docs/compliance.md §3.2).
+func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (tse.StartResult, error) {
+	pfad, err := c.txPfad(txID)
+	if err != nil {
+		return tse.StartResult{}, err
 	}
 
 	resp := transactionResponse{}
-	err := c.doJSONRequest(
+	err = c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
+		pfad,
 		url.Values{"tx_revision": []string{"1"}},
 		startTransactionRequest{
 			State:    "ACTIVE",
@@ -231,16 +240,16 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (t
 }
 
 func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, processType string, processData string) (tse.FinishResult, error) {
-	txID = strings.TrimSpace(txID)
-	if txID == "" {
-		return tse.FinishResult{}, fmt.Errorf("tx id is required")
+	pfad, err := c.txPfad(txID)
+	if err != nil {
+		return tse.FinishResult{}, err
 	}
 
 	resp := transactionResponse{}
-	err := c.doJSONRequest(
+	err = c.doJSONRequest(
 		ctx,
 		http.MethodPut,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
+		pfad,
 		url.Values{"tx_revision": []string{"2"}},
 		finishTransactionRequest{
 			State:    "FINISHED",
@@ -265,16 +274,16 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 
 // RetrieveTransaction fetches the latest revision of a transaction; an unknown one yields tse.ErrTransactionNichtGefunden.
 func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string) (tse.RetrieveResult, error) {
-	txID = strings.TrimSpace(txID)
-	if txID == "" {
-		return tse.RetrieveResult{}, fmt.Errorf("tx id is required")
+	pfad, err := c.txPfad(txID)
+	if err != nil {
+		return tse.RetrieveResult{}, err
 	}
 
 	resp := transactionResponse{}
-	err := c.doJSONRequest(
+	err = c.doJSONRequest(
 		ctx,
 		http.MethodGet,
-		fmt.Sprintf("/api/v2/tss/%s/tx/%s", url.PathEscape(c.tssID), url.PathEscape(txID)),
+		pfad,
 		nil,
 		nil,
 		true,
