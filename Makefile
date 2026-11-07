@@ -139,10 +139,10 @@ build-resolver: ## DNS-Resolver-Binary kompilieren
 build-local-proxy: ## Lokales Proxy-Entrypoint-Binary kompilieren
 	cd reverse-proxy && go build ./...
 
-build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
+build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (VERSION=… für die Versionszeile)
 	cd windows/starter && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-start.exe .
 
-build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSION=… fuer die Versionszeile)
+build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSION=… für die Versionszeile)
 	cd windows/relay && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-relay.exe .
 
 starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
@@ -181,7 +181,7 @@ sqlc: ## sqlc Code generieren (aus SQL-Queries)
 prod-init: ## Ersteinrichtung Produktion (.env prüfen, Images ziehen, Caddy Auto-TLS, Stack)
 	./scripts/prod-init.sh
 
-prod-up: ## Stack starten/neustarten mit gepinnter Version (kein Update; fuer Updates: make prod-update)
+prod-up: ## Stack starten/neustarten mit gepinnter Version (kein Update; für Updates: make prod-update)
 	@bash -c '. scripts/lib.sh && require_pinned_version start >/dev/null'
 	docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
