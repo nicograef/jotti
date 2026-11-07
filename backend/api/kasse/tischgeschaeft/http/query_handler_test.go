@@ -170,3 +170,44 @@ func TestPositionResponsesIncludeSteuersatz(t *testing.T) {
 		}
 	})
 }
+
+func TestGetTischStateHandler_Fehler(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		body       string
+		queryErr   error
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "unbekannter Tisch", body: `{"tischId":99}`, queryErr: application.ErrTischNotFound, wantStatus: http.StatusBadRequest, wantCode: "tisch_not_found"},
+		{name: "tischId 0", body: `{"tischId":0}`, wantStatus: http.StatusBadRequest, wantCode: "validation_error"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			handler := &QueryHandler{Query: mockQuery{err: tt.queryErr}}
+			req := httptest.NewRequest(http.MethodPost, "/get-tisch-state", bytes.NewReader([]byte(tt.body)))
+			req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, 7))
+			rec := httptest.NewRecorder()
+
+			handler.GetTischStateHandler().ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
+			}
+			var resp struct {
+				Code string `json:"code"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+				t.Fatalf("expected valid response body, got %v", err)
+			}
+			if resp.Code != tt.wantCode {
+				t.Errorf("code = %q, want %q", resp.Code, tt.wantCode)
+			}
+		})
+	}
+}

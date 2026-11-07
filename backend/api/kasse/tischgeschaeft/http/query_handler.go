@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
@@ -58,6 +59,10 @@ func (h *QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
 type getTischHistorieRequest struct {
 	TischID int `json:"tischId"`
 }
+
+var getTischHistorieSchema = z.Struct(z.Shape{
+	"TischID": t.TischIDSchema.Required(),
+})
 
 type getTischHistorieResponse struct {
 	Historie []any `json:"historie"`
@@ -252,7 +257,7 @@ func toHistorie(eintraege []k.HistorieEintrag) []any {
 func (h *QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getTischHistorieRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, getTischHistorieSchema) {
 			return
 		}
 
@@ -269,6 +274,10 @@ func (h *QueryHandler) GetTischHistorieHandler() http.HandlerFunc {
 type getTischStateRequest struct {
 	TischID int `json:"tischId"`
 }
+
+var getTischStateSchema = z.Struct(z.Shape{
+	"TischID": t.TischIDSchema.Required(),
+})
 
 type tischState struct {
 	TischID              int        `json:"tischId"`
@@ -297,13 +306,15 @@ func (h *QueryHandler) GetTischStateHandler() http.HandlerFunc {
 		}
 
 		body := getTischStateRequest{}
-		if !helper.ReadBody(w, r, &body) {
+		if !helper.ReadAndValidateBody(w, r, &body, getTischStateSchema) {
 			return
 		}
 
 		state, err := h.Query.GetTischState(r.Context(), body.TischID, userID)
 		if err != nil {
-			helper.SendServerError(w)
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
+			})
 			return
 		}
 
