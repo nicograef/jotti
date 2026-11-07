@@ -117,3 +117,20 @@ func TestNewBestellungAufgenommenEvent_Positionskommentar(t *testing.T) {
 		})
 	}
 }
+
+func TestNewDirektverkaufGetaetigtEvent_Positionskommentar(t *testing.T) {
+	for _, tt := range optionalKommentarTests {
+		t.Run(tt.name, func(t *testing.T) {
+			positionen := slices.Clone(kommentarTestPositionen)
+			positionen[0].Kommentar = tt.kommentar
+			verkaufID := uuid.NewString()
+			_, err := NewDirektverkaufGetaetigtEvent(DirektverkaufSubject(1, verkaufID), verkaufID, 1, "Servicekraft", positionen, "")
+			if tt.wantErr && err == nil {
+				t.Errorf("erwartete Fehler für Positionskommentar %q, aber kein Fehler", tt.kommentar)
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("kein Fehler erwartet für Positionskommentar %q, aber: %v", tt.kommentar, err)
+			}
+		})
+	}
+}

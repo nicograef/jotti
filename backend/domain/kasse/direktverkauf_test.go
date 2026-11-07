@@ -77,6 +77,53 @@ func TestBuildDirektverkaufHistorieEintrag_PartialThenFullStorno(t *testing.T) {
 	}
 }
 
+func TestBuildDirektverkaufHistorieEintrag_Positionskommentar(t *testing.T) {
+	verkaufID := uuid.NewString()
+	subject := DirektverkaufSubject(1, verkaufID)
+	wurst := testPosition(2, "Bratwurst", "mit Brot", "essen", 350, 2)
+	wurst.Kommentar = "1 davon ohne Senf"
+	v2, err := NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "User", []Position{
+		wurst,
+		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+	}, "")
+	if err != nil {
+		t.Fatalf("failed to create getaetigt event: %v", err)
+	}
+	eintrag, err := BuildDirektverkaufHistorieEintrag([]e.Event{v2})
+	if err != nil {
+		t.Fatalf("failed to replay v2 direktverkauf: %v", err)
+	}
+	if got := eintrag.Positionen[0].Kommentar; got != "1 davon ohne Senf" {
+		t.Errorf("v2 Positionen[0].Kommentar = %q, want %q", got, "1 davon ohne Senf")
+	}
+	if got := eintrag.Positionen[1].Kommentar; got != "" {
+		t.Errorf("v2 Positionen[1].Kommentar = %q, want empty", got)
+	}
+
+	v1ID := uuid.NewString()
+	v1, err := e.New(1, "User", string(EventTypeDirektverkaufGetaetigtV1), DirektverkaufSubject(1, v1ID), DirektverkaufGetaetigtV1Data{
+		VerkaufID: v1ID,
+		Positionen: []PositionEventData{{
+			PositionID: uuid.NewString(), VarianteID: 2, ProduktName: "Bratwurst", VarianteName: "mit Brot",
+			Kategorie: "essen", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1,
+		}},
+		GesamtbetragCents: 350,
+	})
+	if err != nil {
+		t.Fatalf("failed to create v1 event: %v", err)
+	}
+	eintragV1, err := BuildDirektverkaufHistorieEintrag([]e.Event{v1})
+	if err != nil {
+		t.Fatalf("failed to replay v1 direktverkauf: %v", err)
+	}
+	if got := eintragV1.Positionen[0].Kommentar; got != "" {
+		t.Errorf("v1 Positionen[0].Kommentar = %q, want empty", got)
+	}
+	if got := eintragV1.VerkaufID; got != v1ID {
+		t.Errorf("v1 VerkaufID = %q, want %q", got, v1ID)
+	}
+}
+
 func TestBuildDirektverkaufHistorieEintrag_AggregatesStornos(t *testing.T) {
 	verkaufID := uuid.New().String()
 	subject := DirektverkaufSubject(1, verkaufID)
