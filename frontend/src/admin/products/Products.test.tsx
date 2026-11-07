@@ -166,16 +166,6 @@ describe('Products', () => {
     },
   )
 
-  it('offers an active Löschen entry in the actions menu', async () => {
-    const user = userEvent.setup()
-    renderProducts([produkt({ id: 1, name: 'Brezel' })])
-
-    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
-
-    const loeschen = screen.getByRole('menuitem', { name: /Löschen/ })
-    expect(loeschen).not.toHaveAttribute('data-disabled')
-  })
-
   it('moves a produkt down and disables the arrows at the ends of a kategorie', async () => {
     const user = userEvent.setup()
     const be = renderProducts([

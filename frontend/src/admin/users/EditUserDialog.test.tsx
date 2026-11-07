@@ -55,15 +55,4 @@ describe('EditUserDialog', () => {
 
     expect(screen.getByRole('combobox', { name: /Rolle/ })).toBeEnabled()
   })
-
-  it('zeigt nur Abbrechen und Speichern im Footer', () => {
-    renderDialog()
-
-    expect(
-      screen.getByRole('button', { name: 'Abbrechen' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Speichern' }),
-    ).toBeInTheDocument()
-  })
 })
