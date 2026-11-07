@@ -4,8 +4,14 @@ import type { BackendClient } from '@/lib/Backend'
 
 import { belegAnfordern, type BelegStatus } from '../beleg'
 import { TischIdSchema } from '../schemas'
-import { BestellungAufnehmenSchema } from './Bestellung'
-import { StornierungErteilenSchema } from './Stornierung'
+import {
+  type BestellungAufnehmen,
+  BestellungAufnehmenSchema,
+} from './Bestellung'
+import {
+  type StornierungErteilen,
+  StornierungErteilenSchema,
+} from './Stornierung'
 import {
   type AktiverTischMitFavorit,
   AktiverTischMitFavoritSchema,
@@ -18,8 +24,8 @@ import {
   type TischSession,
   TischSessionSchema,
 } from './Tisch'
-import { BestellungUmbuchenSchema } from './Umbuchung'
-import { ZahlungKassierenSchema } from './Zahlung'
+import { type BestellungUmbuchen, BestellungUmbuchenSchema } from './Umbuchung'
+import { type ZahlungKassieren, ZahlungKassierenSchema } from './Zahlung'
 
 export class TischBackend {
   private readonly backend: BackendClient
@@ -38,15 +44,13 @@ export class TischBackend {
   }
 
   public async bestellungAufnehmen(
-    bestellung: z.infer<typeof BestellungAufnehmenSchema>,
+    bestellung: BestellungAufnehmen,
   ): Promise<void> {
     const body = BestellungAufnehmenSchema.parse(bestellung)
     await this.backend.post('service/bestellung-aufnehmen', body)
   }
 
-  public async zahlungKassieren(
-    zahlung: z.infer<typeof ZahlungKassierenSchema>,
-  ): Promise<void> {
+  public async zahlungKassieren(zahlung: ZahlungKassieren): Promise<void> {
     const body = ZahlungKassierenSchema.parse(zahlung)
     await this.backend.post('service/zahlung-kassieren', body)
   }
@@ -72,14 +76,14 @@ export class TischBackend {
   }
 
   public async stornierungErteilen(
-    stornierung: z.infer<typeof StornierungErteilenSchema>,
+    stornierung: StornierungErteilen,
   ): Promise<void> {
     const body = StornierungErteilenSchema.parse(stornierung)
     await this.backend.post('serviceleitung/stornierung-erteilen', body)
   }
 
   public async bestellungUmbuchen(
-    umbuchung: z.infer<typeof BestellungUmbuchenSchema>,
+    umbuchung: BestellungUmbuchen,
   ): Promise<void> {
     const body = BestellungUmbuchenSchema.parse(umbuchung)
     await this.backend.post('service/bestellung-umbuchen', body)
