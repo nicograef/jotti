@@ -22,6 +22,16 @@ var PositionInputSchema = z.Struct(z.Shape{
 	"Menge":      kasse.PositionEingabeSchema,
 })
 
+// KommentiertePositionInput is an ordered or sold position with its optional Positionskommentar.
+type KommentiertePositionInput struct {
+	PositionInput
+	Kommentar string `json:"kommentar"`
+}
+
+var KommentiertePositionInputSchema = PositionInputSchema.Extend(z.Shape{
+	"Kommentar": kasse.PositionsKommentarSchema,
+})
+
 // PositionRef addresses a quantity of an existing position.
 type PositionRef struct {
 	PositionID string `json:"positionId"`
@@ -51,6 +61,19 @@ func ToPositionInputs(positionen []PositionInput) []enrichment.PositionInput {
 			ProduktID:  p.ProduktID,
 			VarianteID: p.VarianteID,
 			Menge:      p.Menge,
+		}
+	}
+	return out
+}
+
+func ToKommentiertePositionInputs(positionen []KommentiertePositionInput) []enrichment.PositionInput {
+	out := make([]enrichment.PositionInput, len(positionen))
+	for i, p := range positionen {
+		out[i] = enrichment.PositionInput{
+			ProduktID:  p.ProduktID,
+			VarianteID: p.VarianteID,
+			Menge:      p.Menge,
+			Kommentar:  p.Kommentar,
 		}
 	}
 	return out

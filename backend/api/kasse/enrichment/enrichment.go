@@ -17,6 +17,7 @@ type PositionInput struct {
 	ProduktID  int
 	VarianteID int
 	Menge      int
+	Kommentar  string
 }
 
 // PfandEingabe is the Pfand return settled within a payment or a Direktverkauf; RueckgabeID is the
@@ -162,5 +163,6 @@ func positionAus(ctx context.Context, input PositionInput, variantenByID map[int
 		EinzelpreisCents: variante.PreisCents,
 		Menge:            input.Menge,
 		Pfand:            prod.Pfand,
+		Kommentar:        input.Kommentar,
 	}, nil
 }

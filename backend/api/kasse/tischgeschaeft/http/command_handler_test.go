@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -15,10 +16,12 @@ import (
 )
 
 type mockCommand struct {
-	err error
+	err        error
+	positionen []enrichment.PositionInput
 }
 
-func (m *mockCommand) BestellungAufnehmen(context.Context, int, string, string, int, []enrichment.PositionInput, string) error {
+func (m *mockCommand) BestellungAufnehmen(_ context.Context, _ int, _ string, _ string, _ int, positionen []enrichment.PositionInput, _ string) error {
+	m.positionen = positionen
 	return m.err
 }
 
@@ -58,6 +61,7 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"aufnehmen: Konflikt", aufnehmen, application.ErrConflict, bestellungBody, http.StatusConflict, "conflict"},
 		{"aufnehmen: Produkt unbekannt", aufnehmen, enrichment.ErrProduktNotFound, bestellungBody, http.StatusBadRequest, "produkt_not_found"},
 		{"aufnehmen: Bestell-ID keine UUID", aufnehmen, nil, `{"bestellungId":"nicht-eine-uuid","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
+		{"aufnehmen: Positionskommentar über 100 Zeichen", aufnehmen, nil, `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1,"kommentar":"` + strings.Repeat("ä", 101) + `"}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"aufnehmen: Menge über 999", aufnehmen, nil, `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[{"produktId":1,"varianteId":1,"menge":1000}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
 		{"kassieren: Konflikt", (*CommandHandler).ZahlungKassierenHandler, application.ErrConflict, zahlungBody, http.StatusConflict, "conflict"},
 		{"kassieren: Zahlungs-ID mit anderem Inhalt", (*CommandHandler).ZahlungKassierenHandler, application.ErrVorgangAbweichend, zahlungBody, http.StatusConflict, "vorgang_abweichend"},
@@ -84,5 +88,28 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 				t.Errorf("expected code %s, got %s", tt.wantCode, rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestBestellungAufnehmenHandler_ReichtPositionskommentarDurch(t *testing.T) {
+	body := `{"bestellungId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","tischId":1,"positionen":[` +
+		`{"produktId":1,"varianteId":1,"menge":1,"kommentar":"ohne Kümmel"},` +
+		`{"produktId":2,"varianteId":2,"menge":1}],"kommentar":""}`
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, 1))
+	rec := httptest.NewRecorder()
+	cmd := &mockCommand{}
+
+	(&CommandHandler{Command: cmd}).BestellungAufnehmenHandler().ServeHTTP(rec, req)
+
+	if rec.Code >= http.StatusBadRequest {
+		t.Fatalf("expected success, got %d: %s", rec.Code, rec.Body.String())
+	}
+	want := []enrichment.PositionInput{
+		{ProduktID: 1, VarianteID: 1, Menge: 1, Kommentar: "ohne Kümmel"},
+		{ProduktID: 2, VarianteID: 2, Menge: 1, Kommentar: ""},
+	}
+	if !slices.Equal(cmd.positionen, want) {
+		t.Errorf("positionen = %+v, want %+v", cmd.positionen, want)
 	}
 }

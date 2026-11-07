@@ -38,16 +38,16 @@ var kasseFehler = []helper.ErrorCode{
 }
 
 type bestellungAufnehmenRequest struct {
-	BestellungID string                  `json:"bestellungId"`
-	TischID      int                     `json:"tischId"`
-	Positionen   []eingabe.PositionInput `json:"positionen"`
-	Kommentar    string                  `json:"kommentar"`
+	BestellungID string                              `json:"bestellungId"`
+	TischID      int                                 `json:"tischId"`
+	Positionen   []eingabe.KommentiertePositionInput `json:"positionen"`
+	Kommentar    string                              `json:"kommentar"`
 }
 
 var bestellungAufnehmenSchema = z.Struct(z.Shape{
 	"BestellungID": z.String().UUID().Required(),
 	"TischID":      tisch.TischIDSchema.Required(),
-	"Positionen":   z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
+	"Positionen":   z.Slice(eingabe.KommentiertePositionInputSchema).Min(1).Required(),
 	"Kommentar":    z.String().TestFunc(zeichen.Max(100)),
 })
 
@@ -63,7 +63,7 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			helper.SendServerError(w)
 			return
 		}
-		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, eingabe.ToPositionInputs(body.Positionen), body.Kommentar)
+		err := h.Command.BestellungAufnehmen(r.Context(), userID, userName, body.BestellungID, body.TischID, eingabe.ToKommentiertePositionInputs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
