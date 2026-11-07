@@ -14,7 +14,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
    - Doku-Zeilen, die ein Code-Befund falsch macht, ändert die Lane des Befunds; übrige Doku-Befunde gehen an Wave 3.
 3. **Distill** (`fix/q-distill`): Doku und Kommentare des ganzen Repos auf den Endstand, mit den Doku-Befunden aus Wave 1. FLAGs im Commit-Body.
 4. **Distill verify** (`fix/q-verify`): eigener Workflow mit frischen Agenten nach dem Landen von Wave 3. Er prüft jede falsifizierbare Behauptung der Doku gegen Code, Befehle und Upstream, berichtet die FLAGs aus Wave 3 und korrigiert FALSE und STALE.
-5. **Abschluss**: CI grün auf main, Programme-Datei entfernt.
+5. **Abschluss**: CI grün auf main, `programme-befunde.json` entfernt, Dependabot-Updates angewandt. `programme.md` bleibt, bis die Feature-Spur durch ist, weil ihre Status-Zeilen hier stehen.
 
 ## Regeln
 
