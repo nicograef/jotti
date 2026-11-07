@@ -39,13 +39,11 @@ import { EuroInput } from './EuroInput'
 
 export interface FieldProps<TField extends FieldValues> {
   form: UseFormReturn<TField>
-  withLabel?: boolean
   placeholder?: string
 }
 
 export function NameField<AllFormFields extends FieldValues>({
   form,
-  withLabel,
   placeholder,
 }: FieldProps<{ name: string } & AllFormFields>) {
   const id = useId()
@@ -55,7 +53,7 @@ export function NameField<AllFormFields extends FieldValues>({
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Name</FieldLabel>}
+          <FieldLabel htmlFor={id}>Name</FieldLabel>
           <Input
             {...field}
             id={id}
@@ -74,7 +72,10 @@ export function UsernameField<AllFormFields extends FieldValues>({
   form,
   withLabel,
   placeholder,
-}: FieldProps<{ username: string } & AllFormFields>) {
+}: FieldProps<{ username: string } & AllFormFields> & {
+  // Anmelde- und Passwortformular zeigen nur den Platzhalter.
+  withLabel?: boolean
+}) {
   const id = useId()
   return (
     <Controller
@@ -216,8 +217,7 @@ const centsToDisplay = (value: unknown): string =>
 interface EuroFieldProps<TField extends FieldValues> {
   form: UseFormReturn<TField>
   name: FieldPath<TField>
-  label?: string
-  withLabel?: boolean
+  label: string
   placeholder?: string
   className?: string
 }
@@ -227,7 +227,6 @@ export function EuroField<TField extends FieldValues>({
   form,
   name,
   label,
-  withLabel,
   placeholder,
   className,
 }: EuroFieldProps<TField>) {
@@ -241,7 +240,6 @@ export function EuroField<TField extends FieldValues>({
           fieldState={fieldState}
           id={`form-${name}`}
           label={label}
-          withLabel={withLabel}
           placeholder={placeholder}
           className={className}
         />
@@ -255,15 +253,13 @@ function EuroFieldControl({
   fieldState,
   id,
   label,
-  withLabel,
   placeholder,
   className,
 }: {
   field: ControllerRenderProps
   fieldState: ControllerFieldState
   id: string
-  label?: string
-  withLabel?: boolean
+  label: string
   placeholder?: string
   className?: string
 }) {
@@ -282,7 +278,7 @@ function EuroFieldControl({
 
   return (
     <Field data-invalid={fieldState.invalid} className="gap-1">
-      {withLabel && <FieldLabel htmlFor={id}>{label ?? 'Betrag'}</FieldLabel>}
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <EuroInput
         id={id}
         aria-invalid={fieldState.invalid}
@@ -305,7 +301,6 @@ function EuroFieldControl({
 /** Euro input for a product's gross price (Brutto), bound to the `preisCents` form field. */
 export function PriceField<AllFormFields extends FieldValues>({
   form,
-  withLabel,
   placeholder,
 }: FieldProps<{ preisCents: number } & AllFormFields>) {
   return (
@@ -313,7 +308,6 @@ export function PriceField<AllFormFields extends FieldValues>({
       form={form}
       name={'preisCents' as FieldPath<{ preisCents: number } & AllFormFields>}
       label="Preis"
-      withLabel={withLabel}
       placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
     />
   )
@@ -321,7 +315,6 @@ export function PriceField<AllFormFields extends FieldValues>({
 
 export function CategoryField<AllFormFields extends FieldValues>({
   form,
-  withLabel,
   placeholder,
 }: FieldProps<{ kategorie: Kategorie } & AllFormFields>) {
   const id = useId()
@@ -331,7 +324,7 @@ export function CategoryField<AllFormFields extends FieldValues>({
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Kategorie</FieldLabel>}
+          <FieldLabel htmlFor={id}>Kategorie</FieldLabel>
           <Select
             name={field.name}
             value={field.value}

@@ -111,7 +111,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField form={form} withLabel />
+              <NameField form={form} />
             </FieldGroup>
           </form>
         </DialogBody>

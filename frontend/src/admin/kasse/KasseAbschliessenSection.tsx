@@ -363,7 +363,6 @@ export function KasseAbschliessenSection({
             form={form}
             name="istBestandCents"
             label="Gezählter Ist-Bestand"
-            withLabel
             placeholder="z.B. 342,50"
             className="w-44"
           />

@@ -112,7 +112,6 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
               form={form}
               name="betragCents"
               label="Anfangsbestand"
-              withLabel
               placeholder="z.B. 150,00"
               className="w-44"
             />

@@ -118,7 +118,6 @@ export function GeldtransitDialog({
                 form={form}
                 name="betragCents"
                 label="Betrag"
-                withLabel
                 placeholder="z.B. 25,00"
                 className="w-44"
               />

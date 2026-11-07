@@ -16,7 +16,6 @@ import { STEUERSATZ_LABEL } from './Produkt'
 
 export function SteuersatzField<AllFormFields extends FieldValues>({
   form,
-  withLabel,
   placeholder,
 }: FieldProps<{ steuersatz: Steuersatz } & AllFormFields>) {
   const id = useId()
@@ -26,7 +25,7 @@ export function SteuersatzField<AllFormFields extends FieldValues>({
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Steuersatz</FieldLabel>}
+          <FieldLabel htmlFor={id}>Steuersatz</FieldLabel>
           <Select
             name={field.name}
             value={field.value}

@@ -103,13 +103,9 @@ export function NewProductDialog(props: NewProductDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField
-                form={form}
-                withLabel
-                placeholder="Produktname eingeben"
-              />
-              <CategoryField form={form} withLabel />
-              <SteuersatzField form={form} withLabel />
+              <NameField form={form} placeholder="Produktname eingeben" />
+              <CategoryField form={form} />
+              <SteuersatzField form={form} />
               <PfandField form={form} />
             </FieldGroup>
           </form>

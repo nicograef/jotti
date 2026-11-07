@@ -85,7 +85,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField form={form} withLabel placeholder="z.B. Tisch 34" />
+              <NameField form={form} placeholder="z.B. Tisch 34" />
             </FieldGroup>
           </form>
         </DialogBody>

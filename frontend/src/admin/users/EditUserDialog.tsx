@@ -90,9 +90,9 @@ export function EditUserDialog(props: EditUserDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField form={form} withLabel />
+              <NameField form={form} />
               <UsernameField form={form} withLabel />
-              <RoleField form={form} withLabel disabled={props.isSelf} />
+              <RoleField form={form} disabled={props.isSelf} />
             </FieldGroup>
           </form>
         </DialogBody>

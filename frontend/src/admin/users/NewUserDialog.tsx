@@ -93,9 +93,9 @@ export function NewUserDialog(props: NewUserDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField form={form} withLabel />
+              <NameField form={form} />
               <UsernameField form={form} withLabel />
-              <RoleField form={form} withLabel />
+              <RoleField form={form} />
             </FieldGroup>
           </form>
         </DialogBody>

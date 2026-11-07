@@ -28,7 +28,6 @@ const ROLLE_BESCHREIBUNG: Record<UserRole, string> = {
 
 export function RoleField<AllFormFields extends FieldValues>({
   form,
-  withLabel,
   placeholder,
   disabled,
 }: FieldProps<{ role: UserRole } & AllFormFields> & { disabled?: boolean }) {
@@ -39,7 +38,7 @@ export function RoleField<AllFormFields extends FieldValues>({
       control={form.control}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid} className="gap-1">
-          {withLabel && <FieldLabel htmlFor={id}>Rolle</FieldLabel>}
+          <FieldLabel htmlFor={id}>Rolle</FieldLabel>
           {field.value && (
             <FieldDescription>
               {ROLLE_BESCHREIBUNG[field.value]}

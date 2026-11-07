@@ -116,12 +116,8 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField
-                form={form}
-                withLabel
-                placeholder="z.B. Klein, Groß, 0.5L"
-              />
-              <PriceField form={form} withLabel />
+              <NameField form={form} placeholder="z.B. Klein, Groß, 0.5L" />
+              <PriceField form={form} />
             </FieldGroup>
           </form>
         </DialogBody>

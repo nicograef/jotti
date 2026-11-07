@@ -102,9 +102,9 @@ export function EditProductDialog(props: EditProductDialogProps) {
             }}
           >
             <FieldGroup>
-              <NameField form={form} withLabel />
-              <CategoryField form={form} withLabel />
-              <SteuersatzField form={form} withLabel />
+              <NameField form={form} />
+              <CategoryField form={form} />
+              <SteuersatzField form={form} />
               <PfandField form={form} />
             </FieldGroup>
           </form>
