@@ -8,21 +8,7 @@ import { renderWithBackend } from '@/test/render'
 
 import { PasswordForm } from './PasswordForm'
 
-// input-otp registriert intern einen ResizeObserver; jsdom bringt keinen mit.
-class ResizeObserverStub {
-  observe() {
-    /* no-op */
-  }
-  unobserve() {
-    /* no-op */
-  }
-  disconnect() {
-    /* no-op */
-  }
-}
-
 beforeAll(() => {
-  globalThis.ResizeObserver = ResizeObserverStub
   // input-otp ruft nach Fokus/Eingabe in einem Timer document.elementFromPoint
   // auf; jsdom implementiert es nicht.
   document.elementFromPoint = () => null

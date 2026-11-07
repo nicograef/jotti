@@ -28,3 +28,23 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
   window.matchMedia = (query: string): MediaQueryList =>
     new FakeMediaQueryList(query)
 }
+
+// jsdom lacks ResizeObserver, which Radix poppers, input-otp and the tab list
+// subscribe to; without a layout engine there is nothing to observe.
+class NoopResizeObserver implements ResizeObserver {
+  observe(): void {
+    return undefined
+  }
+
+  unobserve(): void {
+    return undefined
+  }
+
+  disconnect(): void {
+    return undefined
+  }
+}
+
+if (typeof globalThis.ResizeObserver !== 'function') {
+  globalThis.ResizeObserver = NoopResizeObserver
+}

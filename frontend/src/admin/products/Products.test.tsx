@@ -1,6 +1,6 @@
 import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { BackendError } from '@/lib/Backend'
@@ -12,23 +12,6 @@ import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { EditProductDialog } from './EditProductDialog'
 import { NewProductDialog } from './NewProductDialog'
 import { Products } from './Products'
-
-// Radix Popper misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
-class ResizeObserverStub {
-  observe(): void {
-    // no-op
-  }
-  unobserve(): void {
-    // no-op
-  }
-  disconnect(): void {
-    // no-op
-  }
-}
-
-beforeAll(() => {
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub)
-})
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 

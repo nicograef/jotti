@@ -1,14 +1,6 @@
 import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -22,23 +14,6 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 // The own account comes from the auth singleton; in the test the userId is 1.
 beforeEach(() => {
   signIn({ userId: 1, role: 'admin' })
-})
-
-// Radix DropdownMenu misst seinen Anker über ResizeObserver, den jsdom nicht kennt.
-class ResizeObserverStub {
-  observe(): void {
-    // no-op
-  }
-  unobserve(): void {
-    // no-op
-  }
-  disconnect(): void {
-    // no-op
-  }
-}
-
-beforeAll(() => {
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 })
 
 function user(overrides: Partial<User> = {}): User {

@@ -83,9 +83,6 @@ function ScrollableTabsList({
     const el = scrollRef.current
     if (el === null) return
     updateAffordance()
-    // ResizeObserver fehlt in der jsdom-Testumgebung; ohne Layout-Engine gibt es
-    // dort ohnehin keine messbaren Breiten, daher überspringen wir die Messung.
-    if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(updateAffordance)
     observer.observe(el)
     for (const child of el.children) observer.observe(child)
