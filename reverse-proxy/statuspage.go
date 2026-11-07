@@ -144,7 +144,7 @@ func noticeText(n notice) (headline, body string) {
 			"Das Zertifikat ist abgelaufen (normal nach einer längeren Pause) und wird im Hintergrund erneuert. Solange die Fallback-Adresse nutzen. Diese Seite aktualisiert sich automatisch."
 	case noticeRebind:
 		return "DNS-Rebind-Schutz erkannt",
-			"Der Router beantwortet den Namen nicht mit der lokalen IP, deshalb ist die vertrauenswürdige Adresse im WLAN nicht erreichbar. Trage lokal.jotti.rocks als Ausnahme im Rebind-Schutz des Routers ein oder nutze die Fallback-Adresse:"
+			"Der Router beantwortet den Namen nicht mit der lokalen IP, deshalb ist die vertrauenswürdige Adresse im WLAN nicht erreichbar. Trage " + lanZone + " als Ausnahme im Rebind-Schutz des Routers ein oder nutze die Fallback-Adresse:"
 	case noticeNoGreen:
 		fallthrough
 	default:

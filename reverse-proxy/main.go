@@ -18,29 +18,26 @@ import (
 	"time"
 )
 
+// lanZone muss zur Zone des jotti-Resolvers passen, darum ist sie nicht konfigurierbar.
 const (
-	defaultZone          = "lokal.jotti.rocks"
-	defaultACMEDNSURL    = "https://auth.jotti.rocks"
-	defaultStatePath     = "/state/install.json"
-	defaultCaddyfilePath = "/etc/caddy/Caddyfile"
-	defaultCaddyBin      = "caddy"
+	lanZone           = "lokal.jotti.rocks"
+	defaultACMEDNSURL = "https://auth.jotti.rocks"
+	statePath         = "/state/install.json"
+	caddyfilePath     = "/etc/caddy/Caddyfile"
+	caddyBin          = "caddy"
 )
 
 // registerTimeout begrenzt den einmaligen Registrierungs-Request bei acme-dns.
 const registerTimeout = 30 * time.Second
 
 type config struct {
-	domain        string // JOTTI_DOMAIN gesetzt ⇒ Public-Mode statt LAN-Mode
-	httpOnly      bool   // PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Mode (nur E2E)
-	email         string // LETSENCRYPT_EMAIL (Public-Mode)
-	wwwRedirect   bool   // JOTTI_WWW_REDIRECT (Public-Mode)
-	lanIPEnv      string
-	zone          string
-	acmeDNSURL    string
-	statePath     string
-	caddyfilePath string
-	caddyBin      string
-	leStaging     bool
+	domain      string // JOTTI_DOMAIN gesetzt ⇒ Public-Mode statt LAN-Mode
+	httpOnly    bool   // PROXY_HTTP_ONLY gesetzt ⇒ Klartext-HTTP-Mode (nur E2E)
+	email       string // LETSENCRYPT_EMAIL (Public-Mode)
+	wwwRedirect bool   // JOTTI_WWW_REDIRECT (Public-Mode)
+	lanIPEnv    string
+	acmeDNSURL  string
+	leStaging   bool
 }
 
 // loadConfig legt den Modus fest. dirExists prüft, ob das State-Verzeichnis
@@ -50,21 +47,17 @@ type config struct {
 // internen CA aus, während der Healthcheck grün bleibt.
 func loadConfig(getenv func(string) string, dirExists func(string) bool) (config, error) {
 	cfg := config{
-		domain:        strings.TrimSpace(getenv("JOTTI_DOMAIN")),
-		httpOnly:      parseBool(getenv("PROXY_HTTP_ONLY")),
-		email:         strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
-		wwwRedirect:   parseBool(getenv("JOTTI_WWW_REDIRECT")),
-		lanIPEnv:      strings.TrimSpace(getenv("LAN_IP")),
-		zone:          valueOrDefault(getenv("PROXY_ZONE"), defaultZone),
-		acmeDNSURL:    valueOrDefault(getenv("ACMEDNS_BASE_URL"), defaultACMEDNSURL),
-		statePath:     valueOrDefault(getenv("PROXY_STATE_PATH"), defaultStatePath),
-		caddyfilePath: valueOrDefault(getenv("PROXY_CADDYFILE_PATH"), defaultCaddyfilePath),
-		caddyBin:      valueOrDefault(getenv("PROXY_CADDY_BIN"), defaultCaddyBin),
-		leStaging:     parseBool(getenv("PROXY_LE_STAGING")),
+		domain:      strings.TrimSpace(getenv("JOTTI_DOMAIN")),
+		httpOnly:    parseBool(getenv("PROXY_HTTP_ONLY")),
+		email:       strings.TrimSpace(getenv("LETSENCRYPT_EMAIL")),
+		wwwRedirect: parseBool(getenv("JOTTI_WWW_REDIRECT")),
+		lanIPEnv:    strings.TrimSpace(getenv("LAN_IP")),
+		acmeDNSURL:  valueOrDefault(getenv("ACMEDNS_BASE_URL"), defaultACMEDNSURL),
+		leStaging:   parseBool(getenv("PROXY_LE_STAGING")),
 	}
 
 	if !cfg.httpOnly && cfg.domain == "" {
-		if stateDir := filepath.Dir(cfg.statePath); !dirExists(stateDir) {
+		if stateDir := filepath.Dir(statePath); !dirExists(stateDir) {
 			return config{}, fmt.Errorf("kein Modus bestimmbar: JOTTI_DOMAIN ist leer und das State-Verzeichnis %s des LAN-Modus fehlt", stateDir)
 		}
 	}
@@ -84,7 +77,7 @@ func main() {
 	}
 
 	if cfg.httpOnly {
-		runHTTPOnlyMode(cfg)
+		runHTTPOnlyMode()
 		return
 	}
 
@@ -117,25 +110,25 @@ func runPublicMode(cfg config) {
 		wwwRedirect: cfg.wwwRedirect,
 		leStaging:   cfg.leStaging,
 	})
-	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
+	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
-	runCaddyOrExit(cfg)
+	runCaddyOrExit()
 }
 
 // runHTTPOnlyMode rendert und startet Caddy für die E2E-Testumgebung: Klartext-HTTP
 // auf :80, ohne TLS, ACME oder Status-Seite.
-func runHTTPOnlyMode(cfg config) {
+func runHTTPOnlyMode() {
 	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
 
 	caddyfile := renderHTTPOnlyCaddyfile()
-	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
+	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
-	runCaddyOrExit(cfg)
+	runCaddyOrExit()
 }
 
 func runLANMode(cfg config) {
 	state, err := ensureState(stateDeps{
-		path:      cfg.statePath,
+		path:      statePath,
 		readFile:  os.ReadFile,
 		writeFile: os.WriteFile,
 		register: func() (InstallState, error) {
@@ -152,7 +145,7 @@ func runLANMode(cfg config) {
 	lanIP, lanOK := resolveLANIP(cfg.lanIPEnv)
 	if lanOK {
 		if hasState {
-			log.Printf("Vertrauenswürdige Adresse: https://%s", deriveHostname(lanIP, state.Subdomain, cfg.zone))
+			log.Printf("Vertrauenswürdige Adresse: https://%s", deriveHostname(lanIP, state.Subdomain, lanZone))
 		}
 		log.Printf("Fallback-Adresse: https://%s", lanIP)
 	} else {
@@ -166,15 +159,15 @@ func runLANMode(cfg config) {
 	caddyfile := renderCaddyfile(caddyfileInput{
 		state:      state,
 		hasState:   hasState,
-		zone:       cfg.zone,
+		zone:       lanZone,
 		acmeDNSURL: cfg.acmeDNSURL,
 		leStaging:  cfg.leStaging,
 	})
-	writeCaddyfileOrExit(cfg.caddyfilePath, caddyfile)
+	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
 	// Status-Seite parallel zu Caddy (im Compose nur an 127.0.0.1 gemappt).
 	status := newStatusServer(statusConfig{
-		zone:      cfg.zone,
+		zone:      lanZone,
 		state:     state,
 		hasState:  hasState,
 		lanIP:     lanIP,
@@ -188,7 +181,7 @@ func runLANMode(cfg config) {
 	}()
 	log.Printf("Status & Zugangsadresse: http://localhost:8484")
 
-	runCaddyOrExit(cfg)
+	runCaddyOrExit()
 }
 
 // caddyfileMode: nur für den Eigentümer lesbar — die LAN-Caddyfile trägt die
@@ -212,8 +205,8 @@ func writeCaddyfile(path, caddyfile string) error {
 	return os.Chmod(path, caddyfileMode)
 }
 
-func runCaddyOrExit(cfg config) {
-	if err := runCaddy(cfg.caddyBin, cfg.caddyfilePath); err != nil {
+func runCaddyOrExit() {
+	if err := runCaddy(caddyBin, caddyfilePath); err != nil {
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			os.Exit(exitErr.ExitCode())
 		}

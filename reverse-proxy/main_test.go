@@ -49,7 +49,7 @@ func TestLoadConfigModes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			checked := ""
-			cfg, err := loadConfig(
+			_, err := loadConfig(
 				func(key string) string { return tt.env[key] },
 				func(path string) bool { checked = path; return tt.stateDir },
 			)
@@ -59,15 +59,6 @@ func TestLoadConfigModes(t *testing.T) {
 			}
 			if checked != tt.wantChecked {
 				t.Errorf("geprüftes Verzeichnis = %q, want %q", checked, tt.wantChecked)
-			}
-			if tt.wantErr {
-				return
-			}
-			if cfg.zone != defaultZone {
-				t.Errorf("zone = %q, want %q", cfg.zone, defaultZone)
-			}
-			if cfg.statePath != defaultStatePath {
-				t.Errorf("statePath = %q, want %q", cfg.statePath, defaultStatePath)
 			}
 		})
 	}
