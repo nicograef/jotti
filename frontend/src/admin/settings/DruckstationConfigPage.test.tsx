@@ -1,9 +1,4 @@
-import {
-  cleanup,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from '@testing-library/react'
+import { act, cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -75,6 +70,7 @@ async function renderPage(fake: FakeBackend) {
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  vi.useRealTimers()
 })
 
 describe('DruckstationConfigPage — Alarm-Karte', () => {
@@ -255,7 +251,8 @@ describe('DruckstationConfigPage — Stationskarten', () => {
   })
 
   it('zeigt nach erfolgreichem IP-Speichern eine Inline-Bestätigung, die nach ~2 Sekunden verschwindet', async () => {
-    const user = userEvent.setup()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     await renderPage(
       backend({
         druckstationen: [
@@ -271,10 +268,10 @@ describe('DruckstationConfigPage — Stationskarten', () => {
 
     expect(await screen.findByText('Gespeichert')).toBeInTheDocument()
 
-    // Nach ~2 Sekunden verschwindet die Bestätigung wieder.
-    await waitForElementToBeRemoved(() => screen.queryByText('Gespeichert'), {
-      timeout: 3000,
+    act(() => {
+      vi.advanceTimersByTime(2000)
     })
+    expect(screen.queryByText('Gespeichert')).not.toBeInTheDocument()
   })
 
   it('speichert eine unveränderte IP nicht und zeigt bei ungültiger IP einen Fehler ohne Inline-Bestätigung', async () => {
