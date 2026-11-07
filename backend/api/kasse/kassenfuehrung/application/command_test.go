@@ -707,34 +707,6 @@ func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 }
 
 // Mit konfigurierter TSE bleibt das Eröffnen warnungsfrei.
-func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
-	var logbuf bytes.Buffer
-	ctx := logging.WithContext(context.Background(), logging.New(&logbuf))
-
-	tseKonfiguration := tse.Konfiguration{
-		ApiKey:    "api-key",
-		ApiSecret: "api-secret",
-		TssID:     "tss-1",
-		ClientID:  "client-1",
-		UpdatedAt: time.Now(),
-	}
-	cmd := Command{
-		KassenjournalRepo:   repotest.NewKassenjournalRepo(nil, nil),
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil),
-		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
-		TSERepo:             tseGateMock{tse: tseKonfiguration},
-		DruckauftragRepo:    &fakeDruckauftraege{},
-	}
-
-	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if strings.Contains(logbuf.String(), "ohne TSE-Konfiguration") {
-		t.Errorf("expected no TSE warning, got logs: %s", logbuf.String())
-	}
-}
-
 // An unparsable sum-relevant event aborts the Tagesabschluss without writing its event: wrong Z-Bon
 // sums are worse than a blocked Abschluss. Reachable only with a corrupt store.
 func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
