@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/http"
+	"slices"
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/druck/beleg/application"
@@ -26,61 +27,30 @@ type belegDruckenRequest struct {
 	StornierungID *string `json:"stornierungId"`
 }
 
-type belegDruckenZahlungRequest struct {
-	TischID   int    `json:"tischId"`
-	ZahlungID string `json:"zahlungId"`
-}
-
-type belegDruckenTischStornoRequest struct {
-	TischID       int    `json:"tischId"`
-	StornierungID string `json:"stornierungId"`
-}
-
-type belegDruckenVerkaufRequest struct {
-	VerkaufID string `json:"verkaufId"`
-}
-
-type belegDruckenStornoRequest struct {
-	VerkaufID     string `json:"verkaufId"`
-	StornierungID string `json:"stornierungId"`
-}
-
-type belegDruckenPfandRequest struct {
-	RueckgabeID string `json:"rueckgabeId"`
-}
-
-type belegDruckenPfandStornoRequest struct {
-	RueckgabeID   string `json:"rueckgabeId"`
-	StornierungID string `json:"stornierungId"`
-}
-
-var belegDruckenZahlungSchema = z.Struct(z.Shape{
-	"TischID":   tisch.TischIDSchema.Required(),
-	"ZahlungID": z.String().UUID().Required(),
+// belegDruckenSchema checks the format of the fields a request carries; which fields may be combined
+// is belegFormen's job.
+var belegDruckenSchema = z.Struct(z.Shape{
+	"TischID":       z.Ptr(tisch.TischIDSchema.Required()),
+	"ZahlungID":     z.Ptr(z.String().UUID().Required()),
+	"VerkaufID":     z.Ptr(z.String().UUID().Required()),
+	"RueckgabeID":   z.Ptr(z.String().UUID().Required()),
+	"StornierungID": z.Ptr(z.String().UUID().Required()),
 })
 
-var belegDruckenTischStornoSchema = z.Struct(z.Shape{
-	"TischID":       tisch.TischIDSchema.Required(),
-	"StornierungID": z.String().UUID().Required(),
-})
+// belegForm is the set of fields a request carries.
+type belegForm struct {
+	tisch, zahlung, verkauf, rueckgabe, stornierung bool
+}
 
-var belegDruckenVerkaufSchema = z.Struct(z.Shape{
-	"VerkaufID": z.String().UUID().Required(),
-})
-
-var belegDruckenStornoSchema = z.Struct(z.Shape{
-	"VerkaufID":     z.String().UUID().Required(),
-	"StornierungID": z.String().UUID().Required(),
-})
-
-var belegDruckenPfandSchema = z.Struct(z.Shape{
-	"RueckgabeID": z.String().UUID().Required(),
-})
-
-var belegDruckenPfandStornoSchema = z.Struct(z.Shape{
-	"RueckgabeID":   z.String().UUID().Required(),
-	"StornierungID": z.String().UUID().Required(),
-})
+// belegFormen are the body forms of docs/handbuch.md §4.5.
+var belegFormen = []belegForm{
+	{tisch: true, zahlung: true},
+	{tisch: true, stornierung: true},
+	{verkauf: true},
+	{verkauf: true, stornierung: true},
+	{rueckgabe: true},
+	{rueckgabe: true, stornierung: true},
+}
 
 const belegDruckenValidationMessage = "entweder tischId+zahlungId, tischId+stornierungId, verkaufId, verkaufId+stornierungId, rueckgabeId oder rueckgabeId+stornierungId senden"
 
@@ -123,69 +93,39 @@ func readKassenbelegCommand(w http.ResponseWriter, r *http.Request) (application
 		return application.KassenbelegDruckenCommand{}, false
 	}
 
-	hasTisch := body.TischID != nil
-	hasZahlung := body.ZahlungID != nil
-	hasVerkauf := body.VerkaufID != nil
-	hasRueckgabe := body.RueckgabeID != nil
-	hasStornierung := body.StornierungID != nil
-
-	switch {
-	case hasRueckgabe && !hasTisch && !hasZahlung && !hasVerkauf:
-		if hasStornierung {
-			req := belegDruckenPfandStornoRequest{RueckgabeID: *body.RueckgabeID, StornierungID: *body.StornierungID}
-			if !validateBody(w, belegDruckenPfandStornoSchema, &req) {
-				return application.KassenbelegDruckenCommand{}, false
-			}
-			return application.KassenbelegDruckenCommand{RueckgabeID: req.RueckgabeID, StornierungID: req.StornierungID}, true
-		}
-
-		req := belegDruckenPfandRequest{RueckgabeID: *body.RueckgabeID}
-		if !validateBody(w, belegDruckenPfandSchema, &req) {
-			return application.KassenbelegDruckenCommand{}, false
-		}
-		return application.KassenbelegDruckenCommand{RueckgabeID: req.RueckgabeID}, true
-
-	case hasVerkauf && !hasTisch && !hasZahlung && !hasRueckgabe:
-		if hasStornierung {
-			req := belegDruckenStornoRequest{VerkaufID: *body.VerkaufID, StornierungID: *body.StornierungID}
-			if !validateBody(w, belegDruckenStornoSchema, &req) {
-				return application.KassenbelegDruckenCommand{}, false
-			}
-			return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID, StornierungID: req.StornierungID}, true
-		}
-
-		req := belegDruckenVerkaufRequest{VerkaufID: *body.VerkaufID}
-		if !validateBody(w, belegDruckenVerkaufSchema, &req) {
-			return application.KassenbelegDruckenCommand{}, false
-		}
-		return application.KassenbelegDruckenCommand{VerkaufID: req.VerkaufID}, true
-
-	case hasTisch && hasStornierung && !hasZahlung && !hasVerkauf && !hasRueckgabe:
-		req := belegDruckenTischStornoRequest{TischID: *body.TischID, StornierungID: *body.StornierungID}
-		if !validateBody(w, belegDruckenTischStornoSchema, &req) {
-			return application.KassenbelegDruckenCommand{}, false
-		}
-		return application.KassenbelegDruckenCommand{TischID: req.TischID, StornierungID: req.StornierungID}, true
-
-	case hasTisch && hasZahlung && !hasStornierung && !hasVerkauf && !hasRueckgabe:
-		req := belegDruckenZahlungRequest{TischID: *body.TischID, ZahlungID: *body.ZahlungID}
-		if !validateBody(w, belegDruckenZahlungSchema, &req) {
-			return application.KassenbelegDruckenCommand{}, false
-		}
-		return application.KassenbelegDruckenCommand{TischID: req.TischID, ZahlungID: req.ZahlungID}, true
-
-	default:
+	form := belegForm{
+		tisch:       body.TischID != nil,
+		zahlung:     body.ZahlungID != nil,
+		verkauf:     body.VerkaufID != nil,
+		rueckgabe:   body.RueckgabeID != nil,
+		stornierung: body.StornierungID != nil,
+	}
+	if !slices.Contains(belegFormen, form) {
 		helper.SendClientError(w, "validation_error", map[string][]string{
 			"body": {belegDruckenValidationMessage},
 		})
 		return application.KassenbelegDruckenCommand{}, false
 	}
+
+	if issues := belegDruckenSchema.Validate(&body); issues != nil {
+		helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
+		return application.KassenbelegDruckenCommand{}, false
+	}
+
+	return application.KassenbelegDruckenCommand{
+		TischID:       wert(body.TischID),
+		ZahlungID:     wert(body.ZahlungID),
+		VerkaufID:     wert(body.VerkaufID),
+		RueckgabeID:   wert(body.RueckgabeID),
+		StornierungID: wert(body.StornierungID),
+	}, true
 }
 
-func validateBody(w http.ResponseWriter, schema *z.StructSchema, body any) bool {
-	if issues := schema.Validate(body); issues != nil {
-		helper.SendClientError(w, "validation_error", z.Issues.FlattenAndCollect(issues))
-		return false
+// wert returns the pointed-to value, the zero value for an absent field.
+func wert[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
 	}
-	return true
+	return *p
 }
