@@ -1,4 +1,4 @@
-import { Building2, Download, FileText, Loader2 } from 'lucide-react'
+import { Building2, Download, FileText } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink } from 'react-router'
 
@@ -12,6 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Spinner } from '@/components/ui/spinner'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import {
@@ -43,11 +44,7 @@ function ExportBlock({ kassensitzungNr }: { kassensitzungNr: number }) {
           exportieren(kassensitzungNr)
         }}
       >
-        {isPending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Download className="size-4" />
-        )}
+        {isPending ? <Spinner /> : <Download className="size-4" />}
         Archiv herunterladen (ZIP)
       </Button>
     </div>
@@ -131,14 +128,12 @@ export function KassenberichtePage() {
               />
             ) : reportLoading || !result || !selectedSitzung ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                <Spinner className="size-6 text-muted-foreground" />
               </div>
             ) : (
               <>
                 <ReportingResults result={result} sitzung={selectedSitzung} />
-                {effectiveNr !== null && (
-                  <ExportBlock kassensitzungNr={effectiveNr} />
-                )}
+                <ExportBlock kassensitzungNr={selectedSitzung.zNr} />
               </>
             )}
           </div>

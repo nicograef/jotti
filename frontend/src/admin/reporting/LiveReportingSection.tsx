@@ -1,10 +1,4 @@
-import {
-  Ban,
-  ChevronDown,
-  LayoutDashboard,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react'
+import { Ban, ChevronDown, LayoutDashboard, RefreshCw } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { NavLink } from 'react-router'
 
@@ -22,6 +16,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Spinner } from '@/components/ui/spinner'
 import { useCountUp } from '@/hooks/use-count-up'
 import {
   formatAnzahl,
@@ -65,7 +60,7 @@ export function LiveReportingSection({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <Spinner className="size-6 text-muted-foreground" />
       </div>
     )
   }
