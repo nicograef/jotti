@@ -19,7 +19,6 @@ Entschieden: jotti bettet Postgres ein, nicht SQLite. Das eingefrorene Schema bl
 
 Der Verein lädt eine einzige Datei `jotti.exe` herunter und doppelklickt sie.
 Mehr braucht der Kassenrechner nicht: kein Docker Desktop, kein ZIP, keine Hilfsskripte.
-Der Abschnitt „Rückfall B" hält die verworfene SQLite-Variante zum Vergleich fest.
 
 - SmartScreen und UAC bestätigt der Verein wie heute einmal.
 - Der erste Doppelklick richtet jotti ein, gibt die Firewall frei und startet die Kasse.
@@ -60,7 +59,7 @@ Der Abschnitt „Rückfall B" hält die verworfene SQLite-Variante zum Vergleich
 | B: SQLite als zweite Schema- und Abfragelinie nur für Windows  | 4–6 Monate einmalig, danach doppelte Arbeit an jeder Migration und jeder Abfrage     | hoch und fiskalisch: zwei SQL-Umsetzungen von Reporting und DSFinV-K-Export können still auseinanderlaufen | schlecht: die SQLite-Linie friert mit dem ersten Echtbetrieb ein und braucht für immer einen Konverter |
 | C: SQLite für alle Installationen, Postgres-Bestände ziehen um | wie B plus Umzug jedes Servers                                                       | sehr hoch: verändert das Datenformat aller Bestandsinstallationen unter Aufbewahrungspflicht               | keine: der Rückweg wäre ein zweiter Umzug                                                              |
 
-Gewählt ist A. Die Owner-Entscheidung nennt SQLite; dieses PRD empfiehlt davon abzuweichen.
+Gewählt ist A; der Owner hat eingebettetes Postgres entschieden.
 
 - Das Nutzerziel ist eine Datei ohne Docker Desktop; das erreicht A vollständig.
 - Für den Verein ist die Datenbank unsichtbar; SQLite bringt ihm keinen Vorteil, den er bemerkt.
@@ -69,11 +68,11 @@ Gewählt ist A. Die Owner-Entscheidung nennt SQLite; dieses PRD empfiehlt davon 
 - B verdoppelt den kassenwirksamen Teil des Codes und damit den Prüfaufwand jeder fiskalischen Änderung.
 - B gewinnt eine kleinere Datei und keinen zweiten Prozess; das wiegt die Doppelpflege nicht auf.
 - C scheidet aus, weil er persistierte Daten aller Bestandsinstallationen umformt.
-- Die verworfene SQLite-Variante beschreibt der Abschnitt „Rückfall B" unten.
 
 ### Aufbau der Einzeldatei
 
 Die Einzeldatei ist ein Go-Programm für Windows, das alle Teile von heute in sich trägt.
+Sie läuft auf Windows 10 22H2 und Windows 11, nur auf x64.
 
 | Teil                   | Herkunft                                                     | Laufform in der Einzeldatei                                              |
 | ---------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
@@ -165,7 +164,7 @@ Aus dem Starter wird die Einzeldatei selbst; ihr Manifest verlangt wie heute Adm
 ### Linux und Self-Hosting
 
 - Der Server-Betrieb bleibt Docker Compose mit denselben Images, Skripten und Postgres-Containern.
-- Das Docker-ZIP für Windows läuft eine Übergangszeit parallel und entfällt danach.
+- Das Docker-ZIP für Windows läuft nach Stufe 4 noch zwei Releases parallel und entfällt danach.
 - Mit ihm entfallen Starter, die Release-Compose-Datei und die Windows-Hilfsskripte.
 - `docker-compose.local.yml` bleibt für den LAN-Betrieb unter Linux mit `make local-up`.
 - Das eigenständige Relay bleibt für Server und für Drucker in einem anderen Netz.
@@ -177,7 +176,7 @@ Aus dem Starter wird die Einzeldatei selbst; ihr Manifest verlangt wie heute Adm
 - Er lädt die Postgres-Binaries mit festgeschriebener Prüfsumme, wie das Migrate-Image golang-migrate.
 - Die Datei wird geschätzt 60–100 MB groß; Stufe 1 misst das.
 - Eine unsignierte Datei, die einen Dienst anlegt und die Firewall öffnet, fällt Virenscannern eher auf.
-- Ob jotti eine Code-Signatur kauft, ist eine offene Entscheidung.
+- Ob jotti eine Code-Signatur kauft, entscheidet der Owner vor Stufe 5.
 
 ### Stufen
 
@@ -189,39 +188,7 @@ Aus dem Starter wird die Einzeldatei selbst; ihr Manifest verlangt wie heute Adm
 | 4     | Übernahme einer Docker-Installation mit Abgleich                                           | Bestandsvereine können umziehen                             | 1–2 Wochen |
 | 5     | Leitfaden, Kurzanleitung und Verfahrensdokumentation; Docker-ZIP läuft aus                 | ein Windows-Weg                                             | 1 Woche    |
 
-Jede Stufe endet lieferbar; nach Stufe 1 entscheidet der Owner über den Weiterbau.
-
-### Rückfall B: SQLite-Linie
-
-Dieser Abschnitt gilt nur, wenn der Owner bei SQLite bleibt.
-
-- Eine zweite Migrationslinie mit eigener Nummerierung übersetzt den Gesamtstand der Postgres-Migrationen in SQLite.
-- Mit dem ersten Echtbetrieb friert diese Linie ebenso ein wie die Postgres-Linie.
-- Jede künftige Postgres-Migration bekommt im selben Change ihren SQLite-Zwilling.
-- Eine CI-Prüfung vergleicht beide Schemata nach Tabellen, Spalten, Constraints und Indexen.
-- IDENTITY wird INTEGER PRIMARY KEY mit AUTOINCREMENT; die Z-Nummer steigt so streng und wird nie wiederverwendet.
-- ENUM-Typen werden TEXT mit CHECK; JSONB wird TEXT mit einer JSON-Gültigkeitsprüfung.
-- Zeitstempel speichert die Linie als UTC-Text mit fester Länge, damit Sortierung und Vergleich stimmen.
-- Append-only erzwingen BEFORE-UPDATE- und BEFORE-DELETE-Trigger mit Abbruch auf dem Kassenjournal.
-- Die Kassenidentität sperren dieselben Trigger nach ihrer ersten Zeile, auch für INSERT; TRUNCATE gibt es in SQLite nicht.
-- SQLite kennt kein REVOKE; der Schutz hält gegen Anwendungs- und SQL-Fehler, nicht gegen Schreibzugriff auf die Datei.
-- Praktisch gleicht das dem Tabellen-Owner unter Postgres, der Trigger ebenfalls entfernen kann.
-- Ein zweiter Abfragesatz für die SQLite-Engine von sqlc ersetzt die 122 Postgres-Abfragen.
-- Zehn LATERAL-Joins werden korrelierte Unterabfragen, JSONB-Funktionen werden die JSON-Funktionen von SQLite.
-- Die SQL-Hilfsfunktionen des Reportings werden im Treiber registrierte Go-Funktionen oder ausgeschriebene Ausdrücke.
-- sqlc erzeugt zwei Pakete mit eigenen Typen; jedes Repository bekommt eine Schnittstelle mit zwei Umsetzungen.
-- Alle schreibenden Transaktionen beginnen sofort exklusiv, also mit BEGIN IMMEDIATE und einem Busy-Timeout.
-- Das ersetzt die Abschluss-Barriere aus FOR SHARE gegen UPDATE und die Passwort-Sperre aus FOR UPDATE.
-- Den Advisory Lock des TSE-Workers ersetzt eine Sperre im Prozess plus eine Einzelinstanz-Sperre auf die Datei.
-- Die Fehlerabbildung lernt die Constraint-Codes von SQLite neben denen von Postgres.
-- Der Treiber ist reines Go ohne cgo, damit der Cross-Compile bleibt.
-- JSONB normalisiert Schlüsselreihenfolge und Leerzeichen, SQLite speichert Text wie geschrieben.
-- Code, der rohes Event-JSON vergleicht, muss beide Formen vertragen.
-- Die Übernahme braucht einen Konverter je Tabelle in ID-Reihenfolge, die Kassenidentität vor den Schutz-Triggern.
-- Migrationen laufen mit golang-migrate und dessen SQLite-Treiber ohne cgo, aus der zweiten Migrationslinie.
-- Das Backup vor jeder Migration zieht `VACUUM INTO` statt pg_dump; „Backup zurückspielen" ersetzt die Datenbankdatei.
-- Es gibt keinen Postgres-Teilprozess; Prozessaufsicht und Postgres-Binaries entfallen.
-- Das virtuelle Dienstkonto bleibt, aus demselben Grund der geringsten Rechte.
+Jede Stufe endet lieferbar; nach Stufe 1 entscheidet der Owner anhand der Messwerte über den Weiterbau.
 
 ## Testing Decisions
 
@@ -233,9 +200,7 @@ Getestet wird äußeres Verhalten an öffentlichen Schnittstellen; erwartete Wer
 - Übernahme-Abgleich als reine Funktion: abweichende Zeilenzahl, Journal-ID oder Seriennummer ergibt Abbruch.
 - Übernahme gegen echtes Postgres: Demo-Szenario dumpen, einspielen, Abgleich grün. Vorbild ist der CI-Job `upgrade-path` mit `prod-backup-verify`.
 - Rauchtest auf einem Windows-Runner: einrichten, Gesundheit, Login, Buchung, Update mit Backup, Zurückspielen. Vorbild ist `ops-smoke.sh`.
-- Der Windows-Runner ist eine eigene CI-Ausgabe; ohne ihn läuft der Rauchtest von Hand je Release.
-- Bei Rückfall B: jeder Repository- und Integrationstest gegen beide Engines.
-- Bei Rückfall B zusätzlich: derselbe Event-Strom in beide Engines, Reporting und DSFinV-K-Export byteweise gleich.
+- Derselbe Runner misst nach Stufe 1 Dateigröße, Startzeiten und das Urteil von Windows Defender.
 
 ## Out of Scope
 
@@ -266,12 +231,15 @@ Ebenso ändern sich Systemüberblick der Verfahrensdokumentation und Betriebstei
 Entfällt das Docker-ZIP, wird die Zahl der Compose-Dateien in D13 falsch und braucht eine Umformulierung.
 D15 erstreckt sich dann auch auf die eingebettete Postgres-Version.
 
-Offene Entscheidungen für den Owner:
+Entscheidungen des Owners:
 
-1. Datenbank: entschieden für eingebettetes Postgres.
-2. Zusätzliche Go-Abhängigkeiten: Caddy als Bibliothek, golang-migrate als Bibliothek und die Postgres-Windows-Binaries.
-3. Code-Signatur der Einzeldatei: kaufen (empfohlen vor Stufe 5) oder unsigniert mit SmartScreen-Hinweis bleiben.
-4. Windows-Runner in der CI für den Rauchtest (empfohlen) oder Rauchtest von Hand je Release.
-5. Übergangszeit des Docker-ZIPs: empfohlen zwei Releases nach Stufe 4, dann entfernen.
-6. Docker-Konfiguration ändern (AGENTS.md: vorher fragen): Wegfall von `docker-compose.release.yml` und des Docker-ZIPs.
-7. Reverse-Proxy-Konfiguration ändern (AGENTS.md: vorher fragen): LAN-Modus importierbar, Upstream auf Loopback.
+1. Zusätzliche Abhängigkeiten: Caddy und golang-migrate als Go-Bibliotheken sowie die Postgres-17-Binaries für Windows x64.
+2. Zielsysteme: Windows 10 22H2 und Windows 11, nur x64.
+3. jotti läuft als Windows-Dienst.
+4. Ein Windows-Runner der CI fährt Rauchtest und Messung.
+5. Go nach Stufe 1 bei höchstens 120 MB Dateigröße und ohne Quarantäne oder Sperre der unsignierten Datei durch Windows Defender.
+6. Ebenso Bedingung: auf dem CI-Runner höchstens 60 s vom ersten Doppelklick bis zur Anmeldeseite, höchstens 15 s bei späteren Starts.
+7. Die Übernahme einer Docker-Installation wird gebaut.
+8. Das Docker-ZIP läuft nach Stufe 4 noch zwei Releases parallel; danach entfallen es und `docker-compose.release.yml`.
+9. Reverse-Proxy-Konfiguration: Der LAN-Modus wird importierbar, der Upstream liegt auf Loopback.
+10. Code-Signatur der Einzeldatei: Kauf oder unsigniert mit SmartScreen-Hinweis entscheidet der Owner vor Stufe 5.
