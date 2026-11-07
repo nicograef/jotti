@@ -46,6 +46,7 @@ import { VariantChip } from './VariantChip'
 interface ProductItemProps {
   loading: boolean
   product: Produkt
+  katalog: Produkt[]
   isFirst: boolean
   isLast: boolean
   onEdit: (produkt: Produkt) => void
@@ -149,7 +150,8 @@ export function ProductItem(props: ProductItemProps) {
         {props.product.varianten.map((variant, index) => (
           <VariantChip
             key={variant.id}
-            produktId={props.product.id}
+            product={props.product}
+            katalog={props.katalog}
             variant={variant}
             loading={props.loading || variantLoading}
             isFirst={index === 0}
@@ -162,7 +164,8 @@ export function ProductItem(props: ProductItemProps) {
           />
         ))}
         <NewVariantDialog
-          productId={props.product.id}
+          product={props.product}
+          katalog={props.katalog}
           created={props.onVariantCreated}
         >
           <button

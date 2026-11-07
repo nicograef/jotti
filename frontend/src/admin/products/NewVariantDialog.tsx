@@ -19,8 +19,11 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import type { Produkt } from '@/lib/produktSchemas'
 
 import { produktBackend } from './hooks'
+import { PfandVarianteField } from './PfandVarianteField'
+import { pfandOptionen } from './pfandVerknuepfung'
 import { PriceField } from './PriceField'
 import { CreateVarianteSchema } from './ProduktBackend'
 
@@ -28,17 +31,20 @@ const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewVariantDialogProps {
-  productId: number
+  product: Produkt
+  katalog: Produkt[]
   created: (variante: FormData) => void
   children: ReactNode
 }
 
 export function NewVariantDialog(props: NewVariantDialogProps) {
   const [open, setOpen] = useState(false)
+  const optionen = pfandOptionen(props.katalog, props.product)
   const form = useForm<FormData>({
     defaultValues: {
       name: '',
       preisCents: 0,
+      pfandVarianteId: null,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -52,7 +58,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
   const onSubmit = async (data: FormData) => {
     await run(async () => {
       await produktBackend.createVariante({
-        produktId: props.productId,
+        produktId: props.product.id,
         ...data,
       })
       form.reset()
@@ -89,6 +95,9 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
             <FieldGroup>
               <NameField form={form} placeholder="z.B. Klein, Groß, 0.5L" />
               <PriceField form={form} />
+              {optionen.length > 0 && (
+                <PfandVarianteField form={form} optionen={optionen} />
+              )}
             </FieldGroup>
           </form>
         </DialogBody>

@@ -56,11 +56,14 @@ const NameSchema = createNameSchema(100)
 // einen bestehenden Datensatz nicht unlesbar machen.
 const PreisCentsSchema = z.number().int().min(0)
 
+// pfandVarianteId: die verknüpfte Pfand-Variante oder null. Der Service-Lesepfad
+// liefert null, wenn das Ziel nicht bestellbar ist.
 export const VarianteSchema = z.object({
   id: VarianteIdSchema,
   name: NameSchema,
   preisCents: PreisCentsSchema,
   status: EntityStatusSchema,
+  pfandVarianteId: VarianteIdSchema.nullable(),
 })
 export type Variante = z.infer<typeof VarianteSchema>
 

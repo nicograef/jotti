@@ -5,14 +5,15 @@ import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { EntityStatus } from '@/lib/entityStatus'
-import type { Variante } from '@/lib/produktSchemas'
+import type { Produkt, Variante } from '@/lib/produktSchemas'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
 import { Richtung } from './Produkt'
 
 interface VariantChipProps {
-  produktId: number
+  product: Produkt
+  katalog: Produkt[]
   variant: Variante
   loading: boolean
   isFirst: boolean
@@ -72,6 +73,11 @@ export function VariantChip(props: VariantChipProps) {
             name={props.variant.name}
             preisCents={props.variant.preisCents}
           />
+          {props.variant.pfandVarianteId !== null && (
+            <span className="shrink-0 text-xs text-muted-foreground">
+              + Pfand
+            </span>
+          )}
           {!isActive && (
             <span className="shrink-0 text-xs uppercase tracking-wide">
               aus
@@ -115,7 +121,8 @@ export function VariantChip(props: VariantChipProps) {
 
       <EditVariantDialog
         open={editOpen}
-        produktId={props.produktId}
+        product={props.product}
+        katalog={props.katalog}
         variant={props.variant}
         updated={props.onUpdated}
         deleted={props.onDeleted}

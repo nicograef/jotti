@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -20,6 +20,7 @@ function variante(overrides: Partial<Produkt['varianten'][number]> = {}) {
     name: 'Standard',
     preisCents: 350,
     status: 'active' as const,
+    pfandVarianteId: null,
     ...overrides,
   }
 }
@@ -49,6 +50,7 @@ function backend(): FakeBackend {
     .respond('admin/sortiere-varianten', {})
     .respond('admin/create-produkt', { id: 9 })
     .respond('admin/update-produkt', {})
+    .respond('admin/create-variante', { id: 11 })
 }
 
 function renderProducts(
@@ -307,5 +309,83 @@ describe('Produkt-Formulare', () => {
     expect(
       screen.getAllByText('Pfand', { selector: '[data-slot=badge]' }),
     ).toHaveLength(1)
+  })
+})
+
+describe('Pfand-Verknüpfung', () => {
+  const bier = produkt({
+    id: 1,
+    name: 'Bier',
+    kategorie: 'getraenk',
+    steuersatz: 'regel',
+    varianten: [variante({ id: 10, name: '0,5 l', preisCents: 400 })],
+  })
+  const glaspfand = produkt({
+    id: 2,
+    name: 'Glaspfand',
+    kategorie: 'sonstiges',
+    steuersatz: 'regel',
+    pfand: true,
+    varianten: [variante({ id: 20, name: 'Glas', preisCents: 200 })],
+  })
+  const tellerpfand = produkt({
+    id: 3,
+    name: 'Tellerpfand',
+    kategorie: 'sonstiges',
+    steuersatz: 'ermaessigt',
+    pfand: true,
+    varianten: [variante({ id: 30, name: 'Teller', preisCents: 300 })],
+  })
+
+  async function oeffneNeueVariante(produktName: string) {
+    const user = userEvent.setup()
+    const zeile = screen.getByText(produktName).parentElement
+    if (zeile === null) throw new Error(`Zeile ${produktName} fehlt`)
+    await user.click(within(zeile).getByRole('button', { name: 'Variante' }))
+    return user
+  }
+
+  it('Pfand-Verknüpfung: ohne passende Pfand-Variante fehlt das Feld Pfand', async () => {
+    renderProducts([bier, tellerpfand])
+
+    await oeffneNeueVariante('Bier')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Neue Variante anlegen' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Pfand' })).toBeNull()
+  })
+
+  it('Pfand-Verknüpfung: bietet nur das Pfand gleichen Steuersatzes an und sendet pfandVarianteId', async () => {
+    const fake = renderProducts([bier, glaspfand, tellerpfand])
+
+    const user = await oeffneNeueVariante('Bier')
+    await user.type(await screen.findByLabelText('Name'), '0,3 l')
+    await user.type(screen.getByLabelText('Preis'), '3')
+    await user.click(screen.getByRole('combobox', { name: 'Pfand' }))
+
+    const optionen = screen.getAllByRole('option').map((o) => o.textContent)
+    expect(optionen).toEqual(['Kein Pfand', 'Glaspfand Glas · 2,00\u00A0€'])
+
+    await user.click(screen.getByRole('option', { name: /Glaspfand Glas/ }))
+    await user.click(screen.getByRole('button', { name: 'Variante anlegen' }))
+
+    await waitFor(() => {
+      expect(fake.bodies('admin/create-variante')).toEqual([
+        { produktId: 1, name: '0,3 l', preisCents: 300, pfandVarianteId: 20 },
+      ])
+    })
+  })
+
+  it('Pfand-Verknüpfung: der Chip einer verknüpften Variante zeigt + Pfand', () => {
+    renderProducts([
+      produkt({
+        ...bier,
+        varianten: [variante({ id: 10, name: '0,5 l', pfandVarianteId: 20 })],
+      }),
+      glaspfand,
+    ])
+
+    expect(screen.getAllByText('+ Pfand')).toHaveLength(1)
   })
 })

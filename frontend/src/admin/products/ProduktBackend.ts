@@ -37,12 +37,14 @@ export const CreateVarianteSchema = z.object({
   produktId: ProduktIdSchema,
   name: NameEingabeSchema,
   preisCents: PreisCentsEingabeSchema,
+  pfandVarianteId: VarianteIdSchema.nullable(),
 })
 
 export const UpdateVarianteSchema = z.object({
   id: VarianteIdSchema,
   name: NameEingabeSchema,
   preisCents: PreisCentsEingabeSchema,
+  pfandVarianteId: VarianteIdSchema.nullable(),
 })
 
 const VerschiebeVarianteSchema = z.object({

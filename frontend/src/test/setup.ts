@@ -48,3 +48,18 @@ class NoopResizeObserver implements ResizeObserver {
 if (typeof globalThis.ResizeObserver !== 'function') {
   globalThis.ResizeObserver = NoopResizeObserver
 }
+
+// jsdom lacks pointer capture and scrollIntoView, which Radix Select calls when
+// it opens and focuses an option; without a layout engine both have no effect.
+interface RadixSelectElement {
+  hasPointerCapture?: (pointerId: number) => boolean
+  releasePointerCapture?: (pointerId: number) => void
+  scrollIntoView?: () => void
+}
+
+if (typeof Element !== 'undefined') {
+  const proto: RadixSelectElement = Element.prototype
+  proto.hasPointerCapture ??= () => false
+  proto.releasePointerCapture ??= () => undefined
+  proto.scrollIntoView ??= () => undefined
+}

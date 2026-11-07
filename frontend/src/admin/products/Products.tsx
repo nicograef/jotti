@@ -58,6 +58,7 @@ export function Products(props: ProductsProps) {
                   key={product.id}
                   loading={props.loading}
                   product={product}
+                  katalog={props.products}
                   isFirst={index === 0}
                   isLast={index === gruppe.produkte.length - 1}
                   onEdit={props.onEdit}

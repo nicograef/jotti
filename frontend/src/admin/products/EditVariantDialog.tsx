@@ -30,9 +30,11 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import type { Variante } from '@/lib/produktSchemas'
+import type { Produkt, Variante } from '@/lib/produktSchemas'
 
 import { produktBackend } from './hooks'
+import { PfandVarianteField } from './PfandVarianteField'
+import { pfandOptionen } from './pfandVerknuepfung'
 import { PriceField } from './PriceField'
 import { UpdateVarianteSchema } from './ProduktBackend'
 
@@ -41,7 +43,8 @@ type FormData = z.infer<typeof FormDataSchema>
 
 interface EditVariantDialogProps {
   open: boolean
-  produktId: number
+  product: Produkt
+  katalog: Produkt[]
   variant: Variante
   updated: () => void
   deleted: () => void
@@ -50,11 +53,13 @@ interface EditVariantDialogProps {
 
 export function EditVariantDialog(props: EditVariantDialogProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const optionen = pfandOptionen(props.katalog, props.product)
 
   const form = useForm<FormData>({
     defaultValues: {
       name: props.variant.name,
       preisCents: props.variant.preisCents,
+      pfandVarianteId: props.variant.pfandVarianteId,
     },
     resolver: zodResolver(FormDataSchema),
     mode: 'onTouched',
@@ -74,6 +79,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
       form.reset({
         name: props.variant.name,
         preisCents: props.variant.preisCents,
+        pfandVarianteId: props.variant.pfandVarianteId,
       })
       props.close()
     }
@@ -92,7 +98,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
 
   const onDelete = async () => {
     await runDelete(async () => {
-      await produktBackend.deleteVariante(props.produktId, props.variant.id)
+      await produktBackend.deleteVariante(props.product.id, props.variant.id)
       setDeleteOpen(false)
       props.deleted()
       props.close()
@@ -119,6 +125,9 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
             <FieldGroup>
               <NameField form={form} placeholder="z.B. Klein, Groß, 0.5L" />
               <PriceField form={form} />
+              {optionen.length > 0 && (
+                <PfandVarianteField form={form} optionen={optionen} />
+              )}
             </FieldGroup>
           </form>
         </DialogBody>
