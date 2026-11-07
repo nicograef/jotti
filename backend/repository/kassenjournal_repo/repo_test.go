@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -1937,84 +1938,36 @@ func TestWriteEvent_KassensitzungOtherEvent_NoCRUDChange(t *testing.T) {
 	}
 }
 
-// An ausgabe-bestaetigt:v1 event breaks RebuildAllProjections until migration 03 deletes it under a disabled trigger;
-// the append-only guard must survive that (docs/decisions.md D01).
-func TestMigration03_AusgabeEntfernen(t *testing.T) {
+// The kassenjournal is append-only for every role, the table owner included.
+func TestKassenjournal_AppendOnlyTrigger(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
 
-	tischID, err := createTisch(repo.db, "Tisch Migration")
+	tischID, err := createTisch(repo.db, "Tisch Append-only")
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
-
 	subject := kasse.TischSessionSubject(ksNr, tischID)
-	posID := "10000000-0000-4000-8000-000000000001"
-
-	// Bestellung (2x @500 = 1000) und Zahlung (1x @500) über den normalen Schreibpfad.
-	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", posID, 500, 2))
+	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", subject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "10000000-0000-4000-8000-000000000001", 500, 2))
 	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write bestellung: %v", err)
 	}
-	zahlung := newTestEvent(userID, "zahlung-kassiert:v1", subject, 2, validZahlungData(posID, 1, 500))
-	if _, err := repo.WriteEvent(context.Background(), zahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
-		t.Fatalf("Failed to write zahlung: %v", err)
-	}
 
-	// Ein ausgabe-bestaetigt:v1-Alt-Event, wie es Bestandsinstanzen vor der Migration
-	// im Journal hatten, roh einfügen (INSERT ist erlaubt; nur DELETE/UPDATE sind gesperrt).
-	ausgabe := newTestEvent(userID, "ausgabe-bestaetigt:v1", subject, 3, map[string]any{
-		"ausgabeId": "a0000000-0000-4000-8000-000000000001",
-		"positionen": []map[string]any{
-			{"positionId": posID, "menge": 1},
-		},
-		"kommentar": "",
-	})
-	if _, err := insertEventRaw(repo.db, ausgabe, ksNr); err != nil {
-		t.Fatalf("Failed to insert ausgabe old event: %v", err)
-	}
-
-	// Solange das Alt-Event im Journal liegt, scheitert der Rebuild — genau der Grund,
-	// warum die Migration die Events löschen muss (exklusive Event-Switches).
-	if _, err := repo.RebuildAllProjections(context.Background()); err == nil {
-		t.Error("Expected RebuildAllProjections to fail while ausgabe-bestaetigt:v1 events remain")
-	}
-
-	// Datenbereinigung wie in der Migration: Delete-Trigger transaktional deaktivieren,
-	// Alt-Events löschen, Trigger wieder aktivieren.
-	if _, err := repo.db.Exec("ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete"); err != nil {
-		t.Fatalf("Failed to disable delete trigger: %v", err)
-	}
-	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE type = 'ausgabe-bestaetigt:v1'"); err != nil {
-		t.Fatalf("Failed to delete ausgabe events: %v", err)
-	}
-	if _, err := repo.db.Exec("ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete"); err != nil {
-		t.Fatalf("Failed to re-enable delete trigger: %v", err)
-	}
-
-	// Nach der Bereinigung läuft der Rebuild fehlerfrei und die Projektion ist korrekt.
-	count, err := repo.RebuildAllProjections(context.Background())
-	if err != nil {
-		t.Fatalf("Expected RebuildAllProjections to succeed after cleanup, got %v", err)
-	}
-	if count != 1 {
-		t.Errorf("Expected 1 rebuilt subject, got %d", count)
-	}
-
-	state, err := repo.ReadTischSession(context.Background(), subject)
-	if err != nil {
-		t.Fatalf("Expected no error reading state, got %v", err)
-	}
-	if state.SaldoCents != 500 {
-		t.Errorf("Expected SaldoCents 500, got %d", state.SaldoCents)
-	}
-	if len(state.UnbezahltePositionen) != 1 || state.UnbezahltePositionen[0].Menge != 1 {
-		t.Errorf("Expected 1 unbezahlte position with menge 1, got %+v", state.UnbezahltePositionen)
-	}
-
-	// Der Append-only-Schutz besteht nach der Migration unverändert: DELETE schlägt fehl.
-	if _, err := repo.db.Exec("DELETE FROM kassenjournal WHERE subject = $1", subject); err == nil {
-		t.Error("Expected DELETE on kassenjournal to be rejected by the append-only trigger")
+	for _, tc := range []struct {
+		op  string
+		sql string
+	}{
+		{"UPDATE", "UPDATE kassenjournal SET user_name = 'x'"},
+		{"DELETE", "DELETE FROM kassenjournal"},
+		{"TRUNCATE", "TRUNCATE kassenjournal CASCADE"},
+	} {
+		t.Run(tc.op, func(t *testing.T) {
+			_, err := repo.db.Exec(tc.sql)
+			want := "table kassenjournal is write-protected: " + tc.op + " not allowed"
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("Expected %q, got %v", want, err)
+			}
+		})
 	}
 }
 
