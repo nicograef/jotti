@@ -1,9 +1,10 @@
-import { act, cleanup, screen } from '@testing-library/react'
+import { act, cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
+import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
@@ -159,5 +160,72 @@ describe('BestellungTab im Vorgangs-Register', () => {
 
     unmount()
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+})
+
+// Bier (Getränke) verknüpft das Glaspfand (Sonstiges); nur die Getränke-Zeile ist sichtbar.
+const bier: Produkt = {
+  ...testProdukt,
+  id: 2,
+  name: 'Bier',
+  kategorie: 'getraenk',
+  steuersatz: 'regel',
+  varianten: [
+    {
+      ...testProdukt.varianten[0],
+      id: 2,
+      name: '0,5 l',
+      preisCents: 450,
+      pfandVarianteId: 19,
+    },
+  ],
+}
+const pfandProdukt: Produkt = {
+  ...testProdukt,
+  id: 9,
+  name: 'Pfand',
+  kategorie: 'sonstiges',
+  steuersatz: 'regel',
+  pfand: true,
+  varianten: [
+    { ...testProdukt.varianten[0], id: 19, name: 'Glas', preisCents: 200 },
+  ],
+}
+
+describe('BestellungTab mit Auto-Pfand', () => {
+  it('zeigt das Pfand an der Zeile und bestellt es mit der Variante', async () => {
+    setViewportWidth(1024)
+    const user = userEvent.setup()
+    const fake = backend()
+    renderWithBackend(
+      <BestellungHarness
+        tisch={tisch}
+        products={[bier, pfandProdukt]}
+        productsLoading={false}
+        onErfolg={vi.fn()}
+      />,
+      fake,
+    )
+
+    expect(screen.getByText('+ 2,00 € Pfand')).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
+    )
+
+    await waitFor(() => {
+      expect(fake.bodies('service/bestellung-aufnehmen')).toHaveLength(1)
+    })
+    expect(fake.bodies('service/bestellung-aufnehmen')).toEqual([
+      expect.objectContaining({
+        positionen: [
+          { produktId: 2, varianteId: 2, menge: 1 },
+          { produktId: 9, varianteId: 19, menge: 1 },
+        ],
+      }),
+    ])
   })
 })

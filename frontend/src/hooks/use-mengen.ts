@@ -7,11 +7,15 @@ export interface MengenSteuerung<K extends string | number> {
   add: (key: K) => void
   remove: (key: K) => void
   reset: () => void
-  setAll: (next: Record<K, number>) => void
+  setAll: (
+    next:
+      Record<K, number> | ((vorher: Record<K, number>) => Record<K, number>),
+  ) => void
 }
 
 /**
  * Quantity-selector state keyed by id. `max` caps a key's quantity on `add`; `setAll` bypasses it, so its caller must stay within the cap.
+ * `setAll` takes a value or an updater; the updater sees the latest state, so rapid taps compose.
  */
 export function useMengen<K extends string | number>(
   max?: (key: K) => number,
@@ -44,7 +48,7 @@ export function useMengen<K extends string | number>(
     setMengen({} as Record<K, number>)
   }
 
-  const setAll = (next: Record<K, number>) => {
+  const setAll: MengenSteuerung<K>['setAll'] = (next) => {
     setMengen(next)
   }
 

@@ -12,6 +12,7 @@ import {
 } from '@/lib/produktSchemas'
 import { cn, formatEuro } from '@/lib/utils'
 
+import { pfandVerknuepfungen } from './pfandKopplung'
 import { Stepper } from './Stepper'
 
 interface ProductListComponentProps {
@@ -29,6 +30,7 @@ function belegteKategorien(products: Produkt[]): Kategorie[] {
 
 export function ProductList(props: ProductListComponentProps) {
   const kategorien = belegteKategorien(props.products)
+  const verknuepfungen = pfandVerknuepfungen(props.products)
   const [aktiveKategorie, setAktiveKategorie] = useState<Kategorie | undefined>(
     kategorien[0],
   )
@@ -90,6 +92,7 @@ export function ProductList(props: ProductListComponentProps) {
                 <VariantRow
                   key={variant.id}
                   variant={variant}
+                  pfandCents={verknuepfungen.get(variant.id)?.preisCents}
                   menge={props.variantMengen[variant.id] || 0}
                   onAdd={() => {
                     props.onAdd(variant.id)
@@ -111,11 +114,13 @@ export function ProductList(props: ProductListComponentProps) {
 // The quantity slot has the full Stepper width (8.25 rem), so the first tap neither rewraps the name nor shifts rows.
 function VariantRow({
   variant,
+  pfandCents,
   menge,
   onAdd,
   onRemove,
 }: {
   variant: Variante
+  pfandCents: number | undefined
   menge: number
   onAdd: () => void
   onRemove: () => void
@@ -134,6 +139,11 @@ function VariantRow({
         <div className="text-sm tabular-nums text-muted-foreground">
           {formatEuro(variant.preisCents)}
         </div>
+        {pfandCents !== undefined && (
+          <div className="text-sm tabular-nums text-muted-foreground">
+            + {formatEuro(pfandCents)} Pfand
+          </div>
+        )}
       </div>
       <div className="flex w-[8.25rem] shrink-0 justify-end">
         <Stepper

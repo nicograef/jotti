@@ -7,6 +7,7 @@ import {
   calculateTotalPrice,
   toBestellungData,
 } from '../drawerUtils'
+import { mitPfand, pfandVerknuepfungen } from '../pfandKopplung'
 import { ProductList, ProductListSkeleton } from '../ProductList'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { BestellungAbschluss } from './BestellungAbschluss'
@@ -30,7 +31,8 @@ export function BestellungTab({
   onErfolg,
 }: BestellungTabProps) {
   const isMobile = useIsMobile()
-  const { mengen, add, remove, reset } = vorgang.steuerung
+  const { mengen, setAll, reset } = vorgang.steuerung
+  const verknuepfungen = pfandVerknuepfungen(products)
   const { receiptItems, inputItems } = toBestellungData(
     products,
     mengen,
@@ -51,8 +53,12 @@ export function BestellungTab({
     <ProductList
       products={products}
       variantMengen={mengen}
-      onAdd={add}
-      onRemove={remove}
+      onAdd={(id) => {
+        setAll((vorher) => mitPfand(vorher, id, 'plus', verknuepfungen))
+      }}
+      onRemove={(id) => {
+        setAll((vorher) => mitPfand(vorher, id, 'minus', verknuepfungen))
+      }}
     />
   )
 
