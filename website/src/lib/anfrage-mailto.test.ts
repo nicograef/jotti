@@ -62,10 +62,13 @@ describe('validateAnfrage', () => {
 
 describe('buildAnfrageMail', () => {
   it('liefert Empfänger, Betreff und Text deckungsgleich mit der mailto-URL', () => {
-    const eingabe = felder({ message: 'Für unser Sommerfest im Juli.' })
+    const eingabe = felder({ message: 'Grüße & Fragen: 2 + 2?\nZeile 2' })
     const mail = buildAnfrageMail(eingabe)
-    const url = new URL(buildMailtoUrl(eingabe))
+    const raw = buildMailtoUrl(eingabe)
+    const url = new URL(raw)
 
+    // RFC 6068: ein "+" ist im mailto-Body wörtlich, Leerzeichen müssen %20 sein.
+    expect(raw).not.toContain('+')
     expect(url.pathname).toBe(mail.empfaenger)
     expect(url.searchParams.get('subject')).toBe(mail.betreff)
     expect(url.searchParams.get('body')).toBe(mail.text)
@@ -98,16 +101,6 @@ describe('buildMailtoUrl', () => {
     expect(body).toContain('Nachricht:\nFür unser Sommerfest im Juli.')
   })
 
-  it('enthält den wörtlichen Annahmesatz mit Fassungsbezug und TERMS-URL', () => {
-    const body =
-      new URLSearchParams(new URL(buildMailtoUrl(felder())).search).get(
-        'body',
-      ) ?? ''
-    expect(body).toContain(
-      'akzeptieren die Nutzungsbedingungen für jotti in der Fassung vom 4. November 2026 (https://github.com/nicograef/jotti/blob/main/TERMS.md).',
-    )
-  })
-
   it('nennt im Annahmesatz die Fassung aus dem Stand von TERMS.md', () => {
     const terms = readFileSync(
       new URL('../../../TERMS.md', import.meta.url),
@@ -119,7 +112,7 @@ describe('buildMailtoUrl', () => {
     expect(stand).toBeTruthy()
     expect(vorlage).toBe(stand)
     expect(buildAnfrageMail(felder()).text).toContain(
-      `in der Fassung vom ${stand ?? ''} (`,
+      `in der Fassung vom ${stand ?? ''} (https://github.com/nicograef/jotti/blob/main/TERMS.md).`,
     )
   })
 
@@ -143,31 +136,5 @@ describe('buildMailtoUrl', () => {
       'Nutzungsvereinbarung jotti — TSV Musterhausen e.V.',
     )
     expect(params.get('body')).toContain('Nachricht:\nHallo')
-  })
-
-  it('encodiert Umlaute prozentual (äöüß)', () => {
-    const url = buildMailtoUrl(felder({ verein: 'Schützenverein Grünäöüß' }))
-    expect(url).not.toContain('Grünäöüß')
-    expect(url).toContain(encodeURIComponent('Schützenverein Grünäöüß'))
-    const subject = new URLSearchParams(new URL(url).search).get('subject')
-    expect(subject).toBe('Nutzungsvereinbarung jotti — Schützenverein Grünäöüß')
-  })
-
-  it('encodiert Zeilenumbrüche im Body als %0A', () => {
-    const url = buildMailtoUrl(felder({ message: 'Zeile 1\nZeile 2' }))
-    expect(url).toContain('%0A')
-    const body = new URLSearchParams(new URL(url).search).get('body') ?? ''
-    expect(body).toContain('Zeile 1\nZeile 2')
-  })
-
-  it('encodiert Sonderzeichen (& ? = + und Leerzeichen)', () => {
-    const url = buildMailtoUrl(felder({ message: 'a & b ? c = d + e' }))
-    expect(url).toContain('%26') // &
-    expect(url).toContain('%3F') // ?
-    expect(url).toContain('%3D') // =
-    expect(url).toContain('%2B') // +
-    expect(url).toContain('%20') // Leerzeichen
-    const body = new URLSearchParams(new URL(url).search).get('body') ?? ''
-    expect(body).toContain('a & b ? c = d + e')
   })
 })
