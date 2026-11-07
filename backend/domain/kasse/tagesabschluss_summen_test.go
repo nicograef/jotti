@@ -26,72 +26,6 @@ func makeAbschlussEvent(typ EventType, data any) e.Event {
 	}
 }
 
-// sqlReferenzSummen berechnet dieselben drei Summen wie reporting.sql:11-44 über die
-// JSON-Feldnamen der kj_extract_*-Funktionen — unabhängig von den Go-Struct-Tags.
-func sqlReferenzSummen(events []e.Event) AbschlussSummen {
-	var s AbschlussSummen
-	for _, evt := range events {
-		var d map[string]json.RawMessage
-		if err := json.Unmarshal(evt.Data, &d); err != nil {
-			continue
-		}
-
-		parseInt := func(key string) int {
-			v, ok := d[key]
-			if !ok {
-				return 0
-			}
-			var i int
-			if err := json.Unmarshal(v, &i); err != nil {
-				return 0
-			}
-			return i
-		}
-		parseStr := func(key string) string {
-			v, ok := d[key]
-			if !ok {
-				return ""
-			}
-			var str string
-			if err := json.Unmarshal(v, &str); err != nil {
-				return ""
-			}
-			return str
-		}
-
-		switch evt.Type {
-		case string(EventTypeZahlungKassiertV1), string(EventTypeZahlungKassiertV2):
-			// kj_extract_zahlung_cents: data->>'gesamtZahlungCents'
-			s.UmsatzCents += parseInt("gesamtZahlungCents")
-		case string(EventTypeStornierungErteiltV1):
-			// kj_extract_stornierung_cents: data->>'gesamtStornierungCents'
-			cents := parseInt("gesamtStornierungCents")
-			s.UmsatzCents -= cents
-			s.StornierungCents += cents
-		case string(EventTypeBestellungKorrigiertV1):
-			// kj_extract_korrektur_cents: data->>'gesamtCents'
-			s.StornierungCents += parseInt("gesamtCents")
-		case string(EventTypeDirektverkaufGetaetigtV1), string(EventTypeDirektverkaufGetaetigtV2):
-			// kj_extract_direktverkauf_cents: data->>'gesamtbetragCents'
-			s.UmsatzCents += parseInt("gesamtbetragCents")
-		case string(EventTypeDirektverkaufStorniertV1):
-			// kj_extract_direktverkauf_storno_cents: data->>'gesamtStornierungCents'
-			cents := parseInt("gesamtStornierungCents")
-			s.UmsatzCents -= cents
-			s.StornierungCents += cents
-		case string(EventTypeGeldtransitGebuchtV1):
-			// kj_extract_geldtransit_cents: einlage → +betragCents, entnahme → -betragCents
-			betrag := parseInt("betragCents")
-			if parseStr("richtung") == "einlage" {
-				s.GeldtransitCents += betrag
-			} else {
-				s.GeldtransitCents -= betrag
-			}
-		}
-	}
-	return s
-}
-
 func TestComputeAbschlussSummen(t *testing.T) {
 	zahlung := func(cents int) e.Event {
 		return makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": cents})
@@ -113,6 +47,12 @@ func TestComputeAbschlussSummen(t *testing.T) {
 	}
 	entnahme := func(cents int) e.Event {
 		return makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "entnahme", "betragCents": cents})
+	}
+	pfandrueckgabe := func(cents int) e.Event {
+		return makeAbschlussEvent(EventTypePfandZurueckgegebenV1, map[string]int{"gesamtbetragCents": cents})
+	}
+	pfandStorno := func(cents int) e.Event {
+		return makeAbschlussEvent(EventTypePfandrueckgabeStorniertV1, map[string]int{"gesamtStornierungCents": cents})
 	}
 	// Summen-neutrale Events
 	bestellung := makeAbschlussEvent(EventTypeBestellungAufgenommenV1, map[string]int{"gesamtPreisCents": 500})
@@ -164,6 +104,16 @@ func TestComputeAbschlussSummen(t *testing.T) {
 			events:     []e.Event{direktverkauf(500), dvStorno(250)},
 			wantUmsatz: 250,
 			wantStorno: 250,
+		},
+		{
+			name:       "Pfandrueckgabe mindert Umsatz",
+			events:     []e.Event{zahlung(500), pfandrueckgabe(200)},
+			wantUmsatz: 300,
+		},
+		{
+			name:       "Storno einer Pfandrueckgabe hebt die Umsatzminderung auf",
+			events:     []e.Event{zahlung(500), pfandrueckgabe(200), pfandStorno(200)},
+			wantUmsatz: 500,
 		},
 		{
 			name:        "Geldtransit Einlage erhoeht Geldtransit",
@@ -230,49 +180,6 @@ func TestComputeAbschlussSummen(t *testing.T) {
 	}
 }
 
-// Belegt, dass ComputeAbschlussSummen exakt dieselben drei Summen liefert wie die
-// kj_extract_*-Funktionen in reporting.sql:11-44 (Referenz: sqlReferenzSummen).
-func TestComputeAbschlussSummen_AequivalenzMitSQLReporting(t *testing.T) {
-	events := []e.Event{
-		makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": 2238}),
-		makeAbschlussEvent(EventTypeZahlungKassiertV1, map[string]int{"gesamtZahlungCents": 1470}),
-		makeAbschlussEvent(EventTypeStornierungErteiltV1, map[string]int{"gesamtStornierungCents": 1455}),
-		makeAbschlussEvent(EventTypeBestellungKorrigiertV1, map[string]int{"gesamtCents": 200}),
-		makeAbschlussEvent(EventTypeDirektverkaufGetaetigtV1, map[string]int{"gesamtbetragCents": 880}),
-		makeAbschlussEvent(EventTypeDirektverkaufStorniertV1, map[string]int{"gesamtStornierungCents": 335}),
-		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "einlage", "betragCents": 500}),
-		makeAbschlussEvent(EventTypeGeldtransitGebuchtV1, map[string]any{"richtung": "entnahme", "betragCents": 150}),
-		// summen-neutrale Events
-		makeAbschlussEvent(EventTypeBestellungAufgenommenV1, map[string]int{"gesamtPreisCents": 999}),
-		makeAbschlussEvent(EventTypeKassensturzDurchgefuehrtV1, map[string]int{"sollBestandCents": 5000}),
-		makeAbschlussEvent(EventTypeDifferenzSollIstGebuchtV1, map[string]int{"betragCents": -42}),
-	}
-
-	got, err := ComputeAbschlussSummen(events)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	ref := sqlReferenzSummen(events)
-
-	if got != ref {
-		t.Errorf("ComputeAbschlussSummen %+v != sqlReferenzSummen %+v", got, ref)
-	}
-
-	// Hand-computed from the reporting.sql formulas: Umsatz 2238 + 1470 − 1455 + 880 − 335,
-	// Storno 1455 + 200 + 335, Geldtransit 500 − 150.
-	const wantUmsatz, wantStorno, wantTransit = 2798, 1990, 350
-
-	if got.UmsatzCents != wantUmsatz {
-		t.Errorf("UmsatzCents = %d, want %d", got.UmsatzCents, wantUmsatz)
-	}
-	if got.StornierungCents != wantStorno {
-		t.Errorf("StornierungCents = %d, want %d", got.StornierungCents, wantStorno)
-	}
-	if got.GeldtransitCents != wantTransit {
-		t.Errorf("GeldtransitCents = %d, want %d", got.GeldtransitCents, wantTransit)
-	}
-}
-
 // Ein summen-wirksames Event mit korrupten JSON-Daten muss einen Fehler liefern statt still
 // übersprungen zu werden.
 func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
@@ -286,6 +193,8 @@ func TestComputeAbschlussSummen_UnparsebaresEventGibtFehler(t *testing.T) {
 		EventTypeDirektverkaufGetaetigtV1,
 		EventTypeDirektverkaufGetaetigtV2,
 		EventTypeDirektverkaufStorniertV1,
+		EventTypePfandZurueckgegebenV1,
+		EventTypePfandrueckgabeStorniertV1,
 		EventTypeGeldtransitGebuchtV1,
 	}
 

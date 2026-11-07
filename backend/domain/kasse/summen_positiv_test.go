@@ -2,11 +2,9 @@ package kasse
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
-	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
 )
 
@@ -38,14 +36,6 @@ func validProjektionsPositionen() []Position {
 		EinzelpreisCents: 500,
 		Menge:            1,
 	}}
-}
-
-// validateSchema mirrors the error wrapping of the constructors (validateEventData).
-func validateSchema[T any](schema *z.StructSchema, value *T) error {
-	if errs := schema.Validate(value); errs != nil {
-		return fmt.Errorf("%w: %v", ErrEventDatenUngueltig, z.Issues.FlattenAndCollect(errs))
-	}
-	return nil
 }
 
 func TestGeldsummen_MussPositiv(t *testing.T) {
@@ -113,7 +103,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtPreisCents",
 			run: func(summe int) error {
 				data := BestellungAufgenommenV1Data{BestellungID: uuid.New().String(), Positionen: validEventPositionen(), GesamtPreisCents: summe}
-				return validateSchema(bestellungAufgenommenV1DataSchema, &data)
+				return validateEventData(bestellungAufgenommenV1DataSchema, &data, "test")
 			},
 		},
 		{
@@ -121,7 +111,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtbetragCents",
 			run: func(summe int) error {
 				data := DirektverkaufGetaetigtV1Data{VerkaufID: uuid.New().String(), Positionen: validEventPositionen(), GesamtbetragCents: summe}
-				return validateSchema(direktverkaufGetaetigtV1DataSchema, &data)
+				return validateEventData(direktverkaufGetaetigtV1DataSchema, &data, "test")
 			},
 		},
 		{
@@ -129,7 +119,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtbetragCents",
 			run: func(summe int) error {
 				data := PfandZurueckgegebenV1Data{RueckgabeID: uuid.New().String(), Positionen: validEventPositionen(), GesamtbetragCents: summe}
-				return validateSchema(pfandZurueckgegebenV1DataSchema, &data)
+				return validateEventData(pfandZurueckgegebenV1DataSchema, &data, "test")
 			},
 		},
 		{
@@ -137,7 +127,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtPreisCents",
 			run: func(summe int) error {
 				b := Bestellung{ID: uuid.New().String(), UserID: 1, UserName: "TestUser", TischID: 1, Positionen: validProjektionsPositionen(), GesamtPreisCents: summe, AufgenommenAm: time.Now().UTC()}
-				return validateSchema(bestellungSchema, &b)
+				return validateEventData(bestellungSchema, &b, "test")
 			},
 		},
 		{
@@ -145,7 +135,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtZahlungCents",
 			run: func(summe int) error {
 				zahlung := Zahlung{ID: uuid.New().String(), UserID: 1, UserName: "TestUser", TischID: 1, Positionen: validProjektionsPositionen(), GesamtZahlungCents: summe, KassiertAm: time.Now().UTC()}
-				return validateSchema(zahlungSchema, &zahlung)
+				return validateEventData(zahlungSchema, &zahlung, "test")
 			},
 		},
 		{
@@ -153,7 +143,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtStornierungCents",
 			run: func(summe int) error {
 				s := Stornierung{ID: uuid.New().String(), UserID: 1, UserName: "TestUser", TischID: 1, Positionen: validProjektionsPositionen(), GesamtStornierungCents: summe, Kommentar: "Test", StorniertAm: time.Now().UTC()}
-				return validateSchema(stornierungSchema, &s)
+				return validateEventData(stornierungSchema, &s, "test")
 			},
 		},
 		{
@@ -161,7 +151,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			field: "GesamtCents",
 			run: func(summe int) error {
 				u := Umbuchung{ID: uuid.New().String(), UserID: 1, UserName: "TestUser", TischID: 1, QuellTischID: 1, ZielTischID: 2, Positionen: validProjektionsPositionen(), GesamtCents: summe}
-				return validateSchema(umbuchungSchema, &u)
+				return validateEventData(umbuchungSchema, &u, "test")
 			},
 		},
 	}
