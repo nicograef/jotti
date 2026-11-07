@@ -35,8 +35,8 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und Pläne entstehen vorher; Migrationen der Features beginnen bei `17`.
 
 1. **#145 Kommentar je Position**: freigegeben mit den Empfehlungen des PRD (additives Feld als Freeze-Ausnahme mit Zeile in `docs/decisions.md`, kein DSFinV-K-Export, Kommentar auf jedem Stückbon).
-2. **Auto-Pfand je Variante**: PRD in Arbeit, Freigabe durch Nico offen.
-3. **Stationsmodell**: PRD wird vereinfacht (heutige Druckerkonfiguration bleibt Standard, zusätzliche Drucker optional je Produkt), Freigabe danach.
+2. **Auto-Pfand je Variante**: PRD freigegeben. Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release; die Regel „gleicher Steuersatz“ gilt ohne Kombi-Sonderfall.
+3. **Stationsmodell**: PRD als Variante Z freigegeben (heutige Druckerkonfiguration bleibt Standard, zusätzliche Drucker optional je Produkt); gebaut wird es hier.
 4. **Windows-Einzeldatei**: Entscheidungen 2 bis 7 nach Empfehlung freigegeben; Plan für alle Stufen, gebaut wird nur Stufe 1, Messung über einen Windows-Runner der CI, danach entscheidet Nico. Das PRD samt Befund #222 gehört dieser Spur; Distill lässt es aus. Nicos Entscheidungen vom 7. November: Windows 10 22H2 und 11, nur x64; Go für Stufe 1 bei höchstens 120 MB, höchstens 60 s bis zur Anmeldeseite beim ersten und 15 s bei späteren Starts und ohne Defender-Sperre; die Übernahme wird gebaut; jotti läuft als Windows-Dienst. Nach dem Schreiben des Plans stellt die Session Nico die nächste Fragenrunde zum Plan.
 
 ## Status
@@ -52,6 +52,6 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | 4 Distill verify | fix/q-verify | waiting | |
 | 5 Abschluss | — | waiting | |
 | F1 #145 Kommentar je Position | feat/kommentar-je-position | waiting | |
-| F2 Auto-Pfand je Variante | feat/auto-pfand | waiting | PRD-Freigabe |
-| F3 Stationsmodell | feat/stationsmodell | waiting | PRD-Freigabe |
+| F2 Auto-Pfand je Variante | feat/auto-pfand | waiting | |
+| F3 Stationsmodell | feat/stationsmodell | waiting | |
 | F4 Windows-Einzeldatei Stufe 1 | feat/windows-einzeldatei | waiting | |
