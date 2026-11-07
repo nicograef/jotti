@@ -290,6 +290,8 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 - Die verknüpfende Variante gehört selbst zu einem Pfand-Produkt: `pfand_verkettet`.
 - Steuersatz von Variante und Pfand verschieden: `pfand_steuersatz_abweichend`. `kombi` verknüpft nur `kombi`, ohne Sonderfall.
 
+`admin/update-produkt` prüft jede Verknüpfung von und zu den Varianten des Produkts gegen den geänderten Stand. Ein Steuersatzwechsel scheitert mit `pfand_steuersatz_abweichend`, Kennzeichen an bei eigenen Verknüpfungen mit `pfand_verkettet`. Kennzeichen aus, solange Varianten auf das Produkt zeigen, scheitert mit `pfand_noch_verknuepft`. Variante löschen und Produkt löschen setzen in derselben Transaktion jeden Verweis auf die gelöschten Varianten auf `NULL`; Deaktivieren lässt Verweise stehen.
+
 Ein inaktives Ziel bleibt erlaubt. `admin/get-all-produkte` liefert den gespeicherten Verweis; `service/get-aktive-produkte` setzt ihn auf `null`, wenn das Ziel nicht als Variante derselben Antwort erscheint.
 
 **Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte. Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen. Sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
