@@ -102,8 +102,8 @@ func (h *CommandHandler) KassenbelegDruckenHandler() http.HandlerFunc {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
 				{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
-				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found", Status: http.StatusNotFound},
-				{Err: application.ErrStornierungNichtGefunden, Code: "stornierung_not_found", Status: http.StatusNotFound},
+				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found"},
+				{Err: application.ErrStornierungNichtGefunden, Code: "stornierung_not_found"},
 				{Err: application.ErrVerkaufNichtGefunden, Code: "verkauf_not_found"},
 				{Err: application.ErrZahlungNichtGefunden, Code: "zahlung_not_found"},
 				{Err: application.ErrKassenbelegDruckerNichtKonfiguriert, Code: "kassenbeleg_drucker_nicht_konfiguriert"},

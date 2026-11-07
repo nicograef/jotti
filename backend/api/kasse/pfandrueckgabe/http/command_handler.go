@@ -70,8 +70,8 @@ func (h *CommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
-				{Err: application.ErrTischNichtGefunden, Code: "tisch_not_found", Status: http.StatusNotFound},
-				{Err: application.ErrTischNichtAktiv, Code: "tisch_not_active", Status: http.StatusConflict},
+				{Err: application.ErrTischNichtGefunden, Code: "tisch_not_found"},
+				{Err: application.ErrTischNichtAktiv, Code: "tisch_not_active"},
 			}, pfandEingabeFehler))
 			return
 		}
@@ -114,8 +114,8 @@ func (h *CommandHandler) PfandrueckgabeStornierenHandler() http.HandlerFunc {
 		err := h.Command.PfandrueckgabeStornieren(r.Context(), userID, userName, body.StornierungID, body.RueckgabeID, eingabe.ToPositionRefs(body.Positionen), body.Kommentar)
 		if err != nil {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
-				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found", Status: http.StatusNotFound},
-				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar", Status: http.StatusConflict},
+				{Err: application.ErrRueckgabeNichtGefunden, Code: "rueckgabe_not_found"},
+				{Err: application.ErrPositionNichtStornierbar, Code: "position_nicht_stornierbar"},
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
 			}))
 			return
