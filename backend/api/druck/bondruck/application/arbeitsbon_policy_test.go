@@ -3,6 +3,7 @@ package application
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -168,6 +169,72 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 // Regression: Wenn die Tisch-ID nicht dem Tisch-Namen entspricht (z.B. Tisch-ID 18 heißt
 // "Tisch 15", weil zwischendurch andere Tische angelegt wurden), muss der übergebene
 // tischName auf dem Bon stehen — nicht die ID aus dem Subject.
+func decodePayload(t *testing.T, auftrag druckstation.NeuerDruckauftrag) string {
+	t.Helper()
+	raw, err := base64.StdEncoding.DecodeString(auftrag.Payload)
+	if err != nil {
+		t.Fatalf("payload dekodieren: %v", err)
+	}
+	return string(raw)
+}
+
+// Regression #145: the Positionskommentar of a dish must not reach the drinks station.
+func TestCreateArbeitsbonAuftraege_PositionskommentarNurAnSeinerStation(t *testing.T) {
+	essen := position("Zwiebelkuchen", "Stueck", "essen", 1)
+	essen.Kommentar = "ohne Speck"
+	positionen := []kasse.Position{essen, position("Bier", "0,5l", "getraenk", 1)}
+	evt := makeBestellungEvent(t, 11, "kassensitzung-1/tisch-7", positionen, "")
+	konfig := map[string]druckstation.Druckstation{
+		"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+		"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+
+	if len(auftraege) != 2 {
+		t.Fatalf("expected 2 sammelbons, got %d", len(auftraege))
+	}
+	for _, auftrag := range auftraege {
+		payload := decodePayload(t, auftrag)
+		traegtKommentar := strings.Contains(payload, "ohne Speck")
+		switch auftrag.ZielIP {
+		case "192.168.1.51":
+			if !traegtKommentar {
+				t.Errorf("Essenbon ohne Positionskommentar: %q", payload)
+			}
+		case "192.168.1.52":
+			if traegtKommentar {
+				t.Errorf("Getränkebon trägt den Positionskommentar des Essens: %q", payload)
+			}
+		default:
+			t.Errorf("unexpected ZielIP %s", auftrag.ZielIP)
+		}
+	}
+}
+
+func TestCreateArbeitsbonAuftraege_ProPosition_PositionskommentarNurAufSeinemEinzelbon(t *testing.T) {
+	kommentiert := position("Zwiebelkuchen", "Stueck", "essen", 1)
+	kommentiert.Kommentar = "ohne Speck"
+	positionen := []kasse.Position{kommentiert, position("Bratwurst", "mit Brot", "essen", 1)}
+	evt := makeBestellungEvent(t, 12, "kassensitzung-1/tisch-7", positionen, "")
+	konfig := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+
+	if len(auftraege) != 2 {
+		t.Fatalf("expected 2 einzelbons, got %d", len(auftraege))
+	}
+	for _, auftrag := range auftraege {
+		payload := decodePayload(t, auftrag)
+		zwiebelkuchen := strings.Contains(payload, "Zwiebelkuchen")
+		if strings.Contains(payload, "ohne Speck") != zwiebelkuchen {
+			t.Errorf("Positionskommentar steht nicht genau auf dem Zwiebelkuchen-Bon: %q", payload)
+		}
+	}
+}
+
 func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 	positionen := []kasse.Position{
 		position("Pommes", "gross", "essen", 1),

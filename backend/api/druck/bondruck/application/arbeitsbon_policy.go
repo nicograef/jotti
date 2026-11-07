@@ -10,11 +10,12 @@ import (
 )
 
 // positionenMitKommentarEventData spiegelt die benötigten Felder von
-// bestellung-aufgenommen:v1 und direktverkauf-getaetigt in ihrer Event-Form.
+// bestellung-aufgenommen:v1 und direktverkauf-getaetigt in ihrer Event-Form, samt
+// Positionskommentar; den pfand-Schlüssel ignoriert sie.
 // Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
 type positionenMitKommentarEventData struct {
-	Positionen []kasse.PositionEventData `json:"positionen"`
-	Kommentar  string                    `json:"kommentar"`
+	Positionen []kasse.KommentiertePositionEventData `json:"positionen"`
+	Kommentar  string                                `json:"kommentar"`
 }
 
 type arbeitsbonDaten struct {
@@ -190,5 +191,5 @@ func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
 		return arbeitsbonDaten{}, false
 	}
 
-	return arbeitsbonDaten{Positionen: kasse.PositionenFromEventData(data.Positionen), Kommentar: data.Kommentar}, true
+	return arbeitsbonDaten{Positionen: kasse.PositionenMitKommentar(data.Positionen), Kommentar: data.Kommentar}, true
 }
