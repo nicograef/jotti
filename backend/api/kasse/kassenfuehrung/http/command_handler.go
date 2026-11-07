@@ -10,6 +10,7 @@ import (
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type command interface {
@@ -28,7 +29,7 @@ type kassensitzungEroeffnenRequest struct {
 }
 
 var kassensitzungEroeffnenSchema = z.Struct(z.Shape{
-	"Bezeichnung": z.String().Min(1, z.Message("Bezeichnung ist erforderlich")).Max(200, z.Message("Bezeichnung darf höchstens 200 Zeichen lang sein")).Required(),
+	"Bezeichnung": z.String().TestFunc(zeichen.Min(1), z.Message("Bezeichnung ist erforderlich")).TestFunc(zeichen.Max(200), z.Message("Bezeichnung darf höchstens 200 Zeichen lang sein")).Required(),
 	"BetragCents": z.Ptr(z.Int().GTE(0, z.Message("Anfangsbestand darf nicht negativ sein"))).NotNil(z.Message("Anfangsbestand ist erforderlich")),
 })
 
@@ -50,7 +51,7 @@ var geldtransitBuchenSchema = z.Struct(z.Shape{
 		z.Message("Ungültige Richtung"),
 	).Required(),
 	"BetragCents": z.Int().GTE(1, z.Message("Betrag muss mindestens 1 Cent sein")).Required(),
-	"Kommentar":   z.String().Min(3, z.Message("Kommentar muss mindestens 3 Zeichen lang sein")).Max(200, z.Message("Kommentar darf höchstens 200 Zeichen lang sein")).Required(),
+	"Kommentar":   z.String().TestFunc(zeichen.Min(3), z.Message("Kommentar muss mindestens 3 Zeichen lang sein")).TestFunc(zeichen.Max(200), z.Message("Kommentar darf höchstens 200 Zeichen lang sein")).Required(),
 })
 
 type kasseAbschliessenRequest struct {

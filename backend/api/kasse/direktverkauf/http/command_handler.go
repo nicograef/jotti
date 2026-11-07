@@ -13,6 +13,7 @@ import (
 	enrichmentHTTP "github.com/nicograef/jotti/backend/api/kasse/enrichment/http"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type command interface {
@@ -41,7 +42,7 @@ type direktverkaufTaetigenRequest struct {
 var direktverkaufTaetigenSchema = z.Struct(z.Shape{
 	"VerkaufID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
-	"Kommentar":  z.String().Max(100),
+	"Kommentar":  z.String().TestFunc(zeichen.Max(100)),
 	"Pfand":      z.Ptr(eingabe.PfandSchema),
 }).TestFunc(func(val any, _ z.Ctx) bool {
 	body, ok := val.(*direktverkaufTaetigenRequest)
@@ -83,7 +84,7 @@ type direktverkaufStornierenRequest struct {
 var direktverkaufStornierenSchema = z.Struct(z.Shape{
 	"VerkaufID":  z.String().UUID().Required(),
 	"Positionen": z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
-	"Kommentar":  z.String().Min(3).Max(100).Required(),
+	"Kommentar":  z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 func (h *CommandHandler) DirektverkaufStornierenHandler() http.HandlerFunc {

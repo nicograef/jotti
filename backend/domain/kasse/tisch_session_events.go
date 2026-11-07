@@ -7,6 +7,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type EventType string
@@ -31,7 +32,7 @@ var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
 	"BestellungID":     z.String().UUID().Required(),
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(1).Required(),
-	"Kommentar":        z.String().Max(100),
+	"Kommentar":        z.String().TestFunc(zeichen.Max(100)),
 })
 
 type ZahlungKassiertV1Data struct {
@@ -45,7 +46,7 @@ var zahlungKassiertV1DataSchema = z.Struct(z.Shape{
 	"ZahlungID":          z.String().UUID().Required(),
 	"Positionen":         z.Slice(positionSchema).Min(1).Required(),
 	"GesamtZahlungCents": z.Int().GTE(1).Required(),
-	"Kommentar":          z.String().Max(100),
+	"Kommentar":          z.String().TestFunc(zeichen.Max(100)),
 })
 
 // ZahlungKassiertV2Data is v1 plus the Pfand flag per position, for the DSFinV-K GV_TYP. A reader
@@ -87,7 +88,7 @@ var stornierungErteiltV1DataSchema = z.Struct(z.Shape{
 	"ZahlungID":              z.String().UUID().Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
-	"Kommentar":              z.String().Min(3).Max(100).Required(),
+	"Kommentar":              z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 // BestellungKorrigiertV1Data ist die geldneutrale Stornierung noch unbezahlter Positionen:
@@ -104,7 +105,7 @@ var bestellungKorrigiertV1DataSchema = z.Struct(z.Shape{
 	"KorrekturID": z.String().UUID().Required(),
 	"Positionen":  z.Slice(positionSchema).Min(1).Required(),
 	"GesamtCents": z.Int().GTE(1).Required(),
-	"Kommentar":   z.String().Max(100),
+	"Kommentar":   z.String().TestFunc(zeichen.Max(100)),
 })
 
 // BestellungUmgebuchtV1Data moves unpaid positions money-neutrally: source and target stream each
@@ -129,8 +130,8 @@ var bestellungUmgebuchtV1DataSchema = z.Struct(z.Shape{
 	"ZielTischID":       z.Int().GTE(1).Required(),
 	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtCents":       z.Int().GTE(1).Required(),
-	"Kommentar":         z.String().Max(100),
-	"BenutzerKommentar": z.String().Max(100),
+	"Kommentar":         z.String().TestFunc(zeichen.Max(100)),
+	"BenutzerKommentar": z.String().TestFunc(zeichen.Max(100)),
 })
 
 // ErrEventDatenUngueltig means the data of a new event violates its schema.

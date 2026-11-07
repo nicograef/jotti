@@ -8,6 +8,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Position struct {
@@ -178,10 +179,10 @@ type Bestellung struct {
 var bestellungSchema = z.Struct(z.Shape{
 	"ID":               z.String().UUID().Required(),
 	"UserID":           z.Int().GTE(1).Required(),
-	"UserName":         z.String().Min(1).Required(),
+	"UserName":         z.String().TestFunc(zeichen.Min(1)).Required(),
 	"TischID":          z.Int().GTE(1).Required(),
 	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(1).Required(),
-	"Kommentar":        z.String().Max(100),
+	"Kommentar":        z.String().TestFunc(zeichen.Max(100)),
 	"AufgenommenAm":    z.Time().Required(),
 })

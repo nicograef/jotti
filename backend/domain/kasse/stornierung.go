@@ -4,6 +4,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Stornierung struct {
@@ -25,10 +26,10 @@ type Stornierung struct {
 var stornierungSchema = z.Struct(z.Shape{
 	"ID":                     z.String().UUID().Required(),
 	"UserID":                 z.Int().GTE(1).Required(),
-	"UserName":               z.String().Min(1).Required(),
+	"UserName":               z.String().TestFunc(zeichen.Min(1)).Required(),
 	"TischID":                z.Int().GTE(1).Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
-	"Kommentar":              z.String().Min(3).Max(100).Required(),
+	"Kommentar":              z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 	"StorniertAm":            z.Time().Required(),
 })

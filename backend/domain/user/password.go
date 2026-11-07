@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 	"golang.org/x/crypto/argon2"
 )
 
-var PasswordSchema = z.String().Trim().Min(6, z.Message("Passwort zu kurz")).Max(72, z.Message("Passwort zu lang"))
+var PasswordSchema = z.String().Trim().TestFunc(zeichen.Min(6), z.Message("Passwort zu kurz")).TestFunc(zeichen.Max(72), z.Message("Passwort zu lang"))
 
 // OnetimePasswordSchema ist die einzige Backend-Quelle der Formatregel des
 // Einmalpassworts: genau 6 Ziffern, umgebende Leerzeichen zuvor getrimmt.

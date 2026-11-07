@@ -3,9 +3,9 @@ package betreiber
 import (
 	"fmt"
 	"time"
-	"unicode/utf8"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Betreiber struct {
@@ -42,43 +42,34 @@ const (
 	ortErforderlich         = "Ort ist erforderlich"
 )
 
-// maxRunes baut die Prüfung „höchstens n Zeichen" für ein Zeichenketten-Schema.
-// zogs Max zählt Bytes; ein Vereinsname mit Umlauten hat mehr Bytes als Zeichen
-// und liefe damit gegen eine engere Grenze als die amtliche.
-func maxRunes(n int) z.BoolTFunc[*string] {
-	return func(wert *string, _ z.Ctx) bool {
-		return utf8.RuneCountInString(*wert) <= n
-	}
-}
-
 // Min(1) catches whitespace-only input because zog checks Required before Trim.
 // Call sites never call .Required() again: zog mutates the receiver in place.
 var VereinsnameSchema = z.String().Trim().
 	Min(1, z.Message(vereinsnameErforderlich)).
-	TestFunc(maxRunes(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
+	TestFunc(zeichen.Max(MaxLengthVereinsname), z.Message("Vereinsname zu lang")).
 	Required(z.Message(vereinsnameErforderlich))
 
 var StrasseSchema = z.String().Trim().
 	Min(1, z.Message(strasseErforderlich)).
-	TestFunc(maxRunes(MaxLengthStrasse), z.Message("Straße zu lang")).
+	TestFunc(zeichen.Max(MaxLengthStrasse), z.Message("Straße zu lang")).
 	Required(z.Message(strasseErforderlich))
 
 var PlzSchema = z.String().Trim().
 	Min(1, z.Message(plzErforderlich)).
-	TestFunc(maxRunes(MaxLengthPlz), z.Message("PLZ zu lang")).
+	TestFunc(zeichen.Max(MaxLengthPlz), z.Message("PLZ zu lang")).
 	Required(z.Message(plzErforderlich))
 
 var OrtSchema = z.String().Trim().
 	Min(1, z.Message(ortErforderlich)).
-	TestFunc(maxRunes(MaxLengthOrt), z.Message("Ort zu lang")).
+	TestFunc(zeichen.Max(MaxLengthOrt), z.Message("Ort zu lang")).
 	Required(z.Message(ortErforderlich))
 
 // Optional: a Verein without Steuernummer leaves the field empty.
 var SteuernummerSchema = z.String().Trim().
-	TestFunc(maxRunes(MaxLengthSteuernummer), z.Message("Steuernummer zu lang"))
+	TestFunc(zeichen.Max(MaxLengthSteuernummer), z.Message("Steuernummer zu lang"))
 
 var UstIDSchema = z.String().Trim().
-	TestFunc(maxRunes(MaxLengthUstID), z.Message("USt-IdNr. zu lang"))
+	TestFunc(zeichen.Max(MaxLengthUstID), z.Message("USt-IdNr. zu lang"))
 
 // betreiberSchema gates opening a Kassensitzung on stored values, so it checks presence only.
 // A max length here would lock the Kasse on a long stored value; NewBetreiber enforces it and the DSFinV-K export truncates.

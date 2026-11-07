@@ -45,11 +45,11 @@ var lengthCases = []lengthCase{
 	{schema: "betreiber.StrasseSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.StrasseSchema)},
 	{schema: "betreiber.UstIDSchema", shortest: 0, longest: 15, filler: 'ä', accepts: acceptsString(betreiber.UstIDSchema)},
 	{schema: "betreiber.VereinsnameSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.VereinsnameSchema)},
-	{schema: "produkt.NameSchema", shortest: 3, longest: 100, filler: 'a', accepts: acceptsString(produkt.NameSchema)},
-	{schema: "tisch.TischNameSchema", shortest: 3, longest: 100, filler: 'a', accepts: acceptsString(tisch.TischNameSchema)},
-	{schema: "user.NameSchema", shortest: 3, longest: 50, filler: 'a', accepts: acceptsString(user.NameSchema)},
+	{schema: "produkt.NameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(produkt.NameSchema)},
+	{schema: "tisch.TischNameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(tisch.TischNameSchema)},
+	{schema: "user.NameSchema", shortest: 3, longest: 50, filler: 'ä', accepts: acceptsString(user.NameSchema)},
 	{schema: "user.OnetimePasswordSchema", shortest: 6, longest: 6, filler: '1', accepts: acceptsString(user.OnetimePasswordSchema)},
-	{schema: "user.PasswordSchema", shortest: 6, longest: 72, filler: 'a', accepts: acceptsString(user.PasswordSchema)},
+	{schema: "user.PasswordSchema", shortest: 6, longest: 72, filler: 'ä', accepts: acceptsString(user.PasswordSchema)},
 	{schema: "user.UsernameSchema", shortest: 3, longest: 20, filler: 'a', accepts: acceptsString(user.UsernameSchema)},
 }
 

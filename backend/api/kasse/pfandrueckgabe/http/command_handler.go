@@ -14,6 +14,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type command interface {
@@ -44,7 +45,7 @@ var pfandZurueckgebenSchema = z.Struct(z.Shape{
 	// Pointer: tischId 0 (Direktverkauf) is valid, a missing tischId is not.
 	"TischID":    z.Ptr(z.Int().GTE(0).LTE(math.MaxInt32)).NotNil(z.Message("Tisch-ID ist erforderlich")),
 	"Positionen": z.Slice(eingabe.PositionInputSchema).Min(1).Required(),
-	"Kommentar":  z.String().Max(100),
+	"Kommentar":  z.String().TestFunc(zeichen.Max(100)),
 })
 
 func (h *CommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
@@ -85,7 +86,7 @@ var pfandrueckgabeStornierenSchema = z.Struct(z.Shape{
 	"StornierungID": z.String().UUID().Required(),
 	"RueckgabeID":   z.String().UUID().Required(),
 	"Positionen":    z.Slice(eingabe.PositionRefSchema).Min(1).Required(),
-	"Kommentar":     z.String().Min(3).Max(100).Required(),
+	"Kommentar":     z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 }).TestFunc(func(val any, _ z.Ctx) bool {
 	body, ok := val.(*pfandrueckgabeStornierenRequest)
 	// Beide IDs werden BON_ID im DSFinV-K-Export desselben Kassenabschlusses.

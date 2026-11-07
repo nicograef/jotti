@@ -5,6 +5,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 const (
@@ -28,7 +29,7 @@ var pfandZurueckgegebenV1DataSchema = z.Struct(z.Shape{
 	"TischID":           z.Int().GTE(0).LTE(math.MaxInt32),
 	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtbetragCents": z.Int().GTE(1).Required(),
-	"Kommentar":         z.String().Max(100),
+	"Kommentar":         z.String().TestFunc(zeichen.Max(100)),
 })
 
 // PfandrueckgabeStorniertV1Data carries the TischID of the Rückgabe, so readers filter both
@@ -48,7 +49,7 @@ var pfandrueckgabeStorniertV1DataSchema = z.Struct(z.Shape{
 	"TischID":                z.Int().GTE(0).LTE(math.MaxInt32),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
-	"Kommentar":              z.String().Min(3).Max(100).Required(),
+	"Kommentar":              z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 func NewPfandZurueckgegebenEvent(subject string, rueckgabeID string, tischID int, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {

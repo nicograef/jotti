@@ -7,6 +7,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/domain/steuer"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Kategorie string
@@ -46,7 +47,7 @@ var IDSchema = z.Int().
 	GTE(1, z.Message("Ungültige Produkt-ID")).
 	LTE(math.MaxInt32, z.Message("Ungültige Produkt-ID"))
 
-var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
+var NameSchema = z.String().Trim().TestFunc(zeichen.Min(3), z.Message("Name zu kurz")).TestFunc(zeichen.Max(100), z.Message("Name zu lang"))
 
 var KategorieSchema = z.StringLike[Kategorie]().OneOf(
 	[]Kategorie{EssenKategorie, GetraenkKategorie, SonstigesKategorie},

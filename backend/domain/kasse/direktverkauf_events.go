@@ -4,6 +4,7 @@ import (
 	z "github.com/Oudwins/zog"
 	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 const (
@@ -23,7 +24,7 @@ var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
 	"VerkaufID":         z.String().UUID().Required(),
 	"Positionen":        z.Slice(positionSchema).Min(1).Required(),
 	"GesamtbetragCents": z.Int().GTE(1).Required(),
-	"Kommentar":         z.String().Max(100),
+	"Kommentar":         z.String().TestFunc(zeichen.Max(100)),
 })
 
 // DirektverkaufGetaetigtV2Data is v1 plus the Pfand flag per position, for the DSFinV-K GV_TYP. A
@@ -64,7 +65,7 @@ var direktverkaufStorniertV1DataSchema = z.Struct(z.Shape{
 	"VerkaufID":              z.String().UUID().Required(),
 	"Positionen":             z.Slice(positionSchema).Min(1).Required(),
 	"GesamtStornierungCents": z.Int().GTE(1).Required(),
-	"Kommentar":              z.String().Min(3).Max(100).Required(),
+	"Kommentar":              z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(100)).Required(),
 })
 
 func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int, userName string, positionen []Position, kommentar string) (e.Event, error) {

@@ -5,6 +5,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	e "github.com/nicograef/jotti/backend/domain/event"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 const (
@@ -56,8 +57,8 @@ type KassensitzungEroeffnetV1Data struct {
 }
 
 var kassensitzungEroeffnetV1DataSchema = z.Struct(z.Shape{
-	"Datum":       z.String().Min(8).Max(10).Required(),
-	"Bezeichnung": z.String().Min(1).Max(200).Required(),
+	"Datum":       z.String().TestFunc(zeichen.Min(8)).TestFunc(zeichen.Max(10)).Required(),
+	"Bezeichnung": z.String().TestFunc(zeichen.Min(1)).TestFunc(zeichen.Max(200)).Required(),
 	// Kein Required(): zog wertet den Zero-Value 0 als fehlend, ein Anfangsbestand von
 	// 0 Cent ist aber gültig (die Pflichtprüfung macht die HTTP-Schicht via Ptr+NotNil).
 	"BetragCents":  z.Int().GTE(0),
@@ -76,7 +77,7 @@ var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
 	"GeldtransitID": z.String().UUID().Required(),
 	"Richtung":      z.String().OneOf([]string{GeldtransitRichtungEinlage, GeldtransitRichtungEntnahme}, z.Message("Ungültige Richtung")).Required(),
 	"BetragCents":   z.Int().GTE(1).Required(),
-	"Kommentar":     z.String().Min(3).Max(200).Required(),
+	"Kommentar":     z.String().TestFunc(zeichen.Min(3)).TestFunc(zeichen.Max(200)).Required(),
 	"GebuchtVon":    z.Int().GTE(1).Required(),
 })
 

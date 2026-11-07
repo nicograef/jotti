@@ -7,6 +7,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Status string
@@ -48,7 +49,7 @@ var TischIDSchema = z.Int().
 	GTE(1, z.Message("Ungültige Tisch-ID")).
 	LTE(math.MaxInt32, z.Message("Ungültige Tisch-ID"))
 
-var TischNameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(100, z.Message("Name zu lang"))
+var TischNameSchema = z.String().Trim().TestFunc(zeichen.Min(3), z.Message("Name zu kurz")).TestFunc(zeichen.Max(100), z.Message("Name zu lang"))
 
 var TischStatusSchema = z.StringLike[Status]().OneOf(
 	[]Status{ActiveStatus, InactiveStatus, DeletedStatus},

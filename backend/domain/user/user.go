@@ -9,6 +9,7 @@ import (
 	"time"
 
 	z "github.com/Oudwins/zog"
+	"github.com/nicograef/jotti/backend/internal/zeichen"
 )
 
 type Role string
@@ -54,9 +55,9 @@ var IDSchema = z.Int().
 	GTE(1, z.Message("Ungültige Benutzer-ID")).
 	LTE(math.MaxInt32, z.Message("Ungültige Benutzer-ID"))
 
-var NameSchema = z.String().Trim().Min(3, z.Message("Name zu kurz")).Max(50, z.Message("Name zu lang"))
+var NameSchema = z.String().Trim().TestFunc(zeichen.Min(3), z.Message("Name zu kurz")).TestFunc(zeichen.Max(50), z.Message("Name zu lang"))
 
-var UsernameSchema = z.String().Trim().Min(3, z.Message("Benutzername zu kurz")).Max(20, z.Message("Benutzername zu lang")).Match(
+var UsernameSchema = z.String().Trim().TestFunc(zeichen.Min(3), z.Message("Benutzername zu kurz")).TestFunc(zeichen.Max(20), z.Message("Benutzername zu lang")).Match(
 	regexp.MustCompile(`^[a-z0-9]+$`),
 	z.Message("Nur Kleinbuchstaben und Ziffern erlaubt"),
 )
