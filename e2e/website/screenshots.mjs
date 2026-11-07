@@ -31,6 +31,7 @@ import {
   oeffneTisch,
   waehleAlleVollAus,
   waehleVariante,
+  zeigeAlleAn,
   zeileMit,
 } from '../support/servicekraft.ts'
 
@@ -106,9 +107,7 @@ async function captureApp() {
 
     await oeffneTisch(phonePage, 'Tisch 2')
     await phonePage.getByRole('tab', { name: 'Kassieren' }).click()
-    const vonAnderen = phonePage.getByRole('button', { name: /^Von anderen ·/ })
-    if (await vonAnderen.isVisible().catch(() => false))
-      await vonAnderen.click()
+    await zeigeAlleAn(phonePage)
     await waehleAlleVollAus(phonePage)
     await phonePage.getByRole('button', { name: /Kassieren/ }).click()
     const zahlungDrawer = phonePage.getByRole('dialog')

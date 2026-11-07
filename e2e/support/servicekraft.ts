@@ -102,8 +102,15 @@ export async function bestellePosition(
   await waehleVariante(page, produkt, variante, menge)
 
   await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
-  const drawer = page.getByRole('dialog')
-  await drawer.getByRole('button', { name: 'Bestellung aufnehmen' }).click()
+  await bestaetigeBestellung(page)
+}
+
+// Bestätigt die Bestellung im offenen Prüf-Drawer.
+async function bestaetigeBestellung(page: Page): Promise<void> {
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Bestellung aufnehmen' })
+    .click()
   // .first(): Sonner kann bei mehreren Bestellungen kurzzeitig zwei Toasts mit
   // demselben Text im DOM halten (neuer Toast, alter noch beim Ausblenden).
   await expect(
@@ -136,33 +143,32 @@ export async function nimmLangeBestellungAuf(page: Page): Promise<void> {
   }
 
   await page.getByRole('button', { name: /Bestellung überprüfen/ }).click()
-  const bestellDrawer = page.getByRole('dialog')
-  await expect(bestellDrawer.getByText('Flammkuchen Mediterran')).toBeVisible()
-  await bestellDrawer
-    .getByRole('button', { name: 'Bestellung aufnehmen' })
-    .click()
   await expect(
-    page.getByText('Bestellung wurde aufgenommen.').first(),
+    page.getByRole('dialog').getByText('Flammkuchen Mediterran'),
   ).toBeVisible()
+  await bestaetigeBestellung(page)
 }
 
+// Kassiert eine Einheit der Position.
 export async function kassierePosition(
   page: Page,
   positionName: string,
-  menge = 1,
 ): Promise<void> {
   await page.getByRole('tab', { name: 'Kassieren' }).click()
   const position = zeileMit(page, positionName, 'Produkt hinzufügen')
   await expect(position).toBeVisible()
-  for (let i = 0; i < menge; i++) {
-    await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
-  }
+  await position.getByRole('button', { name: 'Produkt hinzufügen' }).click()
+  await bestaetigeZahlung(page)
+}
 
-  const kassierenLeiste = page.getByRole('button', { name: /Kassieren/ })
-  await kassierenLeiste.click()
-
-  const drawer = page.getByRole('dialog')
-  await drawer.getByRole('button', { name: 'Kassieren' }).click()
+// Öffnet über die Kassieren-Leiste den Zahlungs-Drawer und bestätigt die Zahlung
+// der aktuellen Auswahl.
+async function bestaetigeZahlung(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /Kassieren/ }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Kassieren' })
+    .click()
   await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
 }
 
@@ -191,7 +197,7 @@ async function offeneTischNamen(page: Page): Promise<string[]> {
 
 // Klappt die Gruppe „Von anderen" auf (Positionen fremder Servicekräfte, per
 // Default eingeklappt). Der Kopf fehlt, wenn keine fremden Positionen offen sind.
-async function zeigeAlleAn(page: Page): Promise<void> {
+export async function zeigeAlleAn(page: Page): Promise<void> {
   const vonAnderenKopf = page.getByRole('button', { name: /^Von anderen ·/ })
   if (await vonAnderenKopf.isVisible().catch(() => false)) {
     await vonAnderenKopf.click()
@@ -270,10 +276,7 @@ export async function settleAlleOffenenTische(page: Page): Promise<void> {
     await zeigeAlleAn(page)
     if ((await vollePositionsZeilen(page).count()) > 0) {
       await waehleAlleVollAus(page)
-      await page.getByRole('button', { name: /Kassieren/ }).click()
-      const drawer = page.getByRole('dialog')
-      await drawer.getByRole('button', { name: 'Kassieren' }).click()
-      await expect(page.getByText('Zahlung erfolgreich.').first()).toBeVisible()
+      await bestaetigeZahlung(page)
     }
   }
 }
