@@ -8,7 +8,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
 type eventRepo interface {
@@ -45,21 +44,4 @@ type Command struct {
 	DruckauftragRepo    druckauftragRepo
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseAuftragRepo
-}
-
-// getOffeneKassensitzungOderFehler is duplicated on purpose, as in kassenfuehrung and direktverkauf:
-// each Bounded Context owns its minimal repo interface instead of a shared kernel.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
-		return nil, ErrDatabase
-	}
-	if ks == nil {
-		return nil, ErrKasseNichtGeoeffnet
-	}
-	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
-		return nil, ErrKasseWirdAbgeschlossen
-	}
-	return ks, nil
 }

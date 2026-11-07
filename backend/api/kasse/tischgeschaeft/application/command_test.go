@@ -13,7 +13,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tisch"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
@@ -239,26 +238,4 @@ func duplikatTestSession() kasse.TischSession {
 var duplikatRefs = []kasse.PositionRef{
 	{PositionID: "pos-1", Menge: 1},
 	{PositionID: "pos-1", Menge: 1},
-}
-
-func TestFromWriteError(t *testing.T) {
-	tests := []struct {
-		name string
-		err  error
-		want error
-	}{
-		{name: "UNIQUE(subject, version)", err: db.ErrAlreadyExists, want: ErrConflict},
-		{name: "Deadlock", err: db.ErrConflict, want: ErrConflict},
-		{name: "Kassensitzung seit dem Lesen geschlossen", err: kassenjournal_repo.ErrKassensitzungNichtOffen, want: ErrKasseNichtGeoeffnet},
-		{name: "Tisch seit dem Lesen deaktiviert oder gelöscht", err: kassenjournal_repo.ErrTischNichtAktiv, want: ErrTischNotActive},
-		{name: "sonstiger Fehler", err: errors.New("connection reset"), want: ErrDatabase},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := fromWriteError(context.Background(), tt.err); !errors.Is(got, tt.want) {
-				t.Errorf("fromWriteError(%v) = %v, want %v", tt.err, got, tt.want)
-			}
-		})
-	}
 }

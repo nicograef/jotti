@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/nicograef/jotti/backend/api/kasse/kassenfehler"
 	"github.com/nicograef/jotti/backend/db"
 )
 
@@ -44,3 +45,5 @@ func fromRepositoryError(err error, log *slog.Logger, id int) error {
 	log.Error("Database error", "error", err, "tisch_id", id)
 	return ErrDatabase
 }
+
+var sentinels = kassenfehler.Sentinels{KasseNichtGeoeffnet: ErrKasseNichtGeoeffnet, KasseWirdAbgeschlossen: ErrKasseWirdAbgeschlossen, Conflict: ErrConflict, TischNichtAktiv: ErrTischNotActive}

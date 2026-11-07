@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 
+	"github.com/nicograef/jotti/backend/api/kasse/kassenfehler"
 	"github.com/nicograef/jotti/backend/db"
 )
 
@@ -29,3 +30,5 @@ var ErrPositionNichtStornierbar = errors.New("position nicht stornierbar")
 var ErrConflict = errors.New("conflict")
 
 var ErrDatabase = db.ErrDatabase
+
+var sentinels = kassenfehler.Sentinels{KasseNichtGeoeffnet: ErrKasseNichtGeoeffnet, KasseWirdAbgeschlossen: ErrKasseWirdAbgeschlossen, Conflict: ErrConflict}

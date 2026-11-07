@@ -51,37 +51,6 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler rejects the booking before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
-		return nil, ErrDatabase
-	}
-	if ks == nil {
-		return nil, ErrKasseNichtGeoeffnet
-	}
-	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
-		return nil, ErrKasseWirdAbgeschlossen
-	}
-	return ks, nil
-}
-
-// fromWriteError maps an event-write error onto this context's sentinels and logs it.
-func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
-	mapped := kassenjournal_repo.MapWriteError(err, ErrConflict, ErrKasseNichtGeoeffnet)
-	if errors.Is(err, kassenjournal_repo.ErrTischNichtAktiv) {
-		mapped = ErrTischNotActive
-	}
-	args := append([]any{"error", err}, logArgs...)
-	if errors.Is(mapped, ErrDatabase) {
-		logging.FromContext(ctx).Error("Failed to write events", args...)
-	} else {
-		logging.FromContext(ctx).Warn("Event write rejected", args...)
-	}
-	return mapped
-}
-
 func (c Command) getAktivenTisch(ctx context.Context, tischID int) (tisch.Tisch, error) {
 	log := logging.FromContext(ctx)
 
@@ -100,7 +69,7 @@ func (c Command) getAktivenTisch(ctx context.Context, tischID int) (tisch.Tisch,
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, string, kasse.TischSession, error) {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return "", 0, "", kasse.TischSession{}, err
 	}
@@ -169,7 +138,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		{Event: evt, StreamType: kasse.StreamTypeTischSession, BuildAuftraege: buildAuftraege},
 	})
 	if err != nil {
-		err = fromWriteError(ctx, err, "subject", subject, "version", evt.Version)
+		err = sentinels.Schreibfehler(ctx, err, "subject", subject, "version", evt.Version)
 		if errors.Is(err, ErrConflict) {
 			exists, lookupErr := c.EventRepo.EventExistsByTypeAndVorgangsID(ctx, string(kasse.EventTypeBestellungAufgenommenV1), bestellungID, "bestellungId")
 			if lookupErr != nil {
@@ -221,7 +190,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return ErrUmbuchungGleicherTisch
 	}
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}
@@ -275,7 +244,7 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		{Event: zielEvent, StreamType: kasse.StreamTypeTischSession},
 	})
 	if err != nil {
-		return fromWriteError(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
+		return sentinels.Schreibfehler(ctx, err, "quell_subject", quellSubject, "quell_version", quellEvent.Version, "ziel_subject", zielSubject, "ziel_version", zielEvent.Version)
 	}
 
 	log.Info("Bestellung umgebucht", "quell_tisch_id", quellTischID, "ziel_tisch_id", zielTischID)
@@ -333,7 +302,7 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, events); err != nil {
-		err = fromWriteError(ctx, err, "subject", subject, "tisch_id", tischID)
+		err = sentinels.Schreibfehler(ctx, err, "subject", subject, "tisch_id", tischID)
 		if errors.Is(err, ErrConflict) && pfand != nil {
 			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrConflict)
 		}
@@ -497,7 +466,7 @@ func (c Command) persistStornoEvents(ctx context.Context, stornoEvents []event.E
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, neueEvents); err != nil {
-		return fromWriteError(ctx, err, "subject", subject)
+		return sentinels.Schreibfehler(ctx, err, "subject", subject)
 	}
 
 	log.Info("Stornierung erteilt", "tisch_id", tischID, "anzahl_events", len(neueEvents))

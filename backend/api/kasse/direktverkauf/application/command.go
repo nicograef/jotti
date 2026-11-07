@@ -44,22 +44,6 @@ type Command struct {
 	DruckstationRepo    druckstationRepo
 }
 
-// getOffeneKassensitzungOderFehler rejects the Direktverkauf before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
-		return nil, ErrDatabase
-	}
-	if ks == nil {
-		return nil, ErrKasseNichtGeoeffnet
-	}
-	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
-		return nil, ErrKasseWirdAbgeschlossen
-	}
-	return ks, nil
-}
-
 // DirektverkaufTaetigen writes the sale into its own stream, without projection; with pfand the settled
 // Rückgabe (tischId 0) goes into its own stream in the same transaction. verkaufID is the client's
 // idempotency key: on an OCC conflict a stored Verkauf with that verkaufId means idempotent success,
@@ -68,7 +52,7 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName string, verkaufID string, inputs []enrichment.PositionInput, kommentar string, pfand *enrichment.PfandEingabe) error {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}
@@ -109,7 +93,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, ks.ZNr, events); err != nil {
-		err = fromWriteError(ctx, err, "subject", subject)
+		err = sentinels.Schreibfehler(ctx, err, "subject", subject)
 		if errors.Is(err, ErrConflict) {
 			if pfand != nil {
 				return c.pruefeVerrechnetenVerkauf(ctx, verkaufID, inputs, pfand)
@@ -129,7 +113,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userName string, verkaufID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}
@@ -166,21 +150,9 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 
 	evt.Version = events[len(events)-1].Version + 1
 	if _, err := c.EventRepo.WriteEvent(ctx, evt, kasse.StreamTypeDirektverkauf, ks.ZNr); err != nil {
-		return fromWriteError(ctx, err, "subject", subject, "version", evt.Version, "type", evt.Type)
+		return sentinels.Schreibfehler(ctx, err, "subject", subject, "version", evt.Version, "type", evt.Type)
 	}
 
 	log.Info("Direktverkauf storniert", "verkauf_id", verkaufID, "gesamt_stornierung_cents", gesamtStornierungCents)
 	return nil
-}
-
-// fromWriteError maps an event-write error onto this context's sentinels and logs it.
-func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
-	mapped := kassenjournal_repo.MapWriteError(err, ErrConflict, ErrKasseNichtGeoeffnet)
-	args := append([]any{"error", err}, logArgs...)
-	if errors.Is(mapped, ErrDatabase) {
-		logging.FromContext(ctx).Error("Failed to write events", args...)
-	} else {
-		logging.FromContext(ctx).Warn("Event write rejected", args...)
-	}
-	return mapped
 }

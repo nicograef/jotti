@@ -196,7 +196,7 @@ type BelegQuelle struct {
 func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenCommand) (BelegStatus, error) {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return "", err
 	}

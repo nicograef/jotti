@@ -12,7 +12,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/internal/zeit"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
 type kassenjournalRepo interface {
@@ -58,48 +57,15 @@ type Command struct {
 	DruckauftragRepo    druckauftragCleaner
 }
 
-// getOffeneKassensitzungOderFehler rejects the booking before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
-		return nil, ErrDatabase
-	}
-	if ks == nil {
-		return nil, ErrKasseNichtGeoeffnet
-	}
-	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
-		return nil, ErrKasseWirdAbgeschlossen
-	}
-	return ks, nil
-}
-
 // expectedVersion ist die Version des Zustands, gegen den der Command validiert hat
 // (frischer Stream: 0). Ein UNIQUE(subject, version)-Konflikt wird zu ErrConflict.
 func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kassensitzungNr int, expectedVersion int) error {
-	log := logging.FromContext(ctx)
-
 	subject := kasse.KassensitzungSubject(kassensitzungNr)
 	e.Version = expectedVersion + 1
 
-	_, err := c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr)
-	if err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) {
-			log.Warn("OCC Kassensitzung conflict", "version", e.Version, "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, db.ErrConflict) {
-			log.Warn("Deadlock on event write", "subject", subject)
-			return ErrConflict
-		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn("Kassensitzung nicht mehr offen", "subject", subject)
-			return ErrKasseNichtGeoeffnet
-		}
-		log.Error("Failed to write Kassensitzung event", "error", err, "subject", subject, "version", e.Version)
-		return ErrDatabase
+	if _, err := c.KassenjournalRepo.WriteEvent(ctx, e, kasse.StreamTypeKassensitzung, kassensitzungNr); err != nil {
+		return sentinels.Schreibfehler(ctx, err, "subject", subject, "version", e.Version)
 	}
-
 	return nil
 }
 
@@ -197,7 +163,7 @@ func (c Command) ohneTSEKonfiguration(ctx context.Context) bool {
 func (c Command) GeldtransitBuchen(ctx context.Context, userID int, userName string, geldtransitID string, richtung string, betragCents int, kommentar string) error {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}

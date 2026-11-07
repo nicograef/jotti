@@ -11,7 +11,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
 type eventRepo interface {
@@ -44,29 +43,13 @@ type Command struct {
 	TischRepo           tischRepo
 }
 
-// getOffeneKassensitzungOderFehler rejects the Pfandrückgabe before any TSE roundtrip when no Kassensitzung is open or the barrier is active.
-func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
-	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
-	if err != nil {
-		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
-		return nil, ErrDatabase
-	}
-	if ks == nil {
-		return nil, ErrKasseNichtGeoeffnet
-	}
-	if ks.Status == kasse.KassensitzungWirdAbgeschlossen {
-		return nil, ErrKasseWirdAbgeschlossen
-	}
-	return ks, nil
-}
-
 // PfandZurueckgeben writes the Rückgabe as version 1 of its own stream; tischID 0 is the
 // Direktverkauf. rueckgabeID is the client's idempotency key: on an OCC conflict see
 // pruefeReineRueckgabe.
 func (c Command) PfandZurueckgeben(ctx context.Context, userID int, userName string, rueckgabeID string, tischID int, inputs []enrichment.PositionInput, kommentar string) error {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}
@@ -138,7 +121,7 @@ func (c Command) pruefeReineRueckgabe(ctx context.Context, rueckgabeID string, t
 func (c Command) PfandrueckgabeStornieren(ctx context.Context, userID int, userName string, stornierungID string, rueckgabeID string, positionen []kasse.PositionRef, kommentar string) error {
 	log := logging.FromContext(ctx)
 
-	ks, err := c.getOffeneKassensitzungOderFehler(ctx)
+	ks, err := sentinels.OffeneKassensitzung(ctx, c.KassensitzungenRepo)
 	if err != nil {
 		return err
 	}
@@ -281,19 +264,7 @@ func (c Command) writeEventOCC(ctx context.Context, e event.Event, subject strin
 	e.Version = expectedVersion + 1
 
 	if _, err := c.EventRepo.WriteEvent(ctx, e, kasse.StreamTypePfandrueckgabe, kassensitzungNr); err != nil {
-		return fromWriteError(ctx, err, "subject", subject, "version", e.Version, "type", e.Type)
+		return sentinels.Schreibfehler(ctx, err, "subject", subject, "version", e.Version, "type", e.Type)
 	}
 	return nil
-}
-
-// fromWriteError maps an event-write error onto this context's sentinels and logs it.
-func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
-	mapped := kassenjournal_repo.MapWriteError(err, ErrConflict, ErrKasseNichtGeoeffnet)
-	args := append([]any{"error", err}, logArgs...)
-	if errors.Is(mapped, ErrDatabase) {
-		logging.FromContext(ctx).Error("Failed to write events", args...)
-	} else {
-		logging.FromContext(ctx).Warn("Event write rejected", args...)
-	}
-	return mapped
 }

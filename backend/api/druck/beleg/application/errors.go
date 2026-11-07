@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 
+	"github.com/nicograef/jotti/backend/api/kasse/kassenfehler"
 	"github.com/nicograef/jotti/backend/db"
 )
 
@@ -23,3 +24,5 @@ var ErrRueckgabeNichtGefunden = errors.New("pfandrueckgabe nicht gefunden")
 var ErrStornierungNichtGefunden = errors.New("stornierung nicht gefunden")
 
 var ErrKassenbelegDruckerNichtKonfiguriert = errors.New("kassenbeleg drucker nicht konfiguriert")
+
+var sentinels = kassenfehler.Sentinels{KasseNichtGeoeffnet: ErrKasseNichtGeoeffnet, KasseWirdAbgeschlossen: ErrKasseWirdAbgeschlossen}
