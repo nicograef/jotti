@@ -45,7 +45,7 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | --- | --- | --- | --- |
 | 1 Review | — | landed | 236 bestätigte Befunde |
 | 2 Fix backend | fix/q-backend | running | |
-| 2 Fix frontend | fix/q-frontend | running | |
+| 2 Fix frontend | fix/q-frontend | landed | fac74e5c |
 | 2 Fix edges | fix/q-edges | running | |
 | 2 Fix cross | fix/q-cross | waiting | |
 | 3 Distill | fix/q-distill | waiting | |
