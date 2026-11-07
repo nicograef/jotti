@@ -85,10 +85,11 @@ func FormatPositionBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
+	// Centred like the position line above it; the indent of the Sammelbon would land at the left margin here.
 	if pos.Kommentar != "" {
-		buf.WriteString(AlignLeft)
 		buf.WriteString(BoldOn)
-		writePositionsKommentar(&buf, pos.Kommentar)
+		buf.WriteString(wrapCP437(pos.Kommentar, lineWidth))
+		buf.WriteByte('\n')
 		buf.WriteString(BoldOff)
 	}
 
@@ -146,8 +147,8 @@ func FormatSammelBon(
 	return buf.Bytes()
 }
 
-// writePositionsKommentar writes the Positionskommentar under its position line, each wrapped
-// line indented by two spaces; the caller sets size, weight and alignment.
+// writePositionsKommentar writes the Positionskommentar under its left-aligned position line, each
+// wrapped line indented by two spaces; the caller sets size and weight.
 func writePositionsKommentar(buf *bytes.Buffer, kommentar string) {
 	for zeile := range strings.SplitSeq(wrapCP437(kommentar, lineWidth-2), "\n") {
 		buf.WriteString("  ")

@@ -155,7 +155,7 @@ func TestFormatPositionBon_PositionskommentarVorBestellkommentar(t *testing.T) {
 
 	want := arbeitsbonKopfTisch7 +
 		escpos.TextDoubleHigh + escpos.BoldOn + "3x Pommes gross\n" + escpos.BoldOff + escpos.TextNormal +
-		escpos.AlignLeft + escpos.BoldOn + "  ohne Ketchup\n" + escpos.BoldOff +
+		escpos.BoldOn + "ohne Ketchup\n" + escpos.BoldOff +
 		"\n" + escpos.AlignLeft + escpos.BoldOn + "Tisch wartet\n" + escpos.BoldOff +
 		escpos.AlignLeft + arbeitsbonFussMaria
 	if string(got) != want {
