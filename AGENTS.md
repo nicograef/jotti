@@ -29,7 +29,7 @@ Non-goals: `docs/produktbeschreibung.md` (product scope) and `docs/anforderungen
 Production instances hold data under a retention duty. Persisted data (the existing DB schema, event JSON) is never changed.
 
 - DB schema: changes only as a new additive migration `NN_<name>.up.sql`, numbered in sequence, forward-only, no down migrations. `01_initial.up.sql` is frozen. Rules and reasons: `database/migrations/README.md`.
-- Event formats: the event JSON contracts are frozen, guarded by `backend/domain/kasse/event_json_contract_test.go`. A change is a new event version (`:vN`), never an edit in place. Old events are never migrated or reinterpreted.
+- Event formats: the event JSON contracts are frozen, guarded by `backend/domain/kasse/event_json_contract_test.go`. A change is a new event version (`:vN`). The only edit in place is an additive optional field omitted when empty, approved as a line in `docs/decisions.md`. Old events are never migrated or reinterpreted.
 - Backend API: endpoints and formats may change when the frontend and the print relay follow in the same release. They ship together, so the API has no versions.
 
 ## Product conservatism
