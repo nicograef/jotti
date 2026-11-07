@@ -1,13 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 
 import { StatusDot } from '@/admin/components/StatusDot'
-import {
-  RUECKSTAND_WARN_SEKUNDEN,
-  useTSESignaturQueue,
-  useTSEStatus,
-  useTSEStoerungen,
-} from '@/admin/tse/hooks'
-import { tseAmpel } from '@/admin/tse/tseAmpel'
+import { useTSEAmpel, useTSEStoerungen } from '@/admin/tse/hooks'
 import type { TSESignaturQueue, TSEStoerung } from '@/admin/tse/TSEBackend'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -81,7 +75,13 @@ function DetailCollapsible({
 
 // Fehlgeschlagene Signaturen stehen vorn: sie bleiben unabhängig von der
 // Warteschlange liegen, bis der Kassenabschluss sie als Ausfall ausweist.
-function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
+function SignaturPanel({
+  queue,
+  rueckstand,
+}: {
+  queue: TSESignaturQueue | undefined
+  rueckstand: boolean
+}) {
   const offene = queue?.offeneAuftraege ?? 0
   const fehlgeschlagen = queue?.fehlgeschlageneAuftraege ?? 0
   const rueckstandSekunden = queue?.rueckstandSekunden ?? 0
@@ -96,7 +96,7 @@ function SignaturPanel({ queue }: { queue: TSESignaturQueue | undefined }) {
     saetze.push('Keine Vorgänge in der Warteschlange.')
   } else {
     const warten = `${String(offene)} ${offene === 1 ? 'Vorgang wartet' : 'Vorgänge warten'} (ältester ${formatDauer(rueckstandSekunden)})`
-    if (rueckstandSekunden >= RUECKSTAND_WARN_SEKUNDEN) {
+    if (rueckstand) {
       saetze.push(`${warten} — der Rückstand ist zu groß.`)
     } else if (fehlgeschlagen === 0) {
       // „normal" nur, wenn nichts fehlgeschlagen ist — neben einem gemeldeten
@@ -205,11 +205,8 @@ function StoerungPanel({ stoerungen }: { stoerungen: TSEStoerung[] }) {
 }
 
 export function LaeuftAllesSection() {
-  const { tseStatus, isPending: tseLoading } = useTSEStatus()
-  const { queue } = useTSESignaturQueue()
+  const { queue, ...ampel } = useTSEAmpel()
   const { stoerungen } = useTSEStoerungen()
-
-  const ampel = tseAmpel(tseStatus, tseLoading, queue)
 
   return (
     <Card>
@@ -229,7 +226,7 @@ export function LaeuftAllesSection() {
         </span>
       </CardHeader>
       <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <SignaturPanel queue={queue} />
+        <SignaturPanel queue={queue} rueckstand={ampel.rueckstand} />
         <StoerungPanel stoerungen={stoerungen} />
       </CardContent>
     </Card>

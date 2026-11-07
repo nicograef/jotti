@@ -20,6 +20,7 @@ import {
   type TSEUebernehmen,
   type TSEVerbindungStatus,
 } from './TSEBackend'
+import { type TSEAmpel, tseAmpel } from './tseAmpel'
 
 const tseBackend = new TSEBackend(BackendSingleton)
 
@@ -27,10 +28,6 @@ export const TSE_KONFIGURATION_KEY = 'tse-konfiguration'
 export const TSE_STATUS_KEY = 'tse-status'
 export const TSE_SIGNATUR_QUEUE_KEY = 'tse-signatur-queue'
 export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
-
-// Deckt sich mit der Nachsigniert-Schwelle im Backend; Dashboard und Sidebar
-// teilen diese Schwelle.
-export const RUECKSTAND_WARN_SEKUNDEN = 60
 
 // Jede Änderung der Konfiguration ändert auch istKonfiguriert im Status.
 function invalidiereTSE(queryClient: QueryClient): Promise<unknown> {
@@ -158,4 +155,12 @@ export function useTSEStatus(): {
     isPending,
     error,
   }
+}
+
+export function useTSEAmpel(): TSEAmpel & {
+  queue: TSESignaturQueue | undefined
+} {
+  const { tseStatus, isPending } = useTSEStatus()
+  const { queue } = useTSESignaturQueue()
+  return { ...tseAmpel(tseStatus, isPending, queue), queue }
 }

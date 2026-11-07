@@ -17,8 +17,7 @@ import type { MouseEvent } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
-import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
-import { tseAmpel } from '@/admin/tse/tseAmpel'
+import { useTSEAmpel } from '@/admin/tse/hooks'
 import { Wortmarke } from '@/components/common/Wortmarke'
 import { useTheme } from '@/components/theme-provider'
 import {
@@ -93,8 +92,7 @@ export function AdminSidebar() {
 
   const { kassensitzung, abschlussUnterbrochen } = useAktiveKassensitzung()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
-  const { tseStatus, isPending: tseLoading } = useTSEStatus()
-  const { queue } = useTSESignaturQueue()
+  const { fehler: finanzamtFehler } = useTSEAmpel()
 
   const kasseAktiv = kassensitzung !== null
   const kasseStatus: { zustand: StatusDotZustand; label: string } =
@@ -104,8 +102,6 @@ export function AdminSidebar() {
         ? { zustand: 'ok', label: 'Kasse offen' }
         : { zustand: 'neutral', label: 'Kasse geschlossen' }
   const bondruckerFehler = druckauftraege.length > 0
-  // tseAmpel ist die Single Source of Truth für den TSE-Fehlerzustand.
-  const finanzamtFehler = tseAmpel(tseStatus, tseLoading, queue).fehler
 
   const heuteItems: NavItem[] = [
     {

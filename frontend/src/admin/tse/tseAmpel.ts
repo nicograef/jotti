@@ -1,5 +1,7 @@
-import { RUECKSTAND_WARN_SEKUNDEN } from './hooks'
 import type { TSESignaturQueue, TSEStatus } from './TSEBackend'
+
+// Deckt sich mit der Nachsigniert-Schwelle im Backend.
+const RUECKSTAND_WARN_SEKUNDEN = 60
 
 export interface TSEAmpel {
   fehler: boolean

@@ -1,8 +1,7 @@
 import { useAktiveKassensitzung, useKassenbestand } from '@/admin/kasse/hooks'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
-import { useTSESignaturQueue, useTSEStatus } from '@/admin/tse/hooks'
-import { tseAmpel } from '@/admin/tse/tseAmpel'
+import { useTSEAmpel } from '@/admin/tse/hooks'
 import { formatEuro } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
@@ -20,8 +19,6 @@ export function AdminDashboardPage() {
   } = useLiveReporting()
   const { kassensitzung, abschlussUnterbrochen } = useAktiveKassensitzung()
   const { kassenbestand } = useKassenbestand(kassensitzung?.zNr ?? null)
-  const { tseStatus, isPending: tseLoading } = useTSEStatus()
-  const { queue } = useTSESignaturQueue()
   const { druckauftraege } = useFehlgeschlageneDruckauftraege()
 
   const {
@@ -29,7 +26,8 @@ export function AdminDashboardPage() {
     nichtKonfiguriert: tseNichtKonfiguriert,
     rueckstand,
     signaturFehlgeschlagen,
-  } = tseAmpel(tseStatus, tseLoading, queue)
+    queue,
+  } = useTSEAmpel()
 
   const tseText = tseNichtKonfiguriert
     ? 'Nicht konfiguriert'
