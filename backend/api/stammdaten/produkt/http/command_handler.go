@@ -97,6 +97,7 @@ func (h *CommandHandler) UpdateProduktHandler() http.HandlerFunc {
 				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
 				{Err: application.ErrProduktAlreadyExists, Code: "produkt_already_exists"},
 				{Err: application.ErrInvalidProduktData, Code: "invalid_produkt_data"},
+				{Err: application.ErrPfandZielUngueltig, Code: "pfand_ziel_ungueltig"},
 				{Err: application.ErrPfandVerkettet, Code: "pfand_verkettet"},
 				{Err: application.ErrPfandSteuersatzAbweichend, Code: "pfand_steuersatz_abweichend"},
 				{Err: application.ErrPfandNochVerknuepft, Code: "pfand_noch_verknuepft"},
