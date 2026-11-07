@@ -60,63 +60,86 @@ func TestGetHistorieFromEvents_BestellungTraegtBestellerName(t *testing.T) {
 }
 
 func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
-	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 3),
+	tests := []struct {
+		name            string
+		bestellt        int
+		folge           func(t *testing.T, eine []Position) []e.Event
+		wantStornierbar int
+		wantUmbuchbar   int
+	}{
+		{
+			// Die Warenrücknahme hebt die Zahlung auf; die zwei unbezahlten bleiben umbuchbar.
+			name:     "bestellt 3, bezahlt 1, Warenrücknahme 1",
+			bestellt: 3,
+			folge: func(t *testing.T, eine []Position) []e.Event {
+				return []e.Event{
+					mustCreateZahlungEvent(t, testSubject, 1, eine, 500),
+					mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, eine, 500),
+				}
+			},
+			wantStornierbar: 2,
+			wantUmbuchbar:   2,
+		},
+		{
+			name:     "bestellt 1, bezahlt 1, Warenrücknahme 1",
+			bestellt: 1,
+			folge: func(t *testing.T, eine []Position) []e.Event {
+				return []e.Event{
+					mustCreateZahlungEvent(t, testSubject, 1, eine, 500),
+					mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, eine, 500),
+				}
+			},
+			wantStornierbar: 0,
+			wantUmbuchbar:   0,
+		},
+		{
+			name:     "bestellt 3, Korrektur 1, bezahlt 1",
+			bestellt: 3,
+			folge: func(t *testing.T, eine []Position) []e.Event {
+				return []e.Event{
+					mustCreateKorrekturEvent(t, testSubject, 1, eine, 500),
+					mustCreateZahlungEvent(t, testSubject, 1, eine, 500),
+				}
+			},
+			wantStornierbar: 2,
+			wantUmbuchbar:   1,
+		},
 	}
-	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
-	eine := positionenAusBestellung(t, orderEvent, 1)
 
-	events := []e.Event{
-		orderEvent,
-		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, eine, 500),
-		mustCreateZahlungEvent(t, testSubject, 1, eine, 500),
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			products := []Position{
+				testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, tt.bestellt),
+			}
+			orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+			eine := positionenAusBestellung(t, orderEvent, 1)
 
-	history, err := GetHistorieFromEvents(events)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
+			history, err := GetHistorieFromEvents(append([]e.Event{orderEvent}, tt.folge(t, eine)...))
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
 
-	// History is reversed (most recent first); the Bestellung is the last entry.
-	bestellung := history[len(history)-1]
-	if bestellung.Art != HistorieEintragBestellung {
-		t.Fatalf("expected last entry to be Bestellung, got %q", bestellung.Art)
-	}
-
-	// Ordered 3, cancelled 1 => 2 still stornierbar.
-	if len(bestellung.StornierbarePositionen) != 1 || bestellung.StornierbarePositionen[0].Menge != 2 {
-		t.Errorf("expected stornierbar menge 2, got %+v", bestellung.StornierbarePositionen)
-	}
-	// Ordered 3, cancelled 1, paid 1 => 1 still umbuchbar.
-	if len(bestellung.UmbuchbarePositionen) != 1 || bestellung.UmbuchbarePositionen[0].Menge != 1 {
-		t.Errorf("expected umbuchbar menge 1, got %+v", bestellung.UmbuchbarePositionen)
+			// History is reversed (most recent first); the Bestellung is the last entry.
+			bestellung := history[len(history)-1]
+			if bestellung.Art != HistorieEintragBestellung {
+				t.Fatalf("expected last entry to be Bestellung, got %q", bestellung.Art)
+			}
+			if got := summeMenge(bestellung.StornierbarePositionen); got != tt.wantStornierbar {
+				t.Errorf("stornierbar = %d, want %d (%+v)", got, tt.wantStornierbar, bestellung.StornierbarePositionen)
+			}
+			if got := summeMenge(bestellung.UmbuchbarePositionen); got != tt.wantUmbuchbar {
+				t.Errorf("umbuchbar = %d, want %d (%+v)", got, tt.wantUmbuchbar, bestellung.UmbuchbarePositionen)
+			}
+		})
 	}
 }
 
-func TestGetHistorieFromEvents_FullyConsumedBestellungHasNoRestmengen(t *testing.T) {
-	products := []Position{
-		testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+func summeMenge(positionen []Position) int {
+	summe := 0
+	for _, pos := range positionen {
+		summe += pos.Menge
 	}
-	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
-	positions := positionenAusBestellung(t, orderEvent, 1)
-
-	events := []e.Event{
-		orderEvent,
-		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500),
-	}
-
-	history, err := GetHistorieFromEvents(events)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	bestellung := history[len(history)-1]
-	if len(bestellung.StornierbarePositionen) != 0 {
-		t.Errorf("expected no stornierbare positionen, got %+v", bestellung.StornierbarePositionen)
-	}
-	if len(bestellung.UmbuchbarePositionen) != 0 {
-		t.Errorf("expected no umbuchbare positionen, got %+v", bestellung.UmbuchbarePositionen)
-	}
+	return summe
 }
 
 func TestBuildStornierung_BarRueckgabeLeitetStornoArtAusEventTypAb(t *testing.T) {

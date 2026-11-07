@@ -24,7 +24,8 @@ type HistorieEintrag struct {
 	Umbuchung   *Umbuchung
 
 	// Set only on entries that put positions on the table (a Bestellung or a Umbuchung Zugang).
-	// Per position: stornierbar = ordered − cancelled − moved away, umbuchbar = stornierbar − paid.
+	// Per position: stornierbar = ordered − cancelled − moved away, umbuchbar = ordered − corrected
+	// − moved away − paid. A Warenrücknahme reverses a payment, so it never reduces umbuchbar again.
 	StornierbarePositionen []Position
 	UmbuchbarePositionen   []Position
 }
@@ -85,6 +86,7 @@ func GetHistorieFromEvents(events []e.Event) ([]HistorieEintrag, error) {
 // position only ever apply to its own source.
 func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 	storniert := map[string]int{}
+	korrigiert := map[string]int{}
 	bezahlt := map[string]int{}
 	umgebucht := map[string]int{}
 	for _, eintrag := range history {
@@ -93,6 +95,9 @@ func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 			if eintrag.Stornierung != nil {
 				for _, pos := range eintrag.Stornierung.Positionen {
 					storniert[pos.PositionID] += pos.Menge
+					if !eintrag.Stornierung.BarRueckgabe {
+						korrigiert[pos.PositionID] += pos.Menge
+					}
 				}
 			}
 		case HistorieEintragZahlung:
@@ -121,7 +126,7 @@ func enrichBestellungenMitRestmengen(history []HistorieEintrag) {
 			return storniert[pos.PositionID] + umgebucht[pos.PositionID]
 		})
 		history[i].UmbuchbarePositionen = restmengen(positionen, func(pos Position) int {
-			return storniert[pos.PositionID] + umgebucht[pos.PositionID] + bezahlt[pos.PositionID]
+			return korrigiert[pos.PositionID] + umgebucht[pos.PositionID] + bezahlt[pos.PositionID]
 		})
 	}
 }
