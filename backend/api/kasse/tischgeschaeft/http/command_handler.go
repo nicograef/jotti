@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	enrichmentHTTP "github.com/nicograef/jotti/backend/api/kasse/enrichment/http"
 	"github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -64,9 +65,7 @@ func (h *CommandHandler) BestellungAufnehmenHandler() http.HandlerFunc {
 			helper.MapError(w, err, slices.Concat(kasseFehler, []helper.ErrorCode{
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
 				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
-				{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-				{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-			}))
+			}, enrichmentHTTP.Fehler))
 			return
 		}
 
@@ -107,10 +106,7 @@ func (h *CommandHandler) ZahlungKassierenHandler() http.HandlerFunc {
 				{Err: application.ErrTischNotFound, Code: "tisch_not_found"},
 				{Err: application.ErrTischNotActive, Code: "tisch_not_active"},
 				{Err: application.ErrPositionNichtBezahlbar, Code: "position_nicht_bezahlbar"},
-				{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
-				{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-				{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
-			}))
+			}, enrichmentHTTP.Fehler))
 			return
 		}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/kasse/eingabe"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	enrichmentHTTP "github.com/nicograef/jotti/backend/api/kasse/enrichment/http"
 	"github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -29,13 +30,6 @@ var kasseFehler = []helper.ErrorCode{
 	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
 	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},
 	{Err: application.ErrKasseNichtGeoeffnet, Code: "kasse_nicht_geoeffnet", Status: http.StatusConflict},
-}
-
-// pfandEingabeFehler covers the Pfand and product checks of the position enrichment.
-var pfandEingabeFehler = []helper.ErrorCode{
-	{Err: enrichment.ErrKeinPfandProdukt, Code: "kein_pfand_produkt"},
-	{Err: enrichment.ErrProduktNotFound, Code: "produkt_not_found"},
-	{Err: enrichment.ErrVarianteNichtAktiv, Code: "variante_nicht_aktiv"},
 }
 
 type pfandZurueckgebenRequest struct {
@@ -72,7 +66,7 @@ func (h *CommandHandler) PfandZurueckgebenHandler() http.HandlerFunc {
 				{Err: application.ErrPfandrueckgabeAbweichend, Code: "pfandrueckgabe_abweichend", Status: http.StatusConflict},
 				{Err: application.ErrTischNichtGefunden, Code: "tisch_not_found"},
 				{Err: application.ErrTischNichtAktiv, Code: "tisch_not_active"},
-			}, pfandEingabeFehler))
+			}, enrichmentHTTP.Fehler))
 			return
 		}
 

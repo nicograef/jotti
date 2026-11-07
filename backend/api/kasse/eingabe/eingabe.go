@@ -1,5 +1,5 @@
-// Package eingabe holds the request DTOs and zog schemas the tischgeschaeft and direktverkauf
-// handlers share, so both validate one wire shape the same way.
+// Package eingabe holds the request DTOs and zog schemas the Kasse handlers share, so all validate
+// one wire shape the same way.
 package eingabe
 
 import (
