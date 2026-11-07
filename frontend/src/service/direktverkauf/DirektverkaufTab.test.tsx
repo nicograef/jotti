@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,10 +8,9 @@ import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
-import { setViewportWidth } from '@/test/render'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
-import { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufTab } from './DirektverkaufTab'
 
 // Verkauf und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
@@ -66,17 +65,16 @@ function renderDirektverkauf() {
   const fake = backend()
   // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
   // DirektverkaufTab hier in ein Dock eingebettet (leiste bleibt leer).
-  render(
+  renderWithBackend(
     <ServiceDock leiste={null}>
       <DirektverkaufTabHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
-        backend={new DirektverkaufBackend(fake)}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}
       />
     </ServiceDock>,
+    fake,
   )
   return { fake }
 }
@@ -143,15 +141,14 @@ describe('DirektverkaufTab', () => {
       'service/direktverkauf-taetigen',
       direktverkaufTaetigen,
     )
-    render(
+    renderWithBackend(
       <DirektverkaufTabHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[pfandProdukt]}
-        backend={new DirektverkaufBackend(fake)}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}
       />,
+      fake,
     )
 
     const [bratwurst, glas] = screen.getAllByRole('button', {
@@ -193,15 +190,14 @@ describe('DirektverkaufTab', () => {
     setViewportWidth(1024)
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
-    render(
+    renderWithBackend(
       <DirektverkaufTabHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
-        backend={new DirektverkaufBackend(backend())}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}
       />,
+      backend(),
     )
 
     expect(screen.getByText('Bratwurst')).toBeInTheDocument()

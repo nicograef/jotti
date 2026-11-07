@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { BackendSingleton } from '@/lib/Backend'
 import type { QueryResult } from '@/lib/queryClient'
 
 import type { PfandrueckgabeHistorieEintrag } from './Pfand'
-import { pfandBackend } from './PfandBackend'
+import { PfandBackend } from './PfandBackend'
+
+export const pfandBackend = new PfandBackend(BackendSingleton)
 
 // Die Seiten invalidieren diesen Schlüssel nach jedem erfolgreichen Vorgang.
 export const PFANDRUECKGABE_HISTORIE_KEY = 'pfandrueckgabe-historie'

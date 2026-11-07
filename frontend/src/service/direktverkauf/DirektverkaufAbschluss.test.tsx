@@ -1,10 +1,12 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { type ComponentProps, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type { ReceiptPosition } from '../table/Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
@@ -64,44 +66,44 @@ const pfandProdukt: Produkt = {
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
-function renderSpalte(
-  direktverkaufTaetigen: (verkauf: DirektverkaufTaetigen) => Promise<void> = vi
-    .fn()
-    .mockResolvedValue(undefined),
-) {
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('service/direktverkauf-taetigen', {})
+    .respond('service/pfand-zurueckgeben', {})
+}
+
+function renderSpalte(fake = backend()) {
   const verkaufAbgeschlossen = vi.fn()
-  render(
+  renderWithBackend(
     <DirektverkaufAbschlussHarness
-      pfandBackend={{ pfandZurueckgeben: vi.fn() }}
       pfandProdukte={[]}
       pfandAusgezahlt={vi.fn()}
       variant="spalte"
-      backend={{ direktverkaufTaetigen }}
       receiptItems={receiptItems}
       positionen={positionen}
       totalCents={700}
       verkaufAbgeschlossen={verkaufAbgeschlossen}
       verkaufVerworfen={vi.fn()}
     />,
+    fake,
   )
-  return { direktverkaufTaetigen, verkaufAbgeschlossen }
+  return { fake, verkaufAbgeschlossen }
 }
 
 describe('DirektverkaufAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
-    render(
+    renderWithBackend(
       <DirektverkaufAbschlussHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         pfandAusgezahlt={vi.fn()}
         variant="spalte"
-        backend={{ direktverkaufTaetigen: vi.fn() }}
         receiptItems={[]}
         positionen={[]}
         totalCents={0}
         verkaufAbgeschlossen={vi.fn()}
         verkaufVerworfen={vi.fn()}
       />,
+      backend(),
     )
 
     expect(screen.getByText(/Produkte auswählen/)).toBeInTheDocument()
@@ -112,14 +114,11 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
 
   it('sends the Pfand return with table id 0', async () => {
     const user = userEvent.setup()
-    const direktverkaufTaetigen = vi.fn()
-    const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
+    const fake = backend()
     const pfandAusgezahlt = vi.fn()
-    render(
+    renderWithBackend(
       <DirektverkaufAbschlussHarness
         variant="spalte"
-        backend={{ direktverkaufTaetigen }}
-        pfandBackend={{ pfandZurueckgeben }}
         pfandProdukte={[pfandProdukt]}
         receiptItems={[]}
         positionen={[]}
@@ -128,6 +127,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         verkaufVerworfen={vi.fn()}
         pfandAusgezahlt={pfandAusgezahlt}
       />,
+      fake,
     )
 
     await user.click(
@@ -136,27 +136,26 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
 
     await waitFor(() => {
-      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+      expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
     })
-    expect(pfandZurueckgeben).toHaveBeenCalledWith({
-      // oxlint-disable-next-line typescript/no-unsafe-assignment
-      rueckgabeId: expect.stringMatching(UUID),
-      tischId: 0,
-      positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
-      kommentar: '',
-    })
-    expect(direktverkaufTaetigen).not.toHaveBeenCalled()
-    expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
+    expect(fake.bodies('service/pfand-zurueckgeben')).toEqual([
+      {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        rueckgabeId: expect.stringMatching(UUID),
+        tischId: 0,
+        positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
+        kommentar: '',
+      },
+    ])
+    expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(0)
   })
 
   it('shows Auszahlen when the Pfand exceeds the sale', async () => {
     const user = userEvent.setup()
-    const direktverkaufTaetigen = vi.fn().mockResolvedValue(undefined)
-    render(
+    const fake = backend()
+    renderWithBackend(
       <DirektverkaufAbschlussHarness
         variant="spalte"
-        backend={{ direktverkaufTaetigen }}
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[pfandProdukt]}
         receiptItems={receiptItems}
         positionen={positionen}
@@ -165,6 +164,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         verkaufVerworfen={vi.fn()}
         pfandAusgezahlt={vi.fn()}
       />,
+      fake,
     )
 
     for (let i = 0; i < 4; i++) {
@@ -182,41 +182,41 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     )
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
-    })
-    expect(direktverkaufTaetigen).toHaveBeenCalledWith({
-      // oxlint-disable-next-line typescript/no-unsafe-assignment
-      verkaufId: expect.stringMatching(UUID),
-      positionen,
-      kommentar: '',
-      pfand: {
-        // oxlint-disable-next-line typescript/no-unsafe-assignment
-        rueckgabeId: expect.stringMatching(UUID),
-        positionen: [{ produktId: 9, varianteId: 19, menge: 4 }],
-      },
+      expect(fake.bodies('service/direktverkauf-taetigen')).toEqual([
+        {
+          // oxlint-disable-next-line typescript/no-unsafe-assignment
+          verkaufId: expect.stringMatching(UUID),
+          positionen,
+          kommentar: '',
+          pfand: {
+            // oxlint-disable-next-line typescript/no-unsafe-assignment
+            rueckgabeId: expect.stringMatching(UUID),
+            positionen: [{ produktId: 9, varianteId: 19, menge: 4 }],
+          },
+        },
+      ])
     })
   })
 
   it('schließt den Verkauf mit genau einem Backend-Call und erwarteter Nutzlast ab', async () => {
     const user = userEvent.setup()
-    const { direktverkaufTaetigen, verkaufAbgeschlossen } = renderSpalte()
+    const { fake, verkaufAbgeschlossen } = renderSpalte()
 
     await user.click(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     )
 
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+      expect(verkaufAbgeschlossen).toHaveBeenCalledTimes(1)
     })
-    expect(direktverkaufTaetigen).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(fake.bodies('service/direktverkauf-taetigen')).toEqual([
+      {
         // oxlint-disable-next-line typescript/no-unsafe-assignment
         verkaufId: expect.stringMatching(UUID),
         positionen,
         kommentar: '',
-      }),
-    )
-    expect(verkaufAbgeschlossen).toHaveBeenCalledTimes(1)
+      },
+    ])
   })
 
   it('setzt Erhalten beim neuen Vorgang zurück (kein Übertrag)', async () => {
@@ -235,11 +235,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
             toggle
           </button>
           <DirektverkaufAbschlussHarness
-            pfandBackend={{ pfandZurueckgeben: vi.fn() }}
             pfandProdukte={[]}
             pfandAusgezahlt={vi.fn()}
             variant="spalte"
-            backend={{ direktverkaufTaetigen: vi.fn() }}
             receiptItems={leer ? [] : receiptItems}
             positionen={leer ? [] : positionen}
             totalCents={leer ? 0 : 700}
@@ -249,7 +247,7 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
         </>
       )
     }
-    render(<Harness />)
+    renderWithBackend(<Harness />, backend())
 
     await user.type(screen.getByLabelText('Erhalten'), '10,00')
     expect(screen.getByLabelText('Erhalten')).toHaveValue('10,00')
@@ -264,23 +262,27 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
 
   it('behält den verkaufId über einen Retry und erneuert ihn, wenn sich der Inhalt danach ändert', async () => {
     const user = userEvent.setup()
-    const direktverkaufTaetigen = vi
-      .fn<(verkauf: DirektverkaufTaetigen) => Promise<void>>()
-      .mockRejectedValue(new Error('kaputt'))
-    renderSpalte(direktverkaufTaetigen)
+    const { fake } = renderSpalte(
+      new FakeBackend().fail(
+        'service/direktverkauf-taetigen',
+        new Error('kaputt'),
+      ),
+    )
+    const verkaeufe = () =>
+      fake.bodies('service/direktverkauf-taetigen') as DirektverkaufTaetigen[]
 
     const abschliessen = () =>
       screen.getByRole('button', { name: 'Verkauf abschließen' })
 
     await user.click(abschliessen())
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(1)
+      expect(verkaeufe()).toHaveLength(1)
     })
     await user.click(abschliessen())
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(2)
+      expect(verkaeufe()).toHaveLength(2)
     })
-    const [[erster], [retry]] = direktverkaufTaetigen.mock.calls
+    const [erster, retry] = verkaeufe()
     expect(retry.verkaufId).toBe(erster.verkaufId)
 
     // Ohne Pfand vergleicht das Backend den Inhalt einer bekannten verkaufId
@@ -288,9 +290,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Senf')
     await user.click(abschliessen())
     await waitFor(() => {
-      expect(direktverkaufTaetigen).toHaveBeenCalledTimes(3)
+      expect(verkaeufe()).toHaveLength(3)
     })
-    const geaendert = direktverkaufTaetigen.mock.calls[2][0]
+    const geaendert = verkaeufe()[2]
     expect(geaendert.verkaufId).toMatch(UUID)
     expect(geaendert.verkaufId).not.toBe(erster.verkaufId)
     expect(geaendert.kommentar).toBe('Ohne Senf')

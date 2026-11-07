@@ -10,13 +10,12 @@ import { AbschlussLeer } from './AbschlussLeer'
 import type { BestellPositionInput } from './Bestellung'
 import { KommentarField } from './CommentField'
 import { GesamtZeile } from './DrawerParts'
+import { tischBackend } from './hooks'
 import type { ReceiptPosition } from './Receipt'
 import { Receipt } from './Receipt'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 
 interface BestellungAbschlussProps {
-  backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
   receiptItems: ReceiptPosition[]
   positionen: BestellPositionInput[]
@@ -42,7 +41,7 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
       kommentar,
     })
     await run(async () => {
-      await props.backend.bestellungAufnehmen({
+      await tischBackend.bestellungAufnehmen({
         bestellungId,
         tischId: props.tisch.id,
         positionen: props.positionen,

@@ -5,16 +5,12 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { DockActionButton } from '../table/DockActionButton'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { VerkaufPositionInput } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
-import type { DirektverkaufBackend } from './DirektverkaufBackend'
 
 interface DirektverkaufDrawerProps {
-  backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
@@ -52,8 +48,6 @@ export function DirektverkaufDrawer(props: DirektverkaufDrawerProps) {
       </DrawerTrigger>
       <DirektverkaufAbschluss
         variant="sheet"
-        backend={props.backend}
-        pfandBackend={props.pfandBackend}
         pfandProdukte={props.pfandProdukte}
         pfandVorgang={props.pfandVorgang}
         receiptItems={props.receiptItems}

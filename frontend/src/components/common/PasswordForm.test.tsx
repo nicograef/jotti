@@ -1,7 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { PasswordForm } from './PasswordForm'
 
@@ -37,19 +40,22 @@ function otpInput(container: HTMLElement): HTMLInputElement {
   return input
 }
 
-function renderPassword(setPassword = vi.fn()) {
-  const result = render(
+function renderPassword(
+  fake = new FakeBackend().respond('auth/set-password', {}),
+) {
+  const result = renderWithBackend(
     <MemoryRouter>
-      <PasswordForm backend={{ setPassword }} />
+      <PasswordForm />
     </MemoryRouter>,
+    fake,
   )
-  return { setPassword, ...result }
+  return { fake, ...result }
 }
 
 describe('PasswordForm', () => {
   it('zeigt bei leerem Formular die Feldfehler und löst keinen Aufruf aus', async () => {
     const user = userEvent.setup()
-    const { setPassword } = renderPassword()
+    const { fake } = renderPassword()
 
     await user.click(screen.getByRole('button', { name: /Passwort festlegen/ }))
 
@@ -61,19 +67,21 @@ describe('PasswordForm', () => {
     expect(
       screen.getByText('Passwort muss mindestens 6 Zeichen lang sein.'),
     ).toBeInTheDocument()
-    expect(setPassword).not.toHaveBeenCalled()
+    expect(fake.bodies('auth/set-password')).toHaveLength(0)
   })
 
   it('deaktiviert den Button während des Ladens (kein Doppel-Submit)', async () => {
     const user = userEvent.setup()
-    // setPassword hängt, damit der Ladezustand während der Assertion aktiv bleibt.
-    const setPassword = vi.fn(
-      () =>
-        new Promise<void>(() => {
-          /* bleibt pending */
-        }),
+    // Die Anfrage hängt, damit der Ladezustand während der Assertion aktiv bleibt.
+    const { fake, container } = renderPassword(
+      new FakeBackend().respond(
+        'auth/set-password',
+        () =>
+          new Promise<never>(() => {
+            /* bleibt pending */
+          }),
+      ),
     )
-    const { container } = renderPassword(setPassword)
 
     await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
     await user.type(screen.getByPlaceholderText('Neues Passwort'), 'geheim1')
@@ -85,13 +93,12 @@ describe('PasswordForm', () => {
         screen.getByRole('button', { name: /Passwort festlegen/ }),
       ).toBeDisabled()
     })
-    expect(setPassword).toHaveBeenCalledTimes(1)
+    expect(fake.bodies('auth/set-password')).toHaveLength(1)
   })
 
   it('submittet gültige Eingaben und ruft den Backend-Aufruf auf', async () => {
     const user = userEvent.setup()
-    const setPassword = vi.fn().mockResolvedValue(undefined)
-    const { container } = renderPassword(setPassword)
+    const { fake, container } = renderPassword()
 
     await user.type(screen.getByPlaceholderText('Benutzername'), 'anna')
     await user.type(screen.getByPlaceholderText('Neues Passwort'), 'geheim1')
@@ -99,7 +106,9 @@ describe('PasswordForm', () => {
     await user.click(screen.getByRole('button', { name: /Passwort festlegen/ }))
 
     await waitFor(() => {
-      expect(setPassword).toHaveBeenCalledWith('anna', 'geheim1', '123456')
+      expect(fake.bodies('auth/set-password')).toEqual([
+        { username: 'anna', password: 'geheim1', onetimePassword: '123456' },
+      ])
     })
   })
 })

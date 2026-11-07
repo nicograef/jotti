@@ -1,12 +1,11 @@
 import { StornoDrawer } from '../StornoDrawer'
 import type { Bestellung } from './Bestellung'
 import { QuelleDrawerHeader } from './DrawerParts'
+import { tischBackend } from './hooks'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 import type { Umbuchung } from './Umbuchung'
 
 interface HistorieStornierungDrawerProps {
-  backend: Pick<TischBackend, 'stornierungErteilen'>
   tisch: Tisch
   // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen storniert
   // werden; beschriftet den Drawer.
@@ -16,7 +15,6 @@ interface HistorieStornierungDrawerProps {
 }
 
 export function HistorieStornierungDrawer({
-  backend,
   tisch,
   quelle,
   onClose,
@@ -31,7 +29,7 @@ export function HistorieStornierungDrawer({
       }
       positionen={quelle.stornierbarePositionen}
       stornieren={(positionen, kommentar) =>
-        backend.stornierungErteilen({
+        tischBackend.stornierungErteilen({
           tischId: tisch.id,
           positionen,
           kommentar,

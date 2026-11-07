@@ -14,9 +14,8 @@ import { useVorgang } from '@/hooks/use-vorgang'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
-import { setViewportWidth } from '@/test/render'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
-import { DirektverkaufBackend } from './direktverkauf/DirektverkaufBackend'
 import { DirektverkaufTab } from './direktverkauf/DirektverkaufTab'
 import { ErfolgsPop } from './ErfolgsPop'
 import { ServiceDock } from './ServiceDock'
@@ -105,20 +104,12 @@ describe('ErfolgsPop', () => {
 
 // Spiegelt die Verdrahtung der Buchungsseiten: Der Erfolg öffnet den Pop, der
 // Refetch (hier `reload`) läuft erst beim Schließen.
-function DirektverkaufMitPop({
-  backend,
-  reload,
-}: {
-  backend: DirektverkaufBackend
-  reload: () => void
-}) {
+function DirektverkaufMitPop({ reload }: { reload: () => void }) {
   const [erfolg, setErfolg] = useState({ open: false, text: '' })
   return (
     <ServiceDock leiste={null}>
       <DirektverkaufTabHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
-        backend={backend}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={(nachricht) => {
@@ -154,12 +145,7 @@ describe('Erfolgs-Pop im Buchungsflow', () => {
     const user = userEvent.setup()
     const reload = vi.fn()
     const fake = new FakeBackend().respond('service/direktverkauf-taetigen', {})
-    render(
-      <DirektverkaufMitPop
-        backend={new DirektverkaufBackend(fake)}
-        reload={reload}
-      />,
-    )
+    renderWithBackend(<DirektverkaufMitPop reload={reload} />, fake)
 
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),

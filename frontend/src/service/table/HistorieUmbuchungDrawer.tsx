@@ -28,13 +28,11 @@ import {
   toMengen,
   toPositionRefs,
 } from './drawerUtils'
-import { useAktiveTische } from './hooks'
+import { tischBackend, useAktiveTische } from './hooks'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 import type { Umbuchung } from './Umbuchung'
 
 interface HistorieUmbuchungDrawerProps {
-  backend: Pick<TischBackend, 'bestellungUmbuchen'>
   tisch: Tisch
   // Ursprungsvorgang (Bestellung oder Umbuchungs-Zugang), dessen Positionen umgebucht
   // werden; beschriftet den Drawer.
@@ -44,7 +42,6 @@ interface HistorieUmbuchungDrawerProps {
 }
 
 export function HistorieUmbuchungDrawer({
-  backend,
   tisch,
   quelle,
   onClose,
@@ -104,7 +101,7 @@ export function HistorieUmbuchungDrawer({
     }
 
     await run(async () => {
-      await backend.bestellungUmbuchen({
+      await tischBackend.bestellungUmbuchen({
         quellTischId: tisch.id,
         zielTischId,
         positionen: toPositionRefs(selectedPositionen),

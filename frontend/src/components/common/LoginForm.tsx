@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { FieldError, FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { AuthSingleton } from '@/lib/Auth'
-import { type AuthBackend, LoginSchema } from '@/lib/AuthBackend'
+import { authBackend, LoginSchema } from '@/lib/AuthBackend'
 import { getActionErrorMessage } from '@/lib/errorMessages'
 
 import { PasswordField, UsernameField } from './FormFields'
@@ -18,11 +18,7 @@ import { Wortmarke } from './Wortmarke'
 
 type FormData = z.infer<typeof LoginSchema>
 
-interface LoginFormProps {
-  backend: Pick<AuthBackend, 'login'>
-}
-
-export function LoginForm(props: LoginFormProps) {
+export function LoginForm() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
@@ -37,7 +33,7 @@ export function LoginForm(props: LoginFormProps) {
     form.clearErrors('root')
 
     try {
-      const token = await props.backend.login(data.username, data.password)
+      const token = await authBackend.login(data.username, data.password)
       AuthSingleton.validateAndSetToken(token)
       // Jeder Weg zur Anmeldung (Abmelden, abgelaufenes Token) endet hier; auf
       // einem geteilten Gerät sähe die neue Servicekraft sonst kurz fremde Daten.

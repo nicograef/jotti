@@ -4,8 +4,7 @@ import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 
 import type { PositionRef } from '../schemas'
 import { VorgangHistorie } from '../VorgangHistorie'
-import { usePfandrueckgabeHistorie } from './hooks'
-import { pfandBackend } from './PfandBackend'
+import { pfandBackend, usePfandrueckgabeHistorie } from './hooks'
 
 interface PfandrueckgabenAbschnittProps {
   // 0 ist der Direktverkauf.

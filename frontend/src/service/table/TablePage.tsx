@@ -14,13 +14,12 @@ import { formatEuro } from '@/lib/utils'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
-import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
 import { toMengen } from './drawerUtils'
-import { tischBackend, useTischHistorie, useTischState } from './hooks'
+import { useTischHistorie, useTischState } from './hooks'
 import { TischHistorie } from './TischHistorie'
 import { ZahlungTab } from './ZahlungTab'
 
@@ -250,7 +249,6 @@ export function TablePage() {
       />
     ) : (
       <BestellungTab
-        backend={tischBackend}
         tisch={tisch}
         products={produkte}
         productsLoading={produkteLoading}
@@ -260,8 +258,6 @@ export function TablePage() {
     ))
   const kassierenInhalt = !stateLoading && (
     <ZahlungTab
-      backend={tischBackend}
-      pfandBackend={pfandBackend}
       pfandProdukte={pfandProdukte}
       pfandVorgang={pfandVorgang}
       tisch={tisch}
@@ -276,7 +272,6 @@ export function TablePage() {
         historie={historie}
         historieLoading={historieLoading}
         tisch={tisch}
-        backend={tischBackend}
         onErfolg={zeigeErfolg}
       />
       <PfandrueckgabenAbschnitt tischId={tisch.id} onErfolg={zeigeErfolg} />

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { BackendClient } from '@/lib/Backend'
+import { type BackendClient, BackendSingleton } from '@/lib/Backend'
 import {
   OnetimePasswordSchema,
   PasswordSchema,
@@ -51,3 +51,5 @@ export class AuthBackend {
     await this.backend.post('auth/set-password', body)
   }
 }
+
+export const authBackend = new AuthBackend(BackendSingleton)

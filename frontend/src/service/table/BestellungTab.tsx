@@ -12,10 +12,8 @@ import {
 } from './drawerUtils'
 import { ProductList, ProductListSkeleton } from './ProductList'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 
 interface BestellungTabProps {
-  backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
   products: Produkt[]
   productsLoading: boolean
@@ -25,7 +23,6 @@ interface BestellungTabProps {
 }
 
 export function BestellungTab({
-  backend,
   tisch,
   products,
   productsLoading,
@@ -63,7 +60,6 @@ export function BestellungTab({
         abschluss={
           <BestellungAbschluss
             variant="spalte"
-            backend={backend}
             tisch={tisch}
             receiptItems={receiptItems}
             positionen={inputItems}
@@ -79,7 +75,6 @@ export function BestellungTab({
   return (
     <>
       <BestellungDrawer
-        backend={backend}
         tisch={tisch}
         receiptItems={receiptItems}
         positionen={inputItems}

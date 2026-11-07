@@ -14,18 +14,14 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
-import { AuthBackend, SetPasswordSchema } from '@/lib/AuthBackend'
+import { authBackend, SetPasswordSchema } from '@/lib/AuthBackend'
 
 import { NewPasswordField, OTPField, UsernameField } from './FormFields'
 import { Wortmarke } from './Wortmarke'
 
 type FormData = z.infer<typeof SetPasswordSchema>
 
-interface PasswordFormProps {
-  backend: Pick<AuthBackend, 'setPassword'>
-}
-
-export function PasswordForm(props: PasswordFormProps) {
+export function PasswordForm() {
   const navigate = useNavigate()
   const form = useForm<FormData>({
     resolver: zodResolver(SetPasswordSchema),
@@ -49,7 +45,7 @@ export function PasswordForm(props: PasswordFormProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.setPassword(
+      await authBackend.setPassword(
         data.username,
         data.password,
         data.onetimePassword,

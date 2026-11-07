@@ -18,7 +18,6 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { cn, formatEuro, formatPositionName } from '@/lib/utils'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
@@ -29,13 +28,10 @@ import {
   selectPositionen,
 } from './drawerUtils'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
 interface ZahlungTabProps {
-  backend: Pick<TischBackend, 'zahlungKassieren'>
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
   // Wie die Kassieren-Auswahl von TablePage gehoben und je Tisch zurückgesetzt.
   pfandVorgang: PfandVorgang
@@ -49,8 +45,6 @@ interface ZahlungTabProps {
 
 export function ZahlungTab({
   tisch,
-  backend,
-  pfandBackend,
   pfandProdukte,
   pfandVorgang,
   positionen,
@@ -180,8 +174,6 @@ export function ZahlungTab({
         abschluss={
           <ZahlungAbschluss
             variant="spalte"
-            backend={backend}
-            pfandBackend={pfandBackend}
             pfandProdukte={pfandProdukte}
             pfandVorgang={pfandVorgang}
             tisch={tisch}
@@ -201,8 +193,6 @@ export function ZahlungTab({
   return (
     <>
       <ZahlungDrawer
-        backend={backend}
-        pfandBackend={pfandBackend}
         pfandProdukte={pfandProdukte}
         pfandVorgang={pfandVorgang}
         tisch={tisch}

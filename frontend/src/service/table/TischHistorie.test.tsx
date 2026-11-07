@@ -18,7 +18,6 @@ import { renderWithBackend } from '@/test/render'
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
 import type { Tisch } from './Tisch'
-import { TischBackend } from './TischBackend'
 import { TischHistorie } from './TischHistorie'
 import type { Umbuchung } from './Umbuchung'
 import type { Zahlung } from './Zahlung'
@@ -138,7 +137,6 @@ function renderHistorie(
       historie={historie}
       historieLoading={false}
       tisch={tisch}
-      backend={new TischBackend(fake)}
       onErfolg={onErfolg}
     />,
     fake,

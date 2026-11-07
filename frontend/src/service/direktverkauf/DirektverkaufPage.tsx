@@ -8,7 +8,6 @@ import { useVorgang } from '@/hooks/use-vorgang'
 
 import { ErfolgsPop } from '../ErfolgsPop'
 import { PFANDRUECKGABE_HISTORIE_KEY } from '../pfand/hooks'
-import { pfandBackend } from '../pfand/PfandBackend'
 import { PfandrueckgabenAbschnitt } from '../pfand/PfandrueckgabenAbschnitt'
 import { useAktiveProdukte } from '../product/hooks'
 import { dockFreiraum, ServiceDock } from '../ServiceDock'
@@ -73,8 +72,6 @@ export function DirektverkaufPage() {
     />
   ) : (
     <DirektverkaufTab
-      backend={direktverkaufBackend}
-      pfandBackend={pfandBackend}
       products={produkte}
       pfandProdukte={pfandProdukte}
       vorgang={verkauf}

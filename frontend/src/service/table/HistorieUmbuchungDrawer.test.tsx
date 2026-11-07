@@ -12,7 +12,6 @@ import { renderWithBackend } from '@/test/render'
 import type { Bestellung, Position } from './Bestellung'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import type { Tisch } from './Tisch'
-import { TischBackend } from './TischBackend'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -66,7 +65,6 @@ const quelle: Bestellung = {
 function renderDrawer(fake: FakeBackend = backend()): FakeBackend {
   renderWithBackend(
     <HistorieUmbuchungDrawer
-      backend={new TischBackend(fake)}
       tisch={tisch}
       quelle={quelle}
       onClose={vi.fn()}
@@ -208,7 +206,6 @@ describe('HistorieUmbuchungDrawer', () => {
     const fake = backend()
     renderWithBackend(
       <HistorieUmbuchungDrawer
-        backend={new TischBackend(fake)}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}
@@ -243,7 +240,6 @@ describe('HistorieUmbuchungDrawer', () => {
     const fake = backend()
     renderWithBackend(
       <HistorieUmbuchungDrawer
-        backend={new TischBackend(fake)}
         tisch={tisch}
         quelle={{ ...quelle, umbuchbarePositionen: [position, zweite] }}
         onClose={vi.fn()}

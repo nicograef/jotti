@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { type BackendClient, BackendSingleton } from '@/lib/Backend'
+import type { BackendClient } from '@/lib/Backend'
 
 import { belegAnfordern, type BelegStatus } from '../beleg'
 import {
@@ -50,5 +50,3 @@ export class PfandBackend {
     return belegAnfordern(this.backend, body)
   }
 }
-
-export const pfandBackend = new PfandBackend(BackendSingleton)

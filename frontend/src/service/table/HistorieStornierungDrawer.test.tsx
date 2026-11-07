@@ -46,7 +46,6 @@ describe('HistorieStornierungDrawer', () => {
   it('rendert Positionsliste im DrawerBody; Pflicht-Kommentar und Buttons im sichtbaren Footer', () => {
     render(
       <HistorieStornierungDrawer
-        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}
@@ -74,7 +73,6 @@ describe('HistorieStornierungDrawer', () => {
   it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', () => {
     render(
       <HistorieStornierungDrawer
-        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}
@@ -92,7 +90,6 @@ describe('HistorieStornierungDrawer', () => {
     const user = userEvent.setup()
     render(
       <HistorieStornierungDrawer
-        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}
@@ -123,7 +120,6 @@ describe('HistorieStornierungDrawer im Vorgangs-Register', () => {
     const user = userEvent.setup()
     const { unmount } = render(
       <HistorieStornierungDrawer
-        backend={{ stornierungErteilen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         quelle={quelle}
         onClose={vi.fn()}

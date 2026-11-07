@@ -8,13 +8,13 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { parseCents } from '@/lib/utils'
 
 import type { VerkaufPositionInput } from '../direktverkauf/Direktverkauf'
+import { pfandBackend } from '../pfand/hooks'
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import {
   istPfandrueckgabeAbweichend,
   pfandAuswahl,
   type PfandVorgang,
 } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
@@ -44,7 +44,6 @@ interface KassierAbschlussProps {
   kassiert: () => void
   // Läuft, wenn der Server den Kauf mit `pfandrueckgabe_abweichend` abweist.
   kaufVerworfen?: () => void
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   // 0 für den Direktverkauf.
@@ -155,7 +154,7 @@ export function KassierAbschluss(props: KassierAbschlussProps) {
 
   const onPfandSubmit = async () => {
     await pfandAuszahlung.run(async () => {
-      await props.pfandBackend.pfandZurueckgeben({
+      await pfandBackend.pfandZurueckgeben({
         rueckgabeId: pfand.rueckgabeId,
         tischId: props.pfandTischId,
         positionen: pfand.positionen,

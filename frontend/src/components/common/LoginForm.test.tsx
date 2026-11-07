@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { AuthBackend } from '@/lib/AuthBackend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signOut, testToken } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -36,7 +35,7 @@ function renderLogin(
 ) {
   const { queryClient } = renderWithBackend(
     <MemoryRouter>
-      <LoginForm backend={new AuthBackend(fake)} />
+      <LoginForm />
     </MemoryRouter>,
     fake,
   )

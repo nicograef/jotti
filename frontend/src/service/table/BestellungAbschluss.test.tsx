@@ -1,9 +1,11 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type { BestellungAufnehmen } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
@@ -36,37 +38,35 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
 function renderSpalte(
-  bestellungAufnehmen: () => Promise<void> = vi
-    .fn()
-    .mockResolvedValue(undefined),
+  fake = new FakeBackend().respond('service/bestellung-aufnehmen', {}),
 ) {
   const bestellungAufgenommen = vi.fn()
-  render(
+  renderWithBackend(
     <BestellungAbschlussHarness
       variant="spalte"
-      backend={{ bestellungAufnehmen }}
       tisch={tisch}
       receiptItems={receiptItems}
       positionen={positionen}
       totalCents={700}
       bestellungAufgenommen={bestellungAufgenommen}
     />,
+    fake,
   )
-  return { bestellungAufnehmen, bestellungAufgenommen }
+  return { fake, bestellungAufgenommen }
 }
 
 describe('BestellungAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
-    render(
+    renderWithBackend(
       <BestellungAbschlussHarness
         variant="spalte"
-        backend={{ bestellungAufnehmen: vi.fn() }}
         tisch={tisch}
         receiptItems={[]}
         positionen={[]}
         totalCents={0}
         bestellungAufgenommen={vi.fn()}
       />,
+      new FakeBackend(),
     )
 
     expect(screen.getByText(/Produkte auswählen/)).toBeInTheDocument()
@@ -77,7 +77,7 @@ describe('BestellungAbschluss (Spalte)', () => {
 
   it('zeigt Beleg, Tischname und Gesamtsumme und nimmt mit genau einem Backend-Call auf', async () => {
     const user = userEvent.setup()
-    const { bestellungAufnehmen, bestellungAufgenommen } = renderSpalte()
+    const { fake, bestellungAufgenommen } = renderSpalte()
 
     expect(screen.getByRole('heading', { name: 'Stammtisch' })).toBeVisible()
     expect(screen.getByText(/Bratwurst/)).toBeInTheDocument()
@@ -92,57 +92,47 @@ describe('BestellungAbschluss (Spalte)', () => {
     )
 
     await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+      expect(bestellungAufgenommen).toHaveBeenCalledTimes(1)
     })
-    expect(bestellungAufnehmen).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(fake.bodies('service/bestellung-aufnehmen')).toEqual([
+      {
         // oxlint-disable-next-line typescript/no-unsafe-assignment
         bestellungId: expect.stringMatching(UUID),
         tischId: 1,
         positionen,
         kommentar: '',
-      }),
-    )
-    expect(bestellungAufgenommen).toHaveBeenCalledTimes(1)
+      },
+    ])
   })
 
   it('erneuert den bestellungId, wenn sich der Kommentar nach einem Fehlversuch ändert', async () => {
     const user = userEvent.setup()
-    const bestellungAufnehmen = vi
-      .fn<(b: BestellungAufnehmen) => Promise<void>>()
-      .mockRejectedValueOnce(new Error('kaputt'))
-      .mockResolvedValue(undefined)
-    render(
-      <BestellungAbschlussHarness
-        variant="spalte"
-        backend={{ bestellungAufnehmen }}
-        tisch={tisch}
-        receiptItems={receiptItems}
-        positionen={positionen}
-        totalCents={700}
-        bestellungAufgenommen={vi.fn()}
-      />,
+    const { fake } = renderSpalte(
+      new FakeBackend().respond(
+        'service/bestellung-aufnehmen',
+        vi.fn().mockRejectedValueOnce(new Error('kaputt')).mockReturnValue({}),
+      ),
     )
+    const bestellungen = () =>
+      fake.bodies('service/bestellung-aufnehmen') as BestellungAufnehmen[]
 
     const aufnehmen = () =>
       screen.getByRole('button', { name: 'Bestellung aufnehmen' })
 
     await user.click(aufnehmen())
     await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(1)
+      expect(bestellungen()).toHaveLength(1)
     })
-    const ersterKey = bestellungAufnehmen.mock.calls[0][0].bestellungId
+    const ersterKey = bestellungen()[0].bestellungId
 
     // Geänderter Inhalt ist ein anderer Vorgang: Mit dem alten Schlüssel würde
     // das Backend ihn als Duplikat verwerfen.
     await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Zwiebeln')
     await user.click(aufnehmen())
     await waitFor(() => {
-      expect(bestellungAufnehmen).toHaveBeenCalledTimes(2)
+      expect(bestellungen()).toHaveLength(2)
     })
-    expect(bestellungAufnehmen.mock.calls[1][0].bestellungId).not.toBe(
-      ersterKey,
-    )
-    expect(bestellungAufnehmen.mock.calls[1][0].kommentar).toBe('Ohne Zwiebeln')
+    expect(bestellungen()[1].bestellungId).not.toBe(ersterKey)
+    expect(bestellungen()[1].kommentar).toBe('Ohne Zwiebeln')
   })
 })

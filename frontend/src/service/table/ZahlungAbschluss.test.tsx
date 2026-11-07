@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -12,7 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
+import { FakeBackend } from '@/test/FakeBackend'
 import { testPosition } from '@/test/fixtures'
+import { renderWithBackend } from '@/test/render'
 
 import type { Tisch } from './Tisch'
 import type { ZahlungKassieren } from './Zahlung'
@@ -69,49 +65,53 @@ const pfandProdukt: Produkt = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
-const position = testPosition({
-  positionId: '00000000-0000-0000-0000-000000000001',
-  menge: 2,
-})
+const position = testPosition({ menge: 2 })
+
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('service/zahlung-kassieren', {})
+    .respond('service/pfand-zurueckgeben', {})
+}
+
+const zahlungen = (fake: FakeBackend) =>
+  fake.bodies('service/zahlung-kassieren') as ZahlungKassieren[]
+const rueckgaben = (fake: FakeBackend) =>
+  fake.bodies('service/pfand-zurueckgeben') as { rueckgabeId: string }[]
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein
 // Drawer, kein Dock.
-function renderSpalte(
-  zahlungKassieren: () => Promise<void> = vi.fn().mockResolvedValue(undefined),
-) {
+function renderSpalte(fake = backend()) {
   const zahlungKassiert = vi.fn()
-  render(
+  renderWithBackend(
     <ZahlungAbschlussHarness
-      pfandBackend={{ pfandZurueckgeben: vi.fn() }}
       pfandProdukte={[]}
       pfandAusgezahlt={vi.fn()}
       variant="spalte"
-      backend={{ zahlungKassieren }}
       tisch={tisch}
       positionenToPay={[{ ...position, menge: 2 }]}
       totalCents={700}
       restNachZahlungCents={200}
       zahlungKassiert={zahlungKassiert}
     />,
+    fake,
   )
-  return { zahlungKassieren, zahlungKassiert }
+  return { fake, zahlungKassiert }
 }
 
 describe('ZahlungAbschluss (Spalte)', () => {
   it('zeigt im Leerzustand einen Hinweis und deaktiviert den Aktionsbutton', () => {
-    render(
+    renderWithBackend(
       <ZahlungAbschlussHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         pfandAusgezahlt={vi.fn()}
         variant="spalte"
-        backend={{ zahlungKassieren: vi.fn() }}
         tisch={tisch}
         positionenToPay={[]}
         totalCents={0}
         restNachZahlungCents={900}
         zahlungKassiert={vi.fn()}
       />,
+      backend(),
     )
 
     expect(screen.getByText(/Positionen auswählen/)).toBeInTheDocument()
@@ -120,14 +120,11 @@ describe('ZahlungAbschluss (Spalte)', () => {
 
   it('sends only the Pfand return with the table id', async () => {
     const user = userEvent.setup()
-    const zahlungKassieren = vi.fn()
-    const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
+    const fake = backend()
     const pfandAusgezahlt = vi.fn()
-    render(
+    renderWithBackend(
       <ZahlungAbschlussHarness
         variant="spalte"
-        backend={{ zahlungKassieren }}
-        pfandBackend={{ pfandZurueckgeben }}
         pfandProdukte={[pfandProdukt]}
         tisch={tisch}
         positionenToPay={[]}
@@ -136,6 +133,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
         zahlungKassiert={vi.fn()}
         pfandAusgezahlt={pfandAusgezahlt}
       />,
+      fake,
     )
 
     expect(screen.getByText('Pfand zurück')).toBeInTheDocument()
@@ -150,27 +148,26 @@ describe('ZahlungAbschluss (Spalte)', () => {
     await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
 
     await waitFor(() => {
-      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+      expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
     })
-    expect(pfandZurueckgeben).toHaveBeenCalledWith({
-      // oxlint-disable-next-line typescript/no-unsafe-assignment
-      rueckgabeId: expect.stringMatching(UUID),
-      tischId: 1,
-      positionen: [{ produktId: 9, varianteId: 19, menge: 2 }],
-      kommentar: 'Zwei Gläser',
-    })
-    expect(zahlungKassieren).not.toHaveBeenCalled()
-    expect(pfandAusgezahlt).toHaveBeenCalledTimes(1)
+    expect(fake.bodies('service/pfand-zurueckgeben')).toEqual([
+      {
+        // oxlint-disable-next-line typescript/no-unsafe-assignment
+        rueckgabeId: expect.stringMatching(UUID),
+        tischId: 1,
+        positionen: [{ produktId: 9, varianteId: 19, menge: 2 }],
+        kommentar: 'Zwei Gläser',
+      },
+    ])
+    expect(zahlungen(fake)).toHaveLength(0)
   })
 
   it('nets the Pfand against the payment', async () => {
     const user = userEvent.setup()
-    const zahlungKassieren = vi.fn().mockResolvedValue(undefined)
-    render(
+    const fake = backend()
+    renderWithBackend(
       <ZahlungAbschlussHarness
         variant="spalte"
-        backend={{ zahlungKassieren }}
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[pfandProdukt]}
         tisch={tisch}
         positionenToPay={[{ ...position, menge: 2 }]}
@@ -179,6 +176,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
         zahlungKassiert={vi.fn()}
         pfandAusgezahlt={vi.fn()}
       />,
+      fake,
     )
 
     await user.click(
@@ -202,17 +200,18 @@ describe('ZahlungAbschluss (Spalte)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Kassieren' }))
     await waitFor(() => {
-      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
-    })
-    expect(zahlungKassieren).toHaveBeenCalledWith({
-      tischId: 1,
-      positionen: [{ positionId: position.positionId, menge: 2 }],
-      kommentar: '',
-      pfand: {
-        // oxlint-disable-next-line typescript/no-unsafe-assignment
-        rueckgabeId: expect.stringMatching(UUID),
-        positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
-      },
+      expect(zahlungen(fake)).toEqual([
+        {
+          tischId: 1,
+          positionen: [{ positionId: position.positionId, menge: 2 }],
+          kommentar: '',
+          pfand: {
+            // oxlint-disable-next-line typescript/no-unsafe-assignment
+            rueckgabeId: expect.stringMatching(UUID),
+            positionen: [{ produktId: 9, varianteId: 19, menge: 1 }],
+          },
+        },
+      ])
     })
   })
 
@@ -221,26 +220,25 @@ describe('ZahlungAbschluss (Spalte)', () => {
   // lässt den Server die Wiederholung als verrechnet abweisen.
   it('keeps the rueckgabeId when a refetch prunes the paid positions', async () => {
     const user = userEvent.setup()
-    const zahlungKassieren = vi
-      .fn<(zahlung: ZahlungKassieren) => Promise<void>>()
-      .mockRejectedValue(new Error('Netzwerkfehler'))
-    const pfandZurueckgeben = vi.fn().mockResolvedValue(undefined)
+    const fake = backend().fail(
+      'service/zahlung-kassieren',
+      new Error('Netzwerkfehler'),
+    )
     const props = {
       variant: 'spalte' as const,
-      backend: { zahlungKassieren },
-      pfandBackend: { pfandZurueckgeben },
       pfandProdukte: [pfandProdukt],
       tisch,
       restNachZahlungCents: 200,
       zahlungKassiert: vi.fn(),
       pfandAusgezahlt: vi.fn(),
     }
-    const { rerender } = render(
+    const { rerender } = renderWithBackend(
       <ZahlungAbschlussHarness
         {...props}
         positionenToPay={[{ ...position, menge: 2 }]}
         totalCents={700}
       />,
+      fake,
     )
 
     await user.click(
@@ -248,7 +246,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Kassieren' }))
     await waitFor(() => {
-      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+      expect(zahlungen(fake)).toHaveLength(1)
     })
 
     rerender(
@@ -260,13 +258,11 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
     await waitFor(() => {
-      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+      expect(rueckgaben(fake)).toHaveLength(1)
     })
 
-    const [[zahlung]] = zahlungKassieren.mock.calls
-    const [[rueckgabe]] = pfandZurueckgeben.mock.calls as [
-      [{ rueckgabeId: string }],
-    ]
+    const [zahlung] = zahlungen(fake)
+    const [rueckgabe] = rueckgaben(fake)
     expect(zahlung.pfand?.rueckgabeId).toMatch(UUID)
     expect(rueckgabe.rueckgabeId).toBe(zahlung.pfand?.rueckgabeId)
   })
@@ -274,30 +270,30 @@ describe('ZahlungAbschluss (Spalte)', () => {
   it('keeps the rueckgabeId across Pfand quantities and payment selections and renews it with an empty Pfand selection', async () => {
     const user = userEvent.setup()
     // Jede Antwort geht verloren: Auswahl und rueckgabeId bleiben stehen.
-    const zahlungKassieren = vi
-      .fn<(zahlung: ZahlungKassieren) => Promise<void>>()
-      .mockRejectedValue(new Error('Netzwerkfehler'))
+    const fake = backend().fail(
+      'service/zahlung-kassieren',
+      new Error('Netzwerkfehler'),
+    )
     const props = {
       variant: 'spalte' as const,
-      backend: { zahlungKassieren },
-      pfandBackend: { pfandZurueckgeben: vi.fn() },
       pfandProdukte: [pfandProdukt],
       tisch,
       restNachZahlungCents: 200,
       zahlungKassiert: vi.fn(),
       pfandAusgezahlt: vi.fn(),
     }
-    const { rerender } = render(
+    const { rerender } = renderWithBackend(
       <ZahlungAbschlussHarness
         {...props}
         positionenToPay={[{ ...position, menge: 2 }]}
         totalCents={700}
       />,
+      fake,
     )
     const kassieren = async (aufrufe: number) => {
       await user.click(screen.getByRole('button', { name: 'Kassieren' }))
       await waitFor(() => {
-        expect(zahlungKassieren).toHaveBeenCalledTimes(aufrufe)
+        expect(zahlungen(fake)).toHaveLength(aufrufe)
       })
     }
     const hinzufuegen = () =>
@@ -322,8 +318,9 @@ describe('ZahlungAbschluss (Spalte)', () => {
     await hinzufuegen()
     await kassieren(4)
 
-    const [erste, mehrPfand, andereZahlung, neuesPfand] =
-      zahlungKassieren.mock.calls.map(([zahlung]) => zahlung.pfand)
+    const [erste, mehrPfand, andereZahlung, neuesPfand] = zahlungen(fake).map(
+      (zahlung) => zahlung.pfand,
+    )
     expect(erste?.positionen).toEqual([
       { produktId: 9, varianteId: 19, menge: 1 },
     ])
@@ -341,15 +338,18 @@ describe('ZahlungAbschluss (Spalte)', () => {
   // der neu erfassten Rückgabe eine neue rueckgabeId.
   it('clears the Pfand selection after pfandrueckgabe_abweichend', async () => {
     const user = userEvent.setup()
-    const pfandZurueckgeben = vi
-      .fn()
-      .mockRejectedValueOnce(new BackendError(409, 'pfandrueckgabe_abweichend'))
-      .mockResolvedValue(undefined)
-    render(
+    const fake = backend().respond(
+      'service/pfand-zurueckgeben',
+      vi
+        .fn()
+        .mockRejectedValueOnce(
+          new BackendError(409, 'pfandrueckgabe_abweichend'),
+        )
+        .mockReturnValue({}),
+    )
+    renderWithBackend(
       <ZahlungAbschlussHarness
         variant="spalte"
-        backend={{ zahlungKassieren: vi.fn() }}
-        pfandBackend={{ pfandZurueckgeben }}
         pfandProdukte={[pfandProdukt]}
         tisch={tisch}
         positionenToPay={[]}
@@ -358,6 +358,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
         zahlungKassiert={vi.fn()}
         pfandAusgezahlt={vi.fn()}
       />,
+      fake,
     )
     const auszahlen = () =>
       user.click(screen.getByRole('button', { name: 'Pfand auszahlen' }))
@@ -367,7 +368,7 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
     await auszahlen()
     await waitFor(() => {
-      expect(pfandZurueckgeben).toHaveBeenCalledTimes(1)
+      expect(rueckgaben(fake)).toHaveLength(1)
     })
     expect(
       screen.queryByRole('button', { name: 'Pfand auszahlen' }),
@@ -378,13 +379,10 @@ describe('ZahlungAbschluss (Spalte)', () => {
     )
     await auszahlen()
     await waitFor(() => {
-      expect(pfandZurueckgeben).toHaveBeenCalledTimes(2)
+      expect(rueckgaben(fake)).toHaveLength(2)
     })
 
-    const [[abgewiesen], [neu]] = pfandZurueckgeben.mock.calls as [
-      [{ rueckgabeId: string }],
-      [{ rueckgabeId: string }],
-    ]
+    const [abgewiesen, neu] = rueckgaben(fake)
     expect(neu.rueckgabeId).toMatch(UUID)
     expect(neu.rueckgabeId).not.toBe(abgewiesen.rueckgabeId)
   })
@@ -417,53 +415,44 @@ describe('ZahlungAbschluss (Spalte)', () => {
 
   it('kassiert mit genau einem Backend-Call und der erwarteten Nutzlast (ohne Schlüssel)', async () => {
     const user = userEvent.setup()
-    const { zahlungKassieren, zahlungKassiert } = renderSpalte()
+    const { fake, zahlungKassiert } = renderSpalte()
 
     await user.click(screen.getByRole('button', { name: 'Kassieren' }))
 
     await waitFor(() => {
-      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+      expect(zahlungKassiert).toHaveBeenCalledTimes(1)
     })
-    expect(zahlungKassieren).toHaveBeenCalledWith({
-      tischId: 1,
-      positionen: [{ positionId: position.positionId, menge: 2 }],
-      kommentar: '',
-    })
-    expect(zahlungKassiert).toHaveBeenCalledTimes(1)
+    expect(zahlungen(fake)).toEqual([
+      {
+        tischId: 1,
+        positionen: [{ positionId: position.positionId, menge: 2 }],
+        kommentar: '',
+      },
+    ])
   })
 
   it('löst bei Doppelklick keinen zweiten Aufruf aus', async () => {
     const user = userEvent.setup()
-    let resolve: () => void = () => undefined
-    const zahlungKassieren = vi.fn(
-      () =>
-        new Promise<void>((r) => {
-          resolve = r
-        }),
-    )
-    render(
-      <ZahlungAbschlussHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
-        pfandProdukte={[]}
-        pfandAusgezahlt={vi.fn()}
-        variant="spalte"
-        backend={{ zahlungKassieren }}
-        tisch={tisch}
-        positionenToPay={[{ ...position, menge: 2 }]}
-        totalCents={700}
-        restNachZahlungCents={200}
-        zahlungKassiert={vi.fn()}
-      />,
+    let resolve: (antwort: object) => void = () => undefined
+    const { fake, zahlungKassiert } = renderSpalte(
+      backend().respond(
+        'service/zahlung-kassieren',
+        () =>
+          new Promise<object>((r) => {
+            resolve = r
+          }),
+      ),
     )
 
     const button = screen.getByRole('button', { name: 'Kassieren' })
     await user.click(button)
     // Der Loading-Guard deaktiviert den Button: kein zweiter Aufruf.
     await user.click(button)
-    resolve()
+    resolve({})
 
     await waitFor(() => {
-      expect(zahlungKassieren).toHaveBeenCalledTimes(1)
+      expect(zahlungKassiert).toHaveBeenCalledTimes(1)
     })
+    expect(zahlungen(fake)).toHaveLength(1)
   })
 })

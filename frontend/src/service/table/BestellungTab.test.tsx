@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import { act, cleanup, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,12 +7,11 @@ import { useVorgang } from '@/hooks/use-vorgang'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
-import { setViewportWidth } from '@/test/render'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
 import { BestellungTab } from './BestellungTab'
 import type { Tisch } from './Tisch'
-import { TischBackend } from './TischBackend'
 
 // Der Bestell-Korb liegt in TablePage; für die isolierten Komponenten-Tests
 // stellt dieser Harness die gehobene Steuerung bereit.
@@ -40,10 +39,8 @@ afterEach(() => {
   setViewportWidth(1024)
 })
 
-function tischBackend(): TischBackend {
-  return new TischBackend(
-    new FakeBackend().respond('service/bestellung-aufnehmen', {}),
-  )
+function backend(): FakeBackend {
+  return new FakeBackend().respond('service/bestellung-aufnehmen', {})
 }
 
 // The matchMedia polyfill in setup.ts never reports changes; this one collects
@@ -73,16 +70,16 @@ const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 describe('BestellungTab Aktionsleiste', () => {
   it('ist ohne Auswahl deaktiviert und zeigt nach Auswahl Anzahl und Summe', async () => {
     const user = userEvent.setup()
-    render(
+    renderWithBackend(
       <ServiceDock leiste={null}>
         <BestellungHarness
-          backend={tischBackend()}
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
           onErfolg={vi.fn()}
         />
       </ServiceDock>,
+      backend(),
     )
 
     expect(
@@ -102,14 +99,14 @@ describe('BestellungTab Aktionsleiste', () => {
     setViewportWidth(1024)
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt den Aktionsbutton selbst.
-    render(
+    renderWithBackend(
       <BestellungHarness
-        backend={tischBackend()}
         tisch={tisch}
         products={[testProdukt]}
         productsLoading={false}
         onErfolg={vi.fn()}
       />,
+      backend(),
     )
 
     expect(screen.getByText('Bratwurst')).toBeInTheDocument()
@@ -138,7 +135,6 @@ describe('BestellungTab im Vorgangs-Register', () => {
     const renderUi = () => (
       <ServiceDock leiste={null}>
         <BestellungHarness
-          backend={tischBackend()}
           tisch={tisch}
           products={[testProdukt]}
           productsLoading={false}
@@ -146,7 +142,7 @@ describe('BestellungTab im Vorgangs-Register', () => {
         />
       </ServiceDock>
     )
-    const { rerender, unmount } = render(renderUi())
+    const { rerender, unmount } = renderWithBackend(renderUi(), backend())
 
     await user.click(
       screen.getByRole('button', { name: 'Variante hinzufügen' }),

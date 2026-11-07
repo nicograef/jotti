@@ -37,10 +37,10 @@ import { toReceiptItems } from './drawerUtils'
 import { HistorieSkeletonGrid } from './HistorieSkeletonGrid'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
+import { tischBackend } from './hooks'
 import { Receipt, type ReceiptPosition } from './Receipt'
 import type { Stornierung } from './Stornierung'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 import type { Umbuchung } from './Umbuchung'
 import type { Zahlung } from './Zahlung'
 
@@ -130,13 +130,6 @@ interface TischHistorieProps {
   historie: HistorieEintrag[]
   historieLoading: boolean
   tisch: Tisch
-  backend: Pick<
-    TischBackend,
-    | 'stornierungErteilen'
-    | 'bestellungUmbuchen'
-    | 'belegDrucken'
-    | 'stornobelegDrucken'
-  >
   onErfolg: (nachricht: string) => void
 }
 
@@ -144,7 +137,6 @@ export function TischHistorie({
   historie,
   historieLoading,
   tisch,
-  backend,
   onErfolg,
 }: TischHistorieProps) {
   const [detail, setDetail] = useState<HistorieEintrag | null>(null)
@@ -173,7 +165,6 @@ export function TischHistorie({
           detail={detail}
           zeile={zeilenmodell(detail)}
           tisch={tisch}
-          backend={backend}
           setDetail={setDetail}
           setStornierenQuelle={setStornierenQuelle}
           setUmbuchenQuelle={setUmbuchenQuelle}
@@ -181,7 +172,6 @@ export function TischHistorie({
       )}
       {stornierenQuelle && (
         <HistorieStornierungDrawer
-          backend={backend}
           tisch={tisch}
           quelle={stornierenQuelle}
           onClose={() => {
@@ -195,7 +185,6 @@ export function TischHistorie({
       )}
       {umbuchenQuelle && (
         <HistorieUmbuchungDrawer
-          backend={backend}
           tisch={tisch}
           quelle={umbuchenQuelle}
           onClose={() => {
@@ -217,7 +206,6 @@ function HistorieDetail({
   detail,
   zeile,
   tisch,
-  backend,
   setDetail,
   setStornierenQuelle,
   setUmbuchenQuelle,
@@ -225,7 +213,6 @@ function HistorieDetail({
   detail: HistorieEintrag
   zeile: Zeilenmodell
   tisch: Tisch
-  backend: Pick<TischBackend, 'belegDrucken' | 'stornobelegDrucken'>
   setDetail: Dispatch<SetStateAction<HistorieEintrag | null>>
   setStornierenQuelle: Dispatch<SetStateAction<Quelle | null>>
   setUmbuchenQuelle: Dispatch<SetStateAction<Quelle | null>>
@@ -243,7 +230,7 @@ function HistorieDetail({
   const stornobelegAnfordern = (stornierungId: string) => {
     void runBelegDrucken(async () => {
       const status = await belegDruckenMitNachfassen(() =>
-        backend.stornobelegDrucken(tisch.id, stornierungId),
+        tischBackend.stornobelegDrucken(tisch.id, stornierungId),
       )
       meldeBelegStatus(
         status,
@@ -297,7 +284,7 @@ function HistorieDetail({
               onAction: () => {
                 void runBelegDrucken(async () => {
                   const status = await belegDruckenMitNachfassen(() =>
-                    backend.belegDrucken(tisch.id, detail.id),
+                    tischBackend.belegDrucken(tisch.id, detail.id),
                   )
                   meldeBelegStatus(
                     status,

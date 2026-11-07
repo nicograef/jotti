@@ -8,10 +8,8 @@ import { BestellungAbschluss } from './BestellungAbschluss'
 import { DockActionButton } from './DockActionButton'
 import type { ReceiptPosition } from './Receipt'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 
 interface BestellungDrawerProps {
-  backend: Pick<TischBackend, 'bestellungAufnehmen'>
   tisch: Tisch
   // Von BestellungTab einmal abgeleitet, wie für die Spalte.
   receiptItems: ReceiptPosition[]
@@ -44,7 +42,6 @@ export function BestellungDrawer(props: BestellungDrawerProps) {
       </DrawerTrigger>
       <BestellungAbschluss
         variant="sheet"
-        backend={props.backend}
         tisch={props.tisch}
         receiptItems={props.receiptItems}
         positionen={props.positionen}

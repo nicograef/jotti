@@ -3,7 +3,6 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import {
   calculateAnzahl,
@@ -12,12 +11,9 @@ import {
 } from '../table/drawerUtils'
 import { ProductList, ProductListSkeleton } from '../table/ProductList'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
-import type { DirektverkaufBackend } from './DirektverkaufBackend'
 import { DirektverkaufDrawer } from './DirektverkaufDrawer'
 
 interface DirektverkaufTabProps {
-  backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   products: Produkt[]
   pfandProdukte: Produkt[]
   // Von DirektverkaufPage gehoben, damit Korb, verkaufId, Pfand und rueckgabeId einen Blick in die Historie überstehen.
@@ -28,8 +24,6 @@ interface DirektverkaufTabProps {
 }
 
 export function DirektverkaufTab({
-  backend,
-  pfandBackend,
   products,
   pfandProdukte,
   vorgang,
@@ -74,8 +68,6 @@ export function DirektverkaufTab({
         abschluss={
           <DirektverkaufAbschluss
             variant="spalte"
-            backend={backend}
-            pfandBackend={pfandBackend}
             pfandProdukte={pfandProdukte}
             pfandVorgang={pfandVorgang}
             receiptItems={receiptItems}
@@ -94,8 +86,6 @@ export function DirektverkaufTab({
   return (
     <>
       <DirektverkaufDrawer
-        backend={backend}
-        pfandBackend={pfandBackend}
         pfandProdukte={pfandProdukte}
         pfandVorgang={pfandVorgang}
         receiptItems={receiptItems}

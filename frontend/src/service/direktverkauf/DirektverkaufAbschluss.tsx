@@ -2,15 +2,12 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { KassierAbschluss } from '../table/KassierAbschluss'
 import type { ReceiptPosition } from '../table/Receipt'
 import type { VerkaufPositionInput } from './Direktverkauf'
-import type { DirektverkaufBackend } from './DirektverkaufBackend'
+import { direktverkaufBackend } from './hooks'
 
 interface DirektverkaufAbschlussProps {
-  backend: Pick<DirektverkaufBackend, 'direktverkaufTaetigen'>
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
@@ -43,7 +40,7 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       totalCents={props.totalCents}
       kassieren={(eingabe) => {
         const inhalt = { positionen: props.positionen, ...eingabe }
-        return props.backend.direktverkaufTaetigen({
+        return direktverkaufBackend.direktverkaufTaetigen({
           verkaufId: props.vorgang.schluesselFuer(inhalt),
           ...inhalt,
         })
@@ -52,7 +49,6 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       setKommentar={props.vorgang.setKommentar}
       kassiert={props.verkaufAbgeschlossen}
       kaufVerworfen={props.verkaufVerworfen}
-      pfandBackend={props.pfandBackend}
       pfandProdukte={props.pfandProdukte}
       pfandVorgang={props.pfandVorgang}
       pfandTischId={0}

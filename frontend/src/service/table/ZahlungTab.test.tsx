@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,12 +7,11 @@ import { useVorgang } from '@/hooks/use-vorgang'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testPosition } from '@/test/fixtures'
-import { setViewportWidth } from '@/test/render'
+import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import type { Tisch } from './Tisch'
-import { TischBackend } from './TischBackend'
 import { ZahlungTab } from './ZahlungTab'
 
 // Der Kassieren-Vorgang liegt in TablePage; dieser Harness stellt ihn
@@ -54,10 +53,8 @@ afterEach(() => {
   signOut()
 })
 
-function tischBackend(): TischBackend {
-  return new TischBackend(
-    new FakeBackend().respond('service/zahlung-kassieren', {}),
-  )
+function backend(): FakeBackend {
+  return new FakeBackend().respond('service/zahlung-kassieren', {})
 }
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
@@ -79,17 +76,16 @@ const fremdePosition: Position = {
 }
 
 function renderZahlung(positionen: Position[] = [position]) {
-  render(
+  renderWithBackend(
     <ServiceDock leiste={null}>
       <ZahlungHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
-        backend={tischBackend()}
         tisch={tisch}
         positionen={positionen}
         onErfolg={vi.fn()}
       />
     </ServiceDock>,
+    backend(),
   )
 }
 
@@ -98,15 +94,14 @@ describe('ZahlungTab feste Spalte (ab lg)', () => {
     setViewportWidth(1024)
     const user = userEvent.setup()
     // Kein ServiceDock: die feste Spalte trägt Aktionsbutton und Restbetrag.
-    render(
+    renderWithBackend(
       <ZahlungHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
-        backend={tischBackend()}
         tisch={tisch}
         positionen={[position]}
         onErfolg={vi.fn()}
       />,
+      backend(),
     )
 
     expect(screen.getByText('Bratwurst Normal')).toBeInTheDocument()

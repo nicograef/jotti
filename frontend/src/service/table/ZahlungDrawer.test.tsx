@@ -1,10 +1,12 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
+import { FakeBackend } from '@/test/FakeBackend'
 import { testPosition } from '@/test/fixtures'
+import { renderWithBackend } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
 import type { Tisch } from './Tisch'
@@ -38,24 +40,18 @@ afterEach(() => {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 
-const position = testPosition({
-  positionId: '00000000-0000-0000-0000-000000000001',
-  menge: 2,
-})
+const position = testPosition({ menge: 2 })
 
-function renderDrawer(
-  zahlungKassieren: () => Promise<void> = vi.fn().mockResolvedValue(undefined),
-) {
+// Eine Funktion als `antwort` beantwortet die Anfrage selbst (FakeBackend.respond).
+function renderDrawer(antwort: unknown = {}) {
   const zahlungKassiert = vi.fn()
   // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
   // Drawer hier in ein Dock eingebettet (leiste bleibt leer).
-  render(
+  renderWithBackend(
     <ServiceDock leiste={null}>
       <ZahlungDrawerHarness
-        pfandBackend={{ pfandZurueckgeben: vi.fn() }}
         pfandProdukte={[]}
         pfandAusgezahlt={vi.fn()}
-        backend={{ zahlungKassieren }}
         tisch={tisch}
         positionenToPay={[{ ...position, menge: 1 }]}
         totalCents={350}
@@ -64,6 +60,7 @@ function renderDrawer(
         zahlungKassiert={zahlungKassiert}
       />
     </ServiceDock>,
+    new FakeBackend().respond('service/zahlung-kassieren', antwort),
   )
   return { zahlungKassiert }
 }
@@ -126,10 +123,10 @@ describe('ZahlungDrawer', () => {
 
   it('ignoriert Escape und Backdrop-Tap während des Submits und schließt nach Erfolg', async () => {
     const user = userEvent.setup()
-    let resolveSubmit: () => void = () => undefined
+    let resolveSubmit: (antwort: object) => void = () => undefined
     const { zahlungKassiert } = renderDrawer(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<object>((resolve) => {
           resolveSubmit = resolve
         }),
     )
@@ -154,7 +151,7 @@ describe('ZahlungDrawer', () => {
     })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
-    resolveSubmit()
+    resolveSubmit({})
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })

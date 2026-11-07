@@ -4,18 +4,14 @@ import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import type { PfandBackend } from '../pfand/PfandBackend'
 import { DockActionSlot } from '../ServiceDock'
 import type { Position } from './Bestellung'
 import { DockActionButton } from './DockActionButton'
 import { RestbetragZeile } from './RestbetragZeile'
 import type { Tisch } from './Tisch'
-import type { TischBackend } from './TischBackend'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 
 interface ZahlungDrawerProps {
-  backend: Pick<TischBackend, 'zahlungKassieren'>
-  pfandBackend: Pick<PfandBackend, 'pfandZurueckgeben'>
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   tisch: Tisch
@@ -58,8 +54,6 @@ export function ZahlungDrawer(props: ZahlungDrawerProps) {
       </DrawerTrigger>
       <ZahlungAbschluss
         variant="sheet"
-        backend={props.backend}
-        pfandBackend={props.pfandBackend}
         pfandProdukte={props.pfandProdukte}
         pfandVorgang={props.pfandVorgang}
         tisch={props.tisch}

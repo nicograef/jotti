@@ -39,7 +39,6 @@ function renderDrawer(mengen: Record<number, number>) {
   render(
     <ServiceDock leiste={null}>
       <BestellungDrawerHarness
-        backend={{ bestellungAufnehmen: vi.fn().mockResolvedValue(undefined) }}
         tisch={tisch}
         receiptItems={receiptItems}
         positionen={inputItems}
