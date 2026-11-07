@@ -21,24 +21,26 @@ func NewRepository(db *sql.DB) Repository {
 }
 
 // jsonVariante spiegelt die Feldliste der View produkt_varianten_json
-// (database/migrations/09_produkt_varianten_json.up.sql).
+// (database/migrations/18_pfand_verknuepfung.up.sql).
 type jsonVariante struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	PreisCents int       `json:"preisCents"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	PreisCents      int       `json:"preisCents"`
+	Status          string    `json:"status"`
+	PfandVarianteID *int      `json:"pfandVarianteId"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
 func (jv *jsonVariante) toDomain() produkt.Variante {
 	return produkt.Variante{
-		ID:         jv.ID,
-		Name:       jv.Name,
-		PreisCents: jv.PreisCents,
-		Status:     produkt.Status(jv.Status),
-		CreatedAt:  jv.CreatedAt,
-		UpdatedAt:  jv.UpdatedAt,
+		ID:              jv.ID,
+		Name:            jv.Name,
+		PreisCents:      jv.PreisCents,
+		Status:          produkt.Status(jv.Status),
+		PfandVarianteID: jv.PfandVarianteID,
+		CreatedAt:       jv.CreatedAt,
+		UpdatedAt:       jv.UpdatedAt,
 	}
 }
 
@@ -79,11 +81,27 @@ func produktRowToDomain(row dbgen.GetProduktRow) (produkt.Produkt, error) {
 
 func varianteRowToDomain(row dbgen.GetVarianteRow) produkt.Variante {
 	return produkt.Variante{
-		ID:         row.ID,
-		Name:       row.Name,
-		PreisCents: row.PreisCents,
-		Status:     produkt.Status(row.Status),
-		CreatedAt:  row.CreatedAt,
-		UpdatedAt:  row.UpdatedAt,
+		ID:              row.ID,
+		Name:            row.Name,
+		PreisCents:      row.PreisCents,
+		Status:          produkt.Status(row.Status),
+		PfandVarianteID: fromNullInt32(row.PfandVarianteID),
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
 	}
+}
+
+func toNullInt32(id *int) sql.NullInt32 {
+	if id == nil {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(*id), Valid: true}
+}
+
+func fromNullInt32(id sql.NullInt32) *int {
+	if !id.Valid {
+		return nil
+	}
+	v := int(id.Int32)
+	return &v
 }

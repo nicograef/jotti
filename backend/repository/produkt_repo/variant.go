@@ -35,12 +35,13 @@ func (r Repository) UpdateVarianten(ctx context.Context, varianten []produkt.Var
 
 func (r Repository) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
 	id, err := r.q.CreateVariante(ctx, dbgen.CreateVarianteParams{
-		ProduktID:  produktID,
-		Name:       v.Name,
-		PreisCents: v.PreisCents,
-		Status:     dbgen.Entitystatus(v.Status),
-		CreatedAt:  v.CreatedAt,
-		UpdatedAt:  v.UpdatedAt,
+		ProduktID:       produktID,
+		Name:            v.Name,
+		PreisCents:      v.PreisCents,
+		Status:          dbgen.Entitystatus(v.Status),
+		CreatedAt:       v.CreatedAt,
+		UpdatedAt:       v.UpdatedAt,
+		PfandVarianteID: toNullInt32(v.PfandVarianteID),
 	})
 	if err != nil {
 		return 0, db.Error(err)

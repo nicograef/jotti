@@ -3,6 +3,7 @@ package produkt
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	z "github.com/Oudwins/zog"
@@ -10,6 +11,15 @@ import (
 
 // ErrPreisUngueltig means a Variante's price violates PreisCentsSchema.
 var ErrPreisUngueltig = errors.New("invalid price")
+
+// ErrPfandZielUngueltig means the linked Variante is missing, deleted or belongs to no Pfand-Produkt.
+var ErrPfandZielUngueltig = errors.New("pfand target is no pfand variante")
+
+// ErrPfandVerkettet means a Variante of a Pfand-Produkt would link a Pfand itself.
+var ErrPfandVerkettet = errors.New("pfand produkt links a pfand")
+
+// ErrPfandSteuersatzAbweichend means the Pfand and the linking Variante differ in Steuersatz.
+var ErrPfandSteuersatzAbweichend = errors.New("pfand steuersatz differs")
 
 type Status string
 
@@ -19,13 +29,15 @@ const (
 	DeletedStatus  Status = "deleted"
 )
 
+// PfandVarianteID names the Pfand-Variante the cart adds per unit of this Variante; nil means no Pfand.
 type Variante struct {
-	ID         int
-	Name       string
-	PreisCents int
-	Status     Status
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID              int
+	Name            string
+	PreisCents      int
+	Status          Status
+	PfandVarianteID *int
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // VarianteMitProdukt verbindet eine Variante mit der ID ihres Produkts: die
@@ -49,12 +61,13 @@ var StatusSchema = z.StringLike[Status]().OneOf(
 )
 
 var VarianteSchema = z.Struct(z.Shape{
-	"ID":         IDSchema.Required(),
-	"Name":       NameSchema.Required(),
-	"PreisCents": PreisCentsSchema,
-	"Status":     StatusSchema.Required(),
-	"CreatedAt":  z.Time().Required(),
-	"UpdatedAt":  z.Time().Required(),
+	"ID":              IDSchema.Required(),
+	"Name":            NameSchema.Required(),
+	"PreisCents":      PreisCentsSchema,
+	"Status":          StatusSchema.Required(),
+	"PfandVarianteID": z.Ptr(IDSchema),
+	"CreatedAt":       z.Time().Required(),
+	"UpdatedAt":       z.Time().Required(),
 })
 
 func (v Variante) Validate() error {
@@ -65,8 +78,9 @@ func (v Variante) Validate() error {
 	return nil
 }
 
-// NewVariante assigns no ID; the persistence layer sets it.
-func NewVariante(name string, preisCents int) (Variante, error) {
+// NewVariante assigns no ID; the persistence layer sets it. PruefePfandVerknuepfung checks
+// pfandVarianteID against the catalogue; this only checks its range.
+func NewVariante(name string, preisCents int, pfandVarianteID *int) (Variante, error) {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return Variante{}, fmt.Errorf("invalid name")
 	}
@@ -75,12 +89,17 @@ func NewVariante(name string, preisCents int) (Variante, error) {
 		return Variante{}, fmt.Errorf("%w: %s", ErrPreisUngueltig, issues[0].Message)
 	}
 
+	if err := validatePfandVarianteID(pfandVarianteID); err != nil {
+		return Variante{}, err
+	}
+
 	variante := Variante{
-		Name:       name,
-		PreisCents: preisCents,
-		Status:     InactiveStatus,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		Name:            name,
+		PreisCents:      preisCents,
+		Status:          InactiveStatus,
+		PfandVarianteID: pfandVarianteID,
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	}
 
 	return variante, nil
@@ -101,7 +120,7 @@ func (v *Variante) Delete() {
 	v.UpdatedAt = time.Now().UTC()
 }
 
-func (v *Variante) UpdateDetails(name string, preisCents int) error {
+func (v *Variante) UpdateDetails(name string, preisCents int, pfandVarianteID *int) error {
 	if issue := NameSchema.Validate(&name); issue != nil {
 		return fmt.Errorf("invalid name")
 	}
@@ -110,9 +129,41 @@ func (v *Variante) UpdateDetails(name string, preisCents int) error {
 		return fmt.Errorf("%w: %s", ErrPreisUngueltig, issues[0].Message)
 	}
 
+	if err := validatePfandVarianteID(pfandVarianteID); err != nil {
+		return err
+	}
+
 	v.Name = name
 	v.PreisCents = preisCents
+	v.PfandVarianteID = pfandVarianteID
 	v.UpdatedAt = time.Now().UTC()
 
+	return nil
+}
+
+func validatePfandVarianteID(pfandVarianteID *int) error {
+	if pfandVarianteID == nil {
+		return nil
+	}
+	if issues := IDSchema.Validate(pfandVarianteID); issues != nil {
+		return fmt.Errorf("invalid pfand variante id")
+	}
+	return nil
+}
+
+// PruefePfandVerknuepfung checks that a Variante of quelle may link the Variante zielVarianteID of
+// ziel as its Pfand. Order: a valid target first, then no chain, then the same Steuersatz; kombi
+// links only kombi, without a special case.
+func PruefePfandVerknuepfung(quelle Produkt, ziel Produkt, zielVarianteID int) error {
+	idx := slices.IndexFunc(ziel.Varianten, func(v Variante) bool { return v.ID == zielVarianteID })
+	if idx < 0 || ziel.Varianten[idx].Status == DeletedStatus || ziel.Status == DeletedStatus || !ziel.Pfand {
+		return ErrPfandZielUngueltig
+	}
+	if quelle.Pfand {
+		return ErrPfandVerkettet
+	}
+	if quelle.Steuersatz != ziel.Steuersatz {
+		return ErrPfandSteuersatzAbweichend
+	}
 	return nil
 }

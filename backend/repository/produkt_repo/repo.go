@@ -285,10 +285,11 @@ func updateProduktParams(p produkt.Produkt) dbgen.UpdateProduktParams {
 
 func updateVarianteParams(v produkt.Variante) dbgen.UpdateVarianteParams {
 	return dbgen.UpdateVarianteParams{
-		Name:       v.Name,
-		PreisCents: v.PreisCents,
-		Status:     dbgen.Entitystatus(v.Status),
-		UpdatedAt:  v.UpdatedAt,
-		ID:         v.ID,
+		Name:            v.Name,
+		PreisCents:      v.PreisCents,
+		Status:          dbgen.Entitystatus(v.Status),
+		UpdatedAt:       v.UpdatedAt,
+		ID:              v.ID,
+		PfandVarianteID: toNullInt32(v.PfandVarianteID),
 	}
 }

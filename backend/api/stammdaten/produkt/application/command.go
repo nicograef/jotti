@@ -11,6 +11,7 @@ import (
 
 type produktRepo interface {
 	GetProdukt(ctx context.Context, produktID int) (produkt.Produkt, error)
+	GetAllProdukte(ctx context.Context) ([]produkt.Produkt, error)
 	CreateProdukt(ctx context.Context, produkt produkt.Produkt) (int, error)
 	UpdateProdukt(ctx context.Context, produkt produkt.Produkt) error
 	GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error)
@@ -82,7 +83,8 @@ func (c Command) VerschiebeProdukt(ctx context.Context, produktID int, richtung 
 	return nil
 }
 
-func (c Command) CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error) {
+// CreateVariante: pfandVarianteID nil means no Pfand.
+func (c Command) CreateVariante(ctx context.Context, produktID int, name string, preisCents int, pfandVarianteID *int) (int, error) {
 	log := logging.FromContext(ctx)
 
 	_, err := c.ProduktRepo.GetProdukt(ctx, produktID)
@@ -90,10 +92,17 @@ func (c Command) CreateVariante(ctx context.Context, produktID int, name string,
 		return 0, fromProduktError(err, log, "variante creation", "produkt_id", produktID)
 	}
 
-	variante, err := produkt.NewVariante(name, preisCents)
+	variante, err := produkt.NewVariante(name, preisCents, pfandVarianteID)
 	if err != nil {
 		log.Warn("Invalid variante data", "error", err, "variante_name", name)
 		return 0, ErrInvalidVarianteData
+	}
+
+	if pfandVarianteID != nil {
+		istQuelle := func(p produkt.Produkt) bool { return p.ID == produktID }
+		if err := c.pruefePfandVerknuepfung(ctx, istQuelle, ErrProduktNotFound, *pfandVarianteID); err != nil {
+			return 0, err
+		}
 	}
 
 	varianteID, err := c.ProduktRepo.CreateVariante(ctx, produktID, variante)
@@ -106,7 +115,8 @@ func (c Command) CreateVariante(ctx context.Context, produktID int, name string,
 	return varianteID, nil
 }
 
-func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error {
+// UpdateVariante: pfandVarianteID nil removes the Pfand.
+func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int, pfandVarianteID *int) error {
 	log := logging.FromContext(ctx)
 
 	variante, err := c.ProduktRepo.GetVariante(ctx, varianteID)
@@ -114,10 +124,17 @@ func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string
 		return fromVarianteError(err, log, "update", "variante_id", varianteID)
 	}
 
-	err = variante.UpdateDetails(name, preisCents)
+	err = variante.UpdateDetails(name, preisCents, pfandVarianteID)
 	if err != nil {
 		log.Warn("Invalid variante data for update", "error", err, "variante_id", varianteID)
 		return ErrInvalidVarianteData
+	}
+
+	if pfandVarianteID != nil {
+		istQuelle := func(p produkt.Produkt) bool { return enthaeltVariante(p, varianteID) }
+		if err := c.pruefePfandVerknuepfung(ctx, istQuelle, ErrVarianteNotFound, *pfandVarianteID); err != nil {
+			return err
+		}
 	}
 
 	err = c.ProduktRepo.UpdateVariante(ctx, variante)
@@ -128,6 +145,39 @@ func (c Command) UpdateVariante(ctx context.Context, varianteID int, name string
 
 	log.Info("Variante updated", "variante_id", varianteID)
 	return nil
+}
+
+// pruefePfandVerknuepfung loads the whole Admin catalogue: a few dozen Varianten per club, and
+// the rule needs the target's Produkt. Two Admins writing at once are not locked against each
+// other. istQuelle picks the linking Produkt; quelleFehlt answers when none matches.
+func (c Command) pruefePfandVerknuepfung(ctx context.Context, istQuelle func(produkt.Produkt) bool, quelleFehlt error, pfandVarianteID int) error {
+	log := logging.FromContext(ctx)
+
+	katalog, err := c.ProduktRepo.GetAllProdukte(ctx)
+	if err != nil {
+		log.Error("Failed to load produkt catalogue", "error", err)
+		return ErrDatabase
+	}
+	quelle := slices.IndexFunc(katalog, istQuelle)
+	if quelle < 0 {
+		log.Warn("Linking produkt not in catalogue", "pfand_variante_id", pfandVarianteID)
+		return quelleFehlt
+	}
+	// A missing target leaves the zero Produkt, which PruefePfandVerknuepfung rejects.
+	var ziel produkt.Produkt
+	if i := slices.IndexFunc(katalog, func(p produkt.Produkt) bool { return enthaeltVariante(p, pfandVarianteID) }); i >= 0 {
+		ziel = katalog[i]
+	}
+
+	if err := produkt.PruefePfandVerknuepfung(katalog[quelle], ziel, pfandVarianteID); err != nil {
+		log.Warn("Pfand-Verknüpfung rejected", "error", err, "produkt_id", katalog[quelle].ID, "pfand_variante_id", pfandVarianteID)
+		return err
+	}
+	return nil
+}
+
+func enthaeltVariante(p produkt.Produkt, varianteID int) bool {
+	return slices.ContainsFunc(p.Varianten, func(v produkt.Variante) bool { return v.ID == varianteID })
 }
 
 // VerschiebeVariante tauscht die Variante mit ihrem Nachbarn im selben Produkt.

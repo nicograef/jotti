@@ -16,8 +16,8 @@ type command interface {
 	UpdateProdukt(ctx context.Context, id int, name string, kategorie dom.Kategorie, steuersatz steuer.Steuersatz, pfand bool) error
 	DeleteProdukt(ctx context.Context, produktID int) error
 	VerschiebeProdukt(ctx context.Context, produktID int, richtung dom.Richtung) error
-	CreateVariante(ctx context.Context, produktID int, name string, preisCents int) (int, error)
-	UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error
+	CreateVariante(ctx context.Context, produktID int, name string, preisCents int, pfandVarianteID *int) (int, error)
+	UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int, pfandVarianteID *int) error
 	ActivateVariante(ctx context.Context, varianteID int) error
 	DeactivateVariante(ctx context.Context, varianteID int) error
 	DeactivateAlleVarianten(ctx context.Context, produktID int) error
@@ -135,16 +135,19 @@ func (h *CommandHandler) VerschiebeProduktHandler() http.HandlerFunc {
 	}
 }
 
+// createVarianteRequest: PfandVarianteID null or missing means no Pfand.
 type createVarianteRequest struct {
-	ProduktID  int    `json:"produktId"`
-	Name       string `json:"name"`
-	PreisCents int    `json:"preisCents"`
+	ProduktID       int    `json:"produktId"`
+	Name            string `json:"name"`
+	PreisCents      int    `json:"preisCents"`
+	PfandVarianteID *int   `json:"pfandVarianteId"`
 }
 
 var createVarianteSchema = z.Struct(z.Shape{
-	"ProduktID":  dom.IDSchema.Required(),
-	"Name":       dom.NameSchema.Required(),
-	"PreisCents": dom.PreisCentsSchema,
+	"ProduktID":       dom.IDSchema.Required(),
+	"Name":            dom.NameSchema.Required(),
+	"PreisCents":      dom.PreisCentsSchema,
+	"PfandVarianteID": z.Ptr(dom.IDSchema),
 })
 
 type createVarianteResponse struct {
@@ -158,11 +161,14 @@ func (h *CommandHandler) CreateVarianteHandler() http.HandlerFunc {
 			return
 		}
 
-		id, err := h.Command.CreateVariante(r.Context(), body.ProduktID, body.Name, body.PreisCents)
+		id, err := h.Command.CreateVariante(r.Context(), body.ProduktID, body.Name, body.PreisCents, body.PfandVarianteID)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
 				{Err: application.ErrInvalidVarianteData, Code: "invalid_variante_data"},
+				{Err: application.ErrPfandZielUngueltig, Code: "pfand_ziel_ungueltig"},
+				{Err: application.ErrPfandVerkettet, Code: "pfand_verkettet"},
+				{Err: application.ErrPfandSteuersatzAbweichend, Code: "pfand_steuersatz_abweichend"},
 			})
 			return
 		}
@@ -171,16 +177,19 @@ func (h *CommandHandler) CreateVarianteHandler() http.HandlerFunc {
 	}
 }
 
+// updateVarianteRequest: PfandVarianteID null or missing removes the Pfand.
 type updateVarianteRequest struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	PreisCents int    `json:"preisCents"`
+	ID              int    `json:"id"`
+	Name            string `json:"name"`
+	PreisCents      int    `json:"preisCents"`
+	PfandVarianteID *int   `json:"pfandVarianteId"`
 }
 
 var updateVarianteSchema = z.Struct(z.Shape{
-	"ID":         dom.IDSchema.Required(),
-	"Name":       dom.NameSchema.Required(),
-	"PreisCents": dom.PreisCentsSchema,
+	"ID":              dom.IDSchema.Required(),
+	"Name":            dom.NameSchema.Required(),
+	"PreisCents":      dom.PreisCentsSchema,
+	"PfandVarianteID": z.Ptr(dom.IDSchema),
 })
 
 func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
@@ -190,11 +199,14 @@ func (h *CommandHandler) UpdateVarianteHandler() http.HandlerFunc {
 			return
 		}
 
-		err := h.Command.UpdateVariante(r.Context(), body.ID, body.Name, body.PreisCents)
+		err := h.Command.UpdateVariante(r.Context(), body.ID, body.Name, body.PreisCents, body.PfandVarianteID)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrVarianteNotFound, Code: "variante_not_found"},
 				{Err: application.ErrInvalidVarianteData, Code: "invalid_variante_data"},
+				{Err: application.ErrPfandZielUngueltig, Code: "pfand_ziel_ungueltig"},
+				{Err: application.ErrPfandVerkettet, Code: "pfand_verkettet"},
+				{Err: application.ErrPfandSteuersatzAbweichend, Code: "pfand_steuersatz_abweichend"},
 			})
 			return
 		}

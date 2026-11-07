@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 var ErrProduktNotFound = errors.New("produkt not found")
@@ -18,6 +19,12 @@ var ErrDatabase = db.ErrDatabase
 var ErrInvalidProduktData = errors.New("invalid produkt data")
 
 var ErrInvalidVarianteData = errors.New("invalid variante data")
+
+var ErrPfandZielUngueltig = produkt.ErrPfandZielUngueltig
+
+var ErrPfandVerkettet = produkt.ErrPfandVerkettet
+
+var ErrPfandSteuersatzAbweichend = produkt.ErrPfandSteuersatzAbweichend
 
 // fromProduktError maps a repository error on a produkt; vorgang and logArgs identify the call site.
 func fromProduktError(err error, log *slog.Logger, vorgang string, logArgs ...any) error {
