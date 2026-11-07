@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { LIVE_REPORTING_KEY } from '@/admin/reporting/hooks'
 import type { OffenerTisch } from '@/admin/reporting/types'
-import { TSE_KONFIGURATION_KEY } from '@/admin/tse/hooks'
+import { TSE_KONFIGURATION_KEY, TSE_STATUS_KEY } from '@/admin/tse/hooks'
 import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { FakeBackend } from '@/test/FakeBackend'
@@ -62,12 +62,14 @@ function backend({
   offeneTische = [],
   offeneSaldiCents = 0,
   tseKonfiguriert = false,
+  tseUmgebung = 'LIVE',
 }: {
   kassensitzung?: AktiveKassensitzung | null
   buchungen?: GeldtransitBuchung[]
   offeneTische?: OffenerTisch[]
   offeneSaldiCents?: number
   tseKonfiguriert?: boolean
+  tseUmgebung?: 'TEST' | 'LIVE'
 } = {}): FakeBackend {
   return new FakeBackend()
     .respond('admin/get-aktive-kassensitzung', kassensitzung)
@@ -88,6 +90,10 @@ function backend({
       apiSecretGesetzt: tseKonfiguriert,
       tssId: '',
       clientId: '',
+      istKonfiguriert: tseKonfiguriert,
+    })
+    .respond('admin/get-tse-status', {
+      umgebung: tseUmgebung,
       istKonfiguriert: tseKonfiguriert,
     })
     .respond('admin/kassensitzung-eroeffnen', { zNr: 1 })
@@ -382,6 +388,27 @@ describe('EroeffnenSection', () => {
         { bezeichnung: 'Sommerfest Tag 1', betragCents: 15000 },
       ])
     })
+  })
+
+  it('fragt bei einer TSE in der Test-Umgebung nach', async () => {
+    const fake = backend({ tseKonfiguriert: true, tseUmgebung: 'TEST' })
+    const user = userEvent.setup()
+    const { queryClient } = renderWithBackend(
+      <EroeffnenSection onSuccess={vi.fn()} />,
+      fake,
+    )
+    await geladen(queryClient, TSE_KONFIGURATION_KEY)
+    await geladen(queryClient, TSE_STATUS_KEY)
+
+    await user.type(screen.getByLabelText('Bezeichnung'), 'Sommerfest Tag 1')
+    await user.click(
+      screen.getByRole('button', { name: 'Kassensitzung eröffnen' }),
+    )
+
+    expect(
+      screen.getByText('TSE läuft in der Test-Umgebung'),
+    ).toBeInTheDocument()
+    expect(fake.bodies('admin/kassensitzung-eroeffnen')).toEqual([])
   })
 
   it('eröffnet mit 0 € Anfangsbestand (kein Wechselgeld)', async () => {

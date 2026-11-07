@@ -12,6 +12,7 @@ import type {
   TSEStatus,
   TSEStoerung,
 } from '../tse/TSEBackend'
+import { TSE_TEST_WARNUNG } from '../tse/tseAmpel'
 import type { Betreiber, Kassenidentitaet } from './BetreiberBackend'
 import { FinanzamtPage } from './FinanzamtPage'
 
@@ -111,12 +112,22 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
     ).toHaveAttribute('href', '/admin/tse-einrichtung')
   })
 
-  it('bietet den Wizard-Link auch bei aktiver TSE an (Wechsel TEST → LIVE)', async () => {
+  it('bietet den Wizard-Link auch bei aktiver TSE an', async () => {
+    await renderPage(backend())
+
+    expect(screen.getByText(/Cloud-TSE verbunden/)).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'TSE einrichten' }),
+    ).toHaveAttribute('href', '/admin/tse-einrichtung')
+  })
+
+  it('wertet eine TSE in der Test-Umgebung nicht als erledigt', async () => {
     await renderPage(
       backend({ tseStatus: { umgebung: 'TEST', istKonfiguriert: true } }),
     )
 
-    expect(screen.getByText(/Cloud-TSE verbunden/)).toBeInTheDocument()
+    expect(screen.getByText(TSE_TEST_WARNUNG)).toBeInTheDocument()
+    expect(screen.queryByText(/Cloud-TSE verbunden/)).not.toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'TSE einrichten' }),
     ).toHaveAttribute('href', '/admin/tse-einrichtung')

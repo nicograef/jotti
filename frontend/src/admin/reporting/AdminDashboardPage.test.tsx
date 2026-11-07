@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
+import { TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
 
@@ -58,11 +59,13 @@ function backend({
   liveData = makeLiveData(),
   sitzung = liveData === null ? null : kassensitzung(),
   tseKonfiguriert = true,
+  tseUmgebung = 'LIVE',
   fehlgeschlageneDrucke = 0,
 }: {
   liveData?: LiveReportingData | null
   sitzung?: AktiveKassensitzung | null
   tseKonfiguriert?: boolean
+  tseUmgebung?: 'TEST' | 'LIVE'
   fehlgeschlageneDrucke?: number
 } = {}): FakeBackend {
   return new FakeBackend()
@@ -76,7 +79,7 @@ function backend({
       entnahmenCents: 0,
     })
     .respond('admin/get-tse-status', {
-      umgebung: 'TEST',
+      umgebung: tseUmgebung,
       istKonfiguriert: tseKonfiguriert,
     })
     .respond('admin/get-tse-signatur-queue', {
@@ -156,19 +159,34 @@ describe('AdminDashboardPage Status-Zeile', () => {
     expect(beheben).toHaveAttribute('href', '/admin/kasse')
   })
 
-  it('zeigt bei nicht konfigurierter TSE die Fehlerzelle mit Beheben-Link zum Finanzamt', async () => {
-    const { queryClient } = renderWithBackend(
-      <AdminDashboardPage />,
-      backend({ tseKonfiguriert: false }),
-    )
+  it.each([
+    [
+      'nicht konfigurierter TSE',
+      { tseKonfiguriert: false },
+      'Nicht konfiguriert',
+    ],
+    [
+      'TSE in der Test-Umgebung',
+      { tseUmgebung: 'TEST' as const },
+      TSE_TEST_WARNUNG,
+    ],
+  ])(
+    'zeigt bei %s die Fehlerzelle mit Beheben-Link zum Finanzamt',
+    async (_fall, optionen, text) => {
+      const { queryClient } = renderWithBackend(
+        <AdminDashboardPage />,
+        backend(optionen),
+      )
 
-    expect(
-      await screen.findByText('TSE benötigt Aufmerksamkeit'),
-    ).toBeInTheDocument()
-    await alleGeladen(queryClient)
-    const beheben = screen.getByRole('link', { name: 'Beheben' })
-    expect(beheben).toHaveAttribute('href', '/admin/finanzamt')
-  })
+      expect(
+        await screen.findByText('TSE benötigt Aufmerksamkeit'),
+      ).toBeInTheDocument()
+      await alleGeladen(queryClient)
+      expect(screen.getByText(text)).toBeInTheDocument()
+      const beheben = screen.getByRole('link', { name: 'Beheben' })
+      expect(beheben).toHaveAttribute('href', '/admin/finanzamt')
+    },
+  )
 
   it('zeigt bei fehlgeschlagenen Druckaufträgen die Drucker-Fehlerzelle mit Beheben-Link', async () => {
     const { queryClient } = renderWithBackend(

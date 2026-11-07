@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { useTSEKonfiguration } from '@/admin/tse/hooks'
+import { useTSEKonfiguration, useTSEStatus } from '@/admin/tse/hooks'
+import { istTestUmgebung, TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
 import { EuroField } from '@/components/common/FormFields'
 import {
   AlertDialog,
@@ -44,6 +45,8 @@ type FormData = z.infer<typeof FormDataSchema>
 
 export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const { tseKonfiguration } = useTSEKonfiguration()
+  const { tseStatus } = useTSEStatus()
+  const testUmgebung = istTestUmgebung(tseStatus)
   const [tseDialogOpen, setTseDialogOpen] = useState(false)
   const [pendingData, setPendingData] = useState<FormData | null>(null)
 
@@ -81,7 +84,7 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   }
 
   const onSubmit = async (data: FormData) => {
-    if (tseKonfiguration?.istKonfiguriert) {
+    if (tseKonfiguration?.istKonfiguriert && !testUmgebung) {
       await eroeffnen(data)
       return
     }
@@ -143,11 +146,15 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
         <AlertDialog open={tseDialogOpen} onOpenChange={setTseDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Keine TSE konfiguriert</AlertDialogTitle>
+              <AlertDialogTitle>
+                {testUmgebung
+                  ? 'TSE läuft in der Test-Umgebung'
+                  : 'Keine TSE konfiguriert'}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Es ist keine technische Sicherheitseinrichtung (TSE)
-                eingerichtet. Vorgänge dieser Kassensitzung werden nicht nach §
-                146a AO signiert. Trotzdem eröffnen?
+                {testUmgebung
+                  ? `${TSE_TEST_WARNUNG} Trotzdem eröffnen?`
+                  : 'Es ist keine technische Sicherheitseinrichtung (TSE) eingerichtet. Vorgänge dieser Kassensitzung werden nicht nach § 146a AO signiert. Trotzdem eröffnen?'}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

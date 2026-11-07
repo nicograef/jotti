@@ -2,6 +2,7 @@ import { useAktiveKassensitzung, useKassenbestand } from '@/admin/kasse/hooks'
 import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSEAmpel } from '@/admin/tse/hooks'
+import { TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
 import { formatEuro } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
@@ -26,6 +27,7 @@ export function AdminDashboardPage() {
     nichtKonfiguriert: tseNichtKonfiguriert,
     rueckstand,
     signaturFehlgeschlagen,
+    testUmgebung,
     queue,
   } = useTSEAmpel()
 
@@ -35,7 +37,9 @@ export function AdminDashboardPage() {
       ? `${String(queue?.fehlgeschlageneAuftraege ?? 0)} Vorgänge konnten nicht signiert werden`
       : rueckstand
         ? `${String(queue?.offeneAuftraege ?? 0)} Vorgänge warten auf Signatur`
-        : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge in Warteschlange (normal)`
+        : testUmgebung
+          ? TSE_TEST_WARNUNG
+          : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge in Warteschlange (normal)`
 
   const druckFehler = druckauftraege.length > 0
   const { singular: druckSingular, plural: druckPlural } = beschreibeFehlBons(

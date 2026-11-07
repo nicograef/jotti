@@ -53,6 +53,17 @@ describe('tseAmpel', () => {
     ).toBe(true)
   })
 
+  it('meldet einen Fehler bei einer TSE in der Test-Umgebung', () => {
+    const ampel = tseAmpel(
+      { umgebung: 'TEST', istKonfiguriert: true },
+      false,
+      queue(),
+    )
+    expect(ampel.fehler).toBe(true)
+    expect(ampel.testUmgebung).toBe(true)
+    expect(ampel.ueberschrift).toBe('TSE läuft in der Test-Umgebung')
+  })
+
   it('behandelt eine noch ladende TSE nicht als Fehler', () => {
     const ampel = tseAmpel(undefined, true, undefined)
     expect(ampel.fehler).toBe(false)

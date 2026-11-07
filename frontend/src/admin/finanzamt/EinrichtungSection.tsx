@@ -7,6 +7,7 @@ import { StatusDot } from '@/admin/components/StatusDot'
 import { WarnKarte } from '@/admin/components/WarnKarte'
 import { formatDatum } from '@/admin/reporting/utils'
 import { useTSEStatus } from '@/admin/tse/hooks'
+import { istTestUmgebung, TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
 import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -117,7 +118,8 @@ export function EinrichtungSection() {
   }
 
   const vereinsdatenOk = vereinsdatenErledigt(daten)
-  const tseOk = !tseLoading && (tseStatus?.istKonfiguriert ?? false)
+  const tseTest = istTestUmgebung(tseStatus)
+  const tseOk = !tseLoading && (tseStatus?.istKonfiguriert ?? false) && !tseTest
   const gemeldetAm = daten.elsterGemeldetAm
   const meldungOk = gemeldetAm !== null
 
@@ -194,7 +196,9 @@ export function EinrichtungSection() {
             <WarnKarte title="2 · TSE aktiv">
               <div className="flex flex-col items-start gap-1.5">
                 <span className="text-muted-foreground">
-                  Ohne aktive TSE darf nicht kassiert werden.
+                  {tseTest
+                    ? TSE_TEST_WARNUNG
+                    : 'Ohne aktive TSE darf nicht kassiert werden.'}
                 </span>
                 <Button asChild variant="outline" size="sm" className="w-fit">
                   <NavLink to="/admin/tse-einrichtung">TSE einrichten</NavLink>
