@@ -145,61 +145,6 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
-// A Kassensitzung closed between read and write makes the journal trigger reject the write. The
-// command maps that to ErrKasseNichtGeoeffnet, so the handler answers 409 instead of 500.
-func TestBestellungAufnehmen_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
-	ctx := context.Background()
-	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
-	command.ProduktRepo = productMock
-
-	inputs := []enrichment.PositionInput{
-		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
-	}
-
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
-	}
-}
-
-// Derselbe Wettlauf auf dem Weg über WriteEventsAtomic.
-func TestZahlungKassieren_KasseNichtMehrOffenBeimSchreiben(t *testing.T) {
-	ctx := context.Background()
-	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
-
-	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, kassenjournal_repo.ErrKassensitzungNichtOffen)
-	eventMock.SetTischSession(subject, kasse.TischSession{
-		SaldoCents: 350,
-		UnbezahltePositionen: []kasse.Position{{
-			PositionID:       "22222222-2222-4222-8222-222222222222",
-			VarianteID:       1,
-			ProduktName:      "Cola",
-			VarianteName:     "0,5l",
-			Kategorie:        "getraenk",
-			Steuersatz:       "regel",
-			EinzelpreisCents: 350,
-			Menge:            1,
-		}},
-		LastEventVersion: 1,
-	})
-
-	command := Command{
-		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
-		EventRepo:           eventMock,
-		ProduktRepo:         repotest.NewProduktRepo(nil, nil),
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-	}
-
-	err := command.ZahlungKassieren(ctx, 1, "Test User", testActiveTisch.ID,
-		[]kasse.PositionRef{{PositionID: "22222222-2222-4222-8222-222222222222", Menge: 1}}, "", nil)
-	if !errors.Is(err, ErrKasseNichtGeoeffnet) {
-		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
-	}
-}
-
 func TestBestellungAufnehmen_WithOCC(t *testing.T) {
 	ctx := context.Background()
 	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
@@ -258,24 +203,6 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrAlreadyExists)
-	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
-	command.ProduktRepo = productMock
-
-	inputs := []enrichment.PositionInput{
-		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1},
-	}
-
-	err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, "")
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("expected ErrConflict, got %v", err)
-	}
-}
-
-func TestBestellungAufnehmen_DeadlockMapsToConflict(t *testing.T) {
-	ctx := context.Background()
-	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
-	productMock.AddVariante(testProduct.ID, testVariant)
-	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrConflict)
 	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
 	command.ProduktRepo = productMock
 
@@ -1095,77 +1022,6 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 	}
 }
 
-// A UNIQUE violation and a deadlock (opposite Umbuchungen lock the two streams in reverse order)
-// are both a retryable 409.
-func TestBestellungUmbuchen_WriteConflict(t *testing.T) {
-	for _, writeErr := range []error{db.ErrAlreadyExists, db.ErrConflict} {
-		t.Run(writeErr.Error(), func(t *testing.T) {
-			ctx := context.Background()
-			quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
-			zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
-
-			eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, writeErr)
-			quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
-			quellPositionID := uuid.New().String()
-			eventMock.SetTischSession(quellSubject, kasse.TischSession{
-				UnbezahltePositionen: []kasse.Position{{
-					PositionID:   quellPositionID,
-					VarianteID:   1,
-					ProduktName:  "Cola",
-					VarianteName: "0,5l",
-					Kategorie:    "getraenk", Steuersatz: "regel",
-					EinzelpreisCents: 350,
-					Menge:            1,
-				}},
-			})
-
-			command := Command{
-				TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
-				EventRepo:           eventMock,
-				KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-			}
-
-			err := command.BestellungUmbuchen(ctx, 1, "Test User", quellTisch.ID, zielTisch.ID, []kasse.PositionRef{{PositionID: quellPositionID, Menge: 1}}, "")
-			if !errors.Is(err, ErrConflict) {
-				t.Errorf("expected ErrConflict, got %v", err)
-			}
-		})
-	}
-}
-
-func TestStornierungErteilen_DeadlockMapsToConflict(t *testing.T) {
-	ctx := context.Background()
-	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
-	orderEvent, err := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-		[]kasse.Position{
-			{VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 350, Menge: 1},
-		}, "")
-	if err != nil {
-		t.Fatalf("bestellung event: %v", err)
-	}
-	var orderData struct {
-		Positionen []struct {
-			PositionID string `json:"positionId"`
-		} `json:"positionen"`
-	}
-	if err := json.Unmarshal(orderEvent.Data, &orderData); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-
-	eventMock := repotest.NewKassenjournalRepoWithWriteErr(nil, db.ErrConflict)
-	eventMock.AddEvent(orderEvent)
-	command := Command{
-		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
-		EventRepo:           eventMock,
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-	}
-
-	err = command.StornierungErteilen(ctx, 1, "Test User", testActiveTisch.ID, []kasse.PositionRef{{PositionID: orderData.Positionen[0].PositionID, Menge: 1}}, "Falsch getippt")
-	if !errors.Is(err, ErrConflict) {
-		t.Errorf("expected ErrConflict, got %v", err)
-	}
-}
-
 func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahme(t *testing.T) {
 	ctx := context.Background()
 	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
@@ -1220,5 +1076,26 @@ func TestStornierungErteilen_GemischterStorno_AtomischKorrekturUndWarenruecknahm
 	}
 	if warenruecknahme != 1 {
 		t.Errorf("expected exactly 1 stornierung-erteilt, got %d", warenruecknahme)
+	}
+}
+
+func TestFromWriteError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want error
+	}{
+		{name: "UNIQUE(subject, version)", err: db.ErrAlreadyExists, want: ErrConflict},
+		{name: "Deadlock", err: db.ErrConflict, want: ErrConflict},
+		{name: "Kassensitzung seit dem Lesen geschlossen", err: kassenjournal_repo.ErrKassensitzungNichtOffen, want: ErrKasseNichtGeoeffnet},
+		{name: "sonstiger Fehler", err: errors.New("connection reset"), want: ErrDatabase},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := fromWriteError(context.Background(), tt.err); !errors.Is(got, tt.want) {
+				t.Errorf("fromWriteError(%v) = %v, want %v", tt.err, got, tt.want)
+			}
+		})
 	}
 }
