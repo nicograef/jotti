@@ -24,7 +24,8 @@ export function useActionSubmit({
   onError,
 }: UseActionSubmitOptions): {
   loading: boolean
-  run: (fn: () => Promise<void>) => Promise<void>
+  // Resolves true when fn succeeded, false after a handled error.
+  run: (fn: () => Promise<void>) => Promise<boolean>
 } {
   const [loading, setLoading] = useState(false)
 
@@ -38,12 +39,13 @@ export function useActionSubmit({
     try {
       await fn()
       onSuccess?.()
+      return true
     } catch (error: unknown) {
       const eigeneAnzeige =
         error instanceof BackendError ? onCode?.[error.code] : undefined
       if (eigeneAnzeige && error instanceof BackendError) {
         eigeneAnzeige(error)
-        return
+        return false
       }
       console.error(error)
       toast.error(
@@ -54,6 +56,7 @@ export function useActionSubmit({
         }),
       )
       onError?.(error)
+      return false
     } finally {
       setLoading(false)
     }

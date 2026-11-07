@@ -22,7 +22,7 @@ export function useFormActionSubmit<TFieldValues extends FieldValues>({
   ...optionen
 }: UseFormActionSubmitOptions<TFieldValues>): {
   loading: boolean
-  run: (fn: () => Promise<void>) => Promise<void>
+  run: (fn: () => Promise<void>) => Promise<boolean>
 } {
   const onCode: UseActionSubmitOptions['onCode'] = {}
   for (const [code, feldMeldungen] of Object.entries(fieldErrorsByCode)) {

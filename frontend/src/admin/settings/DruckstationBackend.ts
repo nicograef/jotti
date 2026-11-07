@@ -12,7 +12,7 @@ const KategorieSchema = z.enum([
 ])
 export type Kategorie = z.infer<typeof KategorieSchema>
 
-const BonmodusSchema = z.enum([
+export const BonmodusSchema = z.enum([
   'pro_position',
   'pro_bestellung',
   'pro_stueck',
@@ -21,7 +21,9 @@ const BonmodusSchema = z.enum([
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
 // Leer heißt: kein Drucker an dieser Station.
-const DruckerIpSchema = z.ipv4('Ungültige IPv4-Adresse').or(z.literal(''))
+export const DruckerIpSchema = z
+  .ipv4('Ungültige IPv4-Adresse')
+  .or(z.literal(''))
 
 // bonmodusOptionen sind die Bonmodi, die das Backend für diese Station annimmt;
 // leer am Kassenbeleg, der keinen Bonmodus trägt.

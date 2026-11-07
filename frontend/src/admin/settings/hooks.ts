@@ -9,11 +9,17 @@ import {
   type FehlgeschlagenerDruckauftrag,
   type Kategorie,
 } from './DruckstationBackend'
+import {
+  type Zusatzdrucker,
+  ZusatzdruckerBackend,
+} from './ZusatzdruckerBackend'
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
+const zusatzdruckerBackend = new ZusatzdruckerBackend(BackendSingleton)
 
 const DRUCKSTATIONEN_KEY = 'druckstationen'
 const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY = 'fehlgeschlagene-druckauftraege'
+const ZUSATZDRUCKER_KEY = 'zusatzdrucker'
 
 interface DruckstationenResult extends QueryResult<DruckstationConfig[]> {
   druckstationen: DruckstationConfig[]
@@ -93,5 +99,59 @@ export function useFehlgeschlageneDruckauftraege(): FehlgeschlageneDruckauftraeg
     erneutVersuchen,
     verwerfen,
     alleVerwerfen,
+  }
+}
+
+interface ZusatzdruckerResult extends QueryResult<Zusatzdrucker[]> {
+  zusatzdrucker: Zusatzdrucker[]
+  anlegen: (name: string) => Promise<void>
+  aendern: (zusatzdrucker: Zusatzdrucker) => Promise<void>
+  loeschen: (id: number) => Promise<void>
+  testbonDrucken: (id: number) => Promise<void>
+}
+
+export function useZusatzdrucker(): ZusatzdruckerResult {
+  const queryClient = useQueryClient()
+  const {
+    isPending,
+    isError,
+    data = [],
+    refetch,
+  } = useQuery({
+    queryKey: [ZUSATZDRUCKER_KEY],
+    queryFn: () => zusatzdruckerBackend.getZusatzdrucker(),
+  })
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: [ZUSATZDRUCKER_KEY] })
+
+  const anlegen = async (name: string) => {
+    await zusatzdruckerBackend.anlegen(name)
+    await invalidate()
+  }
+
+  const aendern = async (zusatzdrucker: Zusatzdrucker) => {
+    await zusatzdruckerBackend.aendern(zusatzdrucker)
+    await invalidate()
+  }
+
+  const loeschen = async (id: number) => {
+    await zusatzdruckerBackend.loeschen(id)
+    await invalidate()
+  }
+
+  const testbonDrucken = async (id: number) => {
+    await zusatzdruckerBackend.testbonDrucken(id)
+  }
+
+  return {
+    zusatzdrucker: data,
+    isPending,
+    isError,
+    refetch,
+    anlegen,
+    aendern,
+    loeschen,
+    testbonDrucken,
   }
 }

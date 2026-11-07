@@ -40,7 +40,7 @@ describe('useActionSubmit im Vorgangs-Register', () => {
       useActionSubmit({ actionLabel: 'Bestellung aufnehmen' }),
     )
 
-    let lauf!: Promise<void>
+    let lauf!: Promise<boolean>
     act(() => {
       lauf = result.current.run(buchung.lauf)
     })
@@ -61,7 +61,7 @@ describe('useActionSubmit im Vorgangs-Register', () => {
       useActionSubmit({ actionLabel: 'Zahlung kassieren', onSuccess }),
     )
 
-    let lauf!: Promise<void>
+    let lauf!: Promise<boolean>
     act(() => {
       lauf = result.current.run(buchung.lauf)
     })
@@ -84,7 +84,7 @@ describe('useActionSubmit im Vorgangs-Register', () => {
       useActionSubmit({ actionLabel: 'Bestellung aufnehmen' }),
     )
 
-    let lauf!: Promise<void>
+    let lauf!: Promise<boolean>
     act(() => {
       lauf = result.current.run(buchung.lauf)
     })
@@ -121,5 +121,25 @@ describe('useActionSubmit mit onCode', () => {
     expect(handler).toHaveBeenCalledWith(fehler)
     expect(toast.error).not.toHaveBeenCalled()
     expect(onError).not.toHaveBeenCalled()
+  })
+})
+
+describe('useActionSubmit meldet den Ausgang', () => {
+  it('liefert true nach Erfolg und false nach einem Fehler', async () => {
+    const { result } = renderHook(() =>
+      useActionSubmit({ actionLabel: 'Drucker-IP speichern' }),
+    )
+
+    let erfolg: boolean | undefined
+    let fehlschlag: boolean | undefined
+    await act(async () => {
+      erfolg = await result.current.run(() => Promise.resolve())
+      fehlschlag = await result.current.run(() =>
+        Promise.reject(new Error('kaputt')),
+      )
+    })
+
+    expect(erfolg).toBe(true)
+    expect(fehlschlag).toBe(false)
   })
 })

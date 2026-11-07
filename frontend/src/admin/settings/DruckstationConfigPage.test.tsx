@@ -1,4 +1,4 @@
-import { act, cleanup, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import type {
   FehlgeschlagenerDruckauftrag,
 } from './DruckstationBackend'
 import { DruckstationConfigPage } from './DruckstationConfigPage'
+import type { Zusatzdrucker } from './ZusatzdruckerBackend'
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
@@ -47,12 +48,16 @@ function makeStation(
 function backend({
   druckstationen = [],
   druckauftraege = [],
+  zusatzdrucker = [],
 }: {
   druckstationen?: DruckstationConfig[]
   druckauftraege?: FehlgeschlagenerDruckauftrag[]
+  zusatzdrucker?: Zusatzdrucker[]
 }): FakeBackend {
   return new FakeBackend()
     .respond('admin/get-druckstationen', { druckstationen })
+    .respond('admin/get-zusatzdrucker', { zusatzdrucker })
+    .respond('admin/create-zusatzdrucker', { id: 1 })
     .respond('admin/get-fehlgeschlagene-druckauftraege', { druckauftraege })
     .respond('admin/druckauftraege-verwerfen', {
       verworfen: druckauftraege.length,
@@ -394,5 +399,43 @@ describe('DruckstationConfigPage — Stationskarten', () => {
 
     // Nach dem Aufklappen sind die IP-Felder der unkonfigurierten Stationen editierbar.
     expect(screen.getAllByLabelText('Drucker-IP').length).toBe(3)
+  })
+})
+
+describe('DruckstationConfigPage — Zusatzdrucker', () => {
+  it('zeigt ohne Zusatzdrucker die gestrichelte Karte „Zusätzlicher Drucker“ mit „Drucker hinzufügen“', async () => {
+    await renderPage(backend({}))
+
+    expect(screen.getByText('Zusätzlicher Drucker')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Für Produkte, die an einem anderen Ort zubereitet werden.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Drucker hinzufügen' }),
+    ).toBeInTheDocument()
+  })
+
+  it('legt einen Zusatzdrucker mit dem eingegebenen Namen an', async () => {
+    const user = userEvent.setup()
+    const fake = backend({})
+    await renderPage(fake)
+
+    await user.click(screen.getByRole('button', { name: 'Drucker hinzufügen' }))
+    await user.type(screen.getByLabelText('Name'), 'Kaffee & Kuchen')
+    const dialog = screen.getByRole('dialog')
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Drucker hinzufügen' }),
+    )
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        'Drucker „Kaffee & Kuchen“ angelegt.',
+      )
+    })
+    expect(fake.bodies('admin/create-zusatzdrucker')).toEqual([
+      { name: 'Kaffee & Kuchen' },
+    ])
   })
 })
