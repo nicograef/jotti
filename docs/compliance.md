@@ -129,7 +129,7 @@ Im Festzelt-Betrieb laufen an einem Tisch über Stunden Bestellrunden und Teilza
 | 20:00 | Teilzahlung 14,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1003) |
 | 21:00 | Restzahlung 18,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1004) |
 
-Jeder Zahlungsbeleg trägt zusätzlich den Erfassungszeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht und Abweichung → §5.3). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS` (Vergabe und Verhalten bei mehreren Gästegruppen am selben Tisch → §6.5).
+Jeder Zahlungsbeleg trägt zusätzlich den TSE-Startzeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht → §5.3). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS` (Vergabe und Verhalten bei mehreren Gästegruppen am selben Tisch → §6.5).
 
 ### 3.7 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
@@ -247,12 +247,12 @@ Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang ei
 
 Manche Bestellungen werden mit `Bestellung-V1` abgesichert und erst später bezahlt (→ §3.6). Für sie gilt laut BMF-FAQ: „Zusätzlich ist auf den Bon der Startzeitpunkt der ersten Bestellung in Klarschrift aufzudrucken." [11, 13]
 
-Der Zahlungsbeleg trägt also zwei Zeitstempel:
+Der Zahlungsbeleg trägt also drei Zeitstempel aus der TSE:
 
-- den TSE-`logTime` der aktuellen `Kassenbeleg-V1`-Transaktion
-- den Erfassungszeitpunkt der ersten Bestellung der Tisch-Session in Klarschrift (Event-Zeit)
+- Start und Ende der aktuellen `Kassenbeleg-V1`-Transaktion (TSE-`logTime`)
+- den Start der ersten `Bestellung-V1`-Transaktion der Tisch-Session in Klarschrift, wie DSFinV-K Tz. 2.7.2 ihn verlangt
 
-**Abweichung:** DSFinV-K Tz. 2.7.2 verlangt den Start-Zeitpunkt der ersten TSE-Transaktion `Bestellung`. jotti druckt die Event-Zeit, weil die Signatur asynchron entsteht; der TSE-Start liegt Sekunden danach. Damit erfüllt der Beleg diese Voraussetzung der Erleichterung beim Durchbedienen nicht wörtlich.
+Ist ein Vorgang nicht signiert (TSE-Ausfall, keine TSE konfiguriert), gibt es keine TSE-Zeit. Der Beleg druckt dann die Erfassungszeit des Events und den TSE-Hinweis statt der TSE-Daten.
 
 Beispiel (Tisch 42, Maihock):
 

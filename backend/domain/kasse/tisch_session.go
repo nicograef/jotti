@@ -110,9 +110,34 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	return state, nil
 }
 
+// ErsteBestellung findet das Event, das in der Projektion ErsteBestellungLogTime setzt: die erste
+// Bestellung des Streams oder einen Umbuchungs-Zugang davor. Der Zahlungsbeleg druckt den TSE-Start
+// seiner Signatur (DSFinV-K Tz. 2.7.2).
+func ErsteBestellung(events []e.Event) (e.Event, bool, error) {
+	for _, evt := range events {
+		if EventType(evt.Type) == EventTypeBestellungAufgenommenV1 {
+			return evt, true, nil
+		}
+		if EventType(evt.Type) != EventTypeBestellungUmgebuchtV1 {
+			continue
+		}
+		data, err := e.Decode[BestellungUmgebuchtV1Data](evt)
+		if err != nil {
+			return e.Event{}, false, err
+		}
+		tischID, err := ParseTischIDFromSubject(evt.Subject)
+		if err != nil {
+			return e.Event{}, false, err
+		}
+		if tischID == data.ZielTischID {
+			return evt, true, nil
+		}
+	}
+	return e.Event{}, false, nil
+}
+
 // setErsteBestellungLogTime stempelt die Event-Zeit der ersten Bestellung, sofern noch nicht gesetzt; eine
-// Umbuchung auf einen leeren Zieltisch zählt als erste Bestellung. Der Beleg druckt sie, obwohl DSFinV-K
-// Tz. 2.7.2 den Start der ersten TSE-Transaktion Bestellung verlangt (docs/compliance.md §5.3).
+// Umbuchung auf einen leeren Zieltisch zählt als erste Bestellung (siehe ErsteBestellung).
 func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	if state.ErsteBestellungLogTime != nil {
 		return

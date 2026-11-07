@@ -11,7 +11,6 @@ import (
 )
 
 type eventRepo interface {
-	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 }
 

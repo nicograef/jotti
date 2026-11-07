@@ -449,12 +449,6 @@ func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassen
 	log := logging.FromContext(ctx)
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
-	state, err := c.EventRepo.ReadTischSession(ctx, subject)
-	if err != nil {
-		log.Error("Failed to read table projection for kassenbeleg", "error", err, "tisch_id", tischID)
-		return BelegQuelle{}, ErrDatabase
-	}
-
 	events, err := c.EventRepo.ReadEventsBySubject(ctx, subject)
 	if err != nil {
 		log.Error("Failed to read events for kassenbeleg", "error", err, "tisch_id", tischID)
@@ -466,11 +460,38 @@ func (c Command) resolveTischZahlungsbeleg(ctx context.Context, ks *kasse.Kassen
 		return BelegQuelle{}, zahlungSuche.fehler(log, err, "Zahlung not found for kassenbeleg", "Failed to decode zahlung event data", "tisch_id", tischID, "zahlung_id", zahlungID)
 	}
 
+	ersteBestellung, err := c.ersteBestellungZeitpunkt(ctx, events)
+	if err != nil {
+		log.Error("Failed to resolve first bestellung for kassenbeleg", "error", err, "tisch_id", tischID)
+		return BelegQuelle{}, ErrDatabase
+	}
+
 	return BelegQuelle{
 		Event:                    zahlungEvent,
 		Positionen:               kasse.PositionenFromEventData(zahlungData.Positionen),
 		GesamtbetragCents:        zahlungData.GesamtZahlungCents,
 		Referenz:                 druckstation.EventReferenz(druckstation.ReferenzZahlung, zahlungEvent.ID),
-		ErsteBestellungZeitpunkt: state.ErsteBestellungLogTime,
+		ErsteBestellungZeitpunkt: ersteBestellung,
 	}, nil
+}
+
+// ersteBestellungZeitpunkt is the TSE start of the session's first Bestellung (DSFinV-K Tz. 2.7.2). An
+// unsigned first Bestellung (TSE-Ausfall, no TSE, signature pending) keeps its event time.
+func (c Command) ersteBestellungZeitpunkt(ctx context.Context, events []event.Event) (*time.Time, error) {
+	erste, found, err := kasse.ErsteBestellung(events)
+	if err != nil || !found {
+		return nil, err
+	}
+	zeitpunkt := erste.Time.UTC()
+	stand, err := c.TSERepo.GetSignaturauftragZuEvent(ctx, erste.ID)
+	if errors.Is(err, db.ErrNotFound) {
+		return &zeitpunkt, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if stand.Signatur != nil {
+		zeitpunkt = stand.Signatur.LogTimeStart.UTC()
+	}
+	return &zeitpunkt, nil
 }

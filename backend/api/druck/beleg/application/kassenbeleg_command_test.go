@@ -182,78 +182,86 @@ func TestKassenbelegDrucken_ContainsSteuerkennzeichenUndSteuermatrix(t *testing.
 	}
 }
 
-func TestKassenbelegDrucken_Tischzahlung_WithErsteBestellungKlartext(t *testing.T) {
-	ctx := context.Background()
-	subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
-
-	zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), 1, "Test User", []kasse.Position{
+// The "Erste Bestellung" line prints the TSE start of the first Bestellung (DSFinV-K Tz. 2.7.2); an
+// unsigned first Bestellung keeps its event time.
+func TestKassenbelegDrucken_Tischzahlung_ErsteBestellungKlartext(t *testing.T) {
+	tests := []struct {
+		name    string
+		staende map[int]tse.SignaturauftragStand
+		want    string
+	}{
 		{
-			PositionID:   "11111111-1111-4111-8111-111111111111",
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk", Steuersatz: "regel",
-			EinzelpreisCents: 350,
-			Menge:            1,
+			name: "signiert: TSE-Start",
+			staende: map[int]tse.SignaturauftragStand{1: {
+				Status:   tse.StatusErledigt,
+				Signatur: &tse.Signatur{LogTimeStart: time.Date(2026, 5, 1, 18, 1, 4, 0, time.UTC), LogTimeEnd: time.Date(2026, 5, 1, 18, 1, 5, 0, time.UTC)},
+			}},
+			want: "Erste Bestellung: 01.05.2026 20:01:04",
 		},
-	}, 350, "")
-	if err != nil {
-		t.Fatalf("expected no event error, got %v", err)
-	}
-
-	var eventData struct {
-		ZahlungID string `json:"zahlungId"`
-	}
-	if err := json.Unmarshal(zahlungEvent.Data, &eventData); err != nil {
-		t.Fatalf("expected no unmarshal error, got %v", err)
-	}
-
-	ersteBestellung := time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
-
-	eventMock := repotest.NewKassenjournalRepo(nil, nil)
-	eventMock.AddEvent(zahlungEvent)
-	eventMock.SetTischSession(subject, kasse.TischSession{
-		Subject:                subject,
-		TischID:                testActiveTisch.ID,
-		KassensitzungNr:        testKassensitzungNr,
-		ErsteBestellungLogTime: &ersteBestellung,
-	})
-
-	auftragMock := &mockDruckauftragRepo{}
-	betreiberMock := &mockBetreiberRepo{
-		betreiber: betreiber.Betreiber{
-			Vereinsname: "SV Musterstadt",
-			Strasse:     "Musterstrasse 1",
-			Plz:         "12345",
-			Ort:         "Musterstadt",
-			UpdatedAt:   time.Now(),
+		{
+			name: "nicht signiert: Event-Zeit",
+			want: "Erste Bestellung: 01.05.2026 20:01:00",
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			subject := kasse.TischSessionSubject(testKassensitzungNr, testActiveTisch.ID)
+			position := kasse.Position{
+				PositionID:   "11111111-1111-4111-8111-111111111111",
+				VarianteID:   1,
+				ProduktName:  "Cola",
+				VarianteName: "0,5l",
+				Kategorie:    "getraenk", Steuersatz: "regel",
+				EinzelpreisCents: 350,
+				Menge:            1,
+			}
 
-	command := Command{
-		EventRepo:           eventMock,
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		BetreiberRepo:       betreiberMock,
-		DruckauftragRepo:    auftragMock,
-		TSERepo:             &mockTSEAuftragRepo{},
-	}
+			bestellungEvent, err := kasse.NewBestellungAufgenommenEvent(subject, 1, "Test User", uuid.NewString(), []kasse.Position{position}, "")
+			if err != nil {
+				t.Fatalf("expected no event error, got %v", err)
+			}
+			bestellungEvent.Time = time.Date(2026, 5, 1, 18, 1, 0, 0, time.UTC)
+			zahlungID := uuid.NewString()
+			zahlungEvent, err := kasse.NewZahlungKassiertEvent(subject, zahlungID, 1, "Test User", []kasse.Position{position}, 350, "")
+			if err != nil {
+				t.Fatalf("expected no event error, got %v", err)
+			}
 
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: eventData.ZahlungID}); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if len(auftragMock.enqueued) != 1 {
-		t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
-	}
+			eventMock := repotest.NewKassenjournalRepo(nil, nil)
+			eventMock.AddEvent(bestellungEvent)
+			eventMock.AddEvent(zahlungEvent)
 
-	payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
-	if err != nil {
-		t.Fatalf("expected base64 payload, got decode error: %v", err)
-	}
+			auftragMock := &mockDruckauftragRepo{}
+			command := Command{
+				EventRepo:           eventMock,
+				KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+				DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
+				BetreiberRepo: &mockBetreiberRepo{betreiber: betreiber.Betreiber{
+					Vereinsname: "SV Musterstadt",
+					Strasse:     "Musterstrasse 1",
+					Plz:         "12345",
+					Ort:         "Musterstadt",
+					UpdatedAt:   time.Now(),
+				}},
+				DruckauftragRepo: auftragMock,
+				TSERepo:          &mockTSEAuftragRepo{staende: tt.staende},
+			}
 
-	got := string(payload)
-	if !strings.Contains(got, "Erste Bestellung: 01.05.2026 20:01:00") {
-		t.Errorf("expected first order klartext in table receipt, got:\n%q", got)
+			if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{TischID: testActiveTisch.ID, ZahlungID: zahlungID}); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(auftragMock.enqueued) != 1 {
+				t.Fatalf("expected exactly 1 enqueued auftrag, got %d", len(auftragMock.enqueued))
+			}
+			payload, err := base64.StdEncoding.DecodeString(auftragMock.enqueued[0].Payload)
+			if err != nil {
+				t.Fatalf("expected base64 payload, got decode error: %v", err)
+			}
+			if got := string(payload); !strings.Contains(got, tt.want) {
+				t.Errorf("expected %q in table receipt, got:\n%q", tt.want, got)
+			}
+		})
 	}
 }
 
