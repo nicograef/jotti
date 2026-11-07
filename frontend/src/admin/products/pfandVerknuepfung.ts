@@ -29,3 +29,17 @@ export function pfandOptionen(
       }),
     )
 }
+
+// Ob eine Variante des Katalogs eine der Varianten als Pfand verknüpft. Das
+// Backend entfernt solche Verknüpfungen beim Löschen; der Lösch-Dialog nennt es.
+export function verliertPfand(
+  katalog: Produkt[],
+  varianteIds: number[],
+): boolean {
+  return katalog.some((p) =>
+    p.varianten.some(
+      (v) =>
+        v.pfandVarianteId !== null && varianteIds.includes(v.pfandVarianteId),
+    ),
+  )
+}

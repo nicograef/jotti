@@ -59,6 +59,8 @@ const commonErrorMessages: Record<string, string> = {
     'Für diesen Benutzer wurde noch kein Passwort gesetzt. Bitte zuerst ein Passwort vergeben.',
   password_too_weak:
     'Das Passwort ist zu schwach. Bitte ein stärkeres Passwort verwenden.',
+  pfand_noch_verknuepft:
+    'Varianten verknüpfen dieses Produkt als Pfand. Bitte zuerst ihre Pfand-Verknüpfung entfernen.',
   pfand_steuersatz_abweichend:
     'Pfand und Variante brauchen denselben Steuersatz.',
   pfand_verkettet:

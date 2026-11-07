@@ -34,7 +34,7 @@ import type { Produkt, Variante } from '@/lib/produktSchemas'
 
 import { produktBackend } from './hooks'
 import { PfandVarianteField } from './PfandVarianteField'
-import { pfandOptionen } from './pfandVerknuepfung'
+import { pfandOptionen, verliertPfand } from './pfandVerknuepfung'
 import { PriceField } from './PriceField'
 import { UpdateVarianteSchema } from './ProduktBackend'
 
@@ -166,6 +166,8 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
             <AlertDialogDescription>
               Die Variante &quot;{props.variant.name}&quot; wird unwiderruflich
               gelöscht.
+              {verliertPfand(props.katalog, [props.variant.id]) &&
+                ' Verknüpfte Varianten verlieren ihr Pfand.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

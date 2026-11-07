@@ -40,6 +40,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 
 import { produktBackend } from './hooks'
 import { NewVariantDialog } from './NewVariantDialog'
+import { verliertPfand } from './pfandVerknuepfung'
 import { Richtung } from './Produkt'
 import { VariantChip } from './VariantChip'
 
@@ -267,6 +268,10 @@ export function ProductItem(props: ProductItemProps) {
             <AlertDialogDescription>
               Das Produkt &quot;{props.product.name}&quot; und alle zugehörigen
               Varianten werden unwiderruflich gelöscht.
+              {verliertPfand(
+                props.katalog,
+                props.product.varianten.map((v) => v.id),
+              ) && ' Verknüpfte Varianten verlieren ihr Pfand.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

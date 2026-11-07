@@ -389,3 +389,74 @@ describe('Pfand-Verknüpfung', () => {
     expect(screen.getAllByText('+ Pfand')).toHaveLength(1)
   })
 })
+
+describe('Lösch-Dialoge: Verknüpfte Varianten verlieren ihr Pfand', () => {
+  const glaspfand = produkt({
+    id: 2,
+    name: 'Glaspfand',
+    kategorie: 'sonstiges',
+    steuersatz: 'regel',
+    pfand: true,
+    varianten: [
+      variante({ id: 20, name: 'Glas', preisCents: 200 }),
+      variante({ id: 21, name: 'Becher', preisCents: 100 }),
+    ],
+  })
+  const bierMit = (pfandVarianteId: number | null) =>
+    produkt({
+      id: 1,
+      name: 'Bier',
+      kategorie: 'getraenk',
+      steuersatz: 'regel',
+      varianten: [variante({ id: 10, name: '0,5 l', pfandVarianteId })],
+    })
+  const satz = 'Verknüpfte Varianten verlieren ihr Pfand.'
+
+  it.each([
+    ['nennt, dass verknüpfte Varianten ihr Pfand verlieren', 20, true],
+    [
+      'schweigt ohne Verknüpfung, dass Varianten ihr Pfand verlieren',
+      null,
+      false,
+    ],
+  ])('Produkt löschen %s', async (_titel, pfandVarianteId, erwartet) => {
+    renderProducts([bierMit(pfandVarianteId), glaspfand])
+    const user = userEvent.setup()
+    const zeile = screen.getByText('Glaspfand').parentElement
+    if (zeile === null) throw new Error('Zeile Glaspfand fehlt')
+
+    await user.click(
+      within(zeile).getByRole('button', { name: 'Weitere Aktionen' }),
+    )
+    await user.click(await screen.findByRole('menuitem', { name: 'Löschen…' }))
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Produkt löschen?',
+    })
+    expect(dialog.textContent.includes(satz)).toBe(erwartet)
+  })
+
+  it.each([
+    ['nennt, dass verknüpfte Varianten ihr Pfand verlieren', 20, true],
+    [
+      'schweigt bei Verknüpfung einer anderen Variante, dass Varianten ihr Pfand verlieren',
+      21,
+      false,
+    ],
+  ])('Variante löschen %s', async (_titel, pfandVarianteId, erwartet) => {
+    renderProducts([bierMit(pfandVarianteId), glaspfand])
+    const user = userEvent.setup()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante „Glas" bearbeiten' }),
+    )
+    await user.click(
+      await screen.findByRole('button', { name: 'Variante löschen' }),
+    )
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Variante löschen?',
+    })
+    expect(dialog.textContent.includes(satz)).toBe(erwartet)
+  })
+})
