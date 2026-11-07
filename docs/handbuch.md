@@ -212,7 +212,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 ### 3.12 Policies
 
 - **Stornierungsberechtigung (K-04):** Die JWT-Rollen-Middleware des `/serviceleitung/*`-Bereichs (`rolesServiceleitung`, `backend/app/routes.go`) erzwingt sie, bevor der Request die Anwendungsschicht erreicht. Rollen → [5.1](#51-rollen-und-berechtigungsmatrix).
-- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`-Event löst im Backend die Arbeitsbon-Policy aus, die Druckaufträge in die Outbox einreiht (→ [4.5 Bondruck](#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
+- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`- und `direktverkauf-getaetigt`-Event löst die Arbeitsbon-Policy aus. Sie reiht Druckaufträge in die Outbox ein (→ [4.5 Bondruck](#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
 - **Umbuchung (K-09):** Verschiebt unbezahlte Positionen geldneutral von Quell- auf Ziel-Tisch (`bestellung-umgebucht:v1`). Beide Streams schreibt eine Cross-Aggregat-Transaktion atomar.
 
 ### 3.13 TSE-Architektur
@@ -306,12 +306,12 @@ Tisch-Favoriten sind eine CRUD-Relation Benutzer ↔ Tisch und steuern, welche T
 
 Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druck-Infrastruktur. Sie teilen keinen Auslöser, Inhalt oder Rechtsstatus, nur die Druckauftrags-Outbox (`druckauftraege`) als Transport.
 
-| Familie     | Auslöser                                        | Rechtsstatus           | Inhalt                                          |
-| ----------- | ----------------------------------------------- | ---------------------- | ----------------------------------------------- |
-| Arbeitsbon  | `bestellung-aufgenommen:v1` (automatisch)       | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
-| Kassenbeleg | `POST /service/beleg-drucken` (auf Anforderung) | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
+| Familie     | Auslöser                                                             | Rechtsstatus           | Inhalt                                          |
+| ----------- | -------------------------------------------------------------------- | ---------------------- | ----------------------------------------------- |
+| Arbeitsbon  | `bestellung-aufgenommen:v1`, `direktverkauf-getaetigt` (automatisch) | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
+| Kassenbeleg | `POST /service/beleg-drucken` (auf Anforderung)                      | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
 
-**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Kategorie. Sie schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) in der `druckstationen`-Tabelle nach. Die Tabelle hat eine Zeile pro Kategorie (Admin-Konfiguration mit beidseitiger IPv4-Validierung). Dann formatiert die Policy den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. Inhalt: Tischname, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO.
+**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Kategorie. Sie schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) in der `druckstationen`-Tabelle nach. Die Tabelle hat eine Zeile pro Kategorie (Admin-Konfiguration mit beidseitiger IPv4-Validierung). Dann formatiert die Policy den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. Inhalt: Tischname, Positionen (Art + Menge), Kommentar, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO. Bei `direktverkauf-getaetigt` wählt dieselbe Policy Abholbon oder Arbeitsbons nach dem Direktverkauf-Routing unten.
 
 **Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung höchstens einen Druckauftrag an den Kassenbeleg-Drucker (keinen, solange die Signatur aussteht). Er nimmt eine von sechs Body-Formen an:
 
