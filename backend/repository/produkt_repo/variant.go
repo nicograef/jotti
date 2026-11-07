@@ -17,6 +17,22 @@ func (r Repository) GetVariante(ctx context.Context, id int) (produkt.Variante, 
 	return varianteRowToDomain(row), nil
 }
 
+// UpdateVarianten writes all given Varianten in one transaction: either every one changes or none.
+func (r Repository) UpdateVarianten(ctx context.Context, varianten []produkt.Variante) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		for i := range varianten {
+			result, err := qtx.UpdateVariante(ctx, updateVarianteParams(varianten[i]))
+			if err != nil {
+				return db.Error(err)
+			}
+			if err := db.ResultError(result); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (r Repository) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
 	id, err := r.q.CreateVariante(ctx, dbgen.CreateVarianteParams{
 		ProduktID:  produktID,

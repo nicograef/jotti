@@ -40,6 +40,7 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"verschiebe-produkt: unbekannte Richtung", h.VerschiebeProduktHandler(), `{"id":1,"richtung":"links"}`, "validation_error"},
 		{"verschiebe-variante: unbekannte Richtung", h.VerschiebeVarianteHandler(), `{"id":1,"richtung":"links"}`, "validation_error"},
 		{"sortiere-varianten: ungültige Produkt-ID", h.SortiereVariantenHandler(), `{"produktId":0}`, "validation_error"},
+		{"deactivate-varianten: ungültige Produkt-ID", h.DeactivateAlleVariantenHandler(), `{"produktId":0}`, "validation_error"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

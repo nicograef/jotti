@@ -50,7 +50,7 @@ const VerschiebeVarianteSchema = z.object({
   richtung: RichtungSchema,
 })
 
-const SortiereVariantenSchema = z.object({
+const ProduktIdBodySchema = z.object({
   produktId: ProduktIdSchema,
 })
 
@@ -125,7 +125,7 @@ export class ProduktBackend {
   }
 
   public async sortiereVariantenAlphabetisch(produktId: number): Promise<void> {
-    const body = SortiereVariantenSchema.parse({ produktId })
+    const body = ProduktIdBodySchema.parse({ produktId })
     await this.backend.post('admin/sortiere-varianten', body)
   }
 
@@ -137,6 +137,12 @@ export class ProduktBackend {
   public async deaktiviereVariante(id: number): Promise<void> {
     const body = { id: VarianteIdSchema.parse(id) }
     await this.backend.post('admin/deactivate-variante', body)
+  }
+
+  // Atomar im Backend: entweder alle aktiven Varianten oder keine.
+  public async deaktiviereAlleVarianten(produktId: number): Promise<void> {
+    const body = ProduktIdBodySchema.parse({ produktId })
+    await this.backend.post('admin/deactivate-varianten', body)
   }
 
   public async deleteProdukt(id: number): Promise<void> {

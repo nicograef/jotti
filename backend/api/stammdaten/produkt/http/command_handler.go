@@ -20,6 +20,7 @@ type command interface {
 	UpdateVariante(ctx context.Context, varianteID int, name string, preisCents int) error
 	ActivateVariante(ctx context.Context, varianteID int) error
 	DeactivateVariante(ctx context.Context, varianteID int) error
+	DeactivateAlleVarianten(ctx context.Context, produktID int) error
 	DeleteVariante(ctx context.Context, produktID int, varianteID int) error
 	VerschiebeVariante(ctx context.Context, varianteID int, richtung dom.Richtung) error
 	SortiereVariantenAlphabetisch(ctx context.Context, produktID int) error
@@ -317,22 +318,41 @@ func (h *CommandHandler) DeleteVarianteHandler() http.HandlerFunc {
 	}
 }
 
-type sortiereVariantenRequest struct {
+type produktIDRequest struct {
 	ProduktID int `json:"produktId"`
 }
 
-var sortiereVariantenSchema = z.Struct(z.Shape{
+var produktIDSchema = z.Struct(z.Shape{
 	"ProduktID": dom.IDSchema.Required(),
 })
 
 func (h *CommandHandler) SortiereVariantenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := sortiereVariantenRequest{}
-		if !helper.ReadAndValidateBody(w, r, &body, sortiereVariantenSchema) {
+		body := produktIDRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, produktIDSchema) {
 			return
 		}
 
 		err := h.Command.SortiereVariantenAlphabetisch(r.Context(), body.ProduktID)
+		if err != nil {
+			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},
+			})
+			return
+		}
+
+		helper.SendEmptyResponse(w)
+	}
+}
+
+func (h *CommandHandler) DeactivateAlleVariantenHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body := produktIDRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, produktIDSchema) {
+			return
+		}
+
+		err := h.Command.DeactivateAlleVarianten(r.Context(), body.ProduktID)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
 				{Err: application.ErrProduktNotFound, Code: "produkt_not_found"},

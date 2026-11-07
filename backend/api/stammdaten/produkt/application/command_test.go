@@ -186,3 +186,32 @@ func TestDeleteProdukt(t *testing.T) {
 		t.Errorf("expected status deleted, got %q", deleted.Status)
 	}
 }
+
+// Only the active Varianten change; an inactive or deleted one keeps its status.
+func TestDeactivateAlleVarianten(t *testing.T) {
+	varianten := []produkt.Variante{
+		{ID: 1, Name: "0,3 l", PreisCents: 250, Status: produkt.ActiveStatus},
+		{ID: 2, Name: "0,5 l", PreisCents: 350, Status: produkt.ActiveStatus},
+		{ID: 3, Name: "1,0 l", PreisCents: 600, Status: produkt.DeletedStatus},
+	}
+	mitVarianten := testProdukt
+	mitVarianten.Varianten = varianten
+	repo := repotest.NewProduktRepo([]produkt.Produkt{mitVarianten}, nil)
+	for _, v := range varianten {
+		repo.AddVariante(1, v)
+	}
+
+	if err := (Command{ProduktRepo: repo}).DeactivateAlleVarianten(context.Background(), 1); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	for id, want := range map[int]produkt.Status{1: produkt.InactiveStatus, 2: produkt.InactiveStatus, 3: produkt.DeletedStatus} {
+		v, err := repo.GetVariante(context.Background(), id)
+		if err != nil {
+			t.Fatalf("failed to get variante %d: %v", id, err)
+		}
+		if v.Status != want {
+			t.Errorf("variante %d: expected status %q, got %q", id, want, v.Status)
+		}
+	}
+}

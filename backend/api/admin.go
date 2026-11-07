@@ -57,6 +57,7 @@ func mountAdminStammdaten(r *routeMux, deps Deps) {
 	r.HandleFunc("/sortiere-varianten", pc.SortiereVariantenHandler())
 	r.HandleFunc("/activate-variante", pc.ActivateVarianteHandler())
 	r.HandleFunc("/deactivate-variante", pc.DeactivateVarianteHandler())
+	r.HandleFunc("/deactivate-varianten", pc.DeactivateAlleVariantenHandler())
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 

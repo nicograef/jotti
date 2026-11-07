@@ -97,6 +97,26 @@ func (m *ProduktRepo) UpdateVariante(ctx context.Context, v produkt.Variante) er
 	return m.err
 }
 
+func (m *ProduktRepo) UpdateVarianten(ctx context.Context, varianten []produkt.Variante) error {
+	if m.err != nil {
+		return m.err
+	}
+	for _, v := range varianten {
+		vp, ok := m.varianten[v.ID]
+		if !ok {
+			continue
+		}
+		m.varianten[v.ID] = produkt.VarianteMitProdukt{Variante: v, ProduktID: vp.ProduktID}
+		p := m.produkte[vp.ProduktID]
+		for i := range p.Varianten {
+			if p.Varianten[i].ID == v.ID {
+				p.Varianten[i] = v
+			}
+		}
+	}
+	return nil
+}
+
 func (m *ProduktRepo) VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error {
 	return m.err
 }

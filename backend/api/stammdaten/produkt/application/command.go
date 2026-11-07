@@ -16,6 +16,7 @@ type produktRepo interface {
 	GetVariante(ctx context.Context, varianteID int) (produkt.Variante, error)
 	CreateVariante(ctx context.Context, produktID int, variante produkt.Variante) (int, error)
 	UpdateVariante(ctx context.Context, variante produkt.Variante) error
+	UpdateVarianten(ctx context.Context, varianten []produkt.Variante) error
 	DeleteProduktMitVarianten(ctx context.Context, produkt produkt.Produkt) error
 	VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error
 	VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error
@@ -149,6 +150,33 @@ func (c Command) ActivateVariante(ctx context.Context, varianteID int) error {
 
 func (c Command) DeactivateVariante(ctx context.Context, varianteID int) error {
 	return c.applyVarianteStatusChange(ctx, varianteID, "Variante deactivated", func(v *produkt.Variante) { v.Deactivate() })
+}
+
+// DeactivateAlleVarianten takes every active Variante of a Produkt off sale at once, so a failure
+// never leaves the Produkt half deactivated during service.
+func (c Command) DeactivateAlleVarianten(ctx context.Context, produktID int) error {
+	log := logging.FromContext(ctx)
+
+	p, err := c.ProduktRepo.GetProdukt(ctx, produktID)
+	if err != nil {
+		return fromProduktError(err, log, "varianten deactivation", "produkt_id", produktID)
+	}
+
+	aktive := []produkt.Variante{}
+	for _, v := range p.Varianten {
+		if v.Status == produkt.ActiveStatus {
+			v.Deactivate()
+			aktive = append(aktive, v)
+		}
+	}
+
+	if err := c.ProduktRepo.UpdateVarianten(ctx, aktive); err != nil {
+		log.Error("Failed to deactivate varianten", "error", err, "produkt_id", produktID)
+		return ErrDatabase
+	}
+
+	log.Info("Varianten deactivated", "produkt_id", produktID, "count", len(aktive))
+	return nil
 }
 
 func (c Command) applyVarianteStatusChange(ctx context.Context, varianteID int, successMsg string, action func(*produkt.Variante)) error {

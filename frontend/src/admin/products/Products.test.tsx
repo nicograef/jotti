@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
@@ -44,6 +43,7 @@ function backend(): FakeBackend {
   return new FakeBackend()
     .respond('admin/activate-variante', {})
     .respond('admin/deactivate-variante', {})
+    .respond('admin/deactivate-varianten', {})
     .respond('admin/verschiebe-produkt', {})
     .respond('admin/verschiebe-variante', {})
     .respond('admin/sortiere-varianten', {})
@@ -108,61 +108,39 @@ describe('Products', () => {
     })
   })
 
-  it.each([
-    {
-      fall: 'all succeed',
-      fehlschlag: false,
-      aufrufe: [{ id: 7 }, { id: 8 }, { id: 9 }],
-    },
-    {
-      fall: 'the second fails',
-      fehlschlag: true,
-      aufrufe: [{ id: 7 }, { id: 8 }],
-    },
-  ])(
-    'deactivates all variants and reloads the list once when $fall',
-    async ({ fehlschlag, aufrufe }) => {
-      const user = userEvent.setup()
-      const onChanged = vi.fn()
-      const fake = backend()
-      if (fehlschlag) {
-        fake.respond(
-          'admin/deactivate-variante',
-          vi
-            .fn()
-            .mockReturnValueOnce({})
-            .mockImplementationOnce(() => {
-              throw new BackendError(503, 'netzwerkfehler')
-            }),
-        )
-      }
-      renderProducts(
-        [
-          produkt({
-            id: 1,
-            name: 'Bier',
-            varianten: [
-              variante({ id: 7, name: 'Klein' }),
-              variante({ id: 8, name: 'Groß' }),
-              variante({ id: 9, name: 'Maß' }),
-            ],
-          }),
-        ],
-        fake,
-        onChanged,
-      )
+  it('deactivates all variants in one request and reloads the list', async () => {
+    const user = userEvent.setup()
+    const onChanged = vi.fn()
+    const fake = backend()
+    renderProducts(
+      [
+        produkt({
+          id: 1,
+          name: 'Bier',
+          varianten: [
+            variante({ id: 7, name: 'Klein' }),
+            variante({ id: 8, name: 'Groß' }),
+            variante({ id: 9, name: 'Maß' }),
+          ],
+        }),
+      ],
+      fake,
+      onChanged,
+    )
 
-      await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
-      await user.click(
-        screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
-      )
+    await user.click(screen.getByRole('button', { name: 'Weitere Aktionen' }))
+    await user.click(
+      screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
+    )
 
-      await waitFor(() => {
-        expect(onChanged).toHaveBeenCalledTimes(1)
-      })
-      expect(fake.bodies('admin/deactivate-variante')).toEqual(aufrufe)
-    },
-  )
+    await waitFor(() => {
+      expect(onChanged).toHaveBeenCalledTimes(1)
+    })
+    expect(fake.bodies('admin/deactivate-varianten')).toEqual([
+      { produktId: 1 },
+    ])
+    expect(fake.bodies('admin/deactivate-variante')).toEqual([])
+  })
 
   it('moves a produkt down and disables the arrows at the ends of a kategorie', async () => {
     const user = userEvent.setup()
