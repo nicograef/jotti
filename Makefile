@@ -83,7 +83,7 @@ fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 # goimports is a tool of backend/go.mod; go.work makes it the one pin for every Go module.
 # $(goimports-check) fails when goimports would rewrite a file below the current directory.
 goimports-check = if [ -n "$$(go tool goimports -l .)" ]; then echo "Go files are not properly formatted:"; go tool goimports -l .; exit 1; fi
-# $(go-module-check) is the gate of one Go module beside the backend, run in its directory; CI runs it through the check-* targets.
+# $(go-module-check) is the gate of one Go module, run in its directory; CI runs it through the check-* targets.
 go-module-check = go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build -o /dev/null ./...
 
 lint-backend: ## Backend Linting (go vet + goimports)
@@ -297,7 +297,7 @@ check-tools-integration: ## Prüfen, ob migrate und Docker für Integrationstest
 	fi
 
 check-backend: ## Backend komplett prüfen (Deps, Lint inkl. Integrationstest-Dateien, Format, Vet, Test, Build)
-	cd backend && go mod verify && go mod tidy -diff && golangci-lint run && $(goimports-check) && go vet ./... && go test -count=1 -race ./... && go build ./...
+	cd backend && $(go-module-check)
 
 check-sqlc: ## Prüfen, ob backend/sqlc/dbgen zu Queries und Migrationen passt (sqlc diff)
 	cd backend && go tool sqlc diff
