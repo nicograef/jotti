@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
 
-import { DateStringSchema } from '../schemas'
+import { DateStringSchema, KommentarSchema } from '../schemas'
 
 export const PositionSchema = z.object({
   positionId: z.uuid(),
@@ -33,7 +33,7 @@ export const BestellungAufnehmenSchema = z.object({
   bestellungId: z.uuid(),
   tischId: z.number().int().min(1),
   positionen: BestellPositionInputSchema.array().min(1),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
 })
 export type BestellungAufnehmen = z.infer<typeof BestellungAufnehmenSchema>
 
@@ -46,7 +46,7 @@ export const BestellungSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtPreisCents: z.number().int().min(0),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
   aufgenommenAm: DateStringSchema,
   // Backend-computed (single source of truth): positions of this order that are
   // still stornierbar (ordered − cancelled − moved away) resp. umbuchbar

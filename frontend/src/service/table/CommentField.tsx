@@ -2,6 +2,9 @@ import { useState } from 'react'
 
 import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
+import { kuerzeAufUtf8Bytes } from '@/lib/utf8'
+
+import { KOMMENTAR_MAX_BYTES } from '../schemas'
 
 interface KommentarFieldProps {
   onChange: (value: string) => void
@@ -29,11 +32,18 @@ export function KommentarField({
           required ? 'Kommentar (erforderlich)' : 'Kommentar (optional)'
         }
         rows={3}
-        maxLength={100}
         value={value}
         onChange={(e) => {
           setTouched(true)
-          onChange(e.target.value)
+          // maxLength zählt UTF-16-Einheiten, das Backend Bytes: Umlaute sprengen sonst das Limit.
+          const gekuerzt = kuerzeAufUtf8Bytes(
+            e.target.value,
+            KOMMENTAR_MAX_BYTES,
+          )
+          if (gekuerzt !== e.target.value) {
+            e.target.value = gekuerzt
+          }
+          onChange(gekuerzt)
         }}
         onBlur={() => {
           setTouched(true)
@@ -61,7 +71,6 @@ export function Kommentar({ value }: { value: string }) {
         value={value}
         className="resize-none focus-visible:ring-0 focus-visible:border-input"
         rows={3}
-        maxLength={100}
         spellCheck={false}
       />
     </Field>

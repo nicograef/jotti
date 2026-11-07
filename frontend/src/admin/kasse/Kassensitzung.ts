@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { maxUtf8Bytes } from '@/lib/utf8'
+
 export const GeldtransitRichtung = {
   EINLAGE: 'einlage',
   ENTNAHME: 'entnahme',
@@ -22,20 +24,25 @@ export const KassensitzungStatus = {
 export type KassensitzungStatus =
   (typeof KassensitzungStatus)[keyof typeof KassensitzungStatus]
 
-export const BezeichnungSchema = z
-  .string()
-  .min(1, { message: 'Bezeichnung ist erforderlich.' })
-  .max(200, { message: 'Bezeichnung darf maximal 200 Zeichen lang sein.' })
+// Das Backend zählt beide Grenzen in UTF-8-Bytes.
+export const BezeichnungSchema = maxUtf8Bytes(
+  z.string().min(1, { message: 'Bezeichnung ist erforderlich.' }),
+  200,
+  'Bezeichnung darf maximal 200 Zeichen lang sein.',
+)
 
 export const BetragCentsSchema = z
   .number()
   .int()
   .gte(0, { message: 'Betrag muss mindestens 0 Cent sein.' })
 
-export const KommentarSchema = z
-  .string()
-  .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' })
-  .max(200, { message: 'Kommentar darf maximal 200 Zeichen lang sein.' })
+export const KommentarSchema = maxUtf8Bytes(
+  z
+    .string()
+    .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' }),
+  200,
+  'Kommentar darf maximal 200 Zeichen lang sein.',
+)
 
 // KasseBackend erweitert diesen Datensatz zu AktiveKassensitzung.
 export const KassensitzungSchema = z.object({

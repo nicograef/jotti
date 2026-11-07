@@ -4,14 +4,18 @@ import {
   VerkaufPositionInputSchema,
   VorgangHistorieBasisSchema,
 } from '../direktverkauf/Direktverkauf'
-import { PositionRefSchema } from '../schemas'
+import {
+  KommentarSchema,
+  PflichtKommentarSchema,
+  PositionRefSchema,
+} from '../schemas'
 
 // tischId 0 ist der Direktverkauf.
 export const PfandZurueckgebenSchema = z.object({
   rueckgabeId: z.uuid(),
   tischId: z.number().int().min(0),
   positionen: VerkaufPositionInputSchema.array().min(1),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
 })
 export type PfandZurueckgeben = z.infer<typeof PfandZurueckgebenSchema>
 
@@ -28,7 +32,7 @@ export const PfandrueckgabeStornierenSchema = z.object({
   stornierungId: z.uuid(),
   rueckgabeId: z.uuid(),
   positionen: PositionRefSchema.array().min(1),
-  kommentar: z.string().min(3).max(100),
+  kommentar: PflichtKommentarSchema,
 })
 export type PfandrueckgabeStornieren = z.infer<
   typeof PfandrueckgabeStornierenSchema

@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { DateStringSchema, PositionRefSchema } from '../schemas'
+import {
+  DateStringSchema,
+  KommentarSchema,
+  PflichtKommentarSchema,
+  PositionRefSchema,
+} from '../schemas'
 import { PositionSchema } from './Bestellung'
 
 export const StornierungSchema = z.object({
@@ -15,7 +20,7 @@ export const StornierungSchema = z.object({
   // Response-Schema ohne min: das Korrektur-Event (bestellung-korrigiert:v1)
   // lässt einen leeren Kommentar zu (Eingabepflicht min 3 gilt nur im Request,
   // s. u.).
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
   // barRueckgabe unterscheidet die kassenwirksame Warenrücknahme (true) von der
   // geldneutralen Korrektur (false); vom Backend aus dem Event-Typ abgeleitet.
   barRueckgabe: z.boolean(),
@@ -26,6 +31,6 @@ export type Stornierung = z.infer<typeof StornierungSchema>
 export const StornierungErteilenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
-  kommentar: z.string().min(3).max(100),
+  kommentar: PflichtKommentarSchema,
 })
 export type StornierungErteilen = z.infer<typeof StornierungErteilenSchema>

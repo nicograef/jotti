@@ -2,7 +2,12 @@ import { z } from 'zod'
 
 import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
 
-import { DateStringSchema, PositionRefSchema } from '../schemas'
+import {
+  DateStringSchema,
+  KommentarSchema,
+  PflichtKommentarSchema,
+  PositionRefSchema,
+} from '../schemas'
 
 // max(999) spiegelt kasse.PositionEingabeSchema im Backend; siehe
 // BestellPositionInputSchema: die Grenze gilt nur auf dem Eingabeweg, die
@@ -24,7 +29,7 @@ export type PfandVerrechnung = z.infer<typeof PfandVerrechnungSchema>
 export const DirektverkaufTaetigenSchema = z.object({
   verkaufId: z.uuid(),
   positionen: VerkaufPositionInputSchema.array().min(1),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
   pfand: PfandVerrechnungSchema.optional(),
 })
 export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
@@ -32,7 +37,7 @@ export type DirektverkaufTaetigen = z.infer<typeof DirektverkaufTaetigenSchema>
 export const DirektverkaufStornierenSchema = z.object({
   verkaufId: z.uuid(),
   positionen: PositionRefSchema.array().min(1),
-  kommentar: z.string().min(3).max(100),
+  kommentar: PflichtKommentarSchema,
 })
 export type DirektverkaufStornieren = z.infer<
   typeof DirektverkaufStornierenSchema

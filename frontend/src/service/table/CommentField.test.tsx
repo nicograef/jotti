@@ -49,6 +49,28 @@ describe('KommentarField', () => {
     expect(screen.getByText(HINWEIS)).not.toHaveClass('text-destructive')
   })
 
+  // Das Backend zählt den Kommentar in UTF-8-Bytes (max. 100), nicht in Zeichen.
+  it.each([
+    ['ä'.repeat(60), 'ä'.repeat(50)],
+    ['a'.repeat(99) + 'ä', 'a'.repeat(99)],
+    ['a'.repeat(97) + '😀', 'a'.repeat(97)],
+    ['a'.repeat(96) + '😀', 'a'.repeat(96) + '😀'],
+  ])(
+    'kürzt %s auf 100 Bytes an einer Zeichengrenze',
+    async (eingabe, erwartet) => {
+      const user = userEvent.setup()
+      const onChange = vi.fn()
+      render(<KommentarField onChange={onChange} />)
+
+      const textarea = screen.getByPlaceholderText('Kommentar (optional)')
+      await user.click(textarea)
+      await user.paste(eingabe)
+
+      expect(textarea).toHaveValue(erwartet)
+      expect(onChange).toHaveBeenLastCalledWith(erwartet)
+    },
+  )
+
   it('zeigt bei optionalem Feld keinen Hilfetext', () => {
     render(<KommentarField onChange={vi.fn()} />)
 

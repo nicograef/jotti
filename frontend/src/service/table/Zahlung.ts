@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 import { PfandVerrechnungSchema } from '../direktverkauf/Direktverkauf'
-import { DateStringSchema, PositionRefSchema } from '../schemas'
+import {
+  DateStringSchema,
+  KommentarSchema,
+  PositionRefSchema,
+} from '../schemas'
 import { PositionSchema } from './Bestellung'
 
 export const ZahlungSchema = z.object({
@@ -13,7 +17,7 @@ export const ZahlungSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionSchema.array().min(1),
   gesamtZahlungCents: z.number().int().min(0),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
   kassiertAm: DateStringSchema,
 })
 export type Zahlung = z.infer<typeof ZahlungSchema>
@@ -21,7 +25,7 @@ export type Zahlung = z.infer<typeof ZahlungSchema>
 export const ZahlungKassierenSchema = z.object({
   tischId: z.number().int().min(1),
   positionen: PositionRefSchema.array().min(1),
-  kommentar: z.string().max(100),
+  kommentar: KommentarSchema,
   pfand: PfandVerrechnungSchema.optional(),
 })
 export type ZahlungKassieren = z.infer<typeof ZahlungKassierenSchema>
