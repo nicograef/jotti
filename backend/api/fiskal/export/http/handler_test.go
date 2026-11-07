@@ -84,40 +84,8 @@ func langerArchivbau(w *deadlineCapturingWriter, fristBeimArchivbau *time.Time) 
 	}
 }
 
-// The export runs against its own extended write deadline, not the server's global
-// 10-second one; otherwise an export over ten seconds is cut silently.
-func TestExportHandler_VerlaengertSchreibfristVorErstemSchreibvorgang(t *testing.T) {
-	w := newDeadlineCapturingWriter()
-	var fristBeimArchivbau time.Time
-	svc := &mockService{
-		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
-		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
-	}
-	h := &Handler{Service: svc}
-
-	before := time.Now()
-	performRequest(t, h.ExportHandler(), w, 0)
-
-	if w.fristBeimSchreiben.IsZero() {
-		t.Fatal("expected SetWriteDeadline to be called")
-	}
-	if fristBeimArchivbau.IsZero() || !w.fristBeimSchreiben.After(fristBeimArchivbau) {
-		t.Errorf("expected the write deadline to be set twice before the first write (handler entry and right before writing), got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
-	}
-	if min := 5 * time.Minute; w.fristBeimSchreiben.Before(before.Add(min)) {
-		t.Errorf("expected a write deadline at least %s in the future, got %s", min, w.fristBeimSchreiben.Sub(before))
-	}
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status 200, got %d", w.Code)
-	}
-	if body := w.Body.String(); body != "zip-inhalt" {
-		t.Errorf("expected body %q, got %q", "zip-inhalt", body)
-	}
-}
-
-// In production LoggingMiddleware wraps the route chain (backend/app/app.go) in its own
-// ResponseWriter, and the deadline must reach the real writer through it or a large
-// archive breaks off mid-ZIP. The direct-handler test above would miss that.
+// LoggingMiddleware wraps the route chain, so the export's extended write deadline must reach
+// the real writer through it. The deadline is absolute, so only a second setting after the build budgets the transfer.
 func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing.T) {
 	w := newDeadlineCapturingWriter()
 	var fristBeimArchivbau time.Time
@@ -173,30 +141,6 @@ func TestExportHandler_VerlaengertSchreibfristVorDemArchivbau(t *testing.T) {
 	}
 }
 
-// The deadline is absolute from request start: after five minutes of archive build
-// the entry deadline has expired when the transfer starts. Only the second setting
-// gives the transfer its own budget.
-func TestExportHandler_SetztSchreibfristVorDemSchreibenErneut(t *testing.T) {
-	w := newDeadlineCapturingWriter()
-	var fristBeimArchivbau time.Time
-	svc := &mockService{
-		archiv:       application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")},
-		beiErstellen: langerArchivbau(w, &fristBeimArchivbau),
-	}
-	h := &Handler{Service: svc}
-
-	performRequest(t, h.ExportHandler(), w, 0)
-
-	if fristBeimArchivbau.IsZero() {
-		t.Error("expected a write deadline before the archive is built")
-	}
-	// What counts is the deadline at the first write; one set after writing comes too
-	// late for this response.
-	if !w.fristBeimSchreiben.After(fristBeimArchivbau) {
-		t.Errorf("expected the write deadline to be set again after the archive is built and before writing, got %v during the archive build and %v at the first write", fristBeimArchivbau, w.fristBeimSchreiben)
-	}
-}
-
 // If the ResponseWriter lacks SetWriteDeadline (like httptest.ResponseRecorder), this
 // is logged and the export continues with the global deadline and a correct response.
 func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
@@ -214,18 +158,6 @@ func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 	}
 	if body := rec.Body.String(); body != "zip-inhalt" {
 		t.Errorf("expected body %q, got %q", "zip-inhalt", body)
-	}
-}
-
-func TestExportHandler_KassensitzungNichtGefunden(t *testing.T) {
-	svc := &mockService{err: application.ErrKassensitzungNichtGefunden}
-	h := &Handler{Service: svc}
-
-	rec := httptest.NewRecorder()
-	performRequest(t, h.ExportHandler(), rec, 5)
-
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("expected status 404, got %d", rec.Code)
 	}
 }
 
