@@ -1,6 +1,9 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { EditTischDialog } from './EditTischDialog'
 import { type Tisch } from './Tisch'
@@ -19,24 +22,20 @@ function tisch(overrides: Partial<Tisch> = {}): Tisch {
   }
 }
 
-function backend() {
-  return {
-    updateTisch: vi.fn().mockResolvedValue(undefined),
-    deleteTisch: vi.fn().mockResolvedValue(undefined),
-  }
-}
-
-function renderDialog(t: Tisch, be = backend()) {
-  render(
+function renderDialog(t: Tisch) {
+  const fake = new FakeBackend()
+    .respond('admin/update-tisch', {})
+    .respond('admin/delete-tisch', {})
+  renderWithBackend(
     <EditTischDialog
-      backend={be}
       tisch={t}
       updated={vi.fn()}
       deleted={vi.fn()}
       close={vi.fn()}
     />,
+    fake,
   )
-  return be
+  return fake
 }
 
 afterEach(cleanup)
@@ -54,11 +53,13 @@ describe('EditTischDialog', () => {
 
   it('deletes the tisch via the confirmation dialog when there is no saldo', async () => {
     const user = userEvent.setup()
-    const be = renderDialog(tisch({ id: 7, saldoCents: 0 }))
+    const fake = renderDialog(tisch({ id: 7, saldoCents: 0 }))
 
     await user.click(screen.getByRole('button', { name: /Tisch löschen/i }))
     await user.click(screen.getByRole('button', { name: 'Löschen' }))
 
-    expect(be.deleteTisch).toHaveBeenCalledWith(7)
+    await waitFor(() => {
+      expect(fake.bodies('admin/delete-tisch')).toEqual([{ id: 7 }])
+    })
   })
 })

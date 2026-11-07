@@ -7,11 +7,9 @@ import { HinweisKarte } from '../components/HinweisKarte'
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { groupProdukteByKategorie, kategorieZusatz } from './productGrouping'
 import { ProductItem } from './ProductItem'
-import type { ProduktListeBackend } from './ProduktBackend'
 
 interface ProductsProps {
   loading: boolean
-  backend: ProduktListeBackend
   products: Produkt[]
   druckstationen: DruckstationConfig[]
   onEdit: (produkt: Produkt) => void
@@ -62,7 +60,6 @@ export function Products(props: ProductsProps) {
                   product={product}
                   isFirst={index === 0}
                   isLast={index === gruppe.produkte.length - 1}
-                  backend={props.backend}
                   onEdit={props.onEdit}
                   onDelete={props.onDelete}
                   onChanged={props.onChanged}

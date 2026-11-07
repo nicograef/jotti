@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   afterEach,
@@ -12,9 +12,9 @@ import {
 
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { type User } from './User'
-import { UserBackend } from './UserBackend'
 import { Users } from './Users'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -67,10 +67,9 @@ function renderUsers(
 ) {
   const fake = backend()
   const onResetPassword = vi.fn().mockResolvedValue(undefined)
-  render(
+  renderWithBackend(
     <Users
       loading={false}
-      backend={new UserBackend(fake)}
       users={users}
       onEdit={vi.fn()}
       onStatusChange={vi.fn()}
@@ -78,6 +77,7 @@ function renderUsers(
       onDeleted={vi.fn()}
       {...overrides}
     />,
+    fake,
   )
   return { fake, onResetPassword }
 }

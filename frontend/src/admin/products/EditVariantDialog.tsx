@@ -32,7 +32,8 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import type { Variante } from '@/lib/produktSchemas'
 
-import { type ProduktBackend, UpdateVarianteSchema } from './ProduktBackend'
+import { produktBackend } from './hooks'
+import { UpdateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateVarianteSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
@@ -41,7 +42,6 @@ interface EditVariantDialogProps {
   open: boolean
   produktId: number
   variant: Variante
-  backend: Pick<ProduktBackend, 'updateVariante' | 'deleteVariante'>
   updated: () => void
   deleted: () => void
   close: () => void
@@ -80,7 +80,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.updateVariante({
+      await produktBackend.updateVariante({
         id: props.variant.id,
         ...data,
       })
@@ -91,7 +91,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
 
   const onDelete = async () => {
     await runDelete(async () => {
-      await props.backend.deleteVariante(props.produktId, props.variant.id)
+      await produktBackend.deleteVariante(props.produktId, props.variant.id)
       setDeleteOpen(false)
       props.deleted()
       props.close()

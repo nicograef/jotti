@@ -20,14 +20,14 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
-import { CreateVarianteSchema, type ProduktBackend } from './ProduktBackend'
+import { produktBackend } from './hooks'
+import { CreateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewVariantDialogProps {
   productId: number
-  backend: Pick<ProduktBackend, 'createVariante'>
   created: (variante: FormData) => void
   children: ReactNode
 }
@@ -50,7 +50,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.createVariante({
+      await produktBackend.createVariante({
         produktId: props.productId,
         ...data,
       })

@@ -1,5 +1,8 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { EditUserDialog } from './EditUserDialog'
 import { type User } from './User'
@@ -20,14 +23,14 @@ function user(overrides: Partial<User> = {}): User {
 }
 
 function renderDialog(isSelf = false) {
-  render(
+  renderWithBackend(
     <EditUserDialog
-      backend={{ updateUser: vi.fn().mockResolvedValue(undefined) }}
       user={user()}
       isSelf={isSelf}
       updated={vi.fn()}
       close={vi.fn()}
     />,
+    new FakeBackend(),
   )
 }
 

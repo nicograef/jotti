@@ -61,7 +61,6 @@ export function AdminUsersPage() {
       )}
       {zuBearbeiten && (
         <EditUserDialog
-          backend={userBackend}
           user={zuBearbeiten}
           isSelf={zuBearbeiten.id === AuthSingleton.userId}
           updated={() => {
@@ -78,7 +77,6 @@ export function AdminUsersPage() {
         glowFarben={['blue', 'red']}
         aktionen={
           <NewUserDialog
-            backend={userBackend}
             created={(user, onetimePassword) => {
               invalidateUsers()
               setEinmalcode({
@@ -95,7 +93,6 @@ export function AdminUsersPage() {
       <div className="mt-4 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_320px]">
         <Users
           loading={isPending}
-          backend={userBackend}
           users={users}
           onEdit={(user) => {
             setZuBearbeiten(user)

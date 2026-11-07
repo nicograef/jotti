@@ -20,16 +20,16 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { produktBackend } from './hooks'
 import { PfandField } from './PfandField'
 import { defaultSteuersatzByKategorie } from './Produkt'
-import { ProduktBackend, UpdateProduktSchema } from './ProduktBackend'
+import { UpdateProduktSchema } from './ProduktBackend'
 import { SteuersatzField } from './SteuersatzField'
 
 const FormDataSchema = UpdateProduktSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditProductDialogProps {
-  backend: Pick<ProduktBackend, 'updateProdukt'>
   product: Produkt
   updated: () => void
   close: () => void
@@ -75,7 +75,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.updateProdukt({
+      await produktBackend.updateProdukt({
         id: props.product.id,
         ...data,
       })

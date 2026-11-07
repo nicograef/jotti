@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
 import { Richtung } from './Produkt'
-import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {
   produktId: number
@@ -18,7 +17,6 @@ interface VariantChipProps {
   loading: boolean
   isFirst: boolean
   isLast: boolean
-  backend: Pick<ProduktBackend, 'updateVariante' | 'deleteVariante'>
   onActivate: (varianteId: number) => Promise<void>
   onDeactivate: (varianteId: number) => Promise<void>
   onMove: (varianteId: number, richtung: Richtung) => Promise<void>
@@ -119,7 +117,6 @@ export function VariantChip(props: VariantChipProps) {
         open={editOpen}
         produktId={props.produktId}
         variant={props.variant}
-        backend={props.backend}
         updated={props.onUpdated}
         deleted={props.onDeleted}
         close={() => {

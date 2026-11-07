@@ -152,16 +152,3 @@ export class ProduktBackend {
     await this.backend.post('admin/delete-variante', body)
   }
 }
-
-// Die Methoden, die die Produktliste und ihre Varianten-Chips aufrufen.
-export type ProduktListeBackend = Pick<
-  ProduktBackend,
-  | 'aktiviereVariante'
-  | 'deaktiviereVariante'
-  | 'createVariante'
-  | 'updateVariante'
-  | 'deleteVariante'
-  | 'verschiebeProdukt'
-  | 'verschiebeVariante'
-  | 'sortiereVariantenAlphabetisch'
->

@@ -22,14 +22,14 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { UserRole } from '@/lib/identity'
 
+import { userBackend } from './hooks'
 import { RoleField } from './RoleField'
-import { CreateUserSchema, UserBackend } from './UserBackend'
+import { CreateUserSchema } from './UserBackend'
 
 const FormDataSchema = CreateUserSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewUserDialogProps {
-  backend: Pick<UserBackend, 'createUser'>
   created: (user: FormData, onetimePassword: string) => void
 }
 
@@ -53,7 +53,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      const { onetimePassword } = await props.backend.createUser(
+      const { onetimePassword } = await userBackend.createUser(
         data.name,
         data.username,
         data.role,

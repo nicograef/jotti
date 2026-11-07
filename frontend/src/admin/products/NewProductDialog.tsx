@@ -22,16 +22,16 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { Kategorie } from '@/lib/produktSchemas'
 
+import { produktBackend } from './hooks'
 import { PfandField } from './PfandField'
 import { defaultSteuersatzByKategorie } from './Produkt'
-import { CreateProduktSchema, ProduktBackend } from './ProduktBackend'
+import { CreateProduktSchema } from './ProduktBackend'
 import { SteuersatzField } from './SteuersatzField'
 
 const FormDataSchema = CreateProduktSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewProductDialogProps {
-  backend: Pick<ProduktBackend, 'createProdukt'>
   created: (product: FormData) => void
 }
 
@@ -66,7 +66,7 @@ export function NewProductDialog(props: NewProductDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.createProdukt(data)
+      await produktBackend.createProdukt(data)
       form.reset()
       setOpen(false)
       props.created(data)

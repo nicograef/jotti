@@ -31,7 +31,6 @@ export function AdminProductsPage() {
     <>
       {zuBearbeiten && (
         <EditProductDialog
-          backend={produktBackend}
           product={zuBearbeiten}
           updated={() => {
             invalidateProdukte()
@@ -47,7 +46,6 @@ export function AdminProductsPage() {
         glowFarben={['green', 'blue']}
         aktionen={
           <NewProductDialog
-            backend={produktBackend}
             created={(produkt) => {
               invalidateProdukte()
               toast.success(`Produkt "${produkt.name}" wurde angelegt.`)
@@ -57,7 +55,6 @@ export function AdminProductsPage() {
       />
       <Products
         loading={isPending}
-        backend={produktBackend}
         products={produkte}
         druckstationen={druckstationen}
         onEdit={(produkt) => {

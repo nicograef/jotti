@@ -7,7 +7,7 @@ import { formatAnzahl } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditTischDialog } from './EditTischDialog'
-import { ALLE_TISCHE_KEY, tischBackend, useAllTische } from './hooks'
+import { ALLE_TISCHE_KEY, useAllTische } from './hooks'
 import { NewTischDialog } from './NewTischDialog'
 import type { Tisch } from './Tisch'
 import { Tische } from './Tische'
@@ -36,7 +36,6 @@ export function AdminTablesPage() {
     <>
       {zuBearbeiten && (
         <EditTischDialog
-          backend={tischBackend}
           tisch={zuBearbeiten}
           updated={() => {
             invalidateTische()
@@ -55,7 +54,6 @@ export function AdminTablesPage() {
         unterzeile={unterzeile}
         aktionen={
           <NewTischDialog
-            backend={tischBackend}
             created={(tisch) => {
               invalidateTische()
               toast.success(`Tisch "${tisch.name}" wurde angelegt.`)
@@ -65,7 +63,6 @@ export function AdminTablesPage() {
       />
       <Tische
         loading={isPending}
-        backend={tischBackend}
         tische={tische}
         onEdit={(tisch) => {
           setZuBearbeiten(tisch)

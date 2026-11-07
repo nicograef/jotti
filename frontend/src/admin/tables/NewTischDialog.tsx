@@ -21,13 +21,13 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
-import { CreateTischSchema, TischBackend } from './TischBackend'
+import { tischBackend } from './hooks'
+import { CreateTischSchema } from './TischBackend'
 
 const FormDataSchema = CreateTischSchema
 type FormData = z.infer<typeof FormDataSchema>
 
 interface NewTischDialogProps {
-  backend: Pick<TischBackend, 'createTisch'>
   created: (tisch: FormData) => void
 }
 
@@ -49,7 +49,7 @@ export function NewTischDialog(props: NewTischDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.createTisch(data)
+      await tischBackend.createTisch(data)
       form.reset()
       setOpen(false)
       props.created(data)

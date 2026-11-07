@@ -4,14 +4,13 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 
+import { userBackend } from './hooks'
 import { type User } from './User'
-import type { UserBackend } from './UserBackend'
 import { UserRow } from './UserRow'
 import { BENUTZER_SPALTEN } from './UsersSpalten'
 
 interface UsersProps {
   loading: boolean
-  backend: Pick<UserBackend, 'activateUser' | 'deactivateUser' | 'deleteUser'>
   users: User[]
   onEdit: (user: User) => void
   onStatusChange: () => void
@@ -34,21 +33,21 @@ export function Users(props: UsersProps) {
 
   const activateUser = async (userId: number) => {
     await runActivate(async () => {
-      await props.backend.activateUser(userId)
+      await userBackend.activateUser(userId)
       props.onStatusChange()
     })
   }
 
   const deactivateUser = async (userId: number) => {
     await runDeactivate(async () => {
-      await props.backend.deactivateUser(userId)
+      await userBackend.deactivateUser(userId)
       props.onStatusChange()
     })
   }
 
   const deleteUser = async (userId: number) => {
     await runDelete(async () => {
-      await props.backend.deleteUser(userId)
+      await userBackend.deleteUser(userId)
       props.onDeleted(userId)
     })
   }

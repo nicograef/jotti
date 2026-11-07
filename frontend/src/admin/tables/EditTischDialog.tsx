@@ -32,14 +32,14 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { formatEuro } from '@/lib/utils'
 
+import { tischBackend } from './hooks'
 import { type Tisch } from './Tisch'
-import { TischBackend, UpdateTischSchema } from './TischBackend'
+import { UpdateTischSchema } from './TischBackend'
 
 const FormDataSchema = UpdateTischSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditTischDialogProps {
-  backend: Pick<TischBackend, 'updateTisch' | 'deleteTisch'>
   tisch: Tisch
   updated: () => void
   deleted: (tischId: number) => void
@@ -76,7 +76,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await run(async () => {
-      await props.backend.updateTisch({
+      await tischBackend.updateTisch({
         id: props.tisch.id,
         ...data,
       })
@@ -87,7 +87,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
 
   const onDelete = async () => {
     await runDelete(async () => {
-      await props.backend.deleteTisch(props.tisch.id)
+      await tischBackend.deleteTisch(props.tisch.id)
       props.deleted(props.tisch.id)
       props.close()
     })

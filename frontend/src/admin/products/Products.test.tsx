@@ -1,9 +1,12 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import type { DruckstationConfig } from '../settings/DruckstationBackend'
 import { EditProductDialog } from './EditProductDialog'
@@ -58,29 +61,26 @@ function produkt(overrides: Partial<Produkt>): Produkt {
 
 const druckstationen: DruckstationConfig[] = []
 
-function backend() {
-  return {
-    aktiviereVariante: vi.fn().mockResolvedValue(undefined),
-    deaktiviereVariante: vi.fn().mockResolvedValue(undefined),
-    createVariante: vi.fn().mockResolvedValue(1),
-    updateVariante: vi.fn().mockResolvedValue(undefined),
-    deleteVariante: vi.fn().mockResolvedValue(undefined),
-    verschiebeProdukt: vi.fn().mockResolvedValue(undefined),
-    verschiebeVariante: vi.fn().mockResolvedValue(undefined),
-    sortiereVariantenAlphabetisch: vi.fn().mockResolvedValue(undefined),
-  }
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/activate-variante', {})
+    .respond('admin/deactivate-variante', {})
+    .respond('admin/verschiebe-produkt', {})
+    .respond('admin/verschiebe-variante', {})
+    .respond('admin/sortiere-varianten', {})
+    .respond('admin/create-produkt', { id: 9 })
+    .respond('admin/update-produkt', {})
 }
 
 function renderProducts(
   products: Produkt[],
-  be = backend(),
+  fake = backend(),
   onChanged = vi.fn(),
 ) {
-  render(
+  renderWithBackend(
     <TooltipProvider>
       <Products
         loading={false}
-        backend={be}
         products={products}
         druckstationen={druckstationen}
         onEdit={vi.fn()}
@@ -90,8 +90,9 @@ function renderProducts(
         onVariantDeleted={vi.fn()}
       />
     </TooltipProvider>,
+    fake,
   )
-  return be
+  return fake
 }
 
 afterEach(cleanup)
@@ -114,7 +115,7 @@ describe('Products', () => {
 
   it('deactivates a variant via the chip switch without a dialog', async () => {
     const user = userEvent.setup()
-    const be = renderProducts([
+    const fake = renderProducts([
       produkt({ id: 1, name: 'Bier', varianten: [variante({ id: 7 })] }),
     ])
 
@@ -123,22 +124,38 @@ describe('Products', () => {
     })
     await user.click(toggle)
 
-    expect(be.deaktiviereVariante).toHaveBeenCalledWith(7)
+    await waitFor(() => {
+      expect(fake.bodies('admin/deactivate-variante')).toEqual([{ id: 7 }])
+    })
   })
 
   it.each([
-    { fall: 'all succeed', fehlschlag: false, aufrufe: [[7], [8], [9]] },
-    { fall: 'the second fails', fehlschlag: true, aufrufe: [[7], [8]] },
+    {
+      fall: 'all succeed',
+      fehlschlag: false,
+      aufrufe: [{ id: 7 }, { id: 8 }, { id: 9 }],
+    },
+    {
+      fall: 'the second fails',
+      fehlschlag: true,
+      aufrufe: [{ id: 7 }, { id: 8 }],
+    },
   ])(
     'deactivates all variants and reloads the list once when $fall',
     async ({ fehlschlag, aufrufe }) => {
       const user = userEvent.setup()
       const onChanged = vi.fn()
-      const be = backend()
+      const fake = backend()
       if (fehlschlag) {
-        be.deaktiviereVariante
-          .mockResolvedValueOnce(undefined)
-          .mockRejectedValueOnce(new Error('Netzwerkfehler'))
+        fake.respond(
+          'admin/deactivate-variante',
+          vi
+            .fn()
+            .mockReturnValueOnce({})
+            .mockImplementationOnce(() => {
+              throw new BackendError(503, 'netzwerkfehler')
+            }),
+        )
       }
       renderProducts(
         [
@@ -152,7 +169,7 @@ describe('Products', () => {
             ],
           }),
         ],
-        be,
+        fake,
         onChanged,
       )
 
@@ -161,14 +178,16 @@ describe('Products', () => {
         screen.getByRole('menuitem', { name: /Alle Varianten deaktivieren/ }),
       )
 
-      expect(be.deaktiviereVariante.mock.calls).toEqual(aufrufe)
-      expect(onChanged).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(onChanged).toHaveBeenCalledTimes(1)
+      })
+      expect(fake.bodies('admin/deactivate-variante')).toEqual(aufrufe)
     },
   )
 
   it('moves a produkt down and disables the arrows at the ends of a kategorie', async () => {
     const user = userEvent.setup()
-    const be = renderProducts([
+    const fake = renderProducts([
       produkt({ id: 1, name: 'Pommes' }),
       produkt({ id: 2, name: 'Brezel' }),
     ])
@@ -182,7 +201,11 @@ describe('Products', () => {
 
     await user.click(screen.getByRole('button', { name: /Pommes.*nach unten/ }))
 
-    expect(be.verschiebeProdukt).toHaveBeenCalledWith(1, 'runter')
+    await waitFor(() => {
+      expect(fake.bodies('admin/verschiebe-produkt')).toEqual([
+        { id: 1, richtung: 'runter' },
+      ])
+    })
   })
 
   it('hides the variant chevrons when a produkt has a single variante', () => {
@@ -204,7 +227,7 @@ describe('Products', () => {
 
   it('moves a variante within its produkt', async () => {
     const user = userEvent.setup()
-    const be = renderProducts([
+    const fake = renderProducts([
       produkt({
         id: 1,
         name: 'Bier',
@@ -221,14 +244,18 @@ describe('Products', () => {
 
     await user.click(screen.getByRole('button', { name: /Groß.*nach vorne/ }))
 
-    expect(be.verschiebeVariante).toHaveBeenCalledWith(8, 'hoch')
+    await waitFor(() => {
+      expect(fake.bodies('admin/verschiebe-variante')).toEqual([
+        { id: 8, richtung: 'hoch' },
+      ])
+    })
   })
 })
 
 describe('Products - alphabetische Variantensortierung', () => {
   it('sorts the varianten of a produkt from the actions menu', async () => {
     const user = userEvent.setup()
-    const be = renderProducts([
+    const fake = renderProducts([
       produkt({
         id: 4,
         name: 'Weine',
@@ -244,7 +271,11 @@ describe('Products - alphabetische Variantensortierung', () => {
       screen.getByRole('menuitem', { name: /alphabetisch sortieren/ }),
     )
 
-    expect(be.sortiereVariantenAlphabetisch).toHaveBeenCalledWith(4)
+    await waitFor(() => {
+      expect(fake.bodies('admin/sortiere-varianten')).toEqual([
+        { produktId: 4 },
+      ])
+    })
   })
 
   it('disables the sort entry for a produkt with a single variante', async () => {
@@ -266,33 +297,34 @@ describe('Produkt-Formulare', () => {
     {
       dialog: 'NewProductDialog',
       submit: 'Produkt anlegen',
-      renderDialog: () => {
-        const backend = { createProdukt: vi.fn().mockResolvedValue(9) }
-        render(<NewProductDialog backend={backend} created={vi.fn()} />)
-        return { send: backend.createProdukt, open: 'Neues Produkt' }
+      endpoint: 'admin/create-produkt',
+      open: 'Neues Produkt',
+      renderDialog: (fake: FakeBackend) => {
+        renderWithBackend(<NewProductDialog created={vi.fn()} />, fake)
       },
     },
     {
       dialog: 'EditProductDialog',
       submit: 'Speichern',
-      renderDialog: () => {
-        const backend = { updateProdukt: vi.fn().mockResolvedValue(undefined) }
-        render(
+      endpoint: 'admin/update-produkt',
+      open: null,
+      renderDialog: (fake: FakeBackend) => {
+        renderWithBackend(
           <EditProductDialog
-            backend={backend}
             product={produkt({ id: 3, name: 'Pfand' })}
             updated={vi.fn()}
             close={vi.fn()}
           />,
+          fake,
         )
-        return { send: backend.updateProdukt, open: null }
       },
     },
   ])(
     'sends pfand when the Pfand switch is on ($dialog)',
-    async ({ submit, renderDialog }) => {
+    async ({ submit, endpoint, open, renderDialog }) => {
       const user = userEvent.setup()
-      const { send, open } = renderDialog()
+      const fake = backend()
+      renderDialog(fake)
       if (open) {
         await user.click(screen.getByRole('button', { name: open }))
         await user.type(screen.getByLabelText('Name'), 'Pfand')
@@ -301,9 +333,11 @@ describe('Produkt-Formulare', () => {
       await user.click(screen.getByRole('switch', { name: 'Pfand-Produkt' }))
       await user.click(screen.getByRole('button', { name: submit }))
 
-      expect(send).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Pfand', pfand: true }),
-      )
+      await waitFor(() => {
+        expect(fake.bodies(endpoint)).toEqual([
+          expect.objectContaining({ name: 'Pfand', pfand: true }),
+        ])
+      })
     },
   )
 

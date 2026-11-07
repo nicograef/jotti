@@ -1,6 +1,9 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { FakeBackend } from '@/test/FakeBackend'
+import { renderWithBackend } from '@/test/render'
 
 import { type Tisch } from './Tisch'
 import { Tische } from './Tische'
@@ -19,24 +22,24 @@ function tisch(overrides: Partial<Tisch> = {}): Tisch {
   }
 }
 
-function backend() {
-  return {
-    activateTisch: vi.fn().mockResolvedValue(undefined),
-    deactivateTisch: vi.fn().mockResolvedValue(undefined),
-  }
+function backend(): FakeBackend {
+  return new FakeBackend()
+    .respond('admin/activate-tisch', {})
+    .respond('admin/deactivate-tisch', {})
 }
 
-function renderTische(tische: Tisch[], be = backend()) {
-  render(
+function renderTische(tische: Tisch[], onEdit = vi.fn()) {
+  const fake = backend()
+  renderWithBackend(
     <Tische
       loading={false}
-      backend={be}
       tische={tische}
-      onEdit={vi.fn()}
+      onEdit={onEdit}
       onStatusChange={vi.fn()}
     />,
+    fake,
   )
-  return be
+  return fake
 }
 
 afterEach(cleanup)
@@ -67,29 +70,22 @@ describe('Tische', () => {
 
   it('deactivates a tisch via its switch', async () => {
     const user = userEvent.setup()
-    const be = renderTische([
+    const fake = renderTische([
       tisch({ id: 7, name: 'Tisch 7', status: 'active' }),
     ])
 
     await user.click(screen.getByRole('switch', { name: /deaktivieren/i }))
 
-    expect(be.deactivateTisch).toHaveBeenCalledWith(7)
+    await waitFor(() => {
+      expect(fake.bodies('admin/deactivate-tisch')).toEqual([{ id: 7 }])
+    })
   })
 
   it('opens the edit dialog when a kachel is clicked, not when the switch is toggled', async () => {
     const user = userEvent.setup()
     const onEdit = vi.fn()
-    const be = backend()
     const tisch3 = tisch({ id: 3, name: 'Tisch 3' })
-    render(
-      <Tische
-        loading={false}
-        backend={be}
-        tische={[tisch3]}
-        onEdit={onEdit}
-        onStatusChange={vi.fn()}
-      />,
-    )
+    renderTische([tisch3], onEdit)
 
     await user.click(screen.getByText('Tisch 3'))
     expect(onEdit).toHaveBeenCalledWith(tisch3)

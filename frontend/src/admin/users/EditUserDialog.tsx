@@ -18,15 +18,15 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
+import { userBackend } from './hooks'
 import { RoleField } from './RoleField'
 import type { User } from './User'
-import { UpdateUserSchema, type UserBackend } from './UserBackend'
+import { UpdateUserSchema } from './UserBackend'
 
 const FormDataSchema = UpdateUserSchema.omit({ id: true })
 type FormData = z.infer<typeof FormDataSchema>
 
 interface EditUserDialogProps {
-  backend: Pick<UserBackend, 'updateUser'>
   user: User
   // Beim eigenen Konto bleibt die Rolle gesperrt: eine Herabstufung sperrte den
   // letzten Admin aus. Das Backend lehnt sie zusätzlich mit cannot_demote_self ab.
@@ -61,7 +61,7 @@ export function EditUserDialog(props: EditUserDialogProps) {
 
   const onSubmit = async (data: FormData) => {
     await runSave(async () => {
-      await props.backend.updateUser({
+      await userBackend.updateUser({
         id: props.user.id,
         ...data,
       })

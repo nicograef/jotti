@@ -38,9 +38,9 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { EntityStatus } from '@/lib/entityStatus'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { produktBackend } from './hooks'
 import { NewVariantDialog } from './NewVariantDialog'
 import { Richtung } from './Produkt'
-import type { ProduktListeBackend } from './ProduktBackend'
 import { VariantChip } from './VariantChip'
 
 interface ProductItemProps {
@@ -48,7 +48,6 @@ interface ProductItemProps {
   product: Produkt
   isFirst: boolean
   isLast: boolean
-  backend: ProduktListeBackend
   onEdit: (produkt: Produkt) => void
   onDelete: (produktId: number) => Promise<void>
   onChanged: () => void
@@ -92,14 +91,14 @@ export function ProductItem(props: ProductItemProps) {
 
   const handleActivateVariant = async (variantId: number) => {
     await runActivateVariant(async () => {
-      await props.backend.aktiviereVariante(variantId)
+      await produktBackend.aktiviereVariante(variantId)
       props.onChanged()
     })
   }
 
   const handleDeactivateVariant = async (variantId: number) => {
     await runDeactivateVariant(async () => {
-      await props.backend.deaktiviereVariante(variantId)
+      await produktBackend.deaktiviereVariante(variantId)
       props.onChanged()
     })
   }
@@ -109,7 +108,7 @@ export function ProductItem(props: ProductItemProps) {
       // Bricht die Schleife ab, sind die vorigen Varianten schon deaktiviert.
       try {
         for (const variante of activeVarianten) {
-          await props.backend.deaktiviereVariante(variante.id)
+          await produktBackend.deaktiviereVariante(variante.id)
         }
       } finally {
         props.onChanged()
@@ -119,21 +118,21 @@ export function ProductItem(props: ProductItemProps) {
 
   const handleMoveProduct = async (richtung: Richtung) => {
     await runMoveProduct(async () => {
-      await props.backend.verschiebeProdukt(props.product.id, richtung)
+      await produktBackend.verschiebeProdukt(props.product.id, richtung)
       props.onChanged()
     })
   }
 
   const handleMoveVariant = async (variantId: number, richtung: Richtung) => {
     await runMoveVariant(async () => {
-      await props.backend.verschiebeVariante(variantId, richtung)
+      await produktBackend.verschiebeVariante(variantId, richtung)
       props.onChanged()
     })
   }
 
   const handleSortVariants = async () => {
     await runSortVariants(async () => {
-      await props.backend.sortiereVariantenAlphabetisch(props.product.id)
+      await produktBackend.sortiereVariantenAlphabetisch(props.product.id)
       props.onChanged()
     })
   }
@@ -161,7 +160,6 @@ export function ProductItem(props: ProductItemProps) {
             loading={props.loading || variantLoading}
             isFirst={index === 0}
             isLast={index === props.product.varianten.length - 1}
-            backend={props.backend}
             onActivate={handleActivateVariant}
             onDeactivate={handleDeactivateVariant}
             onMove={handleMoveVariant}
@@ -171,7 +169,6 @@ export function ProductItem(props: ProductItemProps) {
         ))}
         <NewVariantDialog
           productId={props.product.id}
-          backend={props.backend}
           created={props.onVariantCreated}
         >
           <button
