@@ -19,6 +19,7 @@ import (
 	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
 	kassenfuehrungApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
+	pfandrueckgabeApp "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	"github.com/nicograef/jotti/backend/db/dbtest"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -41,12 +42,16 @@ type liveTestUmgebung struct {
 	tisch      tischgeschaeftApp.Command
 	direkt     direktverkaufApp.Command
 	kasse      kassenfuehrungApp.Command
+	pfand      pfandrueckgabeApp.Command
 	tssID      string
 	userID     int
 	tischID    int
 	tischID2   int
 	produktID  int
 	varianteID int
+	// pfandProduktID and pfandVarianteID are the Pfand product the Pfandrückgabe takes back.
+	pfandProduktID  int
+	pfandVarianteID int
 }
 
 // credentialsOderSkip skips unless JOTTI_TSE_LIVE=1 and the FISKALY_TEST_* credentials are set.
@@ -181,6 +186,18 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 		t.Fatalf("create variante: %v", err)
 	}
 
+	if err := db.QueryRow(
+		"INSERT INTO produkte (name, kategorie, steuersatz, status, pfand, created_at, updated_at) VALUES ('Pfandbecher', 'getraenk', 'regel', 'active', true, now(), now()) RETURNING id",
+	).Scan(&u.pfandProduktID); err != nil {
+		t.Fatalf("create pfand produkt: %v", err)
+	}
+	if err := db.QueryRow(
+		"INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at) VALUES ($1, 'Becher', 200, 'active', now(), now()) RETURNING id",
+		u.pfandProduktID,
+	).Scan(&u.pfandVarianteID); err != nil {
+		t.Fatalf("create pfand variante: %v", err)
+	}
+
 	kjRepo := kassenjournal_repo.NewRepository(db)
 	ksRepo := kassensitzungen_repo.NewRepository(db)
 	prodRepo := produkt_repo.NewRepository(db)
@@ -199,6 +216,12 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 		ProduktRepo:         prodRepo,
 		KassensitzungenRepo: ksRepo,
 		DruckstationRepo:    druckRepo,
+	}
+	u.pfand = pfandrueckgabeApp.Command{
+		EventRepo:           kjRepo,
+		ProduktRepo:         prodRepo,
+		KassensitzungenRepo: ksRepo,
+		TischRepo:           tischRepo,
 	}
 	u.kasse = kassenfuehrungApp.Command{
 		KassenjournalRepo:   kjRepo,
@@ -458,7 +481,30 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	}
 	signiereUndPruefe("Direktverkauf-Storno", string(kasse.EventTypeDirektverkaufStorniertV1), verkaufSubject, tse.ProcessTypeKassenbelegV1)
 
-	// (10) Cash deposit → Kassenbeleg-V1 (Eigenbeleg, 0 % field).
+	// (10) Pfand paid out in cash → negative Kassenbeleg-V1 without reference; its Storno → positive Kassenbeleg-V1.
+	rueckgabeID := uuid.NewString()
+	pfandInputs := []enrichment.PositionInput{{ProduktID: u.pfandProduktID, VarianteID: u.pfandVarianteID, Menge: 2}}
+	if err := u.pfand.PfandZurueckgeben(ctx, u.userID, "test", rueckgabeID, 0, pfandInputs, ""); err != nil {
+		t.Fatalf("PfandZurueckgeben: %v", err)
+	}
+	rueckgabeSubject := kasse.PfandrueckgabeSubject(ksNr, rueckgabeID)
+	signiereUndPruefe("Pfandrückgabe", string(kasse.EventTypePfandZurueckgegebenV1), rueckgabeSubject, tse.ProcessTypeKassenbelegV1)
+
+	rueckgabeEvents, err := kassenjournal_repo.NewRepository(db).ReadEventsBySubject(ctx, rueckgabeSubject)
+	if err != nil || len(rueckgabeEvents) == 0 {
+		t.Fatalf("Pfandrückgabe-Events lesen: %v", err)
+	}
+	rueckgabe, err := kasse.BuildPfandrueckgabeHistorieEintrag(rueckgabeEvents)
+	if err != nil {
+		t.Fatalf("Pfandrückgabe replay: %v", err)
+	}
+	pfandStornoRefs := []kasse.PositionRef{{PositionID: rueckgabe.OffenePositionen[0].PositionID, Menge: 1}}
+	if err := u.pfand.PfandrueckgabeStornieren(ctx, u.userID, "test", uuid.NewString(), rueckgabeID, pfandStornoRefs, "Fehlbuchung"); err != nil {
+		t.Fatalf("PfandrueckgabeStornieren: %v", err)
+	}
+	signiereUndPruefe("Pfandrückgabe-Storno", string(kasse.EventTypePfandrueckgabeStorniertV1), rueckgabeSubject, tse.ProcessTypeKassenbelegV1)
+
+	// (11) Cash deposit → Kassenbeleg-V1 (Eigenbeleg, 0 % field).
 	geldtransitID := uuid.NewString()
 	if err := u.kasse.GeldtransitBuchen(ctx, u.userID, "test", geldtransitID, "einlage", 1000, "Wechselgeld"); err != nil {
 		t.Fatalf("GeldtransitBuchen: %v", err)
@@ -472,7 +518,7 @@ func TestTSELiveSuite_GeschaeftsvorfaelleUndStammdaten(t *testing.T) {
 	// Unsigned jobs would block the close with *SignaturenAusstehendError.
 	warteBisKeineOffenenAuftraege(t, db)
 
-	// (11) The cash close books the Kassensturz (unsigned), the difference (Kassenbeleg-V1) and the Z-Bon
+	// (12) The cash close books the Kassensturz (unsigned), the difference (Kassenbeleg-V1) and the Z-Bon
 	// (SonstigerVorgang).
 	sollBestand := aktuellerSollBestand(t, db, ksNr)
 	istBestand := sollBestand - 137 // a 1.37 € shortfall forces a difference booking
