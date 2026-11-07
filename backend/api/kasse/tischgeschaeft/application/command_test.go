@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -157,6 +158,44 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	}
 	if enqueued[0].Payload == "" {
 		t.Error("expected non-empty payload")
+	}
+}
+
+func TestBestellungAufnehmen_SchreibtPositionskommentar(t *testing.T) {
+	ctx := context.Background()
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+	zweiteVariante := testVariant
+	zweiteVariante.ID = 2
+	zweiteVariante.Name = "Cola 0,3l"
+	productMock.AddVariante(testProduct.ID, zweiteVariante)
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
+	command.ProduktRepo = productMock
+
+	inputs := []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 1, Kommentar: "ohne Eis"},
+		{ProduktID: testProduct.ID, VarianteID: zweiteVariante.ID, Menge: 1},
+	}
+	if err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 1, inputs, ""); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	events, err := eventMock.ReadKassensitzungEvents(ctx, testKassensitzungNr)
+	if err != nil || len(events) != 1 {
+		t.Fatalf("expected one written event, got %d (err %v)", len(events), err)
+	}
+	var data struct {
+		Positionen []map[string]json.RawMessage `json:"positionen"`
+	}
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("unmarshal event data: %v", err)
+	}
+	if got := string(data.Positionen[0]["kommentar"]); got != `"ohne Eis"` {
+		t.Errorf("positionen[0].kommentar = %s, want \"ohne Eis\"", got)
+	}
+	if _, ok := data.Positionen[1]["kommentar"]; ok {
+		t.Errorf("positionen[1] carries a kommentar key, want it absent: %v", data.Positionen[1])
 	}
 }
 
