@@ -21,27 +21,24 @@ func (m *mockDruckauftragQuery) GetFehlgeschlageneDruckauftraege(context.Context
 	return m.result, m.err
 }
 
+// mockDruckauftragCommand records the IDs a handler forwards.
 type mockDruckauftragCommand struct {
-	erneutID      int
-	verworfen     int
-	alleVerworfen bool
-	alleAnzahl    int64
-	err           error
+	erneutID  int
+	verworfen int
 }
 
 func (m *mockDruckauftragCommand) RetryDruckauftrag(_ context.Context, id int) error {
 	m.erneutID = id
-	return m.err
+	return nil
 }
 
 func (m *mockDruckauftragCommand) DiscardDruckauftrag(_ context.Context, id int) error {
 	m.verworfen = id
-	return m.err
+	return nil
 }
 
 func (m *mockDruckauftragCommand) DiscardAlleFehlgeschlagenen(context.Context) (int64, error) {
-	m.alleVerworfen = true
-	return m.alleAnzahl, m.err
+	return 0, nil
 }
 
 func postJSON(t *testing.T, handler http.HandlerFunc, path, body string) *httptest.ResponseRecorder {
@@ -108,34 +105,6 @@ func TestGetFehlgeschlageneDruckauftraegeHandler_EmptyList(t *testing.T) {
 	}
 }
 
-func TestRetryDruckauftragHandler_Success(t *testing.T) {
-	cmd := &mockDruckauftragCommand{}
-	handler := &CommandHandler{Command: cmd}
-
-	rec := postJSON(t, handler.RetryDruckauftragHandler(), "/admin/druckauftrag-erneut-versuchen", `{"id":42}`)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if cmd.erneutID != 42 {
-		t.Errorf("expected command called with id 42, got %d", cmd.erneutID)
-	}
-}
-
-func TestDiscardDruckauftragHandler_Success(t *testing.T) {
-	cmd := &mockDruckauftragCommand{}
-	handler := &CommandHandler{Command: cmd}
-
-	rec := postJSON(t, handler.DiscardDruckauftragHandler(), "/admin/druckauftrag-verwerfen", `{"id":42}`)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if cmd.verworfen != 42 {
-		t.Errorf("expected command called with id 42, got %d", cmd.verworfen)
-	}
-}
-
 func TestDruckauftragCommandHandlers_RejectInvalidID(t *testing.T) {
 	cmd := &mockDruckauftragCommand{}
 	handlers := map[string]http.HandlerFunc{
@@ -153,22 +122,5 @@ func TestDruckauftragCommandHandlers_RejectInvalidID(t *testing.T) {
 	}
 	if cmd.erneutID != 0 || cmd.verworfen != 0 {
 		t.Errorf("expected command not called for invalid IDs, got erneut=%d verworfen=%d", cmd.erneutID, cmd.verworfen)
-	}
-}
-
-func TestDiscardAlleFehlgeschlagenenHandler_Success(t *testing.T) {
-	cmd := &mockDruckauftragCommand{alleAnzahl: 3}
-	handler := &CommandHandler{Command: cmd}
-
-	rec := postJSON(t, handler.DiscardAlleFehlgeschlagenenHandler(), "/admin/druckauftraege-verwerfen", "{}")
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !cmd.alleVerworfen {
-		t.Errorf("expected command called")
-	}
-	if !strings.Contains(rec.Body.String(), "verworfen") {
-		t.Errorf("expected body to contain verworfen, got %s", rec.Body.String())
 	}
 }

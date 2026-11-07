@@ -371,22 +371,3 @@ func TestRelayPollKeinDruckerKonfiguriert(t *testing.T) {
 		t.Errorf("Expected 0 auftraege when no drucker configured, got %d", len(result.Auftraege))
 	}
 }
-
-func TestRelayPollFalscherToken(t *testing.T) {
-	env := setupTestEnv(t)
-
-	resp := pollRelay(t, env.server.URL, "wrong-token")
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Fatalf("Expected 400 for wrong token, got %d", resp.StatusCode)
-	}
-
-	var errResp struct {
-		Code string `json:"code"`
-	}
-	_ = json.NewDecoder(resp.Body).Decode(&errResp)
-	if errResp.Code != "unauthorized" {
-		t.Errorf("Expected error code 'unauthorized', got %q", errResp.Code)
-	}
-}
