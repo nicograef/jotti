@@ -48,9 +48,29 @@ func TestDeriveHostname(t *testing.T) {
 	}
 }
 
-func TestResolveLANIPPrefersEnv(t *testing.T) {
-	ip, ok := resolveLANIP("192.168.2.200")
-	if !ok || ip.String() != "192.168.2.200" {
-		t.Fatalf("resolveLANIP(env) = %v, %v; want 192.168.2.200, true", ip, ok)
+func TestResolveLANIP(t *testing.T) {
+	tests := []struct {
+		name   string
+		env    string
+		want   string
+		wantOK bool
+	}{
+		{name: "gültige IPv4", env: "192.168.2.200", want: "192.168.2.200", wantOK: true},
+		{name: "Leerzeichen werden entfernt", env: " 10.0.0.5 ", want: "10.0.0.5", wantOK: true},
+		{name: "leer", env: ""},
+		{name: "keine IP", env: "not-an-ip"},
+		{name: "IPv6", env: "fd00::1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ip, ok := resolveLANIP(tt.env)
+			if ok != tt.wantOK {
+				t.Fatalf("resolveLANIP(%q) ok = %v, want %v", tt.env, ok, tt.wantOK)
+			}
+			if ok && ip.String() != tt.want {
+				t.Fatalf("resolveLANIP(%q) = %s, want %s", tt.env, ip, tt.want)
+			}
+		})
 	}
 }

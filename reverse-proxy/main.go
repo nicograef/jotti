@@ -149,7 +149,7 @@ func runLANMode(cfg config) {
 		}
 		log.Printf("Fallback-Adresse: https://%s", lanIP)
 	} else {
-		log.Printf("LAN-IP unbekannt (LAN_IP nicht gesetzt) — eine Zugangsadresse entsteht erst bei einem Neustart mit gesetztem LAN_IP")
+		log.Printf("LAN-IP unbekannt (LAN_IP fehlt oder ist keine IPv4) — eine Zugangsadresse entsteht erst bei einem Neustart mit gesetztem LAN_IP")
 	}
 
 	if cfg.leStaging {
