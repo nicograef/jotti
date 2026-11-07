@@ -8,16 +8,8 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-func backendContainerID(composePath string) string {
-	out, err := exec.Command("docker", "compose", "-f", composePath, "ps", "-q", "backend").Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
-func containerStartedAt(cid string) string {
-	out, err := exec.Command("docker", "inspect", "--format", "{{.State.StartedAt}}", cid).Output()
+func containerStartedAt(container string) string {
+	out, err := exec.Command("docker", "inspect", "--format", "{{.State.StartedAt}}", container).Output()
 	if err != nil {
 		return ""
 	}
@@ -27,8 +19,8 @@ func containerStartedAt(cid string) string {
 // containerLogsSince liest die Container-Logs ab startedAt. CombinedOutput, damit
 // der Grep unabhaengig vom Stream greift; ein Fehler ergibt die (moeglicherweise
 // leere) Ausgabe.
-func containerLogsSince(cid, startedAt string) string {
-	out, _ := exec.Command("docker", "logs", "--since", startedAt, cid).CombinedOutput()
+func containerLogsSince(container, startedAt string) string {
+	out, _ := exec.Command("docker", "logs", "--since", startedAt, container).CombinedOutput()
 	return string(out)
 }
 
@@ -36,19 +28,15 @@ func containerLogsSince(cid, startedAt string) string {
 // SEIT dem aktuellen Container-Start — so verschwindet ein veralteter Marker, sobald
 // der Container nach abgeschlossener Einrichtung neu erstellt wurde. Jeder Fehler
 // ergibt ("", false) und ist nie fatal.
-func readAdminOTP(composePath string) (string, bool) {
-	cid := backendContainerID(composePath)
-	if cid == "" {
-		return "", false
-	}
-	startedAt := containerStartedAt(cid)
+func readAdminOTP() (string, bool) {
+	startedAt := containerStartedAt(backendContainer)
 	if startedAt == "" {
 		return "", false
 	}
-	return core.ParseAdminOTP(containerLogsSince(cid, startedAt))
+	return core.ParseAdminOTP(containerLogsSince(backendContainer, startedAt))
 }
 
-func printAdminCode(composePath string) {
+func printAdminCode() {
 	fmt.Println()
-	fmt.Println(core.AdminCodeHinweis(readAdminOTP(composePath)))
+	fmt.Println(core.AdminCodeHinweis(readAdminOTP()))
 }

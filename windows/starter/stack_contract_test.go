@@ -20,6 +20,8 @@ func TestStackIdentitaetPasstZuComposeUndSkripten(t *testing.T) {
 			for _, want := range []string{
 				"name: " + composeProject + "\n",
 				"container_name: " + postgresContainer + "\n",
+				"container_name: " + backendContainer + "\n",
+				"container_name: " + reverseProxyContainer + "\n",
 				"- " + postgresDataVolumeKey + ":/var/lib/postgresql/data\n",
 				"- " + configVolumeKey + ":/jotti-config:ro\n",
 				"- jotti-backups:" + backupDir + "\n",

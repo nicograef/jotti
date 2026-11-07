@@ -11,8 +11,8 @@ import (
 
 // checkPorts prueft, ob 80/443 frei sind; leerer String = frei. Laeuft der eigene
 // reverse-proxy schon, ist die Belegung der Erfolgs-Fall und kein Fehlalarm.
-func checkPorts(composePath string) string {
-	if reverseProxyRunning(composePath) {
+func checkPorts() string {
+	if reverseProxyRunning() {
 		fmt.Println("Der jotti-Stack laeuft bereits - Start ist idempotent.")
 		return ""
 	}
@@ -27,12 +27,12 @@ func checkPorts(composePath string) string {
 	return ""
 }
 
-func reverseProxyRunning(composePath string) bool {
-	out, err := exec.Command("docker", "compose", "-f", composePath, "ps", "-q", "--status", "running", "reverse-proxy").Output()
+func reverseProxyRunning() bool {
+	out, err := exec.Command("docker", "inspect", "--format", "{{.State.Running}}", reverseProxyContainer).Output()
 	if err != nil {
 		return false
 	}
-	return strings.TrimSpace(string(out)) != ""
+	return strings.TrimSpace(string(out)) == "true"
 }
 
 func portAvailable(port int) bool {

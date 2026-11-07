@@ -67,7 +67,7 @@ func run() int {
 			}
 			return 1
 		}
-		if msg := checkPorts(composePath); msg != "" {
+		if msg := checkPorts(); msg != "" {
 			fmt.Println(msg)
 			return 1
 		}
@@ -118,7 +118,7 @@ func run() int {
 
 	printSuccess(firewallOK)
 
-	printAdminCode(composePath)
+	printAdminCode()
 
 	notifyIfUpdateAvailable()
 	return 0

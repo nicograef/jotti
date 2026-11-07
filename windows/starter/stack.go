@@ -11,6 +11,9 @@ const (
 	// trust-authentifiziert, also braucht das Backup kein Passwort.
 	postgresContainer = "jotti-postgres-local"
 
+	backendContainer      = "jotti-backend-local"
+	reverseProxyContainer = "jotti-reverse-proxy-local"
+
 	// Compose stellt benannten Volumes den Projektnamen voran.
 	postgresDataVolumeKey = "postgres-data"
 	postgresDataVolume    = composeProject + "_" + postgresDataVolumeKey
