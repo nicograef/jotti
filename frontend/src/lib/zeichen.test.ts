@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { kuerzeAufZeichen, maxZeichen } from './zeichen'
+import { maxZeichen, minZeichen } from './zeichen'
 
 describe('zeichen', () => {
   it('zählt Umlaute und Emoji als je ein Zeichen', () => {
-    const schema = maxZeichen(z.string(), 100)
+    const max = maxZeichen(z.string(), 100)
+    const min = minZeichen(z.string(), 3)
 
-    expect(schema.safeParse('ä'.repeat(100)).success).toBe(true)
-    expect(schema.safeParse('ä'.repeat(101)).success).toBe(false)
-    expect(kuerzeAufZeichen('a😀b', 2)).toBe('a😀')
+    expect(max.safeParse('ä'.repeat(100)).success).toBe(true)
+    expect(max.safeParse('ä'.repeat(101)).success).toBe(false)
+    expect(min.safeParse('😀😀').success).toBe(false)
+    expect(min.safeParse('😀😀😀').success).toBe(true)
   })
 })

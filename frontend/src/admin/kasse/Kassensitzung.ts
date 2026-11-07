@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { maxZeichen } from '@/lib/zeichen'
+import { maxZeichen, minZeichen } from '@/lib/zeichen'
 
 export const GeldtransitRichtung = {
   EINLAGE: 'einlage',
@@ -37,9 +37,7 @@ export const BetragCentsSchema = z
   .gte(0, { message: 'Betrag muss mindestens 0 Cent sein.' })
 
 export const KommentarSchema = maxZeichen(
-  z
-    .string()
-    .min(3, { message: 'Kommentar muss mindestens 3 Zeichen lang sein.' }),
+  minZeichen(z.string(), 3, 'Kommentar muss mindestens 3 Zeichen lang sein.'),
   200,
   'Kommentar darf maximal 200 Zeichen lang sein.',
 )
