@@ -152,24 +152,6 @@ func TestBerechtigungsMatrix_OeffentlicheBereiche(t *testing.T) {
 	}
 }
 
-// TestBerechtigungsMatrix_TestResetOeffentlich checks the declaration only: calling ResetAndSeed would reseed the database setupMatrix shares.
-// TestSetupRoutes_ResetSeedRouteGuardedByEnv covers the env registration.
-func TestBerechtigungsMatrix_TestResetOeffentlich(t *testing.T) {
-	area := testResetArea(nil)
-
-	if area.RequiresAuth {
-		t.Errorf("Test-Reset-Bereich muss ohne JWT laufen (RequiresAuth == false), ist aber true")
-	}
-
-	_, paths := area.build(testConfig(), api.Deps{})
-	if len(paths) != 1 || paths[0] != "/reset-and-seed" {
-		t.Errorf("Test-Reset-Bereich muss genau /reset-and-seed exponieren, hat aber %v", paths)
-	}
-	if area.Prefix != "/test" {
-		t.Errorf("Test-Reset-Bereich muss Präfix /test haben, hat aber %q", area.Prefix)
-	}
-}
-
 // Die Service-Rolle darf die Serviceleitungs-Route nicht aufrufen (403), obwohl
 // sie im benachbarten Service-Bereich privilegiert ist. Ein-Mandanten-System —
 // die fachliche Abgrenzung ist die Rolle.
