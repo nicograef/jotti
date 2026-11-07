@@ -288,3 +288,65 @@ func TestVariantePfandVerknuepfung(t *testing.T) {
 		})
 	}
 }
+
+func (s *schreibZaehler) UpdateProdukt(ctx context.Context, p produkt.Produkt) error {
+	s.schreibvorgaenge++
+	return s.ProduktRepo.UpdateProdukt(ctx, p)
+}
+
+func TestUpdateProdukt_PfandVerknuepfung(t *testing.T) {
+	ptr := func(id int) *int { return &id }
+	glas := produkt.Variante{ID: 20, Name: "Glas", PreisCents: 200, Status: produkt.ActiveStatus}
+	glasPfand := produkt.Produkt{ID: 2, Name: "Glaspfand", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Pfand: true, Status: produkt.ActiveStatus, Varianten: []produkt.Variante{glas}}
+	bierMit := func(pfandVarianteID *int) produkt.Produkt {
+		return produkt.Produkt{ID: 1, Name: "Bier", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus,
+			Varianten: []produkt.Variante{{ID: 10, Name: "0,5 l", PreisCents: 400, Status: produkt.ActiveStatus, PfandVarianteID: pfandVarianteID}}}
+	}
+
+	cases := []struct {
+		name       string
+		verknuepft bool
+		produkt    produkt.Produkt
+		steuersatz steuer.Steuersatz
+		pfand      bool
+		wantErr    error
+	}{
+		{"Steuersatzwechsel der Quelle", true, bierMit(nil), steuer.ErmaessigtSteuersatz, false, ErrPfandSteuersatzAbweichend},
+		{"Steuersatzwechsel des Pfands", true, glasPfand, steuer.ErmaessigtSteuersatz, true, ErrPfandSteuersatzAbweichend},
+		{"Kennzeichen aus", true, glasPfand, steuer.RegelSteuersatz, false, ErrPfandNochVerknuepft},
+		{"Kennzeichen an", true, bierMit(nil), steuer.RegelSteuersatz, true, ErrPfandVerkettet},
+		{"Steuersatzwechsel ohne Verknüpfung", false, bierMit(nil), steuer.ErmaessigtSteuersatz, false, nil},
+		{"Kennzeichen aus ohne Verknüpfung", false, glasPfand, steuer.RegelSteuersatz, false, nil},
+		{"Kennzeichen an ohne Verknüpfung", false, bierMit(nil), steuer.RegelSteuersatz, true, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			bier := bierMit(nil)
+			if tc.verknuepft {
+				bier = bierMit(ptr(glas.ID))
+			}
+			repo := &schreibZaehler{ProduktRepo: repotest.NewProduktRepo([]produkt.Produkt{bier, glasPfand}, nil)}
+			cmd := Command{ProduktRepo: repo}
+
+			err := cmd.UpdateProdukt(ctx, tc.produkt.ID, tc.produkt.Name, tc.produkt.Kategorie, tc.steuersatz, tc.pfand)
+
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected %v, got %v", tc.wantErr, err)
+			}
+			gespeichert, err := repo.GetProdukt(ctx, tc.produkt.ID)
+			if err != nil {
+				t.Fatalf("failed to get produkt %d: %v", tc.produkt.ID, err)
+			}
+			if tc.wantErr != nil {
+				if repo.schreibvorgaenge != 0 {
+					t.Errorf("expected no write, got %d", repo.schreibvorgaenge)
+				}
+				return
+			}
+			if gespeichert.Steuersatz != tc.steuersatz || gespeichert.Pfand != tc.pfand {
+				t.Errorf("expected Steuersatz %q and Pfand %v, got %q and %v", tc.steuersatz, tc.pfand, gespeichert.Steuersatz, gespeichert.Pfand)
+			}
+		})
+	}
+}

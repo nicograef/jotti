@@ -26,6 +26,8 @@ var ErrPfandVerkettet = produkt.ErrPfandVerkettet
 
 var ErrPfandSteuersatzAbweichend = produkt.ErrPfandSteuersatzAbweichend
 
+var ErrPfandNochVerknuepft = produkt.ErrPfandNochVerknuepft
+
 // fromProduktError maps a repository error on a produkt; vorgang and logArgs identify the call site.
 func fromProduktError(err error, log *slog.Logger, vorgang string, logArgs ...any) error {
 	logArgs = append([]any{"vorgang", vorgang}, logArgs...)

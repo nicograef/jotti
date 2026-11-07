@@ -21,6 +21,9 @@ var ErrPfandVerkettet = errors.New("pfand produkt links a pfand")
 // ErrPfandSteuersatzAbweichend means the Pfand and the linking Variante differ in Steuersatz.
 var ErrPfandSteuersatzAbweichend = errors.New("pfand steuersatz differs")
 
+// ErrPfandNochVerknuepft means a Produkt would lose its Pfand flag while Varianten link it as their Pfand.
+var ErrPfandNochVerknuepft = errors.New("pfand produkt still linked")
+
 type Status string
 
 const (
@@ -164,6 +167,42 @@ func PruefePfandVerknuepfung(quelle Produkt, ziel Produkt, zielVarianteID int) e
 	}
 	if quelle.Steuersatz != ziel.Steuersatz {
 		return ErrPfandSteuersatzAbweichend
+	}
+	return nil
+}
+
+// PruefePfandVerknuepfungen checks every link that starts at or points to a Variante of the Produkt
+// produktID within katalog, which holds no deleted Produkt or Variante. A target that lost its Pfand
+// flag answers ErrPfandNochVerknuepft instead of ErrPfandZielUngueltig.
+func PruefePfandVerknuepfungen(katalog []Produkt, produktID int) error {
+	zielProdukt := map[int]int{}
+	for i := range katalog {
+		for _, v := range katalog[i].Varianten {
+			zielProdukt[v.ID] = i
+		}
+	}
+
+	for i := range katalog {
+		quelle := katalog[i]
+		for _, v := range quelle.Varianten {
+			if v.PfandVarianteID == nil {
+				continue
+			}
+			var ziel Produkt
+			if j, ok := zielProdukt[*v.PfandVarianteID]; ok {
+				ziel = katalog[j]
+			}
+			if quelle.ID != produktID && ziel.ID != produktID {
+				continue
+			}
+			err := PruefePfandVerknuepfung(quelle, ziel, *v.PfandVarianteID)
+			if errors.Is(err, ErrPfandZielUngueltig) && ziel.ID == produktID && !ziel.Pfand {
+				return ErrPfandNochVerknuepft
+			}
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

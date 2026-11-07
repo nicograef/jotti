@@ -60,6 +60,10 @@ func (c Command) UpdateProdukt(ctx context.Context, produktID int, name string, 
 		return ErrInvalidProduktData
 	}
 
+	if err := c.pruefePfandVerknuepfungen(ctx, produkt); err != nil {
+		return err
+	}
+
 	err = c.ProduktRepo.UpdateProdukt(ctx, produkt)
 	if err != nil {
 		return fromProduktError(err, log, "update", "produkt_id", produktID, "name", produkt.Name)
@@ -171,6 +175,27 @@ func (c Command) pruefePfandVerknuepfung(ctx context.Context, istQuelle func(pro
 
 	if err := produkt.PruefePfandVerknuepfung(katalog[quelle], ziel, pfandVarianteID); err != nil {
 		log.Warn("Pfand-Verknüpfung rejected", "error", err, "produkt_id", katalog[quelle].ID, "pfand_variante_id", pfandVarianteID)
+		return err
+	}
+	return nil
+}
+
+// pruefePfandVerknuepfungen checks the links of the changed Produkt p against the catalogue, in
+// which p replaces its stored version: a new Steuersatz or Pfand flag must not break a link.
+func (c Command) pruefePfandVerknuepfungen(ctx context.Context, p produkt.Produkt) error {
+	log := logging.FromContext(ctx)
+
+	katalog, err := c.ProduktRepo.GetAllProdukte(ctx)
+	if err != nil {
+		log.Error("Failed to load produkt catalogue", "error", err)
+		return ErrDatabase
+	}
+	if i := slices.IndexFunc(katalog, func(k produkt.Produkt) bool { return k.ID == p.ID }); i >= 0 {
+		katalog[i] = p
+	}
+
+	if err := produkt.PruefePfandVerknuepfungen(katalog, p.ID); err != nil {
+		log.Warn("Produkt change breaks a Pfand-Verknüpfung", "error", err, "produkt_id", p.ID)
 		return err
 	}
 	return nil
