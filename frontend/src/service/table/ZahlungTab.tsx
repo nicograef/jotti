@@ -17,16 +17,16 @@ import { AuthSingleton } from '@/lib/Auth'
 import type { Produkt } from '@/lib/produktSchemas'
 import { cn, formatEuro, formatPositionName } from '@/lib/utils'
 
+import {
+  calculateAnzahl,
+  calculateTotalPrice,
+  selectPositionen,
+} from '../drawerUtils'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
 import type { Position } from './Bestellung'
-import {
-  calculateAnzahl,
-  calculateTotalPrice,
-  selectPositionen,
-} from './drawerUtils'
 import type { Tisch } from './Tisch'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 import { ZahlungDrawer } from './ZahlungDrawer'

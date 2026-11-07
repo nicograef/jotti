@@ -22,15 +22,15 @@ import {
 } from '@/lib/utils'
 
 import { type BelegStatus, useBelegDrucken } from './beleg'
+import { Kommentar } from './CommentField'
+import { toReceiptItems } from './drawerUtils'
+import { HistorieSkeletonGrid } from './HistorieSkeletonGrid'
+import { Receipt } from './Receipt'
 import type {
   GebuchtePosition,
   PositionRef,
   VorgangHistorieBasis,
 } from './schemas'
-import { Kommentar } from './table/CommentField'
-import { toReceiptItems } from './table/drawerUtils'
-import { HistorieSkeletonGrid } from './table/HistorieSkeletonGrid'
-import { Receipt } from './table/Receipt'
 import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 
 // id ist die Vorgangs-ID (verkaufId oder rueckgabeId).

@@ -6,13 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { testProdukt } from '@/test/fixtures'
 
-import { ServiceDock } from '../ServiceDock'
-import { BestellungDrawer } from './BestellungDrawer'
 import {
   calculateAnzahl,
   calculateTotalPrice,
   toBestellungData,
-} from './drawerUtils'
+} from '../drawerUtils'
+import { ServiceDock } from '../ServiceDock'
+import { BestellungDrawer } from './BestellungDrawer'
 import type { Tisch } from './Tisch'
 
 vi.mock('sonner', () => ({

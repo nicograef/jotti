@@ -2,14 +2,14 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
-import type { PfandVorgang } from '../pfand/pfandAuswahl'
-import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import {
   calculateAnzahl,
   calculateTotalPrice,
   toBestellungData,
-} from '../table/drawerUtils'
-import { ProductList, ProductListSkeleton } from '../table/ProductList'
+} from '../drawerUtils'
+import type { PfandVorgang } from '../pfand/pfandAuswahl'
+import { ProductList, ProductListSkeleton } from '../ProductList'
+import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 import { DirektverkaufDrawer } from './DirektverkaufDrawer'
 

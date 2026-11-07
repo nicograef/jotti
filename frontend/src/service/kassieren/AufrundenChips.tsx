@@ -2,7 +2,7 @@ import { EuroInput } from '@/components/common/EuroInput'
 import { Label } from '@/components/ui/label'
 import { cn, formatCents, formatEuro, parseCents } from '@/lib/utils'
 
-import { aufrundenVorschlaege } from './drawerUtils'
+import { aufrundenVorschlaege } from '../drawerUtils'
 
 interface AufrundenChipsProps {
   gesamtCents: number

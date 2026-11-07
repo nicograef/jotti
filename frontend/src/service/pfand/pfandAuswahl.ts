@@ -3,8 +3,8 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { calculateTotalPrice, toBestellungData } from '../drawerUtils'
 import type { PositionInput } from '../schemas'
-import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 
 // Die Seite hält den Pfand-Vorgang; seine vorgangId ist die rueckgabeId. Eine
 // gebuchte Wiederholung mit anderem Inhalt weist der Server mit

@@ -4,7 +4,7 @@ import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { kuerzeAufUtf8Bytes, utf8Bytes } from '@/lib/utf8'
 
-import { KOMMENTAR_MAX_BYTES } from '../schemas'
+import { KOMMENTAR_MAX_BYTES } from './schemas'
 
 // Kürzt nur den neu eingefügten Teil auf das Byte-Budget; der bestehende Text bleibt.
 // cursor ist das Ende der Einfügung in nachher.

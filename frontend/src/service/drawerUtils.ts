@@ -1,21 +1,9 @@
 import type { Produkt } from '@/lib/produktSchemas'
 import { formatPositionName } from '@/lib/utils'
 
-import type { AuswahlPosition } from '../PositionAuswahlListe'
-import type { PositionInput, PositionRef } from '../schemas'
-import type { Bestellung } from './Bestellung'
+import type { AuswahlPosition } from './PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
-import type { Umbuchung } from './Umbuchung'
-
-// Bei einem Umbuchungs-Zugang ist `kommentar` der Richtungs-Autotext
-// („Umbuchung von Tisch X") und damit der Vorgangstitel.
-export function quelleTitel(quelle: Bestellung | Umbuchung): string {
-  return quelle.art === 'bestellung' ? 'Bestellung' : quelle.kommentar
-}
-
-export function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
-  return quelle.art === 'bestellung' ? quelle.aufgenommenAm : quelle.umgebuchtAm
-}
+import type { PositionInput, PositionRef } from './schemas'
 
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
 // GebuchtePosition erfüllen sie beide).

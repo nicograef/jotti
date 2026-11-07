@@ -1,7 +1,7 @@
 import { StornoDrawer } from '../StornoDrawer'
 import type { Bestellung } from './Bestellung'
-import { QuelleDrawerHeader } from './DrawerParts'
 import { tischBackend } from './hooks'
+import { QuelleDrawerHeader } from './QuelleDrawerHeader'
 import type { Tisch } from './Tisch'
 import type { Umbuchung } from './Umbuchung'
 

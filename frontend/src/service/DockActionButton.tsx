@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { formatEuro } from '@/lib/utils'
 
-import { DockActionSlot } from '../ServiceDock'
+import { DockActionSlot } from './ServiceDock'
 
 interface DockActionButtonProps extends React.ComponentProps<'button'> {
   label: string

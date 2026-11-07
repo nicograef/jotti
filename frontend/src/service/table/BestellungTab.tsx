@@ -2,15 +2,15 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
-import { ServiceSplitLayout } from '../ServiceSplitLayout'
-import { BestellungAbschluss } from './BestellungAbschluss'
-import { BestellungDrawer } from './BestellungDrawer'
 import {
   calculateAnzahl,
   calculateTotalPrice,
   toBestellungData,
-} from './drawerUtils'
-import { ProductList, ProductListSkeleton } from './ProductList'
+} from '../drawerUtils'
+import { ProductList, ProductListSkeleton } from '../ProductList'
+import { ServiceSplitLayout } from '../ServiceSplitLayout'
+import { BestellungAbschluss } from './BestellungAbschluss'
+import { BestellungDrawer } from './BestellungDrawer'
 import type { Tisch } from './Tisch'
 
 interface BestellungTabProps {

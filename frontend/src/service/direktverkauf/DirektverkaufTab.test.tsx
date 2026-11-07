@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { useErfolgsPop } from '@/hooks/use-erfolgs-pop'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
@@ -10,6 +11,7 @@ import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
 
+import { ErfolgsPop } from '../ErfolgsPop'
 import { ServiceDock } from '../ServiceDock'
 import { DirektverkaufTab } from './DirektverkaufTab'
 
@@ -214,5 +216,55 @@ describe('DirektverkaufTab', () => {
     expect(
       screen.getByRole('button', { name: 'Verkauf abschließen' }),
     ).toBeEnabled()
+  })
+})
+
+// Verdrahtet wie die Buchungsseiten: Der Erfolg öffnet den Pop, der Refetch
+// (hier `reload`) läuft erst beim Schließen.
+function DirektverkaufMitPop({ reload }: { reload: () => void }) {
+  const { zeigeErfolg, pop } = useErfolgsPop(reload)
+  return (
+    <ServiceDock leiste={null}>
+      <DirektverkaufTabHarness
+        pfandProdukte={[]}
+        products={[testProdukt]}
+        productsLoading={false}
+        onErfolg={zeigeErfolg}
+      />
+      <ErfolgsPop {...pop} />
+    </ServiceDock>
+  )
+}
+
+describe('Erfolgs-Pop im Buchungsflow', () => {
+  it('öffnet den Pop ohne Erfolgs-Toast und lädt erst nach dem Schließen nach', async () => {
+    const { toast } = await import('sonner')
+    const user = userEvent.setup()
+    const reload = vi.fn()
+    const fake = new FakeBackend().respond('service/direktverkauf-taetigen', {})
+    renderWithBackend(<DirektverkaufMitPop reload={reload} />, fake)
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(screen.getByRole('button', { name: /Kassieren/ }))
+    await screen.findByRole('dialog')
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+
+    await screen.findByText('Verkauf abgeschlossen.')
+    expect(reload).not.toHaveBeenCalled()
+    expect(toast.success).not.toHaveBeenCalled()
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByText('Verkauf abgeschlossen.'),
+        ).not.toBeInTheDocument()
+      },
+      { timeout: 2000 },
+    )
+    expect(reload).toHaveBeenCalledTimes(1)
   })
 })

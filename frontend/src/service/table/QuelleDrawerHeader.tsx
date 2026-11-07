@@ -5,11 +5,20 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { formatEuro, formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/utils'
 
 import type { Bestellung } from './Bestellung'
-import { quelleTitel, quelleZeitpunkt } from './drawerUtils'
 import type { Umbuchung } from './Umbuchung'
+
+// Bei einem Umbuchungs-Zugang ist `kommentar` der Richtungs-Autotext
+// („Umbuchung von Tisch X") und damit der Vorgangstitel.
+function quelleTitel(quelle: Bestellung | Umbuchung): string {
+  return quelle.art === 'bestellung' ? 'Bestellung' : quelle.kommentar
+}
+
+function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
+  return quelle.art === 'bestellung' ? quelle.aufgenommenAm : quelle.umgebuchtAm
+}
 
 // children ist die drawer-spezifische Beschreibung unter dem Kopf.
 export function QuelleDrawerHeader({
@@ -27,21 +36,5 @@ export function QuelleDrawerHeader({
       </DrawerTitle>
       <DrawerDescription>{children}</DrawerDescription>
     </DrawerHeader>
-  )
-}
-
-// betrag ist in Cent.
-export function GesamtZeile({
-  label,
-  betrag,
-}: {
-  label: string
-  betrag: number
-}) {
-  return (
-    <div className="flex justify-between border-t-2 pt-2 font-bold">
-      <div>{label}</div>
-      <div>{formatEuro(betrag)}</div>
-    </div>
   )
 }

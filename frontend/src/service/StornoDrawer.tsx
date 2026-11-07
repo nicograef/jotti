@@ -13,18 +13,18 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
-import { PositionAuswahlListe } from './PositionAuswahlListe'
-import type { PositionRef } from './schemas'
-import { ActionHint } from './table/ActionHint'
-import { KommentarField } from './table/CommentField'
-import { GesamtZeile } from './table/DrawerParts'
+import { ActionHint } from './ActionHint'
+import { KommentarField } from './CommentField'
 import {
   type AuswaehlbarePosition,
   calculateTotalPrice,
   selectPositionen,
   toAuswahlPositionen,
   toPositionRefs,
-} from './table/drawerUtils'
+} from './drawerUtils'
+import { GesamtZeile } from './GesamtZeile'
+import { PositionAuswahlListe } from './PositionAuswahlListe'
+import type { PositionRef } from './schemas'
 
 interface StornoDrawerProps {
   // DrawerHeader mit Titel und Beschreibung des Vorgangs.

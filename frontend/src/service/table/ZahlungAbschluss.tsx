@@ -1,10 +1,10 @@
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { toPositionRefs, toReceiptItems } from '../drawerUtils'
+import { KassierAbschluss } from '../kassieren/KassierAbschluss'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { Position } from './Bestellung'
-import { toPositionRefs, toReceiptItems } from './drawerUtils'
 import { tischBackend } from './hooks'
-import { KassierAbschluss } from './KassierAbschluss'
 import { RestbetragZeile } from './RestbetragZeile'
 import type { Tisch } from './Tisch'
 

@@ -3,7 +3,7 @@ import { CircleCheck } from 'lucide-react'
 import type { MengenSteuerung } from '@/hooks/use-mengen'
 import { formatEuro } from '@/lib/utils'
 
-import { calculateTotalPrice, toMengen } from './drawerUtils'
+import { calculateTotalPrice, toMengen } from '../drawerUtils'
 
 /**
  * `'alle'` — Umbuchung (every position), `'meine'` — Kassieren (only the

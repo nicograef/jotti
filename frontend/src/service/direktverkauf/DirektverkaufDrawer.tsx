@@ -4,10 +4,10 @@ import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { DockActionButton } from '../DockActionButton'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
+import type { ReceiptPosition } from '../Receipt'
 import type { PositionInput } from '../schemas'
-import { DockActionButton } from '../table/DockActionButton'
-import type { ReceiptPosition } from '../table/Receipt'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 
 interface DirektverkaufDrawerProps {

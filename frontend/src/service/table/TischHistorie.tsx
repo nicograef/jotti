@@ -30,14 +30,14 @@ import {
 } from '@/lib/utils'
 
 import { useBelegDrucken } from '../beleg'
+import { Kommentar } from '../CommentField'
+import { toReceiptItems } from '../drawerUtils'
+import { HistorieSkeletonGrid } from '../HistorieSkeletonGrid'
+import { Receipt, type ReceiptPosition } from '../Receipt'
 import type { Bestellung } from './Bestellung'
-import { Kommentar } from './CommentField'
-import { toReceiptItems } from './drawerUtils'
-import { HistorieSkeletonGrid } from './HistorieSkeletonGrid'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { tischBackend } from './hooks'
-import { Receipt, type ReceiptPosition } from './Receipt'
 import type { Tisch, TischHistorieEintrag } from './Tisch'
 import type { Umbuchung } from './Umbuchung'
 

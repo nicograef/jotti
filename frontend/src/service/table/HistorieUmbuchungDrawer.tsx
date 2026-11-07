@@ -15,20 +15,21 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useMengen } from '@/hooks/use-mengen'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
-import { PositionAuswahlListe } from '../PositionAuswahlListe'
-import { ActionHint } from './ActionHint'
-import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
-import type { Bestellung } from './Bestellung'
-import { KommentarField } from './CommentField'
-import { GesamtZeile, QuelleDrawerHeader } from './DrawerParts'
+import { ActionHint } from '../ActionHint'
+import { KommentarField } from '../CommentField'
 import {
   calculateTotalPrice,
   selectPositionen,
   toAuswahlPositionen,
   toMengen,
   toPositionRefs,
-} from './drawerUtils'
+} from '../drawerUtils'
+import { GesamtZeile } from '../GesamtZeile'
+import { PositionAuswahlListe } from '../PositionAuswahlListe'
+import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
+import type { Bestellung } from './Bestellung'
 import { tischBackend, useAktiveTische } from './hooks'
+import { QuelleDrawerHeader } from './QuelleDrawerHeader'
 import type { Tisch } from './Tisch'
 import type { Umbuchung } from './Umbuchung'
 

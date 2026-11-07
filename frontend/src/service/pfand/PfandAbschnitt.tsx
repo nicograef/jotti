@@ -2,7 +2,7 @@ import type { MengenSteuerung } from '@/hooks/use-mengen'
 import type { Produkt } from '@/lib/produktSchemas'
 import { formatEuro } from '@/lib/utils'
 
-import { ProductList } from '../table/ProductList'
+import { ProductList } from '../ProductList'
 
 interface PfandAbschnittProps {
   pfandProdukte: Produkt[]

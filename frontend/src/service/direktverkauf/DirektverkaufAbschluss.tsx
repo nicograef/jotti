@@ -1,10 +1,10 @@
 import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
+import { KassierAbschluss } from '../kassieren/KassierAbschluss'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
+import type { ReceiptPosition } from '../Receipt'
 import type { PositionInput } from '../schemas'
-import { KassierAbschluss } from '../table/KassierAbschluss'
-import type { ReceiptPosition } from '../table/Receipt'
 import { direktverkaufBackend } from './hooks'
 
 interface DirektverkaufAbschlussProps {

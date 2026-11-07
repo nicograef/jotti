@@ -7,9 +7,9 @@ import { useVorgang } from '@/hooks/use-vorgang'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
 
+import type { ReceiptPosition } from '../Receipt'
 import type { BestellungAufnehmen } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
-import type { ReceiptPosition } from './Receipt'
 import type { Tisch } from './Tisch'
 
 vi.mock('sonner', () => ({

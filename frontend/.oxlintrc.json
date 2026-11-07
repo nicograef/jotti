@@ -346,6 +346,107 @@
       }
     },
     {
+      "files": ["src/service/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "./table/*",
+                  "./direktverkauf/*",
+                  "./pfand/*",
+                  "./kassieren/*",
+                  "@/service/table/*",
+                  "@/service/direktverkauf/*",
+                  "@/service/pfand/*",
+                  "@/service/kassieren/*"
+                ],
+                "message": "Shared service building blocks depend on no feature."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/service/pfand/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../table/*",
+                  "../direktverkauf/*",
+                  "../kassieren/*",
+                  "@/service/table/*",
+                  "@/service/direktverkauf/*",
+                  "@/service/kassieren/*"
+                ],
+                "message": "Pfand depends only on the shared service building blocks."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/service/kassieren/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../table/*",
+                  "../direktverkauf/*",
+                  "@/service/table/*",
+                  "@/service/direktverkauf/*"
+                ],
+                "message": "KassierAbschluss serves table service and Direktverkauf and depends on neither."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/service/table/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../direktverkauf/*", "@/service/direktverkauf/*"],
+                "message": "Table service and Direktverkauf share building blocks only through service/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/service/direktverkauf/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../table/*", "@/service/table/*"],
+                "message": "Table service and Direktverkauf share building blocks only through service/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["**/*.test.{ts,tsx}"],
       "rules": {
         "vitest/expect-expect": [

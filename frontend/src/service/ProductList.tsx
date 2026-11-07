@@ -12,7 +12,7 @@ import {
 } from '@/lib/produktSchemas'
 import { cn, formatEuro } from '@/lib/utils'
 
-import { Stepper } from '../Stepper'
+import { Stepper } from './Stepper'
 
 interface ProductListComponentProps {
   products: Produkt[]

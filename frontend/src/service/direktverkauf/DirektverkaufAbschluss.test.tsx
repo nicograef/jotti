@@ -8,7 +8,7 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
 
-import type { ReceiptPosition } from '../table/Receipt'
+import type { ReceiptPosition } from '../Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 
