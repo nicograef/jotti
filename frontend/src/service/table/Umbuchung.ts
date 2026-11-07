@@ -1,15 +1,13 @@
 import { z } from 'zod'
 
-import {
-  DateStringSchema,
-  KommentarSchema,
-  PositionRefSchema,
-} from '../schemas'
+import { DateStringSchema } from '@/lib/utils'
+
+import { KommentarSchema, PositionRefSchema, TischIdSchema } from '../schemas'
 import { PositionSchema } from './Bestellung'
 
 export const BestellungUmbuchenSchema = z.object({
-  quellTischId: z.number().int().min(1),
-  zielTischId: z.number().int().min(1),
+  quellTischId: TischIdSchema,
+  zielTischId: TischIdSchema,
   positionen: PositionRefSchema.array().min(1),
   benutzerKommentar: KommentarSchema,
 })

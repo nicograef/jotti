@@ -2,8 +2,8 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { formatPositionName } from '@/lib/utils'
 
 import type { AuswahlPosition } from '../PositionAuswahlListe'
-import type { PositionRef } from '../schemas'
-import type { BestellPositionInput, Bestellung } from './Bestellung'
+import type { PositionInput, PositionRef } from '../schemas'
+import type { Bestellung } from './Bestellung'
 import type { ReceiptPosition } from './Receipt'
 import type { Umbuchung } from './Umbuchung'
 
@@ -18,7 +18,7 @@ export function quelleZeitpunkt(quelle: Bestellung | Umbuchung): string {
 }
 
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
-// VerkaufPosition erfüllen sie beide).
+// GebuchtePosition erfüllen sie beide).
 export interface AuswaehlbarePosition {
   positionId: string
   produktName: string
@@ -114,7 +114,7 @@ export function aufrundenVorschlaege(gesamtCents: number): number[] {
 export function toBestellungData(
   products: Produkt[],
   ausgewaehlteMengen: Record<number, number>,
-): { receiptItems: ReceiptPosition[]; inputItems: BestellPositionInput[] } {
+): { receiptItems: ReceiptPosition[]; inputItems: PositionInput[] } {
   const items = products.flatMap((p) =>
     p.varianten
       .filter((v) => (ausgewaehlteMengen[v.id] || 0) > 0)

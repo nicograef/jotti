@@ -3,7 +3,7 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
 
-import type { VerkaufPositionInput } from '../direktverkauf/Direktverkauf'
+import type { PositionInput } from '../schemas'
 import { calculateTotalPrice, toBestellungData } from '../table/drawerUtils'
 
 // Die Seite hält den Pfand-Vorgang; seine vorgangId ist die rueckgabeId. Eine
@@ -14,7 +14,7 @@ export type PfandVorgang = Vorgang<number>
 export interface PfandAuswahl {
   steuerung: MengenSteuerung<number>
   rueckgabeId: string
-  positionen: VerkaufPositionInput[]
+  positionen: PositionInput[]
   summeCents: number
 }
 

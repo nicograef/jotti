@@ -1,18 +1,15 @@
 import { z } from 'zod'
 
-import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
+import { DateStringSchema } from '@/lib/utils'
 
-import { DateStringSchema, KommentarSchema } from '../schemas'
+import {
+  GebuchtePositionSchema,
+  KommentarSchema,
+  PositionInputSchema,
+  TischIdSchema,
+} from '../schemas'
 
-export const PositionSchema = z.object({
-  positionId: z.uuid(),
-  varianteId: z.number().int().min(1),
-  produktName: z.string().min(1).max(100),
-  varianteName: z.string().min(1).max(100),
-  kategorie: KategorieSchema,
-  steuersatz: SteuersatzSchema,
-  einzelpreisCents: z.number().int().min(1),
-  menge: z.number().int().min(1),
+export const PositionSchema = GebuchtePositionSchema.extend({
   // Besteller (aufnehmende Servicekraft). In der Tisch-Session gesetzt; in der
   // Historie (stornierbare/umbuchbare Positionen) leer (0/'').
   bestellerUserId: z.number().int(),
@@ -20,19 +17,10 @@ export const PositionSchema = z.object({
 })
 export type Position = z.infer<typeof PositionSchema>
 
-// max(999) mirrors kasse.PositionEingabeSchema and keeps the price sum from overflowing.
-// It applies only on input: the read PositionSchema stays open so existing larger orders still render.
-export const BestellPositionInputSchema = z.object({
-  produktId: z.number().int().min(1),
-  varianteId: z.number().int().min(1),
-  menge: z.number().int().min(1).max(999),
-})
-export type BestellPositionInput = z.infer<typeof BestellPositionInputSchema>
-
 export const BestellungAufnehmenSchema = z.object({
   bestellungId: z.uuid(),
-  tischId: z.number().int().min(1),
-  positionen: BestellPositionInputSchema.array().min(1),
+  tischId: TischIdSchema,
+  positionen: PositionInputSchema.array().min(1),
   kommentar: KommentarSchema,
 })
 export type BestellungAufnehmen = z.infer<typeof BestellungAufnehmenSchema>

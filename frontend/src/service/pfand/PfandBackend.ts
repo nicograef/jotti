@@ -10,6 +10,7 @@ import {
   PfandrueckgabeHistorieEintragSchema,
   type PfandrueckgabeStornieren,
   PfandrueckgabeStornierenSchema,
+  PfandTischIdSchema,
   type PfandZurueckgeben,
   PfandZurueckgebenSchema,
 } from './Pfand'
@@ -30,9 +31,10 @@ export class PfandBackend {
   public async getPfandrueckgabeHistorie(
     tischId: number,
   ): Promise<PfandrueckgabeHistorieEintrag[]> {
+    const body = z.object({ tischId: PfandTischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-pfandrueckgabe-historie',
-      { tischId },
+      body,
       z.object({ historie: PfandrueckgabeHistorieEintragSchema.array() }),
     )
     return historie

@@ -39,12 +39,8 @@ import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
 import { HistorieUmbuchungDrawer } from './HistorieUmbuchungDrawer'
 import { tischBackend } from './hooks'
 import { Receipt, type ReceiptPosition } from './Receipt'
-import type { Stornierung } from './Stornierung'
-import type { Tisch } from './Tisch'
+import type { Tisch, TischHistorieEintrag } from './Tisch'
 import type { Umbuchung } from './Umbuchung'
-import type { Zahlung } from './Zahlung'
-
-type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 
 // Quelle ist ein Eintrag, der Positionen auf den Tisch bringt — eine Bestellung oder
 // der Zugang einer Umbuchung. Nur diese tragen stornier-/umbuchbare Positionen.
@@ -65,7 +61,7 @@ interface Zeilenmodell {
   totalPrice: number
 }
 
-function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
+function zeilenmodell(item: TischHistorieEintrag): Zeilenmodell {
   switch (item.art) {
     case 'bestellung':
       return {
@@ -127,7 +123,7 @@ function zeilenmodell(item: HistorieEintrag): Zeilenmodell {
 }
 
 interface TischHistorieProps {
-  historie: HistorieEintrag[]
+  historie: TischHistorieEintrag[]
   historieLoading: boolean
   tisch: Tisch
   onErfolg: (nachricht: string) => void
@@ -139,7 +135,7 @@ export function TischHistorie({
   tisch,
   onErfolg,
 }: TischHistorieProps) {
-  const [detail, setDetail] = useState<HistorieEintrag | null>(null)
+  const [detail, setDetail] = useState<TischHistorieEintrag | null>(null)
   const [stornierenQuelle, setStornierenQuelle] = useState<Quelle | null>(null)
   const [umbuchenQuelle, setUmbuchenQuelle] = useState<Quelle | null>(null)
 
@@ -210,10 +206,10 @@ function HistorieDetail({
   setStornierenQuelle,
   setUmbuchenQuelle,
 }: {
-  detail: HistorieEintrag
+  detail: TischHistorieEintrag
   zeile: Zeilenmodell
   tisch: Tisch
-  setDetail: Dispatch<SetStateAction<HistorieEintrag | null>>
+  setDetail: Dispatch<SetStateAction<TischHistorieEintrag | null>>
   setStornierenQuelle: Dispatch<SetStateAction<Quelle | null>>
   setUmbuchenQuelle: Dispatch<SetStateAction<Quelle | null>>
 }) {

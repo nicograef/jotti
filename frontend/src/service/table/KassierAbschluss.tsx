@@ -7,7 +7,6 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import type { Produkt } from '@/lib/produktSchemas'
 import { parseCents } from '@/lib/utils'
 
-import type { VerkaufPositionInput } from '../direktverkauf/Direktverkauf'
 import { pfandBackend } from '../pfand/hooks'
 import { PfandAbschnitt } from '../pfand/PfandAbschnitt'
 import {
@@ -16,6 +15,7 @@ import {
   type PfandVorgang,
 } from '../pfand/pfandAuswahl'
 import { PfandVerrechnung } from '../pfand/PfandVerrechnung'
+import type { PfandVerrechnung as PfandVerrechnungEingabe } from '../schemas'
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
@@ -27,7 +27,7 @@ import { Receipt, type ReceiptPosition } from './Receipt'
 // Was der Kauf zusätzlich zu seinen Positionen bucht; `pfand` fehlt ohne Pfand.
 export interface KassierEingabe {
   kommentar: string
-  pfand?: { rueckgabeId: string; positionen: VerkaufPositionInput[] }
+  pfand?: PfandVerrechnungEingabe
 }
 
 interface KassierAbschlussProps {

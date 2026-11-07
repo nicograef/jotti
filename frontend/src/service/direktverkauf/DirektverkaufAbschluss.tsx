@@ -2,16 +2,16 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
+import type { PositionInput } from '../schemas'
 import { KassierAbschluss } from '../table/KassierAbschluss'
 import type { ReceiptPosition } from '../table/Receipt'
-import type { VerkaufPositionInput } from './Direktverkauf'
 import { direktverkaufBackend } from './hooks'
 
 interface DirektverkaufAbschlussProps {
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
-  positionen: VerkaufPositionInput[]
+  positionen: PositionInput[]
   totalCents: number
   // Liefert Kommentar und verkaufId; beide überstehen das Aushängen des Abschlusses.
   vorgang: Vorgang<number>

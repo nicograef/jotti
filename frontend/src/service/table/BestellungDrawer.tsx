@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Drawer, DrawerTrigger } from '@/components/ui/drawer'
 import type { Vorgang } from '@/hooks/use-vorgang'
 
-import type { BestellPositionInput } from './Bestellung'
+import type { PositionInput } from '../schemas'
 import { BestellungAbschluss } from './BestellungAbschluss'
 import { DockActionButton } from './DockActionButton'
 import type { ReceiptPosition } from './Receipt'
@@ -13,7 +13,7 @@ interface BestellungDrawerProps {
   tisch: Tisch
   // Von BestellungTab einmal abgeleitet, wie für die Spalte.
   receiptItems: ReceiptPosition[]
-  positionen: BestellPositionInput[]
+  positionen: PositionInput[]
   totalCents: number
   anzahl: number
   vorgang: Vorgang<number>

@@ -17,12 +17,10 @@ import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung } from './Bestellung'
 import type { Stornierung } from './Stornierung'
-import type { Tisch } from './Tisch'
+import type { Tisch, TischHistorieEintrag } from './Tisch'
 import { TischHistorie } from './TischHistorie'
 import type { Umbuchung } from './Umbuchung'
 import type { Zahlung } from './Zahlung'
-
-type HistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
@@ -128,7 +126,7 @@ function backend(): FakeBackend {
 }
 
 function renderHistorie(
-  historie: HistorieEintrag[],
+  historie: TischHistorieEintrag[],
   fake: FakeBackend = backend(),
   onErfolg: (nachricht: string) => void = vi.fn(),
 ) {

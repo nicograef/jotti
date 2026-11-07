@@ -3,21 +3,16 @@ import { useQuery } from '@tanstack/react-query'
 import { BackendSingleton } from '@/lib/Backend'
 import type { QueryResult } from '@/lib/queryClient'
 
-import type { Bestellung } from './Bestellung'
-import type { Stornierung } from './Stornierung'
 import type {
   AktiverTischMitFavorit,
   EigeneUebersicht,
   Tisch,
+  TischHistorieEintrag,
   TischSession,
 } from './Tisch'
 import { TischBackend } from './TischBackend'
-import type { Umbuchung } from './Umbuchung'
-import type { Zahlung } from './Zahlung'
 
 export const tischBackend = new TischBackend(BackendSingleton)
-
-type TischHistorieEintrag = Bestellung | Zahlung | Stornierung | Umbuchung
 
 export function useAktiveTische(): QueryResult<Tisch[]> & {
   tische: Tisch[]

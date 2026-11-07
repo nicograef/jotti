@@ -2,9 +2,11 @@ import { z } from 'zod'
 
 import { createNameSchema } from '@/lib/nameSchema'
 
-import { PositionSchema } from './Bestellung'
-
-export const TischIdSchema = z.number().int().min(1)
+import { TischIdSchema } from '../schemas'
+import { BestellungSchema, PositionSchema } from './Bestellung'
+import { StornierungSchema } from './Stornierung'
+import { UmbuchungSchema } from './Umbuchung'
+import { ZahlungSchema } from './Zahlung'
 const TischNameSchema = createNameSchema(100)
 
 export const TischSchema = z.object({
@@ -24,6 +26,14 @@ export const TischSessionSchema = z.object({
   fuerMichErledigt: z.boolean(),
 })
 export type TischSession = z.infer<typeof TischSessionSchema>
+
+export const TischHistorieEintragSchema = z.discriminatedUnion('art', [
+  BestellungSchema,
+  ZahlungSchema,
+  StornierungSchema,
+  UmbuchungSchema,
+])
+export type TischHistorieEintrag = z.infer<typeof TischHistorieEintragSchema>
 
 export const AktiverTischMitFavoritSchema = z.object({
   id: TischIdSchema,

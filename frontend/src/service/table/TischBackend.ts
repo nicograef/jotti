@@ -3,33 +3,23 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 
 import { belegAnfordern, type BelegStatus } from '../beleg'
-import {
-  type Bestellung,
-  BestellungAufnehmenSchema,
-  BestellungSchema,
-} from './Bestellung'
-import {
-  type Stornierung,
-  StornierungErteilenSchema,
-  StornierungSchema,
-} from './Stornierung'
+import { TischIdSchema } from '../schemas'
+import { BestellungAufnehmenSchema } from './Bestellung'
+import { StornierungErteilenSchema } from './Stornierung'
 import {
   type AktiverTischMitFavorit,
   AktiverTischMitFavoritSchema,
   type EigeneUebersicht,
   EigeneUebersichtSchema,
   type Tisch,
-  TischIdSchema,
+  type TischHistorieEintrag,
+  TischHistorieEintragSchema,
   TischSchema,
   type TischSession,
   TischSessionSchema,
 } from './Tisch'
-import {
-  BestellungUmbuchenSchema,
-  type Umbuchung,
-  UmbuchungSchema,
-} from './Umbuchung'
-import { type Zahlung, ZahlungKassierenSchema, ZahlungSchema } from './Zahlung'
+import { BestellungUmbuchenSchema } from './Umbuchung'
+import { ZahlungKassierenSchema } from './Zahlung'
 
 export class TischBackend {
   private readonly backend: BackendClient
@@ -97,21 +87,12 @@ export class TischBackend {
 
   public async getTischHistorie(
     tischId: number,
-  ): Promise<(Bestellung | Zahlung | Stornierung | Umbuchung)[]> {
+  ): Promise<TischHistorieEintrag[]> {
     const body = z.object({ tischId: TischIdSchema }).parse({ tischId })
     const { historie } = await this.backend.post(
       'service/get-tisch-historie',
       body,
-      z.object({
-        historie: z.array(
-          z.discriminatedUnion('art', [
-            BestellungSchema,
-            ZahlungSchema,
-            StornierungSchema,
-            UmbuchungSchema,
-          ]),
-        ),
-      }),
+      z.object({ historie: z.array(TischHistorieEintragSchema) }),
     )
     return historie
   }

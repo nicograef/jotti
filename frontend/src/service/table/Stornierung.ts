@@ -1,10 +1,12 @@
 import { z } from 'zod'
 
+import { DateStringSchema } from '@/lib/utils'
+
 import {
-  DateStringSchema,
   KommentarSchema,
   PflichtKommentarSchema,
   PositionRefSchema,
+  TischIdSchema,
 } from '../schemas'
 import { PositionSchema } from './Bestellung'
 
@@ -29,7 +31,7 @@ export const StornierungSchema = z.object({
 export type Stornierung = z.infer<typeof StornierungSchema>
 
 export const StornierungErteilenSchema = z.object({
-  tischId: z.number().int().min(1),
+  tischId: TischIdSchema,
   positionen: PositionRefSchema.array().min(1),
   kommentar: PflichtKommentarSchema,
 })

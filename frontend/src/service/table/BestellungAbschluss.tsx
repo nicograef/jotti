@@ -4,10 +4,10 @@ import { Spinner } from '@/components/ui/spinner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import type { Vorgang } from '@/hooks/use-vorgang'
 
+import type { PositionInput } from '../schemas'
 import { AbschlussContainer } from './AbschlussContainer'
 import { AbschlussHeader } from './AbschlussHeader'
 import { AbschlussLeer } from './AbschlussLeer'
-import type { BestellPositionInput } from './Bestellung'
 import { KommentarField } from './CommentField'
 import { GesamtZeile } from './DrawerParts'
 import { tischBackend } from './hooks'
@@ -18,7 +18,7 @@ import type { Tisch } from './Tisch'
 interface BestellungAbschlussProps {
   tisch: Tisch
   receiptItems: ReceiptPosition[]
-  positionen: BestellPositionInput[]
+  positionen: PositionInput[]
   totalCents: number
   // Liefert Kommentar und bestellungId; beide überstehen das Aushängen des Abschlusses.
   vorgang: Vorgang<number>

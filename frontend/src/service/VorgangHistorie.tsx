@@ -28,10 +28,10 @@ import {
   meldeBelegStatus,
 } from './beleg'
 import type {
-  VerkaufPosition,
+  GebuchtePosition,
+  PositionRef,
   VorgangHistorieBasis,
-} from './direktverkauf/Direktverkauf'
-import type { PositionRef } from './schemas'
+} from './schemas'
 import { Kommentar } from './table/CommentField'
 import { toReceiptItems } from './table/drawerUtils'
 import { HistorieSkeletonGrid } from './table/HistorieSkeletonGrid'
@@ -41,7 +41,7 @@ import { VorgangStornoDrawer } from './VorgangStornoDrawer'
 // id ist die Vorgangs-ID (verkaufId oder rueckgabeId).
 export type VorgangEintrag = VorgangHistorieBasis & { id: string }
 
-function positionenZusammenfassung(positionen: VerkaufPosition[]): string {
+function positionenZusammenfassung(positionen: GebuchtePosition[]): string {
   return positionen
     .map(
       (position) =>
