@@ -393,6 +393,61 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T)
 	}
 }
 
+// Pfand-Positionen erscheinen in keinem Bonmodus auf einem Abholbon; ein reiner Pfand-Verkauf
+// erzeugt keinen Auftrag.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand(t *testing.T) {
+	bier := position("Bier", "0,5l", "getraenk", 2)
+	pfand := position("Glaspfand", "0,5l", "getraenk", 2)
+	pfand.EinzelpreisCents = 200
+	pfand.Pfand = true
+
+	abholbon := func(evt event.Event, positionen ...kasse.Position) string {
+		return base64.StdEncoding.EncodeToString(escpos.FormatDirektverkaufAbholbon(positionen, evt.UserName, evt.Time, ""))
+	}
+	bierEinheit := bier
+	bierEinheit.Menge = 1
+
+	tests := []struct {
+		bonmodus druckstation.Bonmodus
+		erwartet func(evt event.Event) []string
+	}{
+		{druckstation.BonmodusProBestellung, func(evt event.Event) []string { return []string{abholbon(evt, bier)} }},
+		{druckstation.BonmodusProPosition, func(evt event.Event) []string { return []string{abholbon(evt, bier)} }},
+		{druckstation.BonmodusProStueck, func(evt event.Event) []string {
+			return []string{abholbon(evt, bierEinheit), abholbon(evt, bierEinheit)}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.bonmodus), func(t *testing.T) {
+			stationen := map[string]druckstation.Druckstation{
+				"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_position"},
+				"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: tt.bonmodus},
+			}
+
+			evt := makeDirektverkaufEvent(t, 26, []kasse.Position{bier, pfand}, "")
+			auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+
+			erwartet := tt.erwartet(evt)
+			if len(auftraege) != len(erwartet) {
+				t.Fatalf("expected %d abholbons with Bier only, got %d", len(erwartet), len(auftraege))
+			}
+			for i, auftrag := range auftraege {
+				if auftrag.ZielIP != "192.168.1.77" {
+					t.Errorf("expected ZielIP 192.168.1.77, got %s", auftrag.ZielIP)
+				}
+				if auftrag.Payload != erwartet[i] {
+					t.Errorf("abholbon %d is not the Bier-only formatter output: %q", i, decodePayload(t, auftrag))
+				}
+			}
+
+			nurPfand := makeDirektverkaufEvent(t, 27, []kasse.Position{pfand}, "")
+			if auftraege := CreateArbeitsbonAuftraegeFromEvent(nurPfand, stationen, ""); len(auftraege) != 0 {
+				t.Errorf("expected no auftrag for a Pfand-only sale, got %d", len(auftraege))
+			}
+		})
+	}
+}
+
 func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_PositionskommentarAufJedemStueckbon(t *testing.T) {
 	wurst := position("Bratwurst", "mit Brot", "essen", 2)
 	wurst.Kommentar = "1 davon ohne Senf"

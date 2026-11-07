@@ -11,11 +11,11 @@ import (
 
 // positionenMitKommentarEventData spiegelt die benötigten Felder von
 // bestellung-aufgenommen:v1 und direktverkauf-getaetigt in ihrer Event-Form, samt
-// Positionskommentar; den pfand-Schlüssel ignoriert sie.
+// Positionskommentar und Pfand-Kennzeichen; Events ohne pfand-Schlüssel lesen sich als false.
 // Keine Schema-Validierung nötig, da die Daten beim Event-Write validiert wurden.
 type positionenMitKommentarEventData struct {
-	Positionen []kasse.KommentiertePositionEventData `json:"positionen"`
-	Kommentar  string                                `json:"kommentar"`
+	Positionen []kasse.KommentiertePositionV2EventData `json:"positionen"`
+	Kommentar  string                                  `json:"kommentar"`
 }
 
 type arbeitsbonDaten struct {
@@ -75,8 +75,19 @@ func createAbholbonAuftraege(
 	station druckstation.Druckstation,
 	referenz string,
 ) []druckstation.NeuerDruckauftrag {
-	abholbon := func(positionen []kasse.Position) druckstation.NeuerDruckauftrag {
-		payload := escpos.FormatDirektverkaufAbholbon(positionen, evt.UserName, evt.Time, data.Kommentar)
+	// Pfand-Positionen erscheinen auf keinem Abholbon: Das Glas kommt mit dem Getränk, es gibt nichts abzuholen.
+	positionen := make([]kasse.Position, 0, len(data.Positionen))
+	for _, pos := range data.Positionen {
+		if !pos.Pfand {
+			positionen = append(positionen, pos)
+		}
+	}
+	if len(positionen) == 0 {
+		return nil
+	}
+
+	abholbon := func(bonPositionen []kasse.Position) druckstation.NeuerDruckauftrag {
+		payload := escpos.FormatDirektverkaufAbholbon(bonPositionen, evt.UserName, evt.Time, data.Kommentar)
 		return druckstation.NeuerDruckauftrag{
 			ZielIP:   station.DruckerIP,
 			Payload:  base64.StdEncoding.EncodeToString(payload),
@@ -87,11 +98,11 @@ func createAbholbonAuftraege(
 
 	switch station.Bonmodus {
 	case druckstation.BonmodusProBestellung:
-		return []druckstation.NeuerDruckauftrag{abholbon(data.Positionen)}
+		return []druckstation.NeuerDruckauftrag{abholbon(positionen)}
 
 	case druckstation.BonmodusProStueck:
 		var auftraege []druckstation.NeuerDruckauftrag
-		for _, pos := range data.Positionen {
+		for _, pos := range positionen {
 			einheit := pos
 			einheit.Menge = 1
 			for range pos.Menge {
@@ -106,8 +117,8 @@ func createAbholbonAuftraege(
 	case druckstation.BonmodusProPosition:
 		fallthrough
 	default: // Rückfall für unbekannte Werte
-		auftraege := make([]druckstation.NeuerDruckauftrag, 0, len(data.Positionen))
-		for _, pos := range data.Positionen {
+		auftraege := make([]druckstation.NeuerDruckauftrag, 0, len(positionen))
+		for _, pos := range positionen {
 			auftraege = append(auftraege, abholbon([]kasse.Position{pos}))
 		}
 		return auftraege
@@ -191,5 +202,5 @@ func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
 		return arbeitsbonDaten{}, false
 	}
 
-	return arbeitsbonDaten{Positionen: kasse.PositionenMitKommentar(data.Positionen), Kommentar: data.Kommentar}, true
+	return arbeitsbonDaten{Positionen: kasse.PositionenV2MitKommentar(data.Positionen), Kommentar: data.Kommentar}, true
 }
