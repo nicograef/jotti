@@ -16,8 +16,6 @@ type stubCommandRepo struct {
 	identitaet             tse.Kassenidentitaet
 	gespeichert            *tse.Konfiguration
 	gespeicherteStammdaten *tse.Stammdaten
-	upsertErr              error
-	stammdatenUpsertErr    error
 }
 
 func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (tse.Kassenidentitaet, error) {
@@ -25,29 +23,11 @@ func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (tse.Kassenidenti
 }
 
 func (s *stubCommandRepo) SaveEinrichtung(_ context.Context, c tse.Konfiguration) error {
-	if s.upsertErr != nil {
-		return s.upsertErr
-	}
 	s.gespeichert = &c
 	return nil
 }
 
-func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdaten) error {
-	if s.stammdatenUpsertErr != nil {
-		return s.stammdatenUpsertErr
-	}
-	s.gespeicherteStammdaten = &st
-	return nil
-}
-
-// SaveEinrichtungMitStammdaten stores both or, like the transaction, nothing.
 func (s *stubCommandRepo) SaveEinrichtungMitStammdaten(_ context.Context, c tse.Konfiguration, st tse.Stammdaten) error {
-	if s.stammdatenUpsertErr != nil {
-		return s.stammdatenUpsertErr
-	}
-	if s.upsertErr != nil {
-		return s.upsertErr
-	}
 	s.gespeicherteStammdaten = &st
 	s.gespeichert = &c
 	return nil
@@ -749,7 +729,7 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 }
 
-// The export reads the TSE serial only from tse_stammdaten, so a fetch failure fails the setup.
+// A failed fetch writes nothing: tse_konfiguration must not name a TSS whose Stammdaten tse.csv lacks.
 func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
 	client := &tsetest.FakeSetupClient{
@@ -761,6 +741,9 @@ func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
 	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
 	if !errors.Is(err, ErrTSEEinrichtung) {
 		t.Errorf("expected ErrTSEEinrichtung when stammdaten fetch fails, got %v", err)
+	}
+	if repo.gespeichert != nil || repo.gespeicherteStammdaten != nil {
+		t.Errorf("expected no write, got %+v / %+v", repo.gespeichert, repo.gespeicherteStammdaten)
 	}
 }
 

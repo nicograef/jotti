@@ -12,7 +12,6 @@ import (
 type tseCommandRepo interface {
 	SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error
 	SaveEinrichtungMitStammdaten(ctx context.Context, c tse.Konfiguration, s tse.Stammdaten) error
-	UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
 

@@ -236,33 +236,23 @@ func oeffneSetupClient(ctx context.Context, log *slog.Logger, newClient NewTSESe
 	return client, umgebung, tssListe, nil
 }
 
-// If saving fails, the TSS still exists at fiskaly and a takeover recovers it.
-// tss_id and client_id are logged for that, PUK and PIN never.
+// saveEinrichtung writes nothing unless the Stammdaten fetch succeeds, so tse.csv of the DSFinV-K export
+// (docs/compliance.md §6.3) never names another TSS than the configuration. On any failure the TSS still
+// exists at fiskaly and a takeover recovers it; tss_id and client_id are logged for that, PUK and PIN never.
 func (c Command) saveEinrichtung(ctx context.Context, log *slog.Logger, client tse.SetupClient, credentials tse.SetupCredentials, tssID, clientID string) error {
 	konfiguration, err := tse.NewKonfiguration(credentials.ApiKey, credentials.ApiSecret, tssID, clientID)
 	if err != nil {
 		log.Error("Failed to build tse_konfiguration after setup", "error", err)
 		return ErrTSEEinrichtung
 	}
-	// On the transition to configured, the same transaction finalises pre-configuration orders
-	// and closes the keine_konfiguration outage (docs/handbuch.md §3.13).
-	if err := c.TSERepo.SaveEinrichtung(ctx, konfiguration); err != nil {
-		log.Error("Failed to save tse_konfiguration after setup; TSS exists at fiskaly, recoverable via takeover", "error", err, "tss_id", tssID, "client_id", clientID)
-		return ErrDatabase
-	}
-
-	return c.fetchTSEStammdaten(ctx, log, client, tssID)
-}
-
-// The DSFinV-K export fills tse.csv (serial, public key, certificate; docs/compliance.md §6.3) only
-// from the stored TSE master data, so a failure here fails the setup.
-func (c Command) fetchTSEStammdaten(ctx context.Context, log *slog.Logger, client tse.SetupClient, tssID string) error {
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, tssID)
 	if err != nil {
 		return einrichtungsFehler(log, err, "stammdaten abrufen", tssID)
 	}
-	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
-		log.Error("Failed to save TSE Stammdaten after setup", "error", err, "tss_id", tssID)
+	// On the transition to configured, the same transaction finalises pre-configuration orders
+	// and closes the keine_konfiguration outage (docs/handbuch.md §3.13).
+	if err := c.TSERepo.SaveEinrichtungMitStammdaten(ctx, konfiguration, stammdaten); err != nil {
+		log.Error("Failed to save tse_konfiguration with TSE Stammdaten after setup; TSS exists at fiskaly, recoverable via takeover", "error", err, "tss_id", tssID, "client_id", clientID)
 		return ErrDatabase
 	}
 	return nil
