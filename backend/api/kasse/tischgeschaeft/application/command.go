@@ -184,9 +184,9 @@ func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))
 }
 
-// BestellungUmbuchen is idempotent via the client's umbuchungID. No index makes it unique, so the
-// source stream is searched before validating and again after a rejected write, see
-// pruefeGebuchteUmbuchung.
+// BestellungUmbuchen is idempotent via the client's umbuchungID: the source stream is searched before
+// validating and again after a rejected write, see pruefeGebuchteUmbuchung. The BON_ID index admits
+// the Abgang's umbuchungId once across all Vorgänge, so a reused key on another table is a conflict.
 func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName string, umbuchungID string, quellTischID int, zielTischID int, positionen []kasse.PositionRef, benutzerKommentar string) error {
 	log := logging.FromContext(ctx)
 

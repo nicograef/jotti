@@ -340,7 +340,9 @@ type tischVorgangFall struct {
 	db              *sql.DB
 	userID, tischID int
 	zielTischID     int
+	ksNr            int
 	refs            func(menge int) []kasse.PositionRef
+	bier            func(menge int) []enrichment.PositionInput
 }
 
 func (f tischVorgangFall) anzahlEvents(t *testing.T) int {
@@ -363,8 +365,10 @@ func setupTischVorgangFall(t *testing.T) tischVorgangFall {
 		t.Fatalf("create ziel-tisch: %v", err)
 	}
 
-	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 4}}
-	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.NewString(), tischID, inputs, ""); err != nil {
+	bier := func(menge int) []enrichment.PositionInput {
+		return []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: menge}}
+	}
+	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.NewString(), tischID, bier(4), ""); err != nil {
 		t.Fatalf("Bestellung aufnehmen: %v", err)
 	}
 	session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
@@ -379,5 +383,55 @@ func setupTischVorgangFall(t *testing.T) tischVorgangFall {
 		t.Fatalf("zwei Bier kassieren: %v", err)
 	}
 
-	return tischVorgangFall{ctx: ctx, cmd: cmd, db: db, userID: userID, tischID: tischID, zielTischID: zielTischID, refs: refs}
+	return tischVorgangFall{ctx: ctx, cmd: cmd, db: db, userID: userID, tischID: tischID, zielTischID: zielTischID, ksNr: ksNr, refs: refs, bier: bier}
+}
+
+// An umbuchungId is the Abgang's BON_ID, so the BON_ID index admits it once across all Vorgänge: the
+// key of another Beleg, or of an Umbuchung from another table, books nothing.
+func TestBestellungUmbuchen_FremdeBonID_KeinEvent(t *testing.T) {
+	tests := []struct {
+		name      string
+		vorbuchen func(f tischVorgangFall, schluessel uuid.UUID)
+	}{
+		{"Zahlung", func(f tischVorgangFall, schluessel uuid.UUID) {
+			if err := f.cmd.ZahlungKassieren(f.ctx, f.userID, "test", schluessel.String(), f.tischID, f.refs(1), "", nil); err != nil {
+				t.Fatalf("Zahlung: %v", err)
+			}
+		}},
+		{"Umbuchung eines anderen Tischs", func(f tischVorgangFall, schluessel uuid.UUID) {
+			var andererTischID int
+			if err := f.db.QueryRow(
+				"INSERT INTO tische (name, status, created_at, updated_at) VALUES ('Tisch 3', 'active', now(), now()) RETURNING id",
+			).Scan(&andererTischID); err != nil {
+				t.Fatalf("create tisch 3: %v", err)
+			}
+			if err := f.cmd.BestellungAufnehmen(f.ctx, f.userID, "test", uuid.NewString(), andererTischID, f.bier(1), ""); err != nil {
+				t.Fatalf("Bestellung Tisch 3: %v", err)
+			}
+			session, err := kassenjournal_repo.NewRepository(f.db).ReadTischSession(f.ctx, kasse.TischSessionSubject(f.ksNr, andererTischID))
+			if err != nil {
+				t.Fatalf("Tisch-Session lesen: %v", err)
+			}
+			refs := []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: 1}}
+			if err := f.cmd.BestellungUmbuchen(f.ctx, f.userID, "test", schluessel.String(), andererTischID, f.zielTischID, refs, ""); err != nil {
+				t.Fatalf("Umbuchung Tisch 3: %v", err)
+			}
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := setupTischVorgangFall(t)
+			schluessel := uuid.New()
+			tt.vorbuchen(f, schluessel)
+			vorher := f.anzahlEvents(t)
+
+			err := f.cmd.BestellungUmbuchen(f.ctx, f.userID, "test", schluessel.String(), f.tischID, f.zielTischID, f.refs(1), "")
+			if !errors.Is(err, ErrConflict) {
+				t.Errorf("erwartet ErrConflict, bekam: %v", err)
+			}
+			if nachher := f.anzahlEvents(t); nachher != vorher {
+				t.Errorf("erwartet kein neues Event, kassenjournal wuchs von %d auf %d", vorher, nachher)
+			}
+		})
+	}
 }
