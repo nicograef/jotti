@@ -207,3 +207,32 @@ func TestGetTischStateHandler_Fehler(t *testing.T) {
 		})
 	}
 }
+
+func TestBestellungResponseTraegtPositionskommentar(t *testing.T) {
+	t.Parallel()
+
+	b := toBestellung(kasse.HistorieEintrag{Art: kasse.HistorieEintragBestellung, Bestellung: &kasse.Bestellung{
+		Positionen: []kasse.Position{
+			{PositionID: "123e4567-e89b-42d3-a456-426614174000", ProduktName: "Zwiebelkuchen", Kommentar: "ohne Kümmel"},
+			{PositionID: "123e4567-e89b-42d3-a456-426614174001", ProduktName: "Bier"},
+		},
+	}})
+
+	raw, err := json.Marshal(b.Positionen)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	var positionen []map[string]any
+	if err := json.Unmarshal(raw, &positionen); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+	if got := positionen[0]["kommentar"]; got != "ohne Kümmel" {
+		t.Errorf("positionen[0].kommentar = %v, want %q", got, "ohne Kümmel")
+	}
+	if got, ok := positionen[1]["kommentar"]; !ok || got != "" {
+		t.Errorf("positionen[1].kommentar = %v (present %v), want empty string", got, ok)
+	}
+	if got := positionen[0]["produktName"]; got != "Zwiebelkuchen" {
+		t.Errorf("positionen[0].produktName = %v, want Zwiebelkuchen", got)
+	}
+}

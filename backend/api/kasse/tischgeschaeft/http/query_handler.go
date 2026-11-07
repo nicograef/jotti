@@ -73,18 +73,32 @@ func toPositionen(positionen []kasse.Position) []position {
 	return positionenResponse
 }
 
+// bestellPosition is a position of a Bestellung entry: only there the Positionskommentar exists.
+type bestellPosition struct {
+	position
+	Kommentar string `json:"kommentar"`
+}
+
+func toBestellPositionen(positionen []kasse.Position) []bestellPosition {
+	out := make([]bestellPosition, len(positionen))
+	for i, p := range positionen {
+		out[i] = bestellPosition{position: toPosition(p), Kommentar: p.Kommentar}
+	}
+	return out
+}
+
 type bestellung struct {
-	Art                    string     `json:"art"`
-	ID                     string     `json:"id"`
-	UserID                 int        `json:"userId"`
-	UserName               string     `json:"userName"`
-	TischID                int        `json:"tischId"`
-	Positionen             []position `json:"positionen"`
-	GesamtPreisCents       int        `json:"gesamtPreisCents"`
-	Kommentar              string     `json:"kommentar"`
-	AufgenommenAm          time.Time  `json:"aufgenommenAm"`
-	StornierbarePositionen []position `json:"stornierbarePositionen"`
-	UmbuchbarePositionen   []position `json:"umbuchbarePositionen"`
+	Art                    string            `json:"art"`
+	ID                     string            `json:"id"`
+	UserID                 int               `json:"userId"`
+	UserName               string            `json:"userName"`
+	TischID                int               `json:"tischId"`
+	Positionen             []bestellPosition `json:"positionen"`
+	GesamtPreisCents       int               `json:"gesamtPreisCents"`
+	Kommentar              string            `json:"kommentar"`
+	AufgenommenAm          time.Time         `json:"aufgenommenAm"`
+	StornierbarePositionen []position        `json:"stornierbarePositionen"`
+	UmbuchbarePositionen   []position        `json:"umbuchbarePositionen"`
 }
 
 func toBestellung(eintrag kasse.HistorieEintrag) bestellung {
@@ -95,7 +109,7 @@ func toBestellung(eintrag kasse.HistorieEintrag) bestellung {
 		UserID:                 b.UserID,
 		UserName:               b.UserName,
 		TischID:                b.TischID,
-		Positionen:             toPositionen(b.Positionen),
+		Positionen:             toBestellPositionen(b.Positionen),
 		GesamtPreisCents:       b.GesamtPreisCents,
 		Kommentar:              b.Kommentar,
 		AufgenommenAm:          b.AufgenommenAm,
