@@ -7,14 +7,14 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { DockActionButton } from '../DockActionButton'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { ReceiptPosition } from '../Receipt'
-import type { PositionInput } from '../schemas'
+import type { KommentiertePositionInput } from '../schemas'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
 
 interface DirektverkaufDrawerProps {
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
-  positionen: PositionInput[]
+  positionen: KommentiertePositionInput[]
   anzahl: number
   totalCents: number
   vorgang: Vorgang<number>

@@ -34,7 +34,11 @@ export function DirektverkaufTab({
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = vorgang.steuerung
 
-  const { receiptItems, inputItems } = toBestellungData(products, mengen)
+  const { receiptItems, inputItems } = toBestellungData(
+    products,
+    mengen,
+    vorgang.positionsKommentare,
+  )
   const total = calculateTotalPrice(receiptItems)
   const anzahl = calculateAnzahl(inputItems)
 

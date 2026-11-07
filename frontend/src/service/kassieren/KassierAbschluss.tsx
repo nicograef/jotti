@@ -37,6 +37,8 @@ interface KassierAbschlussProps {
   aktion: { button: string; fehlerLabel: string }
   receiptItems: ReceiptPosition[]
   totalCents: number
+  // Nur Direktverkauf: die Tisch-Zahlung kommentiert keine Positionen.
+  kommentarBearbeiten?: (id: string, text: string) => void
   // Liegt im Vorgang der Seite, damit ein Retry nach dem Aushängen denselben Inhalt trägt.
   kommentar: string
   setKommentar: (kommentar: string) => void
@@ -179,6 +181,7 @@ export function KassierAbschluss(props: KassierAbschlussProps) {
           <Receipt
             positionen={props.receiptItems}
             totalPrice={props.totalCents}
+            kommentarBearbeiten={props.kommentarBearbeiten}
           />
         )}
         {pfandAngebot && (

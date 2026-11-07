@@ -4,14 +4,14 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { KassierAbschluss } from '../kassieren/KassierAbschluss'
 import type { PfandVorgang } from '../pfand/pfandAuswahl'
 import type { ReceiptPosition } from '../Receipt'
-import type { PositionInput } from '../schemas'
+import type { KommentiertePositionInput } from '../schemas'
 import { direktverkaufBackend } from './hooks'
 
 interface DirektverkaufAbschlussProps {
   pfandProdukte: Produkt[]
   pfandVorgang: PfandVorgang
   receiptItems: ReceiptPosition[]
-  positionen: PositionInput[]
+  positionen: KommentiertePositionInput[]
   totalCents: number
   // Liefert Kommentar und verkaufId; beide überstehen das Aushängen des Abschlusses.
   vorgang: Vorgang<number>
@@ -38,9 +38,13 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       }}
       receiptItems={props.receiptItems}
       totalCents={props.totalCents}
+      kommentarBearbeiten={(id, text) => {
+        props.vorgang.setPositionsKommentar(Number(id), text)
+      }}
       kassieren={({ kommentar, ...eingabe }) => {
         // Der Kommentar gehört nicht zum Schlüssel: wer ihn nach einer verlorenen
-        // Antwort ändert, wiederholt denselben Verkauf.
+        // Antwort ändert, wiederholt denselben Verkauf. Die Positionskommentare
+        // stehen in den Positionen und gehören dazu.
         const inhalt = { positionen: props.positionen, ...eingabe }
         return direktverkaufBackend.direktverkaufTaetigen({
           verkaufId: props.vorgang.schluesselFuer(inhalt),

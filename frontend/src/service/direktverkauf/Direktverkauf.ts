@@ -2,16 +2,16 @@ import { z } from 'zod'
 
 import {
   KommentarSchema,
+  KommentiertePositionInputSchema,
   PfandVerrechnungSchema,
   PflichtKommentarSchema,
-  PositionInputSchema,
   PositionRefSchema,
   VorgangHistorieBasisSchema,
 } from '../schemas'
 
 export const DirektverkaufTaetigenSchema = z.object({
   verkaufId: z.uuid(),
-  positionen: PositionInputSchema.array().min(1),
+  positionen: KommentiertePositionInputSchema.array().min(1),
   kommentar: KommentarSchema,
   pfand: PfandVerrechnungSchema.optional(),
 })

@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useVorgang } from '@/hooks/use-vorgang'
 import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
 import type { ReceiptPosition } from '../Receipt'
 import type { DirektverkaufTaetigen } from './Direktverkauf'
 import { DirektverkaufAbschluss } from './DirektverkaufAbschluss'
+import { DirektverkaufTab } from './DirektverkaufTab'
 
 // Verkauf und Pfand-Vorgang liegen auf der Seite; der Harness übernimmt ihre Rolle.
 function DirektverkaufAbschlussHarness(
@@ -291,5 +293,62 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(retry.verkaufId).toBe(erster.verkaufId)
     expect(mitKommentar.verkaufId).toBe(erster.verkaufId)
     expect(mitKommentar.kommentar).toBe('Ohne Senf')
+  })
+})
+
+// Dieselbe Kategorie wie testProdukt: die Produktliste zeigt eine Kategorie zur Zeit.
+const pommes: Produkt = {
+  ...testProdukt,
+  id: 2,
+  name: 'Pommes',
+  varianten: [{ id: 2, name: 'Groß', preisCents: 400, status: 'active' }],
+}
+
+// Die Positionskommentare laufen vom Abschluss über den Vorgang zurück in die
+// Positionen, die der Tab baut; der Harness nimmt deshalb den ganzen Tab.
+function TabHarness() {
+  return (
+    <DirektverkaufTab
+      products={[testProdukt, pommes]}
+      pfandProdukte={[]}
+      productsLoading={false}
+      vorgang={useVorgang<number>()}
+      pfandVorgang={useVorgang<number>()}
+      onErfolg={vi.fn()}
+    />
+  )
+}
+
+describe('DirektverkaufAbschluss (Positionskommentar)', () => {
+  it('sendet den Positionskommentar nur an seiner Position', async () => {
+    const user = userEvent.setup()
+    const fake = backend()
+    renderWithBackend(<TabHarness />, fake)
+
+    const [bratwurst, pommesHinzufuegen] = screen.getAllByRole('button', {
+      name: 'Variante hinzufügen',
+    })
+    await user.click(bratwurst)
+    await user.click(bratwurst)
+    await user.click(pommesHinzufuegen)
+    await user.click(screen.getAllByRole('button', { name: 'Kommentar' })[0])
+    await user.type(
+      screen.getByPlaceholderText('Kommentar zur Position'),
+      ' 1 davon ohne Senf ',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+
+    await waitFor(() => {
+      expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(1)
+    })
+    const [body] = fake.bodies(
+      'service/direktverkauf-taetigen',
+    ) as DirektverkaufTaetigen[]
+    expect(body.positionen).toStrictEqual([
+      { produktId: 1, varianteId: 1, menge: 2, kommentar: '1 davon ohne Senf' },
+      { produktId: 2, varianteId: 2, menge: 1 },
+    ])
   })
 })
