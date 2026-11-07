@@ -48,10 +48,15 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        module:
-          - backend
-          - resolver
-          - reverse-proxy
+        # windows/relay and windows/starter have zero dependencies (no go.sum), so
+        # module caching would fail to resolve cache-dependency-path and error the
+        # step; they run without the cache, as windows-ci in ci.yml does.
+        include:
+          - { module: backend, cache: true }
+          - { module: resolver, cache: true }
+          - { module: reverse-proxy, cache: true }
+          - { module: windows/relay, cache: false }
+          - { module: windows/starter, cache: false }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -59,35 +64,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: ${{ matrix.module }}/go.mod
+          cache: ${{ matrix.cache }}
           cache-dependency-path: ${{ matrix.module }}/go.sum
-
-      # Fails only on vulnerabilities reachable from this module's code; the
-      # backend/go.mod holds the govulncheck pin.
-      - name: govulncheck
-        env:
-          MODULE: ${{ matrix.module }}
-        run: make check-govulncheck GO_MODULES="$MODULE"
-
-  # windows/relay and windows/starter have zero dependencies (no go.sum), so
-  # module caching (cache-dependency-path) would fail to resolve a glob and
-  # error the step. They get their own job without caching, mirroring
-  # windows-ci's "cache: false" in ci.yml.
-  vuln-scan-go-windows:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      matrix:
-        module:
-          - windows/relay
-          - windows/starter
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: ${{ matrix.module }}/go.mod
-          cache: false
 
       # Fails only on vulnerabilities reachable from this module's code; the
       # backend/go.mod holds the govulncheck pin.
