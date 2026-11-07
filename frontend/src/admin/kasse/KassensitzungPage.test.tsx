@@ -430,8 +430,6 @@ describe('EroeffnenSection', () => {
   })
 
   it('akzeptiert Standardwert 0 € (leeres Betrag-Feld) ohne Validierungsfehler', async () => {
-    // Negativwerte kann EuroInput strukturell nicht erzeugen; deren
-    // Schema-Absicherung prüft KasseBackend.test.ts.
     const fake = backend({ tseKonfiguriert: true })
     const user = userEvent.setup()
     await renderEroeffnen(fake)
