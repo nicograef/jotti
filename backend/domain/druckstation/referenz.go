@@ -6,7 +6,7 @@ import (
 )
 
 // ReferenzArt names the source of a print job. A Referenz is "<art>:<rest>": the event ID, or the
-// Kategorie for a Testbon. Stored druckauftraege keep these strings, so a value never changes.
+// Kategorie or Zusatzdrucker name for a Testbon. Stored druckauftraege keep these strings, so a value never changes.
 type ReferenzArt string
 
 const (
@@ -36,6 +36,11 @@ func EventReferenz(art ReferenzArt, eventID int) string {
 
 func TestdruckReferenz(kategorie Kategorie) string {
 	return string(referenzTestdruck) + ":" + string(kategorie)
+}
+
+// ZusatzdruckerTestdruckReferenz carries the name, so ReferenzAnzeige shows "Testbon <Name>".
+func ZusatzdruckerTestdruckReferenz(name string) string {
+	return string(referenzTestdruck) + ":" + name
 }
 
 // ReferenzAnzeige names a Referenz for the admin; an unknown format stays as it is.

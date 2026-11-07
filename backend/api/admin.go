@@ -7,6 +7,8 @@ import (
 	druckauftragHTTP "github.com/nicograef/jotti/backend/api/druck/auftrag/http"
 	druckstationApp "github.com/nicograef/jotti/backend/api/druck/station/application"
 	druckstationHTTP "github.com/nicograef/jotti/backend/api/druck/station/http"
+	zusatzdruckerApp "github.com/nicograef/jotti/backend/api/druck/zusatzdrucker/application"
+	zusatzdruckerHTTP "github.com/nicograef/jotti/backend/api/druck/zusatzdrucker/http"
 	exportApp "github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	exportHTTP "github.com/nicograef/jotti/backend/api/fiskal/export/http"
 	fiskalSetupApp "github.com/nicograef/jotti/backend/api/fiskal/setup/application"
@@ -115,6 +117,17 @@ func mountAdminDruck(r *routeMux, deps Deps) {
 	r.HandleFunc("/get-druckstationen", druckstationQueryHandler.GetDruckstationenHandler())
 	r.HandleFunc("/update-druckstationen", druckstationCommandHandler.UpdateDruckstationenHandler())
 	r.HandleFunc("/testbon-drucken", druckstationCommandHandler.TestbonDruckenHandler())
+
+	zusatzdruckerCommandHandler := zusatzdruckerHTTP.CommandHandler{Command: zusatzdruckerApp.Command{
+		ZusatzdruckerRepo: deps.DruckstationRepo,
+		DruckauftragRepo:  deps.DruckauftragRepo,
+	}}
+	zusatzdruckerQueryHandler := zusatzdruckerHTTP.QueryHandler{Query: zusatzdruckerApp.Query{ZusatzdruckerRepo: deps.DruckstationRepo}}
+	r.HandleFunc("/get-zusatzdrucker", zusatzdruckerQueryHandler.GetZusatzdruckerHandler())
+	r.HandleFunc("/create-zusatzdrucker", zusatzdruckerCommandHandler.CreateZusatzdruckerHandler())
+	r.HandleFunc("/update-zusatzdrucker", zusatzdruckerCommandHandler.UpdateZusatzdruckerHandler())
+	r.HandleFunc("/delete-zusatzdrucker", zusatzdruckerCommandHandler.DeleteZusatzdruckerHandler())
+	r.HandleFunc("/zusatzdrucker-testbon-drucken", zusatzdruckerCommandHandler.TestbonDruckenHandler())
 
 	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{Command: druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}}
 	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{Query: druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}}

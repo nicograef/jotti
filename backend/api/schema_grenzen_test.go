@@ -16,6 +16,7 @@ import (
 
 	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/domain/betreiber"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
@@ -45,6 +46,7 @@ var lengthCases = []lengthCase{
 	{schema: "betreiber.StrasseSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.StrasseSchema)},
 	{schema: "betreiber.UstIDSchema", shortest: 0, longest: 15, filler: 'ä', accepts: acceptsString(betreiber.UstIDSchema)},
 	{schema: "betreiber.VereinsnameSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.VereinsnameSchema)},
+	{schema: "druckstation.ZusatzdruckerNameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(druckstation.ZusatzdruckerNameSchema)},
 	{schema: "kasse.PositionsKommentarSchema", shortest: 0, longest: 100, filler: 'ä', accepts: acceptsString(kasse.PositionsKommentarSchema)},
 	{schema: "produkt.NameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(produkt.NameSchema)},
 	{schema: "tisch.TischNameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(tisch.TischNameSchema)},
@@ -65,6 +67,7 @@ type valueCase struct {
 }
 
 var valueCases = []valueCase{
+	{schema: "druckstation.ZusatzdruckerIDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(druckstation.ZusatzdruckerIDSchema)},
 	{schema: "kasse.KassensitzungNrSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(kasse.KassensitzungNrSchema().Required())},
 	{schema: "kasse.PositionEingabeSchema", smallest: 1, largest: 999, accepts: acceptsNumber(kasse.PositionEingabeSchema)},
 	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(produkt.IDSchema)},
