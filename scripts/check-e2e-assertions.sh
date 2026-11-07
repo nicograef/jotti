@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# check-e2e-assertions.sh — repo gate: no weak assertions in the e2e suite
+# check-e2e-assertions.sh — repo gate: no `?? 0` fallback on a measured e2e value
 #
 # Usage:
 #   make check-repo   # or: ./scripts/check-e2e-assertions.sh
 #
-# Two patterns let a failed e2e measurement pass silently:
-# `page.waitForLoadState('networkidle')` (Playwright marks it DISCOURAGED: it waits
-# for a quiet network, not for the DOM state a spec depends on) and a `?? 0`
-# fallback on a measured value (a missing measurement then compares as 0, see
-# e2e/support/viewport.ts's erwarteKeinenHorizontalenUeberlauf). Pure `//` comment
-# lines are skipped, so documenting a forbidden pattern does not trip the gate.
+# A `?? 0` fallback lets a failed measurement pass silently: a missing value then
+# compares as 0 (see e2e/support/viewport.ts's erwarteKeinenHorizontalenUeberlauf).
+# The networkidle wait is the oxlint rule playwright/no-networkidle. Pure `//`
+# comment lines are skipped, so documenting the pattern does not trip the gate.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,7 +26,7 @@ violations=0
 for file in "${files[@]}"; do
   hits="$(awk '
     /^[[:space:]]*\/\// { next }
-    /networkidle/ || /\?\?[[:space:]]*0([^0-9]|$)/ { printf "%d:%s\n", FNR, $0 }
+    /\?\?[[:space:]]*0([^0-9]|$)/ { printf "%d:%s\n", FNR, $0 }
   ' "$file")"
   [[ -z "$hits" ]] && continue
 
@@ -39,7 +37,7 @@ for file in "${files[@]}"; do
 done
 
 if [[ "$violations" -gt 0 ]]; then
-  fatal "$violations weak e2e assertion(s) found (networkidle or \`?? 0\`) under e2e/tests and e2e/support."
+  fatal "$violations \`?? 0\` fallback(s) found under e2e/tests and e2e/support."
 fi
 
-info "No networkidle wait or \`?? 0\` fallback in e2e/tests or e2e/support."
+info "No \`?? 0\` fallback in e2e/tests or e2e/support."
