@@ -6,6 +6,7 @@ import {
   describe,
   expect,
   it,
+  type Mock,
   type MockInstance,
   vi,
 } from 'vitest'
@@ -26,12 +27,14 @@ vi.mock('sonner', () => ({
 }))
 
 let klick: MockInstance<() => void>
+let freigeben: Mock<(url: string) => void>
 
 beforeEach(() => {
   VorgangsRegisterSingleton.zuruecksetzen()
   // jsdom implements neither object URLs nor navigation on an anchor click.
   URL.createObjectURL = vi.fn(() => 'blob:dsfinvk')
-  URL.revokeObjectURL = vi.fn()
+  freigeben = vi.fn()
+  URL.revokeObjectURL = freigeben
   klick = vi
     .spyOn(HTMLAnchorElement.prototype, 'click')
     .mockImplementation(() => undefined)
@@ -78,6 +81,7 @@ describe('useDsfinvkExport im Vorgangs-Register', () => {
     })
     expect(klick).toHaveBeenCalledOnce()
     expect(klick.mock.contexts[0]).toHaveProperty('download', 'dsfinvk.zip')
+    expect(freigeben).toHaveBeenCalledWith('blob:dsfinvk')
   })
 
   it('gibt den Export auch nach einem Fehlschlag frei', async () => {

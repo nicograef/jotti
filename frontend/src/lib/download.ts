@@ -8,7 +8,5 @@ export function triggerBrowserDownload(blob: Blob, filename: string): void {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  setTimeout(() => {
-    URL.revokeObjectURL(url)
-  }, 40_000)
+  URL.revokeObjectURL(url)
 }
