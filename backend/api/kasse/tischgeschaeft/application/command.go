@@ -97,6 +97,20 @@ func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
 	}
 }
 
+func (c Command) getAktivenTisch(ctx context.Context, tischID int) (tisch.Tisch, error) {
+	log := logging.FromContext(ctx)
+
+	t, err := c.TischRepo.GetTisch(ctx, tischID)
+	if err != nil {
+		return tisch.Tisch{}, fromRepositoryError(err, log, tischID)
+	}
+	if t.Status != tisch.ActiveStatus {
+		log.Warn("Tisch is not active", "tisch_id", tischID, "status", string(t.Status))
+		return tisch.Tisch{}, ErrTischNotActive
+	}
+	return t, nil
+}
+
 // loadTischState returns subject, kassensitzungNr, tisch name and the projected TischSession.
 func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, string, kasse.TischSession, error) {
 	log := logging.FromContext(ctx)
@@ -106,14 +120,9 @@ func (c Command) loadTischState(ctx context.Context, tischID int) (string, int, 
 		return "", 0, "", kasse.TischSession{}, err
 	}
 
-	t, err := c.TischRepo.GetTisch(ctx, tischID)
+	t, err := c.getAktivenTisch(ctx, tischID)
 	if err != nil {
-		return "", 0, "", kasse.TischSession{}, fromRepositoryError(err, log, tischID)
-	}
-
-	if t.Status != tisch.ActiveStatus {
-		log.Warn("Tisch is not active", "tisch_id", tischID, "status", string(t.Status))
-		return "", 0, "", kasse.TischSession{}, ErrTischNotActive
+		return "", 0, "", kasse.TischSession{}, err
 	}
 
 	subject := kasse.TischSessionSubject(ks.ZNr, tischID)
@@ -232,22 +241,13 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 		return err
 	}
 
-	quellTisch, err := c.TischRepo.GetTisch(ctx, quellTischID)
+	quellTisch, err := c.getAktivenTisch(ctx, quellTischID)
 	if err != nil {
-		return fromRepositoryError(err, log, quellTischID)
+		return err
 	}
-	if quellTisch.Status != tisch.ActiveStatus {
-		log.Warn("Quell-Tisch ist nicht aktiv", "tisch_id", quellTischID, "status", string(quellTisch.Status))
-		return ErrTischNotActive
-	}
-
-	zielTisch, err := c.TischRepo.GetTisch(ctx, zielTischID)
+	zielTisch, err := c.getAktivenTisch(ctx, zielTischID)
 	if err != nil {
-		return fromRepositoryError(err, log, zielTischID)
-	}
-	if zielTisch.Status != tisch.ActiveStatus {
-		log.Warn("Ziel-Tisch ist nicht aktiv", "tisch_id", zielTischID, "status", string(zielTisch.Status))
-		return ErrTischNotActive
+		return err
 	}
 
 	quellSubject := kasse.TischSessionSubject(ks.ZNr, quellTischID)

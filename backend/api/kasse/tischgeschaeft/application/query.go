@@ -2,9 +2,7 @@ package application
 
 import (
 	"context"
-	"errors"
 
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	t "github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
@@ -62,12 +60,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 
 	tisch, err := q.TischRepo.GetTisch(ctx, tischID)
 	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn("Tisch not found", "tisch_id", tischID)
-			return TischStateView{}, ErrTischNotFound
-		}
-		log.Error("Failed to retrieve tisch", "error", err, "tisch_id", tischID)
-		return TischStateView{}, ErrDatabase
+		return TischStateView{}, fromRepositoryError(err, log, tischID)
 	}
 
 	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
