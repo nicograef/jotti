@@ -106,8 +106,8 @@ type FinishResult struct {
 // It compares the jotti Kassen-Seriennummer with the client serial_number.
 type VerbindungStatus struct {
 	Umgebung            Umgebung
-	TSSState            string
-	ClientState         string
+	TSSState            TSSZustand
+	ClientState         ClientZustand
 	ClientSerialNumber  string
 	SeriennummerKorrekt bool
 }
@@ -116,10 +116,10 @@ func (v VerbindungStatus) Validate() error {
 	if strings.TrimSpace(string(v.Umgebung)) == "" {
 		return fmt.Errorf("umgebung is required")
 	}
-	if strings.TrimSpace(v.TSSState) == "" {
+	if strings.TrimSpace(string(v.TSSState)) == "" {
 		return fmt.Errorf("tss state is required")
 	}
-	if strings.TrimSpace(v.ClientState) == "" {
+	if strings.TrimSpace(string(v.ClientState)) == "" {
 		return fmt.Errorf("client state is required")
 	}
 	if strings.TrimSpace(v.ClientSerialNumber) == "" {

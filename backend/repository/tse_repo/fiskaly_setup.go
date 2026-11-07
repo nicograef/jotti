@@ -104,7 +104,7 @@ func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []ts
 	for _, item := range resp.Data {
 		tssList = append(tssList, tse.TSSInfo{
 			ID:    strings.TrimSpace(item.ID),
-			State: fiskalyZustand(item.State),
+			State: tse.TSSZustand(fiskalyZustand(item.State)),
 		})
 	}
 	return env, tssList, nil
@@ -127,7 +127,7 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 		clients = append(clients, tse.ClientInfo{
 			ID:           strings.TrimSpace(item.ID),
 			SerialNumber: strings.TrimSpace(item.SerialNumber),
-			State:        fiskalyZustand(item.State),
+			State:        tse.ClientZustand(fiskalyZustand(item.State)),
 		})
 	}
 	return clients, nil
@@ -151,7 +151,7 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 	return tse.TSSErstellt{
 		ID:    id,
 		PUK:   strings.TrimSpace(resp.AdminPUK),
-		State: fiskalyZustand(resp.State),
+		State: tse.TSSZustand(fiskalyZustand(resp.State)),
 	}, nil
 }
 
@@ -185,22 +185,22 @@ func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID
 
 // PersonalisiereTSS moves the TSS from CREATED to UNINITIALIZED.
 func (c *FiskalyTSESetupClient) PersonalisiereTSS(ctx context.Context, tssID string) error {
-	return c.patchTSSState(ctx, tssID, "UNINITIALIZED")
+	return c.patchTSSState(ctx, tssID, tse.TSSUninitialized)
 }
 
 // InitialisiereTSS moves the TSS to INITIALIZED, ready to sign.
 // It requires a prior AuthentifiziereAdmin.
 func (c *FiskalyTSESetupClient) InitialisiereTSS(ctx context.Context, tssID string) error {
-	return c.patchTSSState(ctx, tssID, "INITIALIZED")
+	return c.patchTSSState(ctx, tssID, tse.TSSInitialized)
 }
 
-func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID, state string) error {
+func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID string, state tse.TSSZustand) error {
 	tssID = strings.TrimSpace(tssID)
 	if tssID == "" {
 		return fmt.Errorf("tss id is required")
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, tssStateRequest{State: state}, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, tssStateRequest{State: string(state)}, true, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil
@@ -258,7 +258,7 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 		return fmt.Errorf("tss id and client id are required")
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
-	body := clientStateRequest{State: "REGISTERED"}
+	body := clientStateRequest{State: string(tse.ClientRegistered)}
 	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, true, nil); err != nil {
 		return mapSetupError(err)
 	}

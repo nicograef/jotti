@@ -26,15 +26,36 @@ func (c SetupCredentials) Validate() error {
 	return nil
 }
 
+// TSSZustand is fiskaly's TssState; the repository upper-cases it at the boundary.
+type TSSZustand string
+
+const (
+	TSSCreated       TSSZustand = "CREATED"
+	TSSUninitialized TSSZustand = "UNINITIALIZED"
+	TSSInitialized   TSSZustand = "INITIALIZED"
+	TSSDisabled      TSSZustand = "DISABLED"
+	TSSDeleted       TSSZustand = "DELETED"
+	TSSDefective     TSSZustand = "DEFECTIVE"
+	TSSEvicted       TSSZustand = "EVICTED"
+)
+
+// ClientZustand is fiskaly's ClientState; the repository upper-cases it at the boundary.
+type ClientZustand string
+
+const (
+	ClientRegistered   ClientZustand = "REGISTERED"
+	ClientDeregistered ClientZustand = "DEREGISTERED"
+)
+
 type TSSInfo struct {
 	ID    string
-	State string
+	State TSSZustand
 }
 
 type ClientInfo struct {
 	ID           string
 	SerialNumber string
-	State        string
+	State        ClientZustand
 }
 
 // TSSErstellt carries the one-time admin PUK of a CREATED TSS.
@@ -42,7 +63,7 @@ type ClientInfo struct {
 type TSSErstellt struct {
 	ID    string
 	PUK   string
-	State string
+	State TSSZustand
 }
 
 // SetupClient holds the fiskaly operations of the guided TSE setup.

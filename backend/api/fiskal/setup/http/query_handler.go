@@ -131,8 +131,8 @@ func (h *QueryHandler) TestTSEVerbindungHandler() http.HandlerFunc {
 
 		helper.SendResponse(w, tseVerbindungResponse{
 			Umgebung:            string(status.Umgebung),
-			TSSState:            status.TSSState,
-			ClientState:         status.ClientState,
+			TSSState:            string(status.TSSState),
+			ClientState:         string(status.ClientState),
 			ClientSerialNumber:  status.ClientSerialNumber,
 			SeriennummerKorrekt: status.SeriennummerKorrekt,
 		})
@@ -169,12 +169,12 @@ func (h *QueryHandler) CheckTSESetupHandler() http.HandlerFunc {
 				client = &clientBefundResponse{
 					ID:           t.PassenderClient.ID,
 					SerialNumber: t.PassenderClient.SerialNumber,
-					State:        t.PassenderClient.State,
+					State:        string(t.PassenderClient.State),
 				}
 			}
 			tssListe = append(tssListe, tssBefundResponse{
 				ID:              t.ID,
-				State:           t.State,
+				State:           string(t.State),
 				PassenderClient: client,
 			})
 		}

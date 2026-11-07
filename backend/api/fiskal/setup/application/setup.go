@@ -91,7 +91,15 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		}
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "tss anlegen", "")
 	}
-	if err := vollendeLebenszyklus(ctx, log, client, "CREATED", erstellt.ID, erstellt.PUK, pin, clientID, seriennummer, clientRegistrieren); err != nil {
+	if err := vollendeLebenszyklus(ctx, log, client, lebenszyklus{
+		start:        tse.TSSCreated,
+		tssID:        erstellt.ID,
+		puk:          erstellt.PUK,
+		pin:          pin,
+		clientID:     clientID,
+		seriennummer: seriennummer,
+		aktion:       clientRegistrieren,
+	}); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -150,59 +158,24 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, ErrTSEVerbindungFehlgeschlagen
 	}
 
-	clientID := uuid.NewString()
-	aktion := clientRegistrieren
-	if passender := passenderClient(clients, seriennummer); passender != nil {
-		clientID = passender.ID
-		if passender.State == "REGISTERED" {
-			aktion = clientFertig
-		} else {
-			aktion = clientReaktivieren
-		}
-	}
+	clientID, aktion := passendeClientAktion(clients, seriennummer)
 
 	// Only this case runs no privileged fiskaly operation and therefore needs no admin PIN.
-	einsatzbereit := state == "INITIALIZED" && aktion == clientFertig
-
-	// lebenszyklusPUK only drives the CREATED step (setting the first PIN).
-	// ergebnisPUK and ergebnisPIN are the newly created secrets, shown once.
-	var lebenszyklusPUK, ergebnisPUK, ergebnisPIN string
-	pinReset := strings.TrimSpace(puk) != ""
-	switch state {
-	case "CREATED":
-		lebenszyklusPUK, err = client.GetAdminPUK(ctx, tssID)
-		if err != nil {
-			return TSESetupErgebnis{}, einrichtungsFehler(log, err, "puk beziehen", tssID)
-		}
-		pin, err = generateAdminPIN()
-		if err != nil {
-			log.Error("Failed to generate admin pin", "error", err)
-			return TSESetupErgebnis{}, ErrTSEEinrichtung
-		}
-		ergebnisPUK, ergebnisPIN = lebenszyklusPUK, pin
-	case "UNINITIALIZED", "INITIALIZED":
-		switch {
-		case pinReset:
-			// ListTSS already confirmed the credentials, so a failure while setting the PIN
-			// via the PUK is practically always a wrong PUK.
-			pin, err = generateAdminPIN()
-			if err != nil {
-				log.Error("Failed to generate admin pin", "error", err)
-				return TSESetupErgebnis{}, ErrTSEEinrichtung
-			}
-			if err := client.SetAdminPIN(ctx, tssID, puk, pin); err != nil {
-				log.Warn("Admin PIN reset via PUK failed", "error", err, "tss_id", tssID)
-				return TSESetupErgebnis{}, ErrTSESetupPUKUnbekannt
-			}
-			ergebnisPIN = pin
-		case !einsatzbereit && strings.TrimSpace(pin) == "":
-			return TSESetupErgebnis{}, ErrTSESetupPINErforderlich
-		}
-	default:
-		return TSESetupErgebnis{}, ErrTSESetupUebernahmeNichtMoeglich
+	einsatzbereit := state == tse.TSSInitialized && aktion == clientFertig
+	zugang, err := bereiteAdminPINVor(ctx, log, client, state, tssID, pin, puk, einsatzbereit)
+	if err != nil {
+		return TSESetupErgebnis{}, err
 	}
 
-	if err := vollendeLebenszyklus(ctx, log, client, state, tssID, lebenszyklusPUK, pin, clientID, seriennummer, aktion); err != nil {
+	if err := vollendeLebenszyklus(ctx, log, client, lebenszyklus{
+		start:        state,
+		tssID:        tssID,
+		puk:          zugang.lebenszyklusPUK,
+		pin:          zugang.pin,
+		clientID:     clientID,
+		seriennummer: seriennummer,
+		aktion:       aktion,
+	}); err != nil {
 		return TSESetupErgebnis{}, err
 	}
 
@@ -210,13 +183,13 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		return TSESetupErgebnis{}, err
 	}
 
-	log.Info("TSE takeover completed", "tss_id", tssID, "umgebung", string(umgebung), "ausgangszustand", state)
+	log.Info("TSE takeover completed", "tss_id", tssID, "umgebung", string(umgebung), "ausgangszustand", string(state))
 
 	return TSESetupErgebnis{
 		TssID:    tssID,
 		ClientID: clientID,
-		PUK:      ergebnisPUK,
-		AdminPIN: ergebnisPIN,
+		PUK:      zugang.neuerPUK,
+		AdminPIN: zugang.neuePIN,
 		Umgebung: string(umgebung),
 	}, nil
 }
@@ -303,56 +276,130 @@ const (
 	clientFertig
 )
 
-// puk is used only from CREATED to set the fresh admin PIN; from UNINITIALIZED, pin is the existing one.
-// An auth failure with a user-entered PIN (start state != CREATED) ends as ErrTSESetupPINUnbekannt.
-func vollendeLebenszyklus(ctx context.Context, log *slog.Logger, client tse.SetupClient, state, tssID, puk, pin, clientID, seriennummer string, aktion clientAktion) error {
-	pinVomNutzer := state != "CREATED"
+// passendeClientAktion finds this Kasse's client among the TSS's clients: a REGISTERED one is ready,
+// another is reactivated, and without one a new client gets a fresh UUID.
+func passendeClientAktion(clients []tse.ClientInfo, seriennummer string) (string, clientAktion) {
+	passender := passenderClient(clients, seriennummer)
+	if passender == nil {
+		return uuid.NewString(), clientRegistrieren
+	}
+	if passender.State == tse.ClientRegistered {
+		return passender.ID, clientFertig
+	}
+	return passender.ID, clientReaktivieren
+}
+
+// adminZugang holds the PIN the lifecycle authenticates with and the secrets created on the way,
+// which jotti shows exactly once.
+type adminZugang struct {
+	lebenszyklusPUK string // only from CREATED, to set the first PIN
+	pin             string
+	neuerPUK        string
+	neuePIN         string
+}
+
+// bereiteAdminPINVor provides the admin PIN per start state (docs/handbuch.md §3.13): CREATED gets a fresh
+// one via the re-read PUK, later states use the stored PIN or reset it with the user's PUK.
+func bereiteAdminPINVor(ctx context.Context, log *slog.Logger, client tse.SetupClient, start tse.TSSZustand, tssID, pin, puk string, einsatzbereit bool) (adminZugang, error) {
+	switch start {
+	case tse.TSSCreated:
+		neuerPUK, err := client.GetAdminPUK(ctx, tssID)
+		if err != nil {
+			return adminZugang{}, einrichtungsFehler(log, err, "puk beziehen", tssID)
+		}
+		neuePIN, err := generateAdminPIN()
+		if err != nil {
+			log.Error("Failed to generate admin pin", "error", err)
+			return adminZugang{}, ErrTSEEinrichtung
+		}
+		return adminZugang{lebenszyklusPUK: neuerPUK, pin: neuePIN, neuerPUK: neuerPUK, neuePIN: neuePIN}, nil
+	case tse.TSSUninitialized, tse.TSSInitialized:
+		if strings.TrimSpace(puk) != "" {
+			neuePIN, err := generateAdminPIN()
+			if err != nil {
+				log.Error("Failed to generate admin pin", "error", err)
+				return adminZugang{}, ErrTSEEinrichtung
+			}
+			// ListTSS already confirmed the credentials, so a failure while setting the PIN
+			// via the PUK is practically always a wrong PUK.
+			if err := client.SetAdminPIN(ctx, tssID, puk, neuePIN); err != nil {
+				log.Warn("Admin PIN reset via PUK failed", "error", err, "tss_id", tssID)
+				return adminZugang{}, ErrTSESetupPUKUnbekannt
+			}
+			return adminZugang{pin: neuePIN, neuePIN: neuePIN}, nil
+		}
+		if !einsatzbereit && strings.TrimSpace(pin) == "" {
+			return adminZugang{}, ErrTSESetupPINErforderlich
+		}
+		return adminZugang{pin: pin}, nil
+	case tse.TSSDisabled, tse.TSSDeleted, tse.TSSDefective, tse.TSSEvicted:
+		return adminZugang{}, ErrTSESetupUebernahmeNichtMoeglich
+	}
+	return adminZugang{}, ErrTSESetupUebernahmeNichtMoeglich
+}
+
+// lebenszyklus drives a TSS from its start state to a registered client. puk is used only from
+// CREATED to set the fresh admin PIN; from UNINITIALIZED, pin is the existing one.
+type lebenszyklus struct {
+	start        tse.TSSZustand
+	tssID        string
+	puk          string
+	pin          string
+	clientID     string
+	seriennummer string
+	aktion       clientAktion
+}
+
+// vollendeLebenszyklus ends an auth failure with a user-entered PIN (start state != CREATED) as ErrTSESetupPINUnbekannt.
+func vollendeLebenszyklus(ctx context.Context, log *slog.Logger, client tse.SetupClient, l lebenszyklus) error {
+	pinVomNutzer := l.start != tse.TSSCreated
 	authFehler := func(err error, schritt string) error {
 		if pinVomNutzer && errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
 			return ErrTSESetupPINUnbekannt
 		}
-		return einrichtungsFehler(log, err, schritt, tssID)
+		return einrichtungsFehler(log, err, schritt, l.tssID)
 	}
 
-	switch state {
-	case "CREATED":
-		if err := client.PersonalisiereTSS(ctx, tssID); err != nil {
-			return einrichtungsFehler(log, err, "personalisieren", tssID)
+	switch l.start {
+	case tse.TSSCreated:
+		if err := client.PersonalisiereTSS(ctx, l.tssID); err != nil {
+			return einrichtungsFehler(log, err, "personalisieren", l.tssID)
 		}
-		if err := client.SetAdminPIN(ctx, tssID, puk, pin); err != nil {
-			return einrichtungsFehler(log, err, "admin-pin setzen", tssID)
+		if err := client.SetAdminPIN(ctx, l.tssID, l.puk, l.pin); err != nil {
+			return einrichtungsFehler(log, err, "admin-pin setzen", l.tssID)
 		}
 		fallthrough
-	case "UNINITIALIZED":
-		if err := client.AuthentifiziereAdmin(ctx, tssID, pin); err != nil {
+	case tse.TSSUninitialized:
+		if err := client.AuthentifiziereAdmin(ctx, l.tssID, l.pin); err != nil {
 			return authFehler(err, "admin-auth (init)")
 		}
-		if err := client.InitialisiereTSS(ctx, tssID); err != nil {
-			return einrichtungsFehler(log, err, "initialisieren", tssID)
+		if err := client.InitialisiereTSS(ctx, l.tssID); err != nil {
+			return einrichtungsFehler(log, err, "initialisieren", l.tssID)
 		}
 		fallthrough
-	case "INITIALIZED":
+	case tse.TSSInitialized:
 		// clientFertig never falls through from CREATED/UNINITIALIZED: those states have no client yet.
-		if aktion == clientFertig {
+		if l.aktion == clientFertig {
 			return nil
 		}
-		if err := client.AuthentifiziereAdmin(ctx, tssID, pin); err != nil {
+		if err := client.AuthentifiziereAdmin(ctx, l.tssID, l.pin); err != nil {
 			return authFehler(err, "admin-auth (client)")
 		}
 		// serial_number is unique per TSS, so a DEREGISTERED client is reactivated, not recreated.
-		if aktion == clientReaktivieren {
-			if err := client.ReaktiviereClient(ctx, tssID, clientID); err != nil {
-				return einrichtungsFehler(log, err, "client reaktivieren", tssID)
+		if l.aktion == clientReaktivieren {
+			if err := client.ReaktiviereClient(ctx, l.tssID, l.clientID); err != nil {
+				return einrichtungsFehler(log, err, "client reaktivieren", l.tssID)
 			}
 			return nil
 		}
-		if err := client.RegistriereClient(ctx, tssID, clientID, seriennummer); err != nil {
-			return einrichtungsFehler(log, err, "client registrieren", tssID)
+		if err := client.RegistriereClient(ctx, l.tssID, l.clientID, l.seriennummer); err != nil {
+			return einrichtungsFehler(log, err, "client registrieren", l.tssID)
 		}
-	default:
+		return nil
+	case tse.TSSDisabled, tse.TSSDeleted, tse.TSSDefective, tse.TSSEvicted:
 		return ErrTSESetupUebernahmeNichtMoeglich
 	}
-	return nil
+	return ErrTSESetupUebernahmeNichtMoeglich
 }
 
 func findTSS(tssListe []tse.TSSInfo, tssID string) (tse.TSSInfo, bool) {
@@ -373,7 +420,7 @@ func einrichtungsFehler(log *slog.Logger, err error, schritt, tssID string) erro
 // Only DISABLED TSS count as dead and do not block a new setup.
 func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	for _, t := range tssListe {
-		if t.State != "DISABLED" {
+		if t.State != tse.TSSDisabled {
 			return true
 		}
 	}

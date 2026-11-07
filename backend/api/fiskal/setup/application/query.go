@@ -38,14 +38,14 @@ type TSESetupBefund struct {
 
 type TSSBefund struct {
 	ID              string
-	State           string
+	State           tse.TSSZustand
 	PassenderClient *ClientBefund
 }
 
 type ClientBefund struct {
 	ID           string
 	SerialNumber string
-	State        string
+	State        tse.ClientZustand
 }
 
 func (q Query) GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error) {

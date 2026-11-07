@@ -278,8 +278,8 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 	// The application layer compares serial numbers because it knows the Kassen-Seriennummer.
 	status := tse.VerbindungStatus{
 		Umgebung:           env,
-		TSSState:           fiskalyZustand(tssResp.State),
-		ClientState:        fiskalyZustand(clientResp.State),
+		TSSState:           tse.TSSZustand(fiskalyZustand(tssResp.State)),
+		ClientState:        tse.ClientZustand(fiskalyZustand(clientResp.State)),
 		ClientSerialNumber: strings.TrimSpace(clientResp.SerialNumber),
 	}
 	if err := status.Validate(); err != nil {
