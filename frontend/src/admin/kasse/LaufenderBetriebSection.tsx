@@ -1,9 +1,8 @@
 import { MinusCircle, PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 
-import { formatLocalTime, formatStand } from '@/admin/reporting/utils'
 import { Button } from '@/components/ui/button'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, formatUhrzeit } from '@/lib/utils'
 
 import { GeldtransitDialog } from './GeldtransitDialog'
 import { useGeldtransitListe, useKassenbestand } from './hooks'
@@ -36,7 +35,7 @@ function BewegungZeile({ buchung }: { buchung: GeldtransitBuchung }) {
   return (
     <div className="flex items-center justify-between gap-3 px-3.5 py-2 text-sm">
       <span className="min-w-0 flex-1 truncate text-muted-foreground">
-        {formatLocalTime(buchung.zeitpunkt)} · {richtungLabel} · „
+        {formatUhrzeit(buchung.zeitpunkt)} · {richtungLabel} · „
         {buchung.kommentar}" · {buchung.gebuchtVon}
       </span>
       <span
@@ -78,7 +77,7 @@ export function LaufenderBetriebSection({
           </div>
           <div className="text-xs text-muted-foreground">
             Soll-Bestand
-            {dataUpdatedAt ? ` · Stand ${formatStand(dataUpdatedAt)}` : ''}
+            {dataUpdatedAt ? ` · Stand ${formatUhrzeit(dataUpdatedAt)}` : ''}
           </div>
         </div>
       </div>

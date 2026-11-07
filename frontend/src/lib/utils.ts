@@ -67,6 +67,43 @@ export function formatZeitpunkt(date: string): string {
   })
 }
 
+// HH:MM in local time; takes an ISO timestamp or epoch ms (React Query's dataUpdatedAt).
+export function formatUhrzeit(zeitpunkt: string | number): string {
+  return new Date(zeitpunkt).toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+// The calendar day of a Kassensitzung is UTC-normalised.
+export function formatDatum(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+export function formatDatumKurz(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  })
+}
+
+export function formatDatumLang(datum: string): string {
+  return new Date(datum).toLocaleDateString('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 /**
  * Relative timestamp for history lists. No live ticker — the value only changes
  * on re-render/refetch, which is accepted; the full timestamp stays in the

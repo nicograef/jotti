@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 import { Item, ItemContent } from '@/components/ui/item'
-import { formatEuro, formatPositionName } from '@/lib/utils'
+import { formatEuro, formatPositionName, formatUhrzeit } from '@/lib/utils'
 
 import type { StornierungDetail } from './types'
-import { formatLocalTime, formatServicekraft } from './utils'
+import { formatServicekraft } from './utils'
 
 // Genannt wird zuerst, wen der Storno betrifft; wer ihn ausgelöst hat, folgt
 // nur als gedämpfter Zusatz, wenn er nicht selbst betroffen ist.
@@ -27,7 +27,7 @@ export function StornoItem({ storno }: { storno: StornierungDetail }) {
               · {betroffene}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {formatLocalTime(storno.zeitpunkt)}
+              {formatUhrzeit(storno.zeitpunkt)}
               {!akteurIstBetroffen &&
                 ` · storniert von ${formatServicekraft(
                   storno.akteur.userName,

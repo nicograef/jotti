@@ -34,10 +34,10 @@ import {
 } from '@/components/ui/sidebar'
 import { useVersion } from '@/hooks/use-version'
 import { AuthSingleton } from '@/lib/Auth'
+import { formatUhrzeit } from '@/lib/utils'
 
 import { StatusDot, type StatusDotZustand } from './components/StatusDot'
 import { useAktiveKassensitzung } from './kasse/hooks'
-import { formatLocalTime } from './reporting/utils'
 
 interface NavItem {
   title: string
@@ -170,7 +170,7 @@ export function AdminSidebar() {
   const kasseStatusText = abschlussUnterbrochen
     ? 'Abschluss unterbrochen — erneut abschließen'
     : kasseAktiv
-      ? `Kasse offen · seit ${formatLocalTime(kassensitzung.eroeffnetAm)}`
+      ? `Kasse offen · seit ${formatUhrzeit(kassensitzung.eroeffnetAm)}`
       : 'Kasse geschlossen'
 
   const toggleTheme = (event: MouseEvent<HTMLButtonElement>) => {

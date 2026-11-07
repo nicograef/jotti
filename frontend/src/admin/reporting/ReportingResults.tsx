@@ -2,13 +2,18 @@ import { Printer } from 'lucide-react'
 
 import { STEUERSATZ_LABEL } from '@/admin/products/Produkt'
 import { Button } from '@/components/ui/button'
-import { formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
+import {
+  formatDatumLang,
+  formatEuro,
+  formatEuroMitVorzeichen,
+  formatUhrzeit,
+} from '@/lib/utils'
 
 import { AbrechnungAufschluesselung } from './AbrechnungAufschluesselung'
 import { StornoItem } from './StornoItem'
 import { StornoMarker } from './StornoServicekraft'
 import type { AbgeschlosseneSitzung, ReportingData } from './types'
-import { formatDatumLang, formatLocalTime, formatServicekraft } from './utils'
+import { formatServicekraft } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
 function BerichtsMeta({
@@ -21,14 +26,14 @@ function BerichtsMeta({
   const { metadaten } = result
   const teile: string[] = [formatDatumLang(datum)]
   if (metadaten.eroeffnetAm) {
-    teile.push(`eröffnet ${formatLocalTime(metadaten.eroeffnetAm)}`)
+    teile.push(`eröffnet ${formatUhrzeit(metadaten.eroeffnetAm)}`)
   }
   if (metadaten.abgeschlossenAm) {
     const von = metadaten.abgeschlossenVon
       ? ` von ${metadaten.abgeschlossenVon}`
       : ''
     teile.push(
-      `abgeschlossen ${formatLocalTime(metadaten.abgeschlossenAm)}${von}`,
+      `abgeschlossen ${formatUhrzeit(metadaten.abgeschlossenAm)}${von}`,
     )
   }
   if (metadaten.kassensturzDifferenzCents !== null) {

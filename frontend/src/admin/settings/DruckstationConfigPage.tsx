@@ -17,11 +17,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { cn } from '@/lib/utils'
+import { cn, formatUhrzeit } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { WarnKarte } from '../components/WarnKarte'
-import { formatLocalTime } from '../reporting/utils'
 import {
   beschreibeFehlBons,
   type Bonmodus,
@@ -347,7 +346,7 @@ function FehlgeschlagenerDruckauftragRow({
           {formatDruckauftragReferenz(auftrag.referenz)} → {auftrag.zielIp}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {formatLocalTime(auftrag.erstelltAm)} Uhr ·{' '}
+          {formatUhrzeit(auftrag.erstelltAm)} Uhr ·{' '}
           {formatDruckfehler(auftrag.letzterFehler)} · {auftrag.versuche}{' '}
           Versuche
         </div>

@@ -23,7 +23,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { useCountUp } from '@/hooks/use-count-up'
-import { formatEuro } from '@/lib/utils'
+import { formatDatum, formatEuro, formatUhrzeit } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StatusDot } from '../components/StatusDot'
@@ -32,7 +32,7 @@ import { StornoItem } from './StornoItem'
 import { StornoAggregat, StornoMarker } from './StornoServicekraft'
 import { SummaryCard } from './SummaryCard'
 import type { LiveReportingData } from './types'
-import { formatDatum, formatServicekraft, formatStand } from './utils'
+import { formatServicekraft } from './utils'
 import { VerkaufStatistik } from './VerkaufStatistik'
 
 const OFFENE_TISCHE_VORSCHAU = 5
@@ -118,7 +118,7 @@ export function LiveReportingSection({
           <>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
               <StatusDot zustand="ok" label="Live" puls />
-              Live · aktualisiert {formatStand(dataUpdatedAt)}
+              Live · aktualisiert {formatUhrzeit(dataUpdatedAt)}
             </span>
             <Button variant="outline" size="sm" onClick={onRefresh}>
               <RefreshCw className="size-4" />

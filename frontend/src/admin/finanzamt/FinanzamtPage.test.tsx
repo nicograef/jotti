@@ -7,12 +7,12 @@ import { BackendError } from '@/lib/Backend'
 import { FakeBackend } from '@/test/FakeBackend'
 import { renderWithBackend } from '@/test/render'
 
+import { TSE_TEST_WARNUNG } from '../tse/tseAmpel'
 import type {
   TSESignaturQueue,
   TSEStatus,
   TSEStoerung,
 } from '../tse/TSEBackend'
-import { TSE_TEST_WARNUNG } from '../tse/tseAmpel'
 import type { Betreiber, Kassenidentitaet } from './BetreiberBackend'
 import { FinanzamtPage } from './FinanzamtPage'
 

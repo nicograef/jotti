@@ -6,6 +6,7 @@ import {
 
 import { BackendSingleton } from '@/lib/Backend'
 
+import { type TSEAmpel, tseAmpel } from './tseAmpel'
 import {
   TSEBackend,
   type TSEEinrichten,
@@ -20,7 +21,6 @@ import {
   type TSEUebernehmen,
   type TSEVerbindungStatus,
 } from './TSEBackend'
-import { type TSEAmpel, tseAmpel } from './tseAmpel'
 
 const tseBackend = new TSEBackend(BackendSingleton)
 

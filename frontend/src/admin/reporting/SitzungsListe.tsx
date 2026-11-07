@@ -2,10 +2,9 @@ import { NavLink } from 'react-router'
 
 import { StatusDot } from '@/admin/components/StatusDot'
 import type { AktiveKassensitzung } from '@/admin/kasse/KasseBackend'
-import { cn, formatEuro } from '@/lib/utils'
+import { cn, formatDatumKurz, formatEuro } from '@/lib/utils'
 
 import type { AbgeschlosseneSitzung } from './types'
-import { formatDatumKurz } from './utils'
 
 export function SitzungsListe({
   sitzungen,

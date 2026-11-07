@@ -3,12 +3,11 @@ import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSEAmpel } from '@/admin/tse/hooks'
 import { TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
-import { formatEuro } from '@/lib/utils'
+import { formatEuro, formatUhrzeit } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
 import { UebersichtStatusZeile } from './UebersichtStatusZeile'
-import { formatLocalTime } from './utils'
 
 export function AdminDashboardPage() {
   const {
@@ -56,7 +55,7 @@ export function AdminDashboardPage() {
   // Teil (kein hängendes „seit " ohne Zeit).
   const kasseTeile = [
     kassensitzung &&
-      `Kassentag seit ${formatLocalTime(kassensitzung.eroeffnetAm)}`,
+      `Kassentag seit ${formatUhrzeit(kassensitzung.eroeffnetAm)}`,
     kassenbestand !== null &&
       `Soll-Bestand ${formatEuro(kassenbestand.sollBestandCents)}`,
   ].filter((teil): teil is string => typeof teil === 'string')
