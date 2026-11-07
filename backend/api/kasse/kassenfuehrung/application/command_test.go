@@ -657,32 +657,6 @@ func TestGeldtransitBuchen_WirdAbgeschlossen(t *testing.T) {
 	}
 }
 
-// Der Betriebstag ist das Wandkalenderdatum in Europe/Berlin — auch kurz nach
-// Mitternacht (Sommer- wie Winterzeit), wo UTC noch der Vortag ist.
-func TestBetriebstag_NachMitternachtOrtszeit(t *testing.T) {
-	berlin, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		t.Fatalf("load location: %v", err)
-	}
-
-	cases := []struct {
-		name string
-		now  time.Time
-		want string
-	}{
-		{"Sommerzeit 00:30 Berlin (22:30 UTC Vortag)", time.Date(2026, 7, 4, 22, 30, 0, 0, time.UTC), "2026-07-05"},
-		{"Winterzeit 00:30 Berlin (23:30 UTC Vortag)", time.Date(2026, 1, 9, 23, 30, 0, 0, time.UTC), "2026-01-10"},
-		{"mittags", time.Date(2026, 7, 4, 10, 0, 0, 0, time.UTC), "2026-07-04"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := betriebstag(tc.now, berlin).Format("2006-01-02"); got != tc.want {
-				t.Errorf("betriebstag = %s, want %s", got, tc.want)
-			}
-		})
-	}
-}
-
 // Eröffnen ohne konfigurierte TSE wird nicht gesperrt, aber im Log vermerkt.
 func TestKassensitzungEroeffnen_OhneTSE_LoggtWarnung(t *testing.T) {
 	var logbuf bytes.Buffer

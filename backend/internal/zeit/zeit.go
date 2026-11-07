@@ -22,3 +22,11 @@ func mustLoad(name string) *time.Location {
 	}
 	return ort
 }
+
+// Kalendertag liefert den Berliner Kalendertag von t als Mitternacht UTC, passend zu einer
+// DATE-Spalte. Ein Truncate(24h) schnitte auf UTC-Mitternacht und gäbe einem Zeitpunkt
+// zwischen 00:00 und 02:00 Ortszeit das Datum des Vortags.
+func Kalendertag(t time.Time) time.Time {
+	jahr, monat, tag := t.In(Berlin).Date()
+	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
+}

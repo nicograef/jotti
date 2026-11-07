@@ -33,13 +33,6 @@ func (c Command) UpdateBetreiber(ctx context.Context, b betreiber.Betreiber) err
 	return nil
 }
 
-// meldedatum liefert den Berliner Kalendertag des Zeitpunkts als Mitternacht UTC,
-// passend zur DATE-Spalte.
-func meldedatum(zeitpunkt time.Time) time.Time {
-	jahr, monat, tag := zeitpunkt.In(zeit.Berlin).Date()
-	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
-}
-
 // SetzeElsterMeldung markiert die ELSTER-Kassenmeldung als erledigt (serverseitig
 // auf das aktuelle Datum, § 146a Abs. 4 AO). Das Datum ist der Berliner
 // Kalendertag: die Container laufen in UTC und lägen abends einen Tag zurück.
@@ -51,7 +44,7 @@ func (c Command) SetzeElsterMeldung(ctx context.Context) error {
 		now = time.Now
 	}
 
-	gemeldetAm := meldedatum(now())
+	gemeldetAm := zeit.Kalendertag(now())
 	if err := c.BetreiberRepo.SetElsterGemeldetAm(ctx, gemeldetAm); err != nil {
 		log.Error("Failed to set elster meldung", "error", err)
 		return ErrDatabase

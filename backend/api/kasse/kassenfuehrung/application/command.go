@@ -11,6 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/internal/logging"
+	"github.com/nicograef/jotti/backend/internal/zeit"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
@@ -101,14 +102,6 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 	return nil
 }
 
-// betriebstag liefert das Wandkalenderdatum in ort als Mitternacht UTC (passend zur DATE-Spalte).
-// Ein Truncate(24h) schnitte auf UTC-Mitternacht und gäbe einer zwischen 00:00 und 02:00 Ortszeit
-// eröffneten Sitzung das Datum des Vortags.
-func betriebstag(now time.Time, ort *time.Location) time.Time {
-	jahr, monat, tag := now.In(ort).Date()
-	return time.Date(jahr, monat, tag, 0, 0, 0, 0, time.UTC)
-}
-
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := logging.FromContext(ctx)
 
@@ -151,12 +144,7 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return 0, ErrKasseAlreadyOpen
 	}
 
-	berliner, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		log.Error("Failed to load Europe/Berlin timezone", "error", err)
-		return 0, ErrDatabase
-	}
-	datum := betriebstag(time.Now(), berliner)
+	datum := zeit.Kalendertag(time.Now())
 
 	// Entität und Eröffnungs-Event entstehen atomar in einer Transaktion; der Signaturauftrag (bei
 	// Anfangsbestand > 0) im selben Commit über die fiskalische Projektion. Buchen blockiert nie
