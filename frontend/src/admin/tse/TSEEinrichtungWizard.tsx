@@ -27,10 +27,9 @@ import {
   type TSESetupBefund,
   type TSEVerbindungStatus,
   type TSSBefund,
+  type Umgebung,
   verbindungIstSigniertfaehig,
 } from './TSEBackend'
-
-type Umgebung = 'TEST' | 'LIVE'
 
 // Ab UNINITIALIZED verlangt die Übernahme die Admin-PIN (siehe brauchtPin).
 const UEBERNEHMBARE_ZUSTAENDE = ['CREATED', 'UNINITIALIZED', 'INITIALIZED']

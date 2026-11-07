@@ -3,6 +3,9 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
+export const UmgebungSchema = z.enum(['TEST', 'LIVE'])
+export type Umgebung = z.infer<typeof UmgebungSchema>
+
 export const TSEKonfigurationSchema = z.object({
   apiKeyGesetzt: z.boolean(),
   apiSecretGesetzt: z.boolean(),
@@ -13,7 +16,7 @@ export const TSEKonfigurationSchema = z.object({
 export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
 
 export const TSEVerbindungStatusSchema = z.object({
-  umgebung: z.enum(['TEST', 'LIVE']),
+  umgebung: UmgebungSchema,
   tssState: z.string().min(1, 'TSS-Status fehlt'),
   clientState: z.string().min(1, 'Client-Status fehlt'),
   clientSerialNumber: z.string().min(1, 'Client-Seriennummer fehlt'),
@@ -45,7 +48,7 @@ export const TSSBefundSchema = z.object({
 export type TSSBefund = z.infer<typeof TSSBefundSchema>
 
 export const TSESetupBefundSchema = z.object({
-  umgebung: z.enum(['TEST', 'LIVE']),
+  umgebung: UmgebungSchema,
   vorhandeneTss: z.array(TSSBefundSchema),
 })
 export type TSESetupBefund = z.infer<typeof TSESetupBefundSchema>
@@ -77,7 +80,7 @@ export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 export const TSEEinrichtenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
-  umgebung: z.enum(['TEST', 'LIVE']),
+  umgebung: UmgebungSchema,
   neuAnlegenTrotzVorhandener: z.boolean().optional(),
 })
 export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
@@ -87,7 +90,7 @@ export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 export const TSEUebernehmenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
-  umgebung: z.enum(['TEST', 'LIVE']),
+  umgebung: UmgebungSchema,
   tssId: tssIdField,
   pin: z
     .string()
@@ -108,7 +111,7 @@ export const TSEEinrichtenErgebnisSchema = z.object({
   clientId: z.string(),
   puk: z.string(),
   adminPin: z.string(),
-  umgebung: z.enum(['TEST', 'LIVE']),
+  umgebung: UmgebungSchema,
 })
 export type TSEEinrichtenErgebnis = z.infer<typeof TSEEinrichtenErgebnisSchema>
 
