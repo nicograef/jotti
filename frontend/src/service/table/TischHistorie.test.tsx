@@ -228,6 +228,40 @@ describe('TischHistorie', () => {
     ).toBeInTheDocument()
   })
 
+  it('zeigt den Positionskommentar unter seiner Position im Detail', () => {
+    renderHistorie([
+      bestellung({
+        positionen: [
+          {
+            ...testPosition({
+              positionId: '00000000-0000-4000-8000-0000000000a1',
+              produktName: 'Zwiebelkuchen',
+              varianteName: 'Stück',
+            }),
+            kommentar: 'ohne Kümmel',
+          },
+          {
+            ...testPosition({
+              positionId: '00000000-0000-4000-8000-0000000000a2',
+              produktName: 'Bier',
+              varianteName: '0,5l',
+            }),
+            kommentar: '',
+          },
+        ],
+      }),
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: /Bestellung/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const kommentar = within(dialog).getByText('„ohne Kümmel“')
+    const zeile = kommentar.parentElement
+    expect(zeile).toHaveTextContent(/Zwiebelkuchen Stück/)
+    expect(zeile).not.toHaveTextContent(/Bier/)
+    expect(within(dialog).getAllByText(/„/)).toHaveLength(1)
+  })
+
   it('titelt den Detail-Drawer menschenlesbar statt mit UUID-Fragment', () => {
     renderHistorie([
       bestellung({
