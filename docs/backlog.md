@@ -29,8 +29,10 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Rabatt und Gutschrift: Ein Verein fragt danach. Eine Gutschrift für ein reklamiertes Getränk deckt
       die Stornierung ab. Ein Rabatt bräuchte eine negative Positionszeile vom Typ „Rabatt" je Steuersatz
       (DSFinV-K Tz. 4.2.4) und Folgeversionen der Zahlungs-Events. Offen: nur bei weiterer Nachfrage.
-- [ ] Auto-Pfand je Variante: Pfand tippt die Servicekraft als eigene Position. Offen: ein PRD, in dem
-      eine Produktvariante eine Pfand-Variante verknüpft und die Bestellung das Pfand automatisch hinzufügt.
+- [ ] Auto-Pfand je Variante: Pfand tippt die Servicekraft als eigene Position.
+      `docs/prds/prd-auto-pfand-je-variante.md` beschreibt den Weg: Eine Variante verknüpft eine
+      Pfand-Variante gleichen Steuersatzes, und der Warenkorb legt das Pfand sichtbar dazu. Offen: Freigabe
+      des PRD und seiner Owner-Entscheidungen.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
