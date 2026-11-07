@@ -26,11 +26,9 @@ import {
   beschreibeFehlBons,
   type Bonmodus,
   type DruckstationConfig,
-  erlaubtBonmodus,
   type FehlgeschlagenerDruckauftrag,
   formatDruckauftragReferenz,
   formatDruckfehler,
-  hatBonmodus,
   type Kategorie,
   STATION_KATEGORIE_LABEL,
   validateDruckerIp,
@@ -45,7 +43,7 @@ const KATEGORIE_BESCHREIBUNG: Record<Kategorie, string> = {
   abholbon: 'Abholnummern beim Direktverkauf',
 }
 
-// „Pro Stück" und „Kein Bon" erscheinen nur am Abholbon (siehe erlaubtBonmodus).
+// Welche Kacheln eine Station zeigt, sagt ihr bonmodusOptionen aus dem Backend.
 const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
   [
     {
@@ -71,12 +69,12 @@ const BONMODUS_OPTIONEN: { wert: Bonmodus; titel: string; hinweis: string }[] =
   ]
 
 function BonmodusOptionen({
-  kategorie,
+  optionen,
   aktiv,
   disabled,
   onSelect,
 }: {
-  kategorie: Kategorie
+  optionen: Bonmodus[]
   aktiv: Bonmodus | ''
   disabled: boolean
   onSelect: (bonmodus: Bonmodus) => void
@@ -88,7 +86,7 @@ function BonmodusOptionen({
       </Label>
       <div className="grid grid-cols-2 gap-2">
         {BONMODUS_OPTIONEN.filter((option) =>
-          erlaubtBonmodus(kategorie, option.wert),
+          optionen.includes(option.wert),
         ).map((option) => {
           const gewaehlt = aktiv === option.wert
           return (
@@ -127,7 +125,7 @@ function DruckstationCard({
   onTestbon: (kategorie: Kategorie) => Promise<void>
 }) {
   const label = STATION_KATEGORIE_LABEL[config.kategorie]
-  const zeigtBonmodus = hatBonmodus(config.kategorie)
+  const zeigtBonmodus = config.bonmodusOptionen.length > 0
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
   const [ipError, setIpError] = useState<string | null>(null)
   const [ipGespeichert, setIpGespeichert] = useState(false)
@@ -244,7 +242,7 @@ function DruckstationCard({
 
       {zeigtBonmodus && (
         <BonmodusOptionen
-          kategorie={config.kategorie}
+          optionen={config.bonmodusOptionen}
           aktiv={config.bonmodus}
           disabled={bonmodusSaving || saving}
           onSelect={(bonmodus) => void waehleBonmodus(bonmodus)}

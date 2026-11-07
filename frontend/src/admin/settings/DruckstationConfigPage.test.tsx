@@ -38,6 +38,7 @@ function makeStation(
     kategorie: 'essen',
     druckerIp: '192.168.1.50',
     bonmodus: 'pro_position',
+    bonmodusOptionen: ['pro_position', 'pro_bestellung'],
     ...overrides,
   }
 }
@@ -305,6 +306,12 @@ describe('DruckstationConfigPage — Stationskarten', () => {
           makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
           makeStation({
             kategorie: 'abholbon',
+            bonmodusOptionen: [
+              'pro_position',
+              'pro_bestellung',
+              'pro_stueck',
+              'kein_bon',
+            ],
             druckerIp: '192.168.1.77',
             bonmodus: 'pro_bestellung',
           }),
@@ -336,6 +343,12 @@ describe('DruckstationConfigPage — Stationskarten', () => {
           makeStation({ kategorie: 'essen', druckerIp: '192.168.1.50' }),
           makeStation({
             kategorie: 'abholbon',
+            bonmodusOptionen: [
+              'pro_position',
+              'pro_bestellung',
+              'pro_stueck',
+              'kein_bon',
+            ],
             druckerIp: '',
             bonmodus: 'kein_bon',
           }),
@@ -359,6 +372,12 @@ describe('DruckstationConfigPage — Stationskarten', () => {
           makeStation({ kategorie: 'sonstiges', druckerIp: '' }),
           makeStation({
             kategorie: 'abholbon',
+            bonmodusOptionen: [
+              'pro_position',
+              'pro_bestellung',
+              'pro_stueck',
+              'kein_bon',
+            ],
             druckerIp: '',
             bonmodus: 'pro_bestellung',
           }),

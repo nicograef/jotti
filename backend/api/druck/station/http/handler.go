@@ -22,6 +22,8 @@ type druckstationDTO struct {
 	Kategorie string `json:"kategorie"`
 	DruckerIP string `json:"druckerIp"`
 	Bonmodus  string `json:"bonmodus"` // leer nur für kassenbeleg
+	// BonmodusOptionen: the Bonmodi this station accepts; empty for the Kassenbeleg.
+	BonmodusOptionen []string `json:"bonmodusOptionen"`
 }
 
 type getDruckstationenResponse struct {
@@ -38,10 +40,15 @@ func (h *QueryHandler) GetDruckstationenHandler() http.HandlerFunc {
 
 		dtos := make([]druckstationDTO, 0, len(konfigs))
 		for _, k := range konfigs {
+			optionen := []string{}
+			for _, b := range k.Kategorie.Bonmodi() {
+				optionen = append(optionen, string(b))
+			}
 			dtos = append(dtos, druckstationDTO{
-				Kategorie: string(k.Kategorie),
-				DruckerIP: k.DruckerIP,
-				Bonmodus:  string(k.Bonmodus),
+				Kategorie:        string(k.Kategorie),
+				DruckerIP:        k.DruckerIP,
+				Bonmodus:         string(k.Bonmodus),
+				BonmodusOptionen: optionen,
 			})
 		}
 

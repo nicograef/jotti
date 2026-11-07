@@ -57,6 +57,17 @@ func (k Kategorie) ErlaubtBonmodus(bonmodus Bonmodus) bool {
 	}
 }
 
+// Bonmodi lists the Bonmodi this station accepts, in AlleBonmodi order; empty for a station without one.
+func (k Kategorie) Bonmodi() []Bonmodus {
+	bonmodi := []Bonmodus{}
+	for _, b := range AlleBonmodi() {
+		if k.ErlaubtBonmodus(Bonmodus(b)) {
+			bonmodi = append(bonmodi, Bonmodus(b))
+		}
+	}
+	return bonmodi
+}
+
 func (k Kategorie) Anzeigename() string {
 	switch k {
 	case KategorieEssen:

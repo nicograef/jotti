@@ -59,8 +59,18 @@ describe('gemeinsamerSteuersatz', () => {
 
 describe('kategorieZusatz', () => {
   const stationen: DruckstationConfig[] = [
-    { kategorie: 'essen', druckerIp: '192.168.0.5', bonmodus: 'pro_position' },
-    { kategorie: 'getraenk', druckerIp: '', bonmodus: 'pro_position' },
+    {
+      kategorie: 'essen',
+      druckerIp: '192.168.0.5',
+      bonmodus: 'pro_position',
+      bonmodusOptionen: ['pro_position', 'pro_bestellung'],
+    },
+    {
+      kategorie: 'getraenk',
+      druckerIp: '',
+      bonmodus: 'pro_position',
+      bonmodusOptionen: ['pro_position', 'pro_bestellung'],
+    },
   ]
 
   it('includes Steuersatz and station hint when a printer is configured', () => {

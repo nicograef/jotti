@@ -1,6 +1,9 @@
 package druckstation
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestNewDruckstation(t *testing.T) {
 	cases := []struct {
@@ -76,5 +79,22 @@ func TestKategorieErlaubtBonmodus(t *testing.T) {
 				t.Errorf("ErlaubtBonmodus(%q) = %v, want %v", tc.bonmodus, got, tc.want)
 			}
 		})
+	}
+}
+
+func TestKategorieBonmodi(t *testing.T) {
+	cases := []struct {
+		kategorie Kategorie
+		want      []Bonmodus
+	}{
+		{KategorieEssen, []Bonmodus{BonmodusProPosition, BonmodusProBestellung}},
+		{KategorieAbholbon, []Bonmodus{BonmodusProPosition, BonmodusProBestellung, BonmodusProStueck, BonmodusKeinBon}},
+		{KategorieKassenbeleg, []Bonmodus{}},
+	}
+
+	for _, tc := range cases {
+		if got := tc.kategorie.Bonmodi(); !slices.Equal(got, tc.want) {
+			t.Errorf("%s.Bonmodi() = %v, want %v", tc.kategorie, got, tc.want)
+		}
 	}
 }

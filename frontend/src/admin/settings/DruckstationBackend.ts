@@ -20,53 +20,18 @@ const BonmodusSchema = z.enum([
 ])
 export type Bonmodus = z.infer<typeof BonmodusSchema>
 
-// Pro Stück und Kein Bon nur am Abholbon — spiegelt Kategorie.ErlaubtBonmodus
-// im Backend. Ob eine Station überhaupt einen Bonmodus trägt, sagt hatBonmodus.
-export function erlaubtBonmodus(
-  kategorie: Kategorie,
-  bonmodus: Bonmodus,
-): boolean {
-  if (bonmodus === 'pro_stueck' || bonmodus === 'kein_bon') {
-    return kategorie === 'abholbon'
-  }
-  return true
-}
-
 // Leer heißt: kein Drucker an dieser Station.
 const DruckerIpSchema = z.ipv4('Ungültige IPv4-Adresse').or(z.literal(''))
 
-export const DruckstationConfigSchema = z
-  .object({
-    kategorie: KategorieSchema,
-    druckerIp: DruckerIpSchema,
-    // leer nur für den Kassenbeleg, der keinen Bonmodus trägt
-    bonmodus: BonmodusSchema.or(z.literal('')),
-  })
-  .superRefine((config, ctx) => {
-    if (
-      config.bonmodus === '' ||
-      erlaubtBonmodus(config.kategorie, config.bonmodus)
-    ) {
-      return
-    }
-    ctx.addIssue({
-      code: 'custom',
-      path: ['bonmodus'],
-      message: 'Dieser Bonmodus ist nur für den Abholbon zulässig',
-    })
-  })
+// bonmodusOptionen sind die Bonmodi, die das Backend für diese Station annimmt;
+// leer am Kassenbeleg, der keinen Bonmodus trägt.
+const DruckstationConfigSchema = z.object({
+  kategorie: KategorieSchema,
+  druckerIp: DruckerIpSchema,
+  bonmodus: BonmodusSchema.or(z.literal('')),
+  bonmodusOptionen: z.array(BonmodusSchema),
+})
 export type DruckstationConfig = z.infer<typeof DruckstationConfigSchema>
-
-const KATEGORIEN_MIT_BONMODUS: Kategorie[] = [
-  'essen',
-  'getraenk',
-  'sonstiges',
-  'abholbon',
-]
-
-export function hatBonmodus(kategorie: Kategorie): boolean {
-  return KATEGORIEN_MIT_BONMODUS.includes(kategorie)
-}
 
 // Nach mehreren Fehlversuchen (rund 5 Minuten) aufgegeben.
 const FehlgeschlagenerDruckauftragSchema = z.object({
@@ -199,8 +164,16 @@ export class DruckstationBackend {
     return druckstationen
   }
 
-  public async updateDruckstation(config: DruckstationConfig): Promise<void> {
-    await this.backend.post('admin/update-druckstationen', config)
+  public async updateDruckstation({
+    kategorie,
+    druckerIp,
+    bonmodus,
+  }: DruckstationConfig): Promise<void> {
+    await this.backend.post('admin/update-druckstationen', {
+      kategorie,
+      druckerIp,
+      bonmodus,
+    })
   }
 
   // Ohne konfigurierten Drucker antwortet das Backend mit dem Fehlercode

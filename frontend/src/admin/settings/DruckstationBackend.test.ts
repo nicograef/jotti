@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   beschreibeFehlBons,
-  DruckstationConfigSchema,
-  erlaubtBonmodus,
   formatDruckauftragReferenz,
   formatDruckfehler,
-  hatBonmodus,
   validateDruckerIp,
 } from './DruckstationBackend'
 
@@ -21,19 +18,6 @@ describe('validateDruckerIp', () => {
 
   it('rejects an invalid IPv4 address with a field message', () => {
     expect(validateDruckerIp('999.999.999.999')).toBe('Ungültige IPv4-Adresse')
-  })
-})
-
-describe('hatBonmodus', () => {
-  it('is true for product categories and abholbon', () => {
-    expect(hatBonmodus('essen')).toBe(true)
-    expect(hatBonmodus('getraenk')).toBe(true)
-    expect(hatBonmodus('sonstiges')).toBe(true)
-    expect(hatBonmodus('abholbon')).toBe(true)
-  })
-
-  it('is false for kassenbeleg', () => {
-    expect(hatBonmodus('kassenbeleg')).toBe(false)
   })
 })
 
@@ -132,48 +116,5 @@ describe('formatDruckfehler', () => {
     expect(formatDruckfehler('ungueltiges Base64: illegal data')).toBe(
       'Druckfehler',
     )
-  })
-})
-
-describe('DruckstationConfigSchema', () => {
-  it('accepts a kassenbeleg station with empty bonmodus', () => {
-    const parsed = DruckstationConfigSchema.parse({
-      kategorie: 'kassenbeleg',
-      druckerIp: '192.168.1.60',
-      bonmodus: '',
-    })
-    expect(parsed.kategorie).toBe('kassenbeleg')
-    expect(parsed.bonmodus).toBe('')
-  })
-
-  it('rejects pro_stueck for a product station', () => {
-    const ergebnis = DruckstationConfigSchema.safeParse({
-      kategorie: 'essen',
-      druckerIp: '192.168.1.51',
-      bonmodus: 'pro_stueck',
-    })
-    expect(ergebnis.success).toBe(false)
-    expect(ergebnis.error?.issues[0].message).toBe(
-      'Dieser Bonmodus ist nur für den Abholbon zulässig',
-    )
-  })
-})
-
-describe('erlaubtBonmodus', () => {
-  it.each(['pro_stueck', 'kein_bon'] as const)(
-    'erlaubt %s nur am Abholbon',
-    (bonmodus) => {
-      expect(erlaubtBonmodus('abholbon', bonmodus)).toBe(true)
-      expect(erlaubtBonmodus('essen', bonmodus)).toBe(false)
-      expect(erlaubtBonmodus('getraenk', bonmodus)).toBe(false)
-      expect(erlaubtBonmodus('sonstiges', bonmodus)).toBe(false)
-    },
-  )
-
-  it('erlaubt die zwei Standard-Modi an den Stationen mit Bonmodus', () => {
-    expect(erlaubtBonmodus('essen', 'pro_position')).toBe(true)
-    expect(erlaubtBonmodus('getraenk', 'pro_bestellung')).toBe(true)
-    expect(erlaubtBonmodus('sonstiges', 'pro_position')).toBe(true)
-    expect(erlaubtBonmodus('abholbon', 'pro_bestellung')).toBe(true)
   })
 })
