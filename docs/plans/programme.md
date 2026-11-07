@@ -32,7 +32,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 ## Feature-Spur
 
-Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und Pläne entstehen vorher; Migrationen der Features beginnen bei `17`.
+Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und Pläne entstehen vorher; Migrationen der Features beginnen bei `18`, weil `fix/q-cross` die 17 genommen hat.
 
 1. **#145 Kommentar je Position**: freigegeben mit den Empfehlungen des PRD (additives Feld als Freeze-Ausnahme mit Zeile in `docs/decisions.md`, kein DSFinV-K-Export, Kommentar auf jedem Stückbon).
 2. **Auto-Pfand je Variante**: PRD freigegeben. Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release; die Regel „gleicher Steuersatz“ gilt ohne Kombi-Sonderfall.
@@ -47,8 +47,8 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | 2 Fix backend | fix/q-backend | landed | c9ee99ec, Migrationen 15 und 16 |
 | 2 Fix frontend | fix/q-frontend | landed | fac74e5c |
 | 2 Fix edges | fix/q-edges | landed | 07cda43f |
-| 2 Fix cross | fix/q-cross | running | |
-| 3 Distill | fix/q-distill | waiting | |
+| 2 Fix cross | fix/q-cross | landed | 46a1fd0c, Migration 17 |
+| 3 Distill | fix/q-distill | running | |
 | 4 Distill verify | fix/q-verify | waiting | |
 | 5 Abschluss | — | waiting | |
 | F1 #145 Kommentar je Position | feat/kommentar-je-position | waiting | |
