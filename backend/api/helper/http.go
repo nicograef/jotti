@@ -53,10 +53,6 @@ func SendForbidden(w http.ResponseWriter, code string, details any) {
 	SendJSONResponse(w, errorResponse{Code: code, Details: details}, http.StatusForbidden)
 }
 
-func SendConflict(w http.ResponseWriter, code string) {
-	SendJSONResponse(w, errorResponse{Code: code}, http.StatusConflict)
-}
-
 func SendTooManyRequests(w http.ResponseWriter, code string) {
 	SendJSONResponse(w, errorResponse{Code: code}, http.StatusTooManyRequests)
 }
