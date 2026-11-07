@@ -284,6 +284,14 @@ Das Produkt-Aggregat verwaltet den Produktkatalog der Veranstaltung. Jedes Produ
 
 **Pfand-Kennzeichen:** `produkte.pfand` (Standard aus) markiert ein Pfand-Produkt. Es steuert, welche Varianten die Pfandrückgabe anbietet; verkauft wird ein Pfand-Produkt wie jedes andere. Zahlung und Direktverkauf frieren es je Position ein, für den `GV_TYP` `Pfand` im DSFinV-K-Export. `POST /service/get-aktive-produkte` liefert die aktiven Pfand-Produkte zusätzlich als `pfandProdukte`. Die Rückgabe übernimmt Name, Preis und Steuersatz des Pfand-Produkts in ihre Positionen; eine Variante ohne Kennzeichen lehnt sie mit `kein_pfand_produkt` ab.
 
+**Pfand-Verknüpfung:** `produkt_varianten.pfand_variante_id` (nullable) verweist auf die Pfand-Variante, die der Warenkorb je Stück dazulegt; JSON-Feld `pfandVarianteId` (Zahl oder `null`) in `admin/create-variante`, `admin/update-variante` und beiden Lesepfaden. Variante anlegen und ändern prüfen den Verweis gegen den ganzen Admin-Katalog, in dieser Reihenfolge:
+
+- Ziel-Variante fehlt, ist gelöscht oder gehört zu keinem Pfand-Produkt: `pfand_ziel_ungueltig`.
+- Die verknüpfende Variante gehört selbst zu einem Pfand-Produkt: `pfand_verkettet`.
+- Steuersatz von Variante und Pfand verschieden: `pfand_steuersatz_abweichend`. `kombi` verknüpft nur `kombi`, ohne Sonderfall.
+
+Ein inaktives Ziel bleibt erlaubt. `admin/get-all-produkte` liefert den gespeicherten Verweis; `service/get-aktive-produkte` setzt ihn auf `null`, wenn das Ziel nicht als Variante derselben Antwort erscheint.
+
 **Reihenfolge:** Produkte und Varianten tragen eine vom Admin gepflegte Anzeigereihenfolge (`reihenfolge`). Produkte sortieren nach `(Kategorie, Reihenfolge, ID)`, Varianten innerhalb ihres Produkts nach `(Reihenfolge, ID)`; die ID bleibt Tiebreaker. Neue Einträge landen am Ende ihres Geltungsbereichs, ein Kategoriewechsel setzt das Produkt ans Ende der Zielkategorie. Verschoben werden Ränge, nicht Werte. Der Geltungsbereich wird in derselben Transaktion dicht nummeriert, bevor die beiden Nachbarn tauschen. Sonst bliebe ein Verschieben bei gleichen Werten wirkungslos. Die Reihenfolge ist reine Persistenz; das Backend liefert die fertig sortierte Liste.
 
 ### 4.2 Tisch-Stammdaten
