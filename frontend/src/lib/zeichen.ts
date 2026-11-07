@@ -1,13 +1,19 @@
 import { z } from 'zod'
 
-// Zählt Unicode-Codepoints wie das Backend (utf8.RuneCountInString), nicht UTF-16-Einheiten.
-export function zeichenAnzahl(text: string): number {
-  return [...text].length
+// Zerlegt in Unicode-Codepoints wie das Backend (utf8.RuneCountInString), nicht in Grapheme:
+// Ein Emoji mit Hautfarbe zählt dort zwei Zeichen.
+function codepoints(text: string): string[] {
+  // oxlint-disable-next-line typescript/no-misused-spread
+  return [...text]
 }
 
-// Kürzt auf höchstens max Zeichen, ohne einen Codepoint (Emoji) zu zerschneiden.
+export function zeichenAnzahl(text: string): number {
+  return codepoints(text).length
+}
+
+// Kürzt auf höchstens max Zeichen, ohne einen Codepoint zu zerschneiden.
 export function kuerzeAufZeichen(text: string, max: number): string {
-  return [...text].slice(0, max).join('')
+  return codepoints(text).slice(0, max).join('')
 }
 
 export function maxZeichen(schema: z.ZodString, max: number, message?: string) {
