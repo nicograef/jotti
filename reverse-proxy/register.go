@@ -9,7 +9,7 @@ import (
 
 // registerWithACMEDNS registriert eine Installation bei acme-dns
 // (POST <baseURL>/register). Die vergebene UUID-Subdomain wird zur Install-ID; der
-// Aufruf ist offen (kein Auth).
+// Aufruf ist offen (kein Auth). Die Antwort prüft ensureState vor dem Speichern.
 func registerWithACMEDNS(client *http.Client, baseURL string) (InstallState, error) {
 	url := strings.TrimRight(strings.TrimSpace(baseURL), "/") + "/register"
 	resp, err := client.Post(url, "application/json", nil)
@@ -25,9 +25,6 @@ func registerWithACMEDNS(client *http.Client, baseURL string) (InstallState, err
 	var state InstallState
 	if err := json.NewDecoder(resp.Body).Decode(&state); err != nil {
 		return InstallState{}, fmt.Errorf("JSON-Decode der Registrierung: %w", err)
-	}
-	if err := state.validate(); err != nil {
-		return InstallState{}, fmt.Errorf("acme-dns-Antwort unbrauchbar: %w", err)
 	}
 	return state, nil
 }

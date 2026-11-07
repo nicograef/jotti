@@ -38,15 +38,3 @@ func TestRegisterWithACMEDNSRejectsErrorStatus(t *testing.T) {
 		t.Fatal("erwartete Fehler bei HTTP 429, bekam nil")
 	}
 }
-
-func TestRegisterWithACMEDNSRejectsIncompleteBody(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"username":"u1"}`)) // password/subdomain fehlen
-	}))
-	defer srv.Close()
-
-	if _, err := registerWithACMEDNS(srv.Client(), srv.URL); err == nil {
-		t.Fatal("erwartete Fehler bei unvollständiger Antwort, bekam nil")
-	}
-}
