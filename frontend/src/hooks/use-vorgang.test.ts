@@ -61,4 +61,43 @@ describe('useVorgang', () => {
     expect(result.current.vorgangId).not.toBe(ersterVorgang)
     expect(result.current.kommentar).toBe('')
   })
+
+  it('verwirft den Positionskommentar einer Variante, deren Menge auf null fällt', () => {
+    const { result } = renderHook(() => useVorgang<number>())
+    act(() => {
+      result.current.steuerung.add(1)
+      result.current.steuerung.add(2)
+    })
+    act(() => {
+      result.current.setPositionsKommentar(1, 'ohne Kümmel')
+    })
+    act(() => {
+      result.current.steuerung.remove(1)
+    })
+    act(() => {
+      result.current.steuerung.add(1)
+    })
+
+    expect(result.current.positionsKommentare[1] ?? '').toBe('')
+  })
+
+  it('leert die Positionskommentare mit der Auswahl', () => {
+    const { result } = renderHook(() => useVorgang<number>())
+    act(() => {
+      result.current.steuerung.add(1)
+    })
+    act(() => {
+      result.current.setPositionsKommentar(1, 'ohne Kümmel')
+    })
+    expect(result.current.positionsKommentare).toEqual({ 1: 'ohne Kümmel' })
+
+    act(() => {
+      result.current.steuerung.reset()
+    })
+    act(() => {
+      result.current.steuerung.add(1)
+    })
+
+    expect(result.current.positionsKommentare).toEqual({})
+  })
 })
