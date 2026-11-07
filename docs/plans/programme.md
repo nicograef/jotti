@@ -25,7 +25,8 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 ## Übergabe
 
-- Die laufende Session landet die drei Fix-Lanes backend, frontend und edges und trägt sie hier als `landed` ein. Eine neue Session, auch auf einem anderen Rechner, übernimmt ab der ersten Zeile mit `waiting`.
+- Nicos Arbeitsrechner landet backend, frontend und edges und fährt danach `fix/q-cross`. Jede Lane wird hier als `landed` eingetragen.
+- Eine zweite Session, auch auf einem anderen Rechner, übernimmt Distill, Distill verify und Abschluss, sobald `fix/q-cross` gelandet ist. Bis dahin schreibt sie den PRD für Auto-Pfand je Variante und klärt mit Nico die offenen PRD-Entscheidungen. Beides berührt keine Datei einer Lane.
 - `programme-befunde.json` hält die noch offenen, verifizierten Befunde mit ihrer Lane: `cross` für `fix/q-cross` und `docs` für Wave 3. Nico hat #135 freigegeben, die Idempotenzschlüssel für Tisch- und Direktverkauf-Storno und die Umbuchung. Migration 14 macht die `stornierungId` bereits eindeutig.
 - Meldet `fix/q-backend` für #52 (Sitzungen nach Passwort-Reset ungültig) eine nötige Frontend-Änderung, gehört sie zu `fix/q-cross`.
 - Die Abschluss-Session löscht `programme.md` und `programme-befunde.json` und wendet danach die Dependabot-PRs an. Den Resolver auf jotti.rocks deployt Nico, sobald `fix/q-edges` gelandet ist.
