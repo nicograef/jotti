@@ -146,10 +146,10 @@ RETURNING id;
 UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4, pfand_variante_id = $6 WHERE id = $5;
 
 -- name: EntfernePfandVerweise :exec
--- Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je
--- Aufruf: ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
+-- Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je Aufruf:
+-- sie läuft in db.WithTx, und ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
 UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = sqlc.arg(updated_at)
-WHERE pfand_variante_id = sqlc.arg(pfand_variante_id);
+WHERE pfand_variante_id = sqlc.arg(pfand_variante_id)::int;
 
 -- name: GetVarianteReihenfolge :one
 SELECT id, produkt_id, reihenfolge FROM produkt_varianten WHERE id = $1 AND status != 'deleted';

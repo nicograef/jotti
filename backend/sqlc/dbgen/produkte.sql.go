@@ -81,16 +81,16 @@ func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) 
 
 const entfernePfandVerweise = `-- name: EntfernePfandVerweise :exec
 UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = $1
-WHERE pfand_variante_id = $2
+WHERE pfand_variante_id = $2::int
 `
 
 type EntfernePfandVerweiseParams struct {
 	UpdatedAt       time.Time
-	PfandVarianteID sql.NullInt32
+	PfandVarianteID int
 }
 
-// Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je
-// Aufruf: ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
+// Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je Aufruf:
+// sie läuft in db.WithTx, und ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
 func (q *Queries) EntfernePfandVerweise(ctx context.Context, arg EntfernePfandVerweiseParams) error {
 	_, err := q.db.ExecContext(ctx, entfernePfandVerweise, arg.UpdatedAt, arg.PfandVarianteID)
 	return err
