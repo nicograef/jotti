@@ -40,8 +40,9 @@ Kassensturz am Abend geht auf.
 > der Kassensturz am Abend nicht auf.
 
 > 💡 **Kassenbeleg nach jedem Verkauf.** Ohne bewilligte Befreiung tippt die Servicekraft
-> nach jedem Kassieren und Direktverkauf auf „Kassenbeleg drucken". Den Beleg bietet
-> sie dem Gast an (siehe [Belege und Steuersätze](belege-steuersaetze.md)).
+> nach jedem Kassieren, Direktverkauf und jeder Pfandrückgabe auf „Kassenbeleg drucken".
+> Nach einem Storno druckt sie den Stornobeleg über das Drucker-Symbol neben dem Storno.
+> Den Beleg bietet sie dem Gast an (siehe [Belege und Steuersätze](belege-steuersaetze.md)).
 
 ## Nach dem Fest: Kasse abschließen
 
