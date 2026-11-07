@@ -1,102 +1,55 @@
 package kasse
 
-import "sort"
+import (
+	"cmp"
+	"slices"
+)
 
-// EigeneArbeitAnTisch ist die offene eigene Arbeit einer Servicekraft an einem einzelnen
-// Tisch. "Offen" bedeutet "noch nicht kassiert" (siehe docs/decisions.md D01); der
-// tischweite offene Saldo fließt bewusst nicht ein.
-type EigeneArbeitAnTisch struct {
-	// AnzahlOffen zählt die eigenen unbezahlten Positionen (je PositionID höchstens eine).
-	AnzahlOffen int
-	// OffenCents ist die Summe aus EinzelpreisCents × Menge der eigenen unbezahlten Positionen.
-	OffenCents int
-	Erledigt   bool
-}
-
-// ComputeEigeneArbeitAnTisch: Schichtübergabe ist implizit — kassiert eine Kollegin eine
-// eigene Position, verschwindet sie aus der Unbezahlt-Liste und zählt nicht mehr als offen.
-func ComputeEigeneArbeitAnTisch(session TischSession, userID int) EigeneArbeitAnTisch {
-	anzahlOffen := 0
-	offenCents := 0
-	for _, pos := range session.UnbezahltePositionen {
-		if pos.BestellerUserID == userID {
-			anzahlOffen++
-			offenCents += pos.EinzelpreisCents * pos.Menge
-		}
-	}
-
-	return EigeneArbeitAnTisch{
-		AnzahlOffen: anzahlOffen,
-		OffenCents:  offenCents,
-		Erledigt:    anzahlOffen == 0,
-	}
+// HatEigeneOffenePositionen: "offen" bedeutet "noch nicht kassiert" (siehe docs/decisions.md D01);
+// der tischweite offene Saldo fließt bewusst nicht ein. Schichtübergabe ist implizit — kassiert
+// eine Kollegin eine eigene Position, verschwindet sie aus der Unbezahlt-Liste.
+func HatEigeneOffenePositionen(session TischSession, userID int) bool {
+	return slices.ContainsFunc(session.UnbezahltePositionen, func(pos Position) bool {
+		return pos.BestellerUserID == userID
+	})
 }
 
 type OffeneArbeitTisch struct {
-	TischID    int
+	TischID int
+	// OffenCents ist die Summe aus EinzelpreisCents × Menge der eigenen unbezahlten Positionen.
 	OffenCents int
 }
 
-type OffeneArbeitRollup struct {
-	// OffeneTische listet nur Tische mit offener eigener Arbeit, aufsteigend nach Tisch-ID.
-	OffeneTische []OffeneArbeitTisch
-	Erledigt     bool
-}
-
-func ComputeOffeneArbeitRollup(sessions []TischSession, userID int) OffeneArbeitRollup {
-	offeneTische := make([]OffeneArbeitTisch, 0)
-	for _, session := range sessions {
-		arbeit := ComputeEigeneArbeitAnTisch(session, userID)
-		if arbeit.Erledigt {
-			continue
-		}
-		offeneTische = append(offeneTische, OffeneArbeitTisch{
-			TischID:    session.TischID,
-			OffenCents: arbeit.OffenCents,
-		})
-	}
-
-	sort.Slice(offeneTische, func(i, j int) bool {
-		return offeneTische[i].TischID < offeneTische[j].TischID
-	})
-
-	return OffeneArbeitRollup{
-		OffeneTische: offeneTische,
-		Erledigt:     len(offeneTische) == 0,
-	}
-}
-
 type OffeneArbeitServicekraft struct {
-	UserID       int
-	UserName     string // eingefrorener Besteller-Name aus den Positionen
+	UserID   int
+	UserName string // eingefrorener Besteller-Name aus den Positionen
+	// OffeneTische listet nur Tische mit offener eigener Arbeit, aufsteigend nach Tisch-ID.
 	OffeneTische []OffeneArbeitTisch
 }
 
 // ComputeOffeneArbeitProServicekraft liefert nur Servicekräfte mit offener eigener Arbeit, aufsteigend nach UserID.
 func ComputeOffeneArbeitProServicekraft(sessions []TischSession) []OffeneArbeitServicekraft {
-	nameByUserID := make(map[int]string)
+	type userTisch struct{ userID, tischID int }
+	offenCents := map[userTisch]int{}
+	namen := map[int]string{}
 	for _, session := range sessions {
 		for _, pos := range session.UnbezahltePositionen {
-			nameByUserID[pos.BestellerUserID] = pos.BestellerName
+			namen[pos.BestellerUserID] = pos.BestellerName
+			offenCents[userTisch{pos.BestellerUserID, session.TischID}] += pos.EinzelpreisCents * pos.Menge
 		}
 	}
 
-	servicekraefte := make([]OffeneArbeitServicekraft, 0, len(nameByUserID))
-	for userID, name := range nameByUserID {
-		rollup := ComputeOffeneArbeitRollup(sessions, userID)
-		if rollup.Erledigt {
-			continue
-		}
-		servicekraefte = append(servicekraefte, OffeneArbeitServicekraft{
-			UserID:       userID,
-			UserName:     name,
-			OffeneTische: rollup.OffeneTische,
-		})
+	tischeJeUser := map[int][]OffeneArbeitTisch{}
+	for schluessel, cents := range offenCents {
+		tischeJeUser[schluessel.userID] = append(tischeJeUser[schluessel.userID], OffeneArbeitTisch{TischID: schluessel.tischID, OffenCents: cents})
 	}
 
-	sort.Slice(servicekraefte, func(i, j int) bool {
-		return servicekraefte[i].UserID < servicekraefte[j].UserID
-	})
+	servicekraefte := make([]OffeneArbeitServicekraft, 0, len(tischeJeUser))
+	for userID, tische := range tischeJeUser {
+		slices.SortFunc(tische, func(a, b OffeneArbeitTisch) int { return cmp.Compare(a.TischID, b.TischID) })
+		servicekraefte = append(servicekraefte, OffeneArbeitServicekraft{UserID: userID, UserName: namen[userID], OffeneTische: tische})
+	}
+	slices.SortFunc(servicekraefte, func(a, b OffeneArbeitServicekraft) int { return cmp.Compare(a.UserID, b.UserID) })
 
 	return servicekraefte
 }

@@ -91,7 +91,7 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 		Subject:              subject,
 		SaldoCents:           state.SaldoCents,
 		UnbezahltePositionen: state.UnbezahltePositionen,
-		FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
+		FuerMichErledigt:     !kasse.HatEigeneOffenePositionen(state, userID),
 	}, nil
 }
 
@@ -158,7 +158,7 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 			Subject:              kasse.TischSessionSubject(kassensitzungNr, tischID),
 			SaldoCents:           state.SaldoCents,
 			UnbezahltePositionen: state.UnbezahltePositionen,
-			FuerMichErledigt:     kasse.ComputeEigeneArbeitAnTisch(state, userID).Erledigt,
+			FuerMichErledigt:     !kasse.HatEigeneOffenePositionen(state, userID),
 		})
 	}
 
