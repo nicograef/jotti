@@ -339,14 +339,11 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, kassensitzungNr, events); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
-			log.Warn("OCC conflict bei Zahlung", "tisch_id", tischID, "subject", subject)
-			if pfand != nil {
-				return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrConflict)
-			}
-			return ErrConflict
+		err = fromWriteError(ctx, err, "subject", subject, "tisch_id", tischID)
+		if errors.Is(err, ErrConflict) && pfand != nil {
+			return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrConflict)
 		}
-		return fromWriteError(ctx, err, "subject", subject)
+		return err
 	}
 
 	log.Info("Zahlung kassiert", "tisch_id", tischID, "mit_pfand", pfand != nil)
