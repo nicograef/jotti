@@ -60,6 +60,30 @@ func TestGetHistorieFromEvents_BestellungTraegtBestellerName(t *testing.T) {
 	}
 }
 
+func TestGetHistorieFromEvents_Positionskommentar(t *testing.T) {
+	products := []Position{
+		testPosition(1, "Zwiebelkuchen", "Stück", "essen", 400, 1),
+		testPosition(2, "Beer", "Pils 0.5l", "getraenk", 500, 1),
+	}
+	products[0].Kommentar = "ohne Kümmel"
+	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
+
+	history, err := GetHistorieFromEvents([]e.Event{orderEvent})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(history) != 1 || history[0].Bestellung == nil {
+		t.Fatalf("expected one Bestellung entry, got %+v", history)
+	}
+	positionen := history[0].Bestellung.Positionen
+	if positionen[0].Kommentar != "ohne Kümmel" {
+		t.Errorf("Positionen[0].Kommentar = %q, want %q", positionen[0].Kommentar, "ohne Kümmel")
+	}
+	if positionen[1].Kommentar != "" {
+		t.Errorf("Positionen[1].Kommentar = %q, want empty", positionen[1].Kommentar)
+	}
+}
+
 func TestGetHistorieFromEvents_EnrichesBestellungMitRestmengen(t *testing.T) {
 	tests := []struct {
 		name            string
