@@ -142,6 +142,7 @@ describe('toBestellungData', () => {
         name: 'mit Ketchup',
         preisCents: 300,
         status: 'active',
+        pfandVarianteId: null,
       },
     ],
   }

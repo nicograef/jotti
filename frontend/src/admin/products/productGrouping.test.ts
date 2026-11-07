@@ -105,6 +105,7 @@ describe('produktUnterzeile', () => {
             name: 'klein',
             preisCents: 100,
             status: 'active',
+            pfandVarianteId: null,
           },
         ],
       }),

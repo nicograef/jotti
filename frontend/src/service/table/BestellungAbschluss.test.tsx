@@ -145,7 +145,15 @@ const pommes: Produkt = {
   ...testProdukt,
   id: 2,
   name: 'Pommes',
-  varianten: [{ id: 2, name: 'Groß', preisCents: 400, status: 'active' }],
+  varianten: [
+    {
+      id: 2,
+      name: 'Groß',
+      preisCents: 400,
+      status: 'active',
+      pfandVarianteId: null,
+    },
+  ],
 }
 
 // Die Positionskommentare laufen vom Abschluss über den Vorgang zurück in die

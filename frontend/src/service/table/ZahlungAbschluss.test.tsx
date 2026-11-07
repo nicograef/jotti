@@ -53,6 +53,7 @@ const pfandProdukt: Produkt = {
       name: 'Glas',
       preisCents: 200,
       status: 'active',
+      pfandVarianteId: null,
     },
   ],
 }

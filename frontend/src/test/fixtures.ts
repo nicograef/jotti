@@ -16,6 +16,7 @@ export const testProdukt: Produkt = {
       name: 'Normal',
       preisCents: 350,
       status: 'active',
+      pfandVarianteId: null,
     },
   ],
 }
