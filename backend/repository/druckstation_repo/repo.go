@@ -10,11 +10,12 @@ import (
 )
 
 type Repository struct {
-	q *dbgen.Queries
+	db *sql.DB
+	q  *dbgen.Queries
 }
 
 func NewRepository(database *sql.DB) Repository {
-	return Repository{q: dbgen.New(database)}
+	return Repository{db: database, q: dbgen.New(database)}
 }
 
 // GetAlleDruckstationen gibt die Konfiguration aller fünf Druckstationen zurück
