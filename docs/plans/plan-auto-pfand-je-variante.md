@@ -11,7 +11,7 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 
 ## Architectural decisions
 
-- **Schema:** Eine additive Migration `17_pfand_verknuepfung.up.sql` (Nummer: nächste freie ab 17; landet #145 vorher mit eigener Migration, wird es 18; der Lead legt die Nummer beim Landen fest).
+- **Schema:** Eine additive Migration `18_pfand_verknuepfung.up.sql`; 17 hat die Qualitäts-Lane `fix/q-cross` belegt, #145 braucht keine.
   - In `BEGIN; … COMMIT;`; der Kopfkommentar übernimmt aus Migration 09 den Satz, dass die Feldliste der View `jsonVariante` spiegelt.
   - `ALTER TABLE produkt_varianten ADD COLUMN pfand_variante_id INT REFERENCES produkt_varianten(id)`, nullable, mit `COMMENT ON COLUMN`.
   - `CREATE OR REPLACE VIEW produkt_varianten_json` mit zusätzlichem Schlüssel `'pfandVarianteId', pfand_variante_id`; Spaltenliste der View bleibt gleich.
@@ -88,7 +88,7 @@ Entschieden am 7. November: Für alle Fragen unten gilt die jeweilige Empfehlung
 3. **Direktverkauf ohne Abholbon-IP** druckt Pfand weiter an der Station seiner Kategorie; Entscheidung 2 betrifft nur den Abholbon. Empfehlung: unverändert lassen, gleiche Regel wie am Tisch (Pfand-Produkt in eine Kategorie ohne Druckstation legen).
 4. **Demo-Drehbuch:** Der Seed bekommt keine Verknüpfung. Eine Verknüpfung änderte die E2E-Ausgangslage nicht, aber jede Spec, die eine verknüpfte Variante tippt. Empfehlung: Seed unverändert (D14).
 5. **CHANGELOG:** Kein Abschnitt `[Unreleased]` existiert. Empfehlung: Eintrag schreibt der Release-Schritt, nicht dieser Plan.
-6. **Nummern:** Migrationsnummer (nächste freie ab 17) und die D-Nummer der Entscheidungszeile vergibt der Lead beim Landen; #145 fügt ebenfalls eine Zeile in `docs/decisions.md` an.
+6. **Nummern:** Die D-Nummer der Entscheidungszeile vergibt der Lead beim Landen; #145 fügt ebenfalls eine Zeile in `docs/decisions.md` an.
 7. **Risiko #145 (landet vorher):** gibt `direktverkauf-getaetigt:v2` eine eigene Positionsform mit `pfand` und `kommentar` und ändert `positionenMitKommentarEventData` sowie `arbeitsbon_policy_test.go`. Phase 1 baut auf dieser Form auf und wird nach dem Landen von #145 rebased.
 8. **Risiko Zusatzdrucker (landet danach):** schreibt das Direktverkauf-Routing in `arbeitsbon_policy.go` um. Sein Plan muss den Pfand-Filter des Abholbons übernehmen.
 9. **Risiko `fix/q-cross`:** fügt Idempotenzschlüssel für Tisch-/Direktverkauf-Storno und Umbuchung hinzu. Überschneidung: `frontend/src/hooks/use-mengen.ts` (Storno- und Umbuchungs-Drawer nutzen `useMengen`), `frontend/src/lib/errorMessages.ts` (neue Codes) und die `DirektverkaufTab`-Tests. Der Kassenbeleg mit TSE-Start- und Endzeit berührt diesen Plan nicht. Die Feature-Spur startet erst nach dem Programm-Abschluss; jede Phase baut auf dem Stand von main mit `fix/q-cross` auf und rebased bei Konflikt dorthin.
@@ -157,7 +157,7 @@ Tischbestellungen und der Rückfall an die Produktstationen bleiben unverändert
 
 Der Admin wählt im Variantendialog ein Pfand, das Backend prüft und speichert den Verweis, beide Lesepfade liefern ihn.
 
-- Migration `database/migrations/17_pfand_verknuepfung.up.sql` wie in den Architekturentscheidungen; danach `make sqlc`.
+- Migration `database/migrations/18_pfand_verknuepfung.up.sql` wie in den Architekturentscheidungen; danach `make sqlc`.
 - Die Queries `GetVariante`, `CreateVariante` und `UpdateVariante` lesen und schreiben `pfand_variante_id`.
 - Neue Query `EntfernePfandVerweise :exec` (`UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = $1 WHERE pfand_variante_id = ANY($2::int[])`); Phase 3 ruft sie auf.
 - Domäne: Feld, `NewVariante(name, preisCents, pfandVarianteID *int)`, `UpdateDetails(name, preisCents, pfandVarianteID *int)`.

@@ -31,7 +31,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 ## Feature-Spur
 
-Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und Pläne entstehen vorher; Migrationen der Features beginnen bei `18`, weil `fix/q-cross` die 17 genommen hat.
+Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und Pläne entstehen vorher; Migrationen: 18 Auto-Pfand, 19 Zusatzdrucker; #145 braucht keine.
 
 1. **#145 Kommentar je Position**: freigegeben mit den Empfehlungen des PRD (additives Feld als Freeze-Ausnahme mit Zeile in `docs/decisions.md`, kein DSFinV-K-Export, Kommentar auf jedem Stückbon).
 2. **Auto-Pfand je Variante**: PRD freigegeben. Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release; die Regel „gleicher Steuersatz“ gilt ohne Kombi-Sonderfall.

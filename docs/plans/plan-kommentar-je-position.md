@@ -69,7 +69,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 - Das Feld `PositionsKommentarFeld` liegt in `CommentField.tsx` und teilt die Zeichen-Kappung des `KommentarField`.
 - Nur Bestell- und Direktverkauf-Abschluss reichen `kommentarBearbeiten` durch; die Tisch-Zahlung im `KassierAbschluss` nicht.
 
-**Keine Migration.** SQL-Funktionen, Idempotenz-Indexe und Reporting lesen Schlüssel einzeln aus `positionen` und bleiben gleich. Die nächste freie Migration ab 17 geht an Auto-Pfand.
+**Keine Migration.** SQL-Funktionen, Idempotenz-Indexe und Reporting lesen Schlüssel einzeln aus `positionen` und bleiben gleich. Migration 18 geht an Auto-Pfand.
 
 ## Inventory
 
