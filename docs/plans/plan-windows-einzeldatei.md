@@ -79,6 +79,17 @@ Phase 6 ist das Go/Stop-Gate: Alle späteren Phasen hängen davon ab, und Nico e
 
 ## Open questions / Risks
 
+Entschieden von Nico am 7. November:
+
+- Caddy liefert die App auch in der Einzeldatei aus (D18 bleibt); neu bewertet wird das nur, wenn die Datei wegen Caddy über 120 MB kommt.
+- Nico hat keinen Windows-PC. Was nur ein echter PC prüft, deckt der Windows-Runner der CI ab, so weit er reicht:
+  - Defender misst Phase 5 mit eingeschaltetem Echtzeitschutz; lässt er sich nicht einschalten, gilt das Kriterium als nicht messbar und das Gate fragt Nico.
+  - Die Verzeichnisrechte aus #174 prüft ein Test auf dem Windows-Runner mit echten Rechten (`icacls`).
+  - Die Übernahme prüfen die Integrationstests unter Linux; das erste Release mit Übernahme heißt im Leitfaden Beta, bis ein Verein sie bestätigt.
+- Das Go/Stop-Gate entscheidet automatisch (Phase 6); bei Stop landet nur die Entscheidungszeile.
+- Für alle übrigen Fragen unten gilt die jeweilige Empfehlung.
+
+
 1. **D18 oder Backend liefert die App.** Der Plan behält Caddy (D18) und damit eine Proxy-Konfiguration für Container und Einzeldatei.
    Alternative: Das Backend liefert App und TLS selbst (certmagic mit acme-dns), Caddy entfällt in der Einzeldatei.
    Gewinn: geschätzt 20–30 MB weniger Dateigröße und eine Schicht weniger im Prozess (Schätzung, nicht gemessen).
@@ -297,11 +308,11 @@ Phase 6 ist das Go/Stop-Gate: Alle späteren Phasen hängen davon ab, und Nico e
 
 ### What to build
 
-- Die Session legt Nico die Messwerte vor; Nico entscheidet Go oder Stop.
-- Die Session hängt die Entscheidung als Zeile an `docs/decisions.md` an.
+- Das Gate entscheidet automatisch: Halten alle vier Messwerte ihre Schwelle, ist das Go. So hat Nico es am 7. November festgelegt.
+- Reißt ein Wert, versucht die Lane zuerst die Abhilfen des Plans, etwa die Postgres-Allowlist zu kürzen, und misst neu. Erst wenn danach noch ein Wert reißt, legt die Session Nico die Messwerte vor; Nico entscheidet dann Go oder Stop.
+- Die Session hängt das Ergebnis als Zeile an `docs/decisions.md` an.
   Bei Go: Der Windows-Weg ist die Einzeldatei mit eingebettetem Postgres 17, Caddy im Prozess und Windows-Dienst.
-  Bei Stop: kein Einzeldatei-Weg, begründet mit den gerissenen Schwellen.
-- Bei Stop endet der Plan hier; was landet, regelt offene Frage 17.
+  Bei Stop: kein Einzeldatei-Weg, begründet mit den gerissenen Schwellen. Dann landet nur diese Zeile; der Branch `plan/windows-einzeldatei` bleibt ungemergt stehen.
 
 ### Acceptance criteria
 
@@ -309,7 +320,7 @@ Phase 6 ist das Go/Stop-Gate: Alle späteren Phasen hängen davon ab, und Nico e
 - [ ] Der erste Start erreicht die Anmeldeseite in höchstens 60 s: `awk -F'\t' '$1=="erststart_s"{f=1; exit !($2<=60)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
 - [ ] Ein späterer Start erreicht sie in höchstens 15 s: `awk -F'\t' '$1=="folgestart_s"{f=1; exit !($2<=15)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
 - [ ] Defender lief mit Echtzeitschutz und hat nichts gemeldet: `awk -F'\t' '$1=="defender_echtzeitschutz"&&$2=="true"{e=1} $1=="defender_funde"&&$2==0{f=1} END{exit !(e&&f)}' /tmp/einzeldatei-messung/messung.tsv`
-- [ ] Nicos Entscheidung steht als Zeile in den Entscheidungen: `grep -n 'Einzeldatei' docs/decisions.md`
+- [ ] Das Ergebnis steht als Zeile in den Entscheidungen: `grep -n 'Einzeldatei' docs/decisions.md`
 
 ## Phase 7: LAN-Modus als importierbares Paket
 

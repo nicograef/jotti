@@ -60,6 +60,8 @@ Die Seite „Bondrucker" bleibt für jeden Verein, wie sie ist. Darunter kann de
 
 ## Open questions / Risks
 
+Entschieden am 7. November: Für alle Fragen unten gilt die jeweilige Empfehlung; Nico hat keiner widersprochen.
+
 Offene Fragen an Nico, je mit Empfehlung:
 
 1. **Neue Zeile in `docs/decisions.md`.** Die Wahl von Variante Z (Zusatzdrucker statt Stationsmodell, Zuordnung je Produkt statt je Variante, Kategoriezeilen bleiben) ist bindend. Empfehlung: ja, als nächste freie D-Nummer in Phase 3; der Lead setzt die Nummer beim Landen, falls #145 oder Auto-Pfand ebenfalls eine Zeile anhängen.

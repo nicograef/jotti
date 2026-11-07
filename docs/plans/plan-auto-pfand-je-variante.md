@@ -81,6 +81,8 @@ Der Abholbon des Direktverkaufs lässt Pfand-Positionen in jedem Bonmodus weg.
 
 ## Open questions / Risks
 
+Entschieden am 7. November: Für alle Fragen unten gilt die jeweilige Empfehlung; Nico hat keiner widersprochen.
+
 1. **Frontend leitet Pfand-Auswahl und Lösch-Hinweis ab.** AGENTS.md: das Backend filtert und formt. Die Admin-Liste trägt alle nötigen Daten; das Backend erzwingt die Regeln trotzdem. Alternative: ein Backend-Feld `pfandOptionen` je Produkt. Empfehlung: Ableitung im Frontend, wie `groupProdukteByKategorie`.
 2. **Service-Filter in der Anwendungsschicht statt im Repository.** Das PRD testet den Service-Lesepfad gegen Postgres. Der Plan filtert in `Query.GetActiveProdukte` und testet dort mit dem Fake. Den Feldweg View → Domäne pinnt ein Repository-Integrationstest. Empfehlung: so übernehmen.
 3. **Direktverkauf ohne Abholbon-IP** druckt Pfand weiter an der Station seiner Kategorie; Entscheidung 2 betrifft nur den Abholbon. Empfehlung: unverändert lassen, gleiche Regel wie am Tisch (Pfand-Produkt in eine Kategorie ohne Druckstation legen).

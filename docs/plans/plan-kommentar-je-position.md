@@ -98,6 +98,8 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 
 ## Open questions / Risks
 
+Entschieden von Nico am 7. November: Der AGENTS.md-Freeze-Satz wird wie in Frage 1 umformuliert. Für alle übrigen Fragen unten gilt die jeweilige Empfehlung.
+
 1. **AGENTS.md-Freeze-Satz.** „A change is a new event version (`:vN`), never an edit in place" wird mit D21 falsch; die Umbuchung mit `benutzerKommentar` war schon ein Präzedenzfall. Phase 2 formuliert: „A change is a new event version (`:vN`). The only edit in place is an additive optional field omitted when empty, approved as a line in `docs/decisions.md`." Empfehlung: so übernehmen. Lehnt Nico ab, entfällt der AGENTS.md-Punkt aus Phase 2, D21 bleibt.
 2. **Phase 1 hier oder vorher.** Die Zeichen-Umstellung ist ein eigenständiger Fehler (Frontend strenger als Backend), kein Feature. Empfehlung: als Phase 1 dieses Plans lassen; `fix/q-cross` hat einen festen Befund-Umfang. Will der Lead sie früher auf `main`, landet Phase 1 allein, und die Kriterien bleiben gleich.
 3. **Kreuzung mit `fix/q-cross`.** Die Lane ändert Storno- und Umbuchungs-Handler, ihre Tests und Schemas, und druckt TSE-Start und -Ende auf den Kassenbeleg. Gemeinsame Dateien mit diesem Plan:
