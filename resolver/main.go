@@ -14,11 +14,13 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Die Zonen müssen zum Hostnamen des reverse-proxy (lokal.jotti.rocks) und zu acme-dns
+// (auth.jotti.rocks) passen, darum sind sie nicht konfigurierbar.
 const (
-	defaultZone     = "lokal.jotti.rocks"
-	defaultAuthZone = "auth.jotti.rocks"
-	defaultNSName   = "dns.jotti.rocks"
-	defaultListen   = ":53"
+	zone       = "lokal.jotti.rocks."
+	authZone   = "auth.jotti.rocks."
+	nsName     = "dns.jotti.rocks."
+	listenAddr = ":53"
 )
 
 // forwardTimeout begrenzt die Weiterleitung an acme-dns; die Instanz läuft
@@ -27,16 +29,10 @@ const forwardTimeout = 5 * time.Second
 
 type resolverConfig struct {
 	zones       zoneConfig
-	listenAddr  string
 	forwardAddr string // acme-dns (Docker-intern), host:port
 }
 
 func loadConfigFromEnv(getenv func(string) string) (resolverConfig, error) {
-	zone := valueOrDefault(getenv("RESOLVER_ZONE"), defaultZone)
-	authZone := valueOrDefault(getenv("RESOLVER_AUTH_ZONE"), defaultAuthZone)
-	nsName := valueOrDefault(getenv("RESOLVER_NS_NAME"), defaultNSName)
-	listenAddr := valueOrDefault(getenv("RESOLVER_LISTEN"), defaultListen)
-
 	nsIPRaw := strings.TrimSpace(getenv("RESOLVER_NS_IP"))
 	if nsIPRaw == "" {
 		return resolverConfig{}, fmt.Errorf("RESOLVER_NS_IP ist erforderlich (öffentliche IPv4 des Nameservers)")
@@ -56,21 +52,13 @@ func loadConfigFromEnv(getenv func(string) string) (resolverConfig, error) {
 
 	return resolverConfig{
 		zones: zoneConfig{
-			zone:     dns.CanonicalName(zone),
-			authZone: dns.CanonicalName(authZone),
-			nsName:   dns.CanonicalName(nsName),
+			zone:     zone,
+			authZone: authZone,
+			nsName:   nsName,
 			nsIP:     nsIP,
 		},
-		listenAddr:  listenAddr,
 		forwardAddr: forwardAddr,
 	}, nil
-}
-
-func valueOrDefault(raw, fallback string) string {
-	if value := strings.TrimSpace(raw); value != "" {
-		return value
-	}
-	return fallback
 }
 
 type handler struct {
@@ -113,12 +101,12 @@ func main() {
 	}
 
 	h := &handler{cfg: config.zones, forwardAddr: config.forwardAddr}
-	udpServer := &dns.Server{Addr: config.listenAddr, Net: "udp", Handler: h}
-	tcpServer := &dns.Server{Addr: config.listenAddr, Net: "tcp", Handler: h}
+	udpServer := &dns.Server{Addr: listenAddr, Net: "udp", Handler: h}
+	tcpServer := &dns.Server{Addr: listenAddr, Net: "tcp", Handler: h}
 
 	log.Printf("jotti DNS-Resolver gestartet | Zone: %s | NS: %s (%s) | auth-Forward: %s → %s | Listen: %s",
 		config.zones.zone, config.zones.nsName, config.zones.nsIP,
-		config.zones.authZone, config.forwardAddr, config.listenAddr)
+		config.zones.authZone, config.forwardAddr, listenAddr)
 
 	serverErrors := make(chan error, 2)
 	go func() { serverErrors <- udpServer.ListenAndServe() }()

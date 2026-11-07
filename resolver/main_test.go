@@ -18,48 +18,27 @@ func TestLoadConfigFromEnv(t *testing.T) {
 		check       func(t *testing.T, config resolverConfig)
 	}{
 		{
-			name: "uses defaults when optional values are missing",
+			name: "keeps an explicit forward port",
 			env: map[string]string{
 				"RESOLVER_NS_IP":        "203.0.113.10",
-				"RESOLVER_AUTH_FORWARD": "acme-dns:53",
+				"RESOLVER_AUTH_FORWARD": "acme-dns:5353",
 			},
 			check: func(t *testing.T, config resolverConfig) {
-				if config.zones.zone != "lokal.jotti.rocks." {
-					t.Fatalf("zone: got %q", config.zones.zone)
-				}
-				if config.zones.authZone != "auth.jotti.rocks." {
-					t.Fatalf("auth zone: got %q", config.zones.authZone)
-				}
-				if config.zones.nsName != "dns.jotti.rocks." {
-					t.Fatalf("ns name: got %q", config.zones.nsName)
-				}
-				if config.listenAddr != ":53" {
-					t.Fatalf("listen addr: got %q", config.listenAddr)
-				}
-				if config.forwardAddr != "acme-dns:53" {
+				if config.forwardAddr != "acme-dns:5353" {
 					t.Fatalf("forward addr: got %q", config.forwardAddr)
+				}
+				if config.zones.nsIP.String() != "203.0.113.10" {
+					t.Fatalf("ns ip: got %s", config.zones.nsIP)
 				}
 			},
 		},
 		{
-			name: "canonicalizes zone names and appends default forward port",
+			name: "appends the default forward port",
 			env: map[string]string{
-				"RESOLVER_ZONE":         "Beispiel.Test",
-				"RESOLVER_AUTH_ZONE":    "Auth.Beispiel.Test",
-				"RESOLVER_NS_NAME":      "NS.Beispiel.Test",
 				"RESOLVER_NS_IP":        "203.0.113.10",
 				"RESOLVER_AUTH_FORWARD": "acme-dns",
 			},
 			check: func(t *testing.T, config resolverConfig) {
-				if config.zones.zone != "beispiel.test." {
-					t.Fatalf("zone: got %q", config.zones.zone)
-				}
-				if config.zones.authZone != "auth.beispiel.test." {
-					t.Fatalf("auth zone: got %q", config.zones.authZone)
-				}
-				if config.zones.nsName != "ns.beispiel.test." {
-					t.Fatalf("ns name: got %q", config.zones.nsName)
-				}
 				if config.forwardAddr != "acme-dns:53" {
 					t.Fatalf("forward addr: got %q", config.forwardAddr)
 				}
