@@ -11,7 +11,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
@@ -35,7 +34,7 @@ type tischSessionRepo interface {
 }
 
 type tischRepo interface {
-	GetAlleTische(ctx context.Context) ([]tisch.Tisch, error)
+	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
 type Query struct {
@@ -299,9 +298,9 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	var (
 		data     reporting.LiveReportingData
-		sessions []kasse.TischSession
-		tische   []tisch.Tisch
-		zeilen   []reporting.ProduktStatistikZeile
+		sessions      []kasse.TischSession
+		nameByTischID map[int]string
+		zeilen        []reporting.ProduktStatistikZeile
 	)
 	g, gctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
@@ -322,7 +321,7 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 	})
 	g.Go(func() error {
 		var err error
-		if tische, err = q.TischRepo.GetAlleTische(gctx); err != nil {
+		if nameByTischID, err = q.TischRepo.GetAlleTischNamen(gctx); err != nil {
 			log.Error("Failed to get tische for live reporting", "error", err)
 			return ErrDatabase
 		}
@@ -342,11 +341,6 @@ func (q Query) GetLiveReporting(ctx context.Context) (*reporting.LiveReportingDa
 
 	data.Bezeichnung = ks.Bezeichnung
 	data.Datum = ks.Datum
-
-	nameByTischID := make(map[int]string, len(tische))
-	for _, t := range tische {
-		nameByTischID[t.ID] = t.Name
-	}
 
 	data.Breakdowns.AbrechnungProServicekraft = aggregateAbrechnungProServicekraft(
 		data.Breakdowns.AbrechnungProServicekraft, data.Stornierungen, data.Breakdowns.PfandProServicekraft,

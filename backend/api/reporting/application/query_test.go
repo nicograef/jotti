@@ -8,7 +8,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/domain/tisch"
 )
 
 type mockReportingRepo struct {
@@ -43,11 +42,11 @@ func (m mockTischSessionRepo) GetTischSessionsByKassensitzungNr(_ context.Contex
 }
 
 type mockTischRepo struct {
-	tische []tisch.Tisch
+	namen map[int]string
 }
 
-func (m mockTischRepo) GetAlleTische(_ context.Context) ([]tisch.Tisch, error) {
-	return m.tische, nil
+func (m mockTischRepo) GetAlleTischNamen(_ context.Context) (map[int]string, error) {
+	return m.namen, nil
 }
 
 type mockKasseRepo struct {
@@ -560,7 +559,7 @@ func TestGetLiveReporting_MergesServicekraefteByUserID(t *testing.T) {
 		ReportingRepo:       mockReportingRepo{liveData: liveData},
 		KassensitzungenRepo: mockKasseRepo{kassensitzung: ks},
 		TischSessionRepo:    mockTischSessionRepo{sessions: sessions},
-		TischRepo:           mockTischRepo{tische: []tisch.Tisch{{ID: 3, Name: "Tisch 3"}, {ID: 1, Name: "Tisch 1"}}},
+		TischRepo:           mockTischRepo{namen: map[int]string{3: "Tisch 3", 1: "Tisch 1"}},
 	}
 
 	result, err := q.GetLiveReporting(context.Background())
