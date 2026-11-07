@@ -50,24 +50,34 @@ describe('KommentarField', () => {
   })
 
   // Das Backend zählt den Kommentar in UTF-8-Bytes (max. 100), nicht in Zeichen.
+  // Gekürzt wird nur die Einfügung, der bestehende Text und der Cursor bleiben.
   it.each([
-    ['ä'.repeat(60), 'ä'.repeat(50)],
-    ['a'.repeat(99) + 'ä', 'a'.repeat(99)],
-    ['a'.repeat(97) + '😀', 'a'.repeat(97)],
-    ['a'.repeat(96) + '😀', 'a'.repeat(96) + '😀'],
+    ['', 0, 'ä'.repeat(60), 'ä'.repeat(50), 50],
+    ['', 0, 'a'.repeat(99) + 'ä', 'a'.repeat(99), 99],
+    ['', 0, 'a'.repeat(97) + '😀', 'a'.repeat(97), 97],
+    ['', 0, 'a'.repeat(96) + '😀', 'a'.repeat(96) + '😀', 98],
+    ['a'.repeat(100), 50, 'x', 'a'.repeat(100), 50],
+    ['a'.repeat(98), 49, 'xyz', 'a'.repeat(49) + 'xy' + 'a'.repeat(49), 51],
   ])(
-    'kürzt %s auf 100 Bytes an einer Zeichengrenze',
-    async (eingabe, erwartet) => {
+    'kürzt die Einfügung auf 100 Bytes an einer Zeichengrenze (Fall %#)',
+    async (vorhanden, cursor, eingabe, erwartet, cursorDanach) => {
       const user = userEvent.setup()
       const onChange = vi.fn()
       render(<KommentarField onChange={onChange} />)
 
-      const textarea = screen.getByPlaceholderText('Kommentar (optional)')
+      const textarea = screen.getByPlaceholderText<HTMLTextAreaElement>(
+        'Kommentar (optional)',
+      )
       await user.click(textarea)
+      if (vorhanden) {
+        await user.paste(vorhanden)
+      }
+      textarea.setSelectionRange(cursor, cursor)
       await user.paste(eingabe)
 
       expect(textarea).toHaveValue(erwartet)
       expect(onChange).toHaveBeenLastCalledWith(erwartet)
+      expect(textarea.selectionStart).toBe(cursorDanach)
     },
   )
 
