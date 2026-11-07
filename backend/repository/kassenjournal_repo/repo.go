@@ -448,10 +448,10 @@ func eventFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) event.Eve
 	}
 }
 
-// eventSignaturFromKassensitzungRow: der processType steht immer, die Signaturspalten
+// eventSignaturFromKassensitzungRow: processType und Status stehen immer, die Signaturspalten
 // erst nach der Quittierung.
 func eventSignaturFromKassensitzungRow(row dbgen.ReadEventsByKassensitzungRow) tse.EventSignatur {
-	signatur := tse.EventSignatur{ProcessType: row.ProcessType.String}
+	signatur := tse.EventSignatur{ProcessType: row.ProcessType.String, Status: row.Status.String}
 	if row.Signatur.Valid {
 		signatur.Signatur = &tse.Signatur{
 			TransaktionNummer: int(row.TransaktionNummer.Int64),

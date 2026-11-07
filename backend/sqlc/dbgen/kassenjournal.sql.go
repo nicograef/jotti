@@ -212,7 +212,7 @@ func (q *Queries) ReadDirektverkaufEvents(ctx context.Context, kassensitzungNr i
 
 const readEventsByKassensitzung = `-- name: ReadEventsByKassensitzung :many
 SELECT k.id, k.user_id, k.user_name, k.version, k.type, k.subject, k.data, k.timestamp,
-       a.process_type, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
+       a.process_type, a.status, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
        a.log_time_start, a.log_time_end, a.signatur, a.qr_code_data
 FROM kassenjournal k
 LEFT JOIN tse_signaturauftraege a ON a.event_id = k.id
@@ -229,6 +229,7 @@ type ReadEventsByKassensitzungRow struct {
 	Data              json.RawMessage
 	Timestamp         time.Time
 	ProcessType       sql.NullString
+	Status            sql.NullString
 	TransaktionNummer sql.NullInt64
 	SignaturZaehler   sql.NullInt64
 	TseSeriennummer   sql.NullString
@@ -261,6 +262,7 @@ func (q *Queries) ReadEventsByKassensitzung(ctx context.Context, kassensitzungNr
 			&i.Data,
 			&i.Timestamp,
 			&i.ProcessType,
+			&i.Status,
 			&i.TransaktionNummer,
 			&i.SignaturZaehler,
 			&i.TseSeriennummer,

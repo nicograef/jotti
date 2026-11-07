@@ -53,7 +53,7 @@ WHERE type = 'pfandrueckgabe-storniert:v1'
 -- Der LEFT JOIN auf die Signaturaufträge liefert je Event den Signatur-Stand:
 -- kein Auftrag = nicht signaturpflichtig (keine Projektion zur Lesezeit).
 SELECT k.id, k.user_id, k.user_name, k.version, k.type, k.subject, k.data, k.timestamp,
-       a.process_type, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
+       a.process_type, a.status, a.transaktion_nummer, a.signatur_zaehler, a.tse_seriennummer,
        a.log_time_start, a.log_time_end, a.signatur, a.qr_code_data
 FROM kassenjournal k
 LEFT JOIN tse_signaturauftraege a ON a.event_id = k.id

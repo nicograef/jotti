@@ -30,18 +30,20 @@ const (
 	gvTypPfandRueckzahlung = "PfandRueckzahlung"
 	// Anhang C GV types that only move the cash balance; jotti records them as
 	// BON_TYP "Beleg" with one non-taxable line (see docs/compliance.md §6.8).
-	gvTypAnfangsbestand   = "Anfangsbestand"   // cash at session start (opening event)
-	gvTypGeldtransit      = "Geldtransit"      // cash deposit or withdrawal (e.g. bank, safe)
-	gvTypDifferenzSollIst = "DifferenzSollIst" // booked cash difference from the Kassensturz
-	zahlartBar            = "Bar"              // Anhang D: jotti takes cash only
-	refTypTransaktion     = "Transaktion"      // Anhang E: REF_TYP for a reference inside the DSFinV-K (Storno → origin)
-	tseReferenzID         = "1"                // one TSS per Kasse, referenced as ID 1 in the closing
-	tseFehlerAusfall      = "TSE-Ausfall"      // TSE_TA_FEHLER of an unsigned outage Vorgang (not yet re-signed)
-	land                  = "DEU"              // ISO 3166 ALPHA-3
-	basiswaehrung         = "EUR"              // ISO 4217
-	tsePDEncoding         = "UTF-8"            // encoding of the ProcessData
-	zertifikatChunk       = 1000               // max characters per TSE_ZERTIFIKAT field (the spec has two)
-	zertifikatSpalten     = 2                  // TSE_ZERTIFIKAT_I/_II of the official DSFinV-K schema
+	gvTypAnfangsbestand   = "Anfangsbestand"         // cash at session start (opening event)
+	gvTypGeldtransit      = "Geldtransit"            // cash deposit or withdrawal (e.g. bank, safe)
+	gvTypDifferenzSollIst = "DifferenzSollIst"       // booked cash difference from the Kassensturz
+	zahlartBar            = "Bar"                    // Anhang D: jotti takes cash only
+	refTypTransaktion     = "Transaktion"            // Anhang E: REF_TYP for a reference inside the DSFinV-K (Storno → origin)
+	tseReferenzID         = "1"                      // one TSS per Kasse, referenced as ID 1 in the closing
+	tseFehlerAusfall      = "TSE-Ausfall"            // TSE_TA_FEHLER of a Vorgang whose signing failed for good
+	tseFehlerAusstehend   = "Signatur ausstehend"    // TSE_TA_FEHLER of a Vorgang still queued for signing
+	tseFehlerKeineTSE     = "keine TSE konfiguriert" // TSE_TA_FEHLER of a Vorgang recorded without a TSE
+	land                  = "DEU"                    // ISO 3166 ALPHA-3
+	basiswaehrung         = "EUR"                    // ISO 4217
+	tsePDEncoding         = "UTF-8"                  // encoding of the ProcessData
+	zertifikatChunk       = 1000                     // max characters per TSE_ZERTIFIKAT field (the spec has two)
+	zertifikatSpalten     = 2                        // TSE_ZERTIFIKAT_I/_II of the official DSFinV-K schema
 	// maxLengthAbrechnungskreis is the official ABRECHNUNGSKREIS length in
 	// allocation_groups.csv (index.xml), counted in characters.
 	maxLengthAbrechnungskreis = 50
@@ -81,6 +83,7 @@ type beleg struct {
 	pfand            []bool // per position: GV_TYP "Pfand" instead of gvTyp; nil when no line is Pfand
 	bruttoCents      int
 	tsePflichtig     bool          // signature required (a Signaturauftrag exists for the event)
+	tseStatus        string        // the Signaturauftrag status
 	tse              *tse.Signatur // signature from the Auftrag; nil while unsigned
 	processType      string        // TSE_TA_VORGANGSART, the Auftrag's process_type snapshot
 	notiz            string
@@ -494,6 +497,7 @@ func belegeFromEvents(events []event.Event, tischnamen map[int]string, signature
 			belege[i].bedienerID = ev.UserID
 			belege[i].bedienerName = ev.UserName
 			belege[i].tsePflichtig = pflichtig
+			belege[i].tseStatus = sig.Status
 			belege[i].tse = sig.Signatur
 			belege[i].processType = sig.ProcessType
 		}
@@ -1054,14 +1058,13 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 				"",
 			})
 		case b.tsePflichtig:
-			// An unsigned Vorgang that requires a signature (open, failed, tse_nicht_konfiguriert)
-			// gets a TSE_TA_FEHLER row instead of none (docs/compliance.md §3.8). Vorgänge
-			// without signature duty get no row.
+			// An unsigned Vorgang that requires a signature gets a TSE_TA_FEHLER row naming its
+			// Auftrag status (docs/compliance.md §3.8). Vorgänge without signature duty get no row.
 			records = append(records, []string{
 				s.KasseSeriennummer, erstellung, itoa(s.KassensitzungNr),
 				b.bonID, tseReferenzID, "",
 				"", "", "",
-				"", "", tseFehlerAusfall,
+				"", "", tseFehlertext(b.tseStatus),
 				"",
 			})
 		}
@@ -1073,6 +1076,18 @@ func buildTransactionsTSE(s Snapshot, erstellung string, belege []beleg) Table {
 		Description: "TSE-Transaktionsdaten je Bon",
 		Columns:     transactionsTSEColumns,
 		Records:     records,
+	}
+}
+
+// tseFehlertext names why an unsigned Vorgang has no signature; fehlgeschlagen is the outage case.
+func tseFehlertext(status string) string {
+	switch status {
+	case tse.StatusOffen:
+		return tseFehlerAusstehend
+	case tse.StatusTSENichtKonfiguriert:
+		return tseFehlerKeineTSE
+	default:
+		return tseFehlerAusfall
 	}
 }
 

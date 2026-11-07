@@ -1502,7 +1502,7 @@ func TestMapTagesabschlussAusfallTraegtFehlerzeile(t *testing.T) {
 
 	signaturen := map[int]tse.EventSignatur{
 		2:  {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "ZAHLSIG==")},
-		20: {ProcessType: "SonstigerVorgang"}, // signature required but unsigned
+		20: {ProcessType: "SonstigerVorgang", Status: tse.StatusFehlgeschlagen}, // signature required but failed
 	}
 
 	archive, err := Map(testSnapshot(), events, signaturen)
@@ -1625,44 +1625,48 @@ func TestMapNachsigniertVorgang(t *testing.T) {
 	}
 }
 
-// A signature-required Vorgang without signature (open, failed or tse_nicht_konfiguriert)
-// gets a transactions_tse.csv error row with TSE_TA_FEHLER and an empty signature.
+// A signature-required Vorgang without signature gets a transactions_tse.csv error row:
+// TSE_TA_FEHLER names its Auftrag status and the signature stays empty.
 func TestMapAusfallOhneNachsignierungFehlerzeile(t *testing.T) {
-	signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
-	unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
+	tests := []struct {
+		status     string
+		fehlertext string
+	}{
+		{tse.StatusOffen, "Signatur ausstehend"},
+		{tse.StatusFehlgeschlagen, "TSE-Ausfall"},
+		{tse.StatusTSENichtKonfiguriert, "keine TSE konfiguriert"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.status, func(t *testing.T) {
+			signiert := zahlungAm(t, 1, nachsigniertSignedBonID, time.Date(2026, 6, 16, 12, 0, 0, 0, time.UTC))
+			unsigniert := zahlungAm(t, 2, nachsigniertOutageBonID, time.Date(2026, 6, 16, 13, 0, 0, 0, time.UTC))
 
-	signaturen := map[int]tse.EventSignatur{
-		1: {ProcessType: "Kassenbeleg-V1", Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
-		2: {ProcessType: "Kassenbeleg-V1"}, // Auftrag exists, signature pending
-	}
+			signaturen := map[int]tse.EventSignatur{
+				1: {ProcessType: "Kassenbeleg-V1", Status: tse.StatusErledigt, Signatur: testSignatur(t, 4711, 12, "2026-06-16T12:00:00Z", "2026-06-16T12:00:01Z", "EVENTSIG==")},
+				2: {ProcessType: "Kassenbeleg-V1", Status: tt.status},
+			}
 
-	archive, err := Map(testSnapshot(), []event.Event{signiert, unsigniert}, signaturen)
-	if err != nil {
-		t.Fatalf("Map() error = %v", err)
-	}
+			archive, err := Map(testSnapshot(), []event.Event{signiert, unsigniert}, signaturen)
+			if err != nil {
+				t.Fatalf("Map() error = %v", err)
+			}
 
-	const erstellung = "2026-06-16T14:30:00Z"
-	want := [][]string{
-		{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
-		{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "", "", "", "", "", "", tseFehlerAusfall, ""},
-	}
-	tse := tableByFile(t, archive, "transactions_tse.csv")
-	if !reflect.DeepEqual(tse.Records, want) {
-		t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tse.Records, want)
-	}
+			const erstellung = "2026-06-16T14:30:00Z"
+			want := [][]string{
+				{testSerial, erstellung, "3", nachsigniertSignedBonID, "1", "4711", "2026-06-16T12:00:00.000Z", "2026-06-16T12:00:01.000Z", "Kassenbeleg-V1", "12", "EVENTSIG==", "", ""},
+				{testSerial, erstellung, "3", nachsigniertOutageBonID, "1", "", "", "", "", "", "", tt.fehlertext, ""},
+			}
+			tseTabelle := tableByFile(t, archive, "transactions_tse.csv")
+			if !reflect.DeepEqual(tseTabelle.Records, want) {
+				t.Errorf("transactions_tse.csv records =\n%#v\nwant\n%#v", tseTabelle.Records, want)
+			}
 
-	// The error row carries the note but no signature.
-	if got := field(t, tse, 1, "TSE_TA_FEHLER"); got != tseFehlerAusfall {
-		t.Errorf("TSE_TA_FEHLER = %q, want %q", got, tseFehlerAusfall)
-	}
-	if got := field(t, tse, 1, "TSE_TA_SIG"); got != "" {
-		t.Errorf("TSE_TA_SIG = %q, want leer", got)
-	}
-
-	// Every Bonkopf Vorgang has exactly one TSE row (signed or as outage).
-	transactions := tableByFile(t, archive, "transactions.csv")
-	if len(tse.Records) != len(transactions.Records) {
-		t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tse.Records), len(transactions.Records))
+			// Every Bonkopf Vorgang has exactly one TSE row (signed or as error row).
+			transactions := tableByFile(t, archive, "transactions.csv")
+			if len(tseTabelle.Records) != len(transactions.Records) {
+				t.Errorf("transactions_tse-Zeilen (%d) ≠ Bonkopf-Vorgänge (%d)", len(tseTabelle.Records), len(transactions.Records))
+			}
+		})
 	}
 }
 
@@ -1686,13 +1690,13 @@ func TestUnsignierteVorgaengeAllerArtenTragenAusfallzeile(t *testing.T) {
 
 	// All Aufträge exist (signature required), none is confirmed.
 	signaturen := map[int]tse.EventSignatur{
-		10: {ProcessType: "Kassenbeleg-V1"},
-		1:  {ProcessType: "Bestellung-V1"},
-		2:  {ProcessType: "Kassenbeleg-V1"},
-		3:  {ProcessType: "Kassenbeleg-V1"},
-		4:  {ProcessType: "Bestellung-V1"},
-		11: {ProcessType: "Kassenbeleg-V1"},
-		13: {ProcessType: "Kassenbeleg-V1"},
+		10: {ProcessType: "Kassenbeleg-V1", Status: tse.StatusFehlgeschlagen},
+		1:  {ProcessType: "Bestellung-V1", Status: tse.StatusFehlgeschlagen},
+		2:  {ProcessType: "Kassenbeleg-V1", Status: tse.StatusFehlgeschlagen},
+		3:  {ProcessType: "Kassenbeleg-V1", Status: tse.StatusFehlgeschlagen},
+		4:  {ProcessType: "Bestellung-V1", Status: tse.StatusFehlgeschlagen},
+		11: {ProcessType: "Kassenbeleg-V1", Status: tse.StatusFehlgeschlagen},
+		13: {ProcessType: "Kassenbeleg-V1", Status: tse.StatusFehlgeschlagen},
 	}
 
 	archive, err := Map(testSnapshot(), events, signaturen)

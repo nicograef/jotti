@@ -154,7 +154,7 @@ Konformitätsbedingungen dieses Pfades:
 
 - **Keine still unsignierten Vorgänge:** Der Auftrag entsteht atomar mit dem Event, auch ohne TSE-Konfiguration. Ein Vorgang ohne Signatur ist immer ein offener oder endgültig markierter Auftrag, nie ein verlorener. Bei TSE-Ausfall, Signatur-Rückstand oder fehlender Konfiguration verzögert sich die Signatur; der Vorgang bleibt gebucht.
 - **Ausfalldokumentation:** Das Störungsprotokoll (`tse_stoerungen`) dokumentiert jede TSE-weite Störung als Zeitraum mit Grund (AEAO zu § 146a, 1.14.1). Die Auftragstabelle hält den Status jedes einzelnen Vorgangs.
-- **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …"; die TSE-Zeitpunkte weichen dann vom Belegdatum ab. Ein Vorgang ohne konfigurierte TSE trägt den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile.
+- **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …"; die TSE-Zeitpunkte weichen dann vom Belegdatum ab. Ein Vorgang ohne konfigurierte TSE trägt den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile. Ihr Text nennt den Auftragsstand: „Signatur ausstehend" (offen), „TSE-Ausfall" (fehlgeschlagen) oder „keine TSE konfiguriert".
 
 Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt einen frühen Start der Protokollierung. Sie beginnt in der TSE „unmittelbar mit Beginn des aufzuzeichnenden Vorgangs". jotti startet die TSE-Transaktion nicht im Kassier-Request. Der Signatur-Worker startet sie wenige Sekunden später (Start und Finish unmittelbar nacheinander, §3.2).
 
