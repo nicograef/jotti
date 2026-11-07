@@ -1,21 +1,22 @@
 .DEFAULT_GOAL := help
 
-.PHONY: init hooks up up-attached down restart logs status \
-       test test-frontend test-integration test-all test-e2e test-tse-live test-tse-live-setup fuzz \
-       lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint \
-       fmt-backend fmt-frontend fmt-repo fmt \
-       build-backend build-relay build-resolver build-local-proxy build-frontend build \
-       build-starter-windows build-relay-windows starter-syso release-windows \
-       sqlc \
-       prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden prod-release \
-       rocks-init rocks-up rocks-down rocks-logs rocks-reset-and-seed rocks-backup \
-       local-up local-down local-logs \
-       db-shell seed rebuild-projections \
-       clean \
-       check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend check-e2e check-shell check-workflows check-format check-repo crm \
-       check-govulncheck check-audit check-vuln check-integration check check-full verify \
-       website-dev website-build website-test website-check website-screenshots \
-       help
+# Every documented target stands in exactly one CLASS_* list, and `make help` prints the
+# lists as its sections. A target in none prints under UNCLASSIFIED. Every listed target is phony.
+CLASS_developer := init hooks up up-attached down restart logs status \
+	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
+	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
+	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
+	starter-syso release-windows build-frontend build sqlc \
+	local-up local-down local-logs db-shell seed rebuild-projections clean \
+	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
+	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo crm \
+	check-govulncheck check-audit check-vuln check-integration check check-full verify \
+	website-dev website-build website-test website-check website-screenshots help
+CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
+	prod-backup-verify prod-harden prod-release \
+	rocks-init rocks-up rocks-down rocks-logs rocks-reset-and-seed rocks-backup
+
+.PHONY: $(CLASS_developer) $(CLASS_production)
 
 # Development
 
@@ -410,22 +411,6 @@ website-screenshots: ## App-Screenshots + OG-Bild reproduzierbar neu erzeugen (e
 	fi
 
 # Hilfe
-
-# Every documented target stands in exactly one CLASS_* list, and `make help` prints the
-# lists as its sections. A target in none prints under UNCLASSIFIED.
-CLASS_developer := init hooks up up-attached down restart logs status \
-	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
-	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
-	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
-	starter-syso release-windows build-frontend build sqlc \
-	local-up local-down local-logs db-shell seed rebuild-projections clean \
-	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
-	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo crm \
-	check-govulncheck check-audit check-vuln check-integration check check-full verify \
-	website-dev website-build website-test website-check website-screenshots help
-CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
-	prod-backup-verify prod-harden prod-release \
-	rocks-init rocks-up rocks-down rocks-logs rocks-reset-and-seed rocks-backup
 
 # Column the help text wraps at.
 HELP_WIDTH ?= 96
