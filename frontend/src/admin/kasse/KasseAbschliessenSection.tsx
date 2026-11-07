@@ -26,10 +26,10 @@ import { cn, formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand } from './hooks'
 import {
+  KasseAbschliessenSchema,
   type KassenabschlussErgebnis,
   SignaturenAusstehendDetailsSchema,
 } from './KasseBackend'
-import { BetragCentsSchema } from './Kassensitzung'
 import { ZaehlhilfeDialog } from './ZaehlhilfeDialog'
 
 function abschlussErfolgMeldung(ergebnis: KassenabschlussErgebnis): string {
@@ -72,10 +72,7 @@ function offeneTischeWarnung(
   return `${String(anzahl)} ${tischWort} noch offen (${formatEuro(saldoCents)}).`
 }
 
-const FormDataSchema = z.object({
-  istBestandCents: BetragCentsSchema,
-})
-type FormData = z.infer<typeof FormDataSchema>
+type FormData = z.infer<typeof KasseAbschliessenSchema>
 
 export function KasseAbschliessenSection({
   kassensitzungNr,
@@ -92,7 +89,7 @@ export function KasseAbschliessenSection({
 
   const form = useForm<FormData>({
     defaultValues: { istBestandCents: 0 },
-    resolver: zodResolver(FormDataSchema),
+    resolver: zodResolver(KasseAbschliessenSchema),
     mode: 'onTouched',
   })
 

@@ -35,13 +35,9 @@ import { Input } from '@/components/ui/input'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { kasseBackend } from './hooks'
-import { BetragCentsSchema, BezeichnungSchema } from './Kassensitzung'
+import { KassensitzungEroeffnenSchema } from './KasseBackend'
 
-const FormDataSchema = z.object({
-  bezeichnung: BezeichnungSchema,
-  betragCents: BetragCentsSchema,
-})
-type FormData = z.infer<typeof FormDataSchema>
+type FormData = z.infer<typeof KassensitzungEroeffnenSchema>
 
 export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
   const { tseKonfiguration } = useTSEKonfiguration()
@@ -55,7 +51,7 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
       bezeichnung: '',
       betragCents: 0,
     },
-    resolver: zodResolver(FormDataSchema),
+    resolver: zodResolver(KassensitzungEroeffnenSchema),
     mode: 'onTouched',
   })
 

@@ -26,17 +26,12 @@ import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
 import { kasseBackend } from './hooks'
-import {
-  BetragCentsSchema,
-  type GeldtransitRichtung,
-  KommentarSchema,
-} from './Kassensitzung'
+import { GeldtransitBuchenSchema } from './KasseBackend'
+import type { GeldtransitRichtung } from './Kassensitzung'
 
-const FormDataSchema = z.object({
-  betragCents: BetragCentsSchema.gte(1, {
-    message: 'Bitte einen Betrag größer als 0 eingeben.',
-  }),
-  kommentar: KommentarSchema,
+const FormDataSchema = GeldtransitBuchenSchema.pick({
+  betragCents: true,
+  kommentar: true,
 })
 type FormData = z.infer<typeof FormDataSchema>
 

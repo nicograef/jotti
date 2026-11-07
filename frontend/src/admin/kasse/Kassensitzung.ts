@@ -49,11 +49,7 @@ export const KassensitzungSchema = z.object({
   zNr: z.number().int(),
   datum: z.string(),
   bezeichnung: z.string(),
-  status: z.enum([
-    KassensitzungStatus.OFFEN,
-    KassensitzungStatus.WIRD_ABGESCHLOSSEN,
-    KassensitzungStatus.ABGESCHLOSSEN,
-  ]),
+  status: z.enum(KassensitzungStatus),
 })
 
 // Der Kassenbestand (Soll) samt Aufschlüsselung. Es gilt (vor dem Kassensturz):

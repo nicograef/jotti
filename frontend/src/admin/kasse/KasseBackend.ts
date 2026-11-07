@@ -33,7 +33,7 @@ export const GeldtransitBuchenSchema = z.object({
   betragCents: z
     .number()
     .int()
-    .min(1, { message: 'Betrag muss mindestens 1 Cent sein.' }),
+    .min(1, { message: 'Bitte einen Betrag größer als 0 eingeben.' }),
   kommentar: KommentarSchema,
 })
 
