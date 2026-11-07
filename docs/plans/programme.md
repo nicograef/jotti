@@ -37,7 +37,7 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 1. **#145 Kommentar je Position**: freigegeben mit den Empfehlungen des PRD (additives Feld als Freeze-Ausnahme mit Zeile in `docs/decisions.md`, kein DSFinV-K-Export, Kommentar auf jedem Stückbon).
 2. **Auto-Pfand je Variante**: PRD in Arbeit, Freigabe durch Nico offen.
 3. **Stationsmodell**: PRD wird vereinfacht (heutige Druckerkonfiguration bleibt Standard, zusätzliche Drucker optional je Produkt), Freigabe danach.
-4. **Windows-Einzeldatei**: Entscheidungen 2 bis 7 nach Empfehlung freigegeben; Plan für alle Stufen, gebaut wird nur Stufe 1, Messung über einen Windows-Runner der CI, danach entscheidet Nico. Das PRD samt Befund #222 gehört dieser Spur; Distill lässt es aus.
+4. **Windows-Einzeldatei**: Entscheidungen 2 bis 7 nach Empfehlung freigegeben; Plan für alle Stufen, gebaut wird nur Stufe 1, Messung über einen Windows-Runner der CI, danach entscheidet Nico. Das PRD samt Befund #222 gehört dieser Spur; Distill lässt es aus. Nicos Entscheidungen vom 7. November: Windows 10 22H2 und 11, nur x64; Go für Stufe 1 bei höchstens 120 MB, höchstens 60 s bis zur Anmeldeseite beim ersten und 15 s bei späteren Starts und ohne Defender-Sperre; die Übernahme wird gebaut; jotti läuft als Windows-Dienst. Nach dem Schreiben des Plans stellt die Session Nico die nächste Fragenrunde zum Plan.
 
 ## Status
 
