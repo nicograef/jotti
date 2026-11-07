@@ -40,6 +40,19 @@ func (s *stubCommandRepo) UpsertTSEStammdaten(_ context.Context, st tse.Stammdat
 	return nil
 }
 
+// SaveEinrichtungMitStammdaten stores both or, like the transaction, nothing.
+func (s *stubCommandRepo) SaveEinrichtungMitStammdaten(_ context.Context, c tse.Konfiguration, st tse.Stammdaten) error {
+	if s.stammdatenUpsertErr != nil {
+		return s.stammdatenUpsertErr
+	}
+	if s.upsertErr != nil {
+		return s.upsertErr
+	}
+	s.gespeicherteStammdaten = &st
+	s.gespeichert = &c
+	return nil
+}
+
 // A nil aktive (the default) means no Kassensitzung is active.
 type stubKassensitzungReader struct {
 	aktive *kasse.Kassensitzung

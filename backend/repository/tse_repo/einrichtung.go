@@ -35,28 +35,43 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 // tse_nicht_konfiguriert and closes the keine_konfiguration Störungszeitraum, in the same transaction (docs/handbuch.md §3.13).
 func (r Repository) SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		warKonfiguriert := false
-		if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
-			warKonfiguriert = toTSEKonfiguration(vorher).IstKonfiguriert()
-		} else if !errors.Is(err, sql.ErrNoRows) {
-			return db.Error(err)
-		}
-
-		if err := qtx.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c)); err != nil {
-			return db.Error(err)
-		}
-
-		if warKonfiguriert || !c.IstKonfiguriert() {
-			return nil
-		}
-		if _, err := qtx.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {
-			return db.Error(err)
-		}
-		if err := qtx.CloseTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration); err != nil {
-			return db.Error(err)
-		}
-		return nil
+		return saveEinrichtung(ctx, qtx, c)
 	})
+}
+
+// SaveEinrichtungMitStammdaten stores the configuration and the master data of its TSS in one
+// transaction, so the current Stammdaten never name a TSS the configuration does not.
+func (r Repository) SaveEinrichtungMitStammdaten(ctx context.Context, c tse.Konfiguration, s tse.Stammdaten) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		if err := upsertStammdaten(ctx, qtx, s); err != nil {
+			return err
+		}
+		return saveEinrichtung(ctx, qtx, c)
+	})
+}
+
+func saveEinrichtung(ctx context.Context, qtx *dbgen.Queries, c tse.Konfiguration) error {
+	warKonfiguriert := false
+	if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
+		warKonfiguriert = toTSEKonfiguration(vorher).IstKonfiguriert()
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return db.Error(err)
+	}
+
+	if err := qtx.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c)); err != nil {
+		return db.Error(err)
+	}
+
+	if warKonfiguriert || !c.IstKonfiguriert() {
+		return nil
+	}
+	if _, err := qtx.MarkOffeneTSESignaturauftraegeNichtKonfiguriert(ctx); err != nil {
+		return db.Error(err)
+	}
+	if err := qtx.CloseTSEStoerung(ctx, tse.StoerungGrundKeineKonfiguration); err != nil {
+		return db.Error(err)
+	}
+	return nil
 }
 
 func upsertTSEKonfigurationParams(c tse.Konfiguration) dbgen.UpsertTSEKonfigurationParams {
@@ -93,6 +108,12 @@ func (r Repository) GetTSEStammdatenJeTSS(ctx context.Context) (map[string]tse.S
 // UpsertTSEStammdaten stores the master data as the current TSS's and keeps them under the TSS serial,
 // so a later TSS change cannot overwrite the data that verify this TSS's signatures.
 func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		return upsertStammdaten(ctx, qtx, s)
+	})
+}
+
+func upsertStammdaten(ctx context.Context, qtx *dbgen.Queries, s tse.Stammdaten) error {
 	params := dbgen.UpsertTSEStammdatenJeTSSParams{
 		Seriennummer:        s.Seriennummer,
 		SignaturAlgorithmus: s.SignaturAlgorithmus,
@@ -100,15 +121,13 @@ func (r Repository) UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) e
 		Zertifikat:          s.Zertifikat,
 		LogTimeFormat:       s.LogTimeFormat,
 	}
-	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		if err := qtx.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams(params)); err != nil {
-			return db.Error(err)
-		}
-		if err := qtx.UpsertTSEStammdatenJeTSS(ctx, params); err != nil {
-			return db.Error(err)
-		}
-		return nil
-	})
+	if err := qtx.UpsertTSEStammdaten(ctx, dbgen.UpsertTSEStammdatenParams(params)); err != nil {
+		return db.Error(err)
+	}
+	if err := qtx.UpsertTSEStammdatenJeTSS(ctx, params); err != nil {
+		return db.Error(err)
+	}
+	return nil
 }
 
 func toTSEKonfiguration(row dbgen.GetTSEKonfigurationRow) tse.Konfiguration {

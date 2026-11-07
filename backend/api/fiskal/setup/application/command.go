@@ -11,6 +11,7 @@ import (
 
 type tseCommandRepo interface {
 	SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error
+	SaveEinrichtungMitStammdaten(ctx context.Context, c tse.Konfiguration, s tse.Stammdaten) error
 	UpsertTSEStammdaten(ctx context.Context, s tse.Stammdaten) error
 	GetKassenidentitaet(ctx context.Context) (tse.Kassenidentitaet, error)
 }
@@ -58,45 +59,48 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 		return err
 	}
 
-	// tse.csv of the DSFinV-K export names the configured TSS, so its Stammdaten are stored first;
-	// they are keyed per TSS, so a later failed save leaves nothing wrong behind.
-	if conf.IstKonfiguriert() {
-		if err := c.speichereStammdatenVonHand(ctx, conf); err != nil {
-			return err
+	// Both saves run the SaveEinrichtung transaction, because this path can also make the transition
+	// to configured; otherwise the keine_konfiguration outage would stay open forever.
+	if !conf.IstKonfiguriert() {
+		if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
+			log.Error("Failed to save tse_konfiguration", "error", err)
+			return ErrDatabase
 		}
+		log.Info("TSE-Konfiguration saved", "ist_konfiguriert", false)
+		return nil
 	}
 
-	// SaveEinrichtung, because this path can also make the transition to configured;
-	// otherwise the keine_konfiguration outage would stay open forever.
-	if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
-		log.Error("Failed to save tse_konfiguration", "error", err)
+	// tse.csv of the DSFinV-K export names the TSS of the current Stammdaten, so they are fetched
+	// first and stored in the same transaction as the configuration.
+	stammdaten, err := c.holeStammdatenVonHand(ctx, conf)
+	if err != nil {
+		return err
+	}
+	if err := c.TSERepo.SaveEinrichtungMitStammdaten(ctx, conf, stammdaten); err != nil {
+		log.Error("Failed to save tse_konfiguration with TSE Stammdaten", "error", err, "tss_id", conf.TssID)
 		return ErrDatabase
 	}
 
-	log.Info("TSE-Konfiguration saved", "ist_konfiguriert", conf.IstKonfiguriert())
+	log.Info("TSE-Konfiguration saved", "ist_konfiguriert", true)
 
 	return nil
 }
 
-func (c Command) speichereStammdatenVonHand(ctx context.Context, conf tse.Konfiguration) error {
+func (c Command) holeStammdatenVonHand(ctx context.Context, conf tse.Konfiguration) (tse.Stammdaten, error) {
 	log := logging.FromContext(ctx)
 
 	client, err := c.NewTSESetupClient(tse.SetupCredentials{ApiKey: conf.ApiKey, ApiSecret: conf.ApiSecret})
 	if err != nil {
 		log.Error("Failed to create TSE setup client for manual configuration", "error", err)
-		return ErrTSEVerbindungFehlgeschlagen
+		return tse.Stammdaten{}, ErrTSEVerbindungFehlgeschlagen
 	}
 	stammdaten, err := client.RetrieveTSSStammdaten(ctx, conf.TssID)
 	if err != nil {
 		if errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
-			return ErrTSESetupZugangsdaten
+			return tse.Stammdaten{}, ErrTSESetupZugangsdaten
 		}
 		log.Warn("Failed to retrieve TSE Stammdaten for manual configuration", "error", err, "tss_id", conf.TssID)
-		return ErrTSEVerbindungFehlgeschlagen
+		return tse.Stammdaten{}, ErrTSEVerbindungFehlgeschlagen
 	}
-	if err := c.TSERepo.UpsertTSEStammdaten(ctx, stammdaten); err != nil {
-		log.Error("Failed to save TSE Stammdaten for manual configuration", "error", err, "tss_id", conf.TssID)
-		return ErrDatabase
-	}
-	return nil
+	return stammdaten, nil
 }
