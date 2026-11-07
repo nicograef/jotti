@@ -315,6 +315,27 @@ describe('LiveReportingSection — Übersicht', () => {
       screen.getByRole('link', { name: 'Zur Kassensitzungs-Seite' }),
     ).toHaveAttribute('href', '/admin/kasse')
   })
+
+  it('zeigt bei fehlgeschlagenem Laden einen Fehler statt des Leerzustands', async () => {
+    const onRefresh = vi.fn()
+    render(
+      <LiveReportingSection
+        liveData={null}
+        loading={false}
+        fehler
+        dataUpdatedAt={0}
+        onRefresh={onRefresh}
+      />,
+    )
+
+    expect(
+      screen.queryByText('Keine Kassensitzung geöffnet'),
+    ).not.toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Erneut versuchen' }),
+    )
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('LiveReportingSection — Verkäufe pro Produkt', () => {

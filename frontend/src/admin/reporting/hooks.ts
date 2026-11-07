@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  type UseQueryResult,
-} from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
@@ -56,17 +52,14 @@ export function useReport(
   return { result, isPending, isError, refetch }
 }
 
-interface LiveReportingResult {
+export function useLiveReporting(): QueryResult<LiveReportingData | null> & {
   liveData: LiveReportingData | null
-  isPending: boolean
   dataUpdatedAt: number
-  refetch: UseQueryResult<LiveReportingData | null>['refetch']
-}
-
-export function useLiveReporting(): LiveReportingResult {
+} {
   const {
     data: liveData = null as LiveReportingData | null,
     isPending,
+    isError,
     dataUpdatedAt,
     refetch,
   } = useQuery({
@@ -75,7 +68,7 @@ export function useLiveReporting(): LiveReportingResult {
     // 30 s Auto-Refresh ist vertretbar: lokaler Server, eine Admin-Session.
     refetchInterval: 30_000,
   })
-  return { liveData, isPending, dataUpdatedAt, refetch }
+  return { liveData, isPending, isError, dataUpdatedAt, refetch }
 }
 
 export function useDsfinvkExport(): {

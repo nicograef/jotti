@@ -8,6 +8,7 @@ import {
 import { type ReactNode, useState } from 'react'
 import { NavLink } from 'react-router'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -39,12 +40,14 @@ const OFFENE_TISCHE_VORSCHAU = 5
 export function LiveReportingSection({
   liveData,
   loading,
+  fehler = false,
   dataUpdatedAt,
   onRefresh,
   statusZeile,
 }: {
   liveData: LiveReportingData | null
   loading: boolean
+  fehler?: boolean
   dataUpdatedAt: number
   onRefresh: () => void
   statusZeile?: ReactNode
@@ -59,6 +62,16 @@ export function LiveReportingSection({
       <div className="flex items-center justify-center py-16">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
+    )
+  }
+
+  // Ohne geladene Daten wirkte die Kasse sonst fälschlich geschlossen.
+  if (fehler && liveData === null) {
+    return (
+      <LadefehlerAlert
+        titel="Übersicht konnte nicht geladen werden"
+        onErneutVersuchen={onRefresh}
+      />
     )
   }
 

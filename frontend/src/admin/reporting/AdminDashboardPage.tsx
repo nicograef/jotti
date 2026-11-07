@@ -14,6 +14,7 @@ export function AdminDashboardPage() {
   const {
     liveData,
     isPending: liveLoading,
+    isError: liveFehler,
     dataUpdatedAt,
     refetch,
   } = useLiveReporting()
@@ -67,6 +68,7 @@ export function AdminDashboardPage() {
     <LiveReportingSection
       liveData={liveData}
       loading={liveLoading}
+      fehler={liveFehler}
       dataUpdatedAt={dataUpdatedAt}
       onRefresh={() => void refetch()}
       statusZeile={
