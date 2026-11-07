@@ -110,13 +110,20 @@ func apexAnswer(qtype uint16) answer {
 	}
 }
 
-// parseDashedIPv4 liest eine IPv4 aus einem Label wie "192-168-1-50"; private
-// Adressen sind gültig — genau dafür existiert der Resolver. netip.ParseAddr lehnt
-// nicht-kanonische Labels (führende Nullen, falsche Oktett-Anzahl) ab; dashedIPv4 im
-// reverse-proxy erzeugt nur kanonische Namen.
+// cgnat ist der Shared Address Space (RFC 6598), den manche Router im LAN vergeben.
+var cgnat = netip.MustParsePrefix("100.64.0.0/10")
+
+// parseDashedIPv4 liest eine IPv4 aus einem Label wie "192-168-1-50". Nur LAN-Adressen
+// (privat, CGNAT, link-local, loopback) sind gültig: Eine öffentliche IP hinter einem
+// Wildcard-Zertifikat unter jotti.rocks wäre ein Phishing-Host mit gültigem TLS.
+// netip.ParseAddr lehnt nicht-kanonische Labels (führende Nullen, falsche Oktett-Anzahl)
+// ab; dashedIPv4 im reverse-proxy erzeugt nur kanonische Namen.
 func parseDashedIPv4(label string) (netip.Addr, bool) {
 	ip, err := netip.ParseAddr(strings.ReplaceAll(label, "-", "."))
 	if err != nil || !ip.Is4() {
+		return netip.Addr{}, false
+	}
+	if !ip.IsPrivate() && !ip.IsLinkLocalUnicast() && !ip.IsLoopback() && !cgnat.Contains(ip) {
 		return netip.Addr{}, false
 	}
 	return ip, true
