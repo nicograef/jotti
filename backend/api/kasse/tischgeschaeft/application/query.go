@@ -22,7 +22,6 @@ type TischStateView struct {
 
 type tischQueryRepo interface {
 	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
-	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
 	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
@@ -52,25 +51,6 @@ func (q Query) aktiveKassensitzungNr(ctx context.Context) (int, error) {
 		return 0, nil
 	}
 	return ks.ZNr, nil
-}
-
-func (q Query) GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error) {
-	log := logging.FromContext(ctx)
-
-	kassensitzungNr, err := q.aktiveKassensitzungNr(ctx)
-	if err != nil {
-		log.Error("Failed to get aktive kassensitzung for active tische", "error", err)
-		return nil, ErrDatabase
-	}
-
-	tische, err := q.TischRepo.GetAktiveTische(ctx, kassensitzungNr)
-	if err != nil {
-		log.Error("Failed to retrieve active tische", "error", err)
-		return nil, ErrDatabase
-	}
-
-	log.Info("Retrieved active tische", "count", len(tische))
-	return tische, nil
 }
 
 func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (TischStateView, error) {

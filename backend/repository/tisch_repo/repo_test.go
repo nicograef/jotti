@@ -186,7 +186,7 @@ func TestGetAlleTischNamenDB_EnthaeltGeloeschteTische(t *testing.T) {
 	}
 }
 
-func TestGetAktiveTischeDB(t *testing.T) {
+func TestGetAktiveTischeMitFavoritenDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -195,7 +195,7 @@ func TestGetAktiveTischeDB(t *testing.T) {
 	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 1", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "GetAll Test 2", Status: tisch.InactiveStatus, CreatedAt: now, UpdatedAt: now})
 
-	tables, err := repo.GetAktiveTische(ctx, 0)
+	tables, err := repo.GetAktiveTischeMitFavoriten(ctx, 0, 0)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

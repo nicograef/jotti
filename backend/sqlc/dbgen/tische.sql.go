@@ -35,43 +35,6 @@ func (q *Queries) CreateTisch(ctx context.Context, arg CreateTischParams) (int, 
 	return id, err
 }
 
-const getAktiveTische = `-- name: GetAktiveTische :many
-SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents
-FROM tische t
-LEFT JOIN tisch_sessions tss ON tss.tisch_id = t.id AND tss.kassensitzung_nr = $1
-WHERE t.status = 'active'
-ORDER BY t.id ASC
-`
-
-type GetAktiveTischeRow struct {
-	ID         int
-	Name       string
-	SaldoCents int
-}
-
-func (q *Queries) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]GetAktiveTischeRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAktiveTische, kassensitzungNr)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetAktiveTischeRow{}
-	for rows.Next() {
-		var i GetAktiveTischeRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.SaldoCents); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getAktiveTischeMitFavoriten = `-- name: GetAktiveTischeMitFavoriten :many
 SELECT t.id, t.name, COALESCE(tss.saldo_cents, 0)::integer AS saldo_cents, (f.user_id IS NOT NULL)::boolean AS ist_favorit
 FROM tische t

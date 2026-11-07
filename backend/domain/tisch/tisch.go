@@ -26,12 +26,6 @@ type Tisch struct {
 	UpdatedAt time.Time
 }
 
-type AktiverTisch struct {
-	ID         int
-	Name       string
-	SaldoCents int
-}
-
 type AktiverTischMitFavorit struct {
 	ID         int
 	Name       string

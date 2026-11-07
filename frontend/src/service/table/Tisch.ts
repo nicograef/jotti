@@ -1,20 +1,16 @@
 import { z } from 'zod'
 
-import { createNameSchema } from '@/lib/nameSchema'
-
 import { TischIdSchema } from '../schemas'
 import { BestellungSchema, PositionSchema } from './Bestellung'
 import { StornierungSchema } from './Stornierung'
 import { UmbuchungSchema } from './Umbuchung'
 import { ZahlungSchema } from './Zahlung'
-const TischNameSchema = createNameSchema(100)
 
-export const TischSchema = z.object({
-  id: TischIdSchema,
-  name: TischNameSchema,
-  saldoCents: z.number().int(),
-})
-export type Tisch = z.infer<typeof TischSchema>
+export interface Tisch {
+  id: number
+  name: string
+  saldoCents: number
+}
 
 export const TischSessionSchema = z.object({
   tischId: TischIdSchema,

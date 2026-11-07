@@ -114,10 +114,10 @@ function umbuchung(overrides: Partial<Umbuchung> = {}): Umbuchung {
 // The rebooking drawer loads its target tables itself.
 function backend(): FakeBackend {
   return new FakeBackend()
-    .respond('service/get-aktive-tische', {
+    .respond('service/get-aktive-tische-mit-favoriten', {
       tische: [
-        { id: 1, name: 'Stammtisch', saldoCents: 0 },
-        { id: 2, name: 'Nebentisch', saldoCents: 0 },
+        { id: 1, name: 'Stammtisch', saldoCents: 0, istFavorit: false },
+        { id: 2, name: 'Nebentisch', saldoCents: 0, istFavorit: false },
       ],
     })
     .respond('serviceleitung/stornierung-erteilen', {})

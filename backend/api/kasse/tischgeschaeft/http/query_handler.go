@@ -14,7 +14,6 @@ import (
 )
 
 type query interface {
-	GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error)
 	GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error)
 	GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error)
 	GetAktiveTischeMitFavoriten(ctx context.Context, userID int) ([]tisch.AktiverTischMitFavorit, error)
@@ -23,37 +22,6 @@ type query interface {
 
 type QueryHandler struct {
 	Query query
-}
-
-type aktiverTisch struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	SaldoCents int    `json:"saldoCents"`
-}
-
-type getAktiveTischeResponse struct {
-	Tische []aktiverTisch `json:"tische"`
-}
-
-func (h *QueryHandler) GetAktiveTischeHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		tische, err := h.Query.GetAktiveTische(r.Context())
-		if err != nil {
-			helper.SendServerError(w)
-			return
-		}
-
-		aktiveTische := make([]aktiverTisch, len(tische))
-		for i, aktiv := range tische {
-			aktiveTische[i] = aktiverTisch{
-				ID:         aktiv.ID,
-				Name:       aktiv.Name,
-				SaldoCents: aktiv.SaldoCents,
-			}
-		}
-
-		helper.SendResponse(w, getAktiveTischeResponse{Tische: aktiveTische})
-	}
 }
 
 type getTischHistorieRequest struct {

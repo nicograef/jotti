@@ -65,7 +65,6 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 		FavoritRepo:         deps.FavoritRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 	}}
-	r.HandleFunc("/get-aktive-tische", tq.GetAktiveTischeHandler())
 	r.HandleFunc("/get-tisch-historie", tq.GetTischHistorieHandler())
 	r.HandleFunc("/get-tisch-state", tq.GetTischStateHandler())
 	r.HandleFunc("/get-aktive-tische-mit-favoriten", tq.GetAktiveTischeMitFavoritenHandler())

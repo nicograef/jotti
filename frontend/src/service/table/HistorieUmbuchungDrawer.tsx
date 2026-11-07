@@ -28,7 +28,7 @@ import { GesamtZeile } from '../GesamtZeile'
 import { PositionAuswahlListe } from '../PositionAuswahlListe'
 import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
 import type { Bestellung } from './Bestellung'
-import { tischBackend, useAktiveTische } from './hooks'
+import { tischBackend, useAktiveTischeMitFavoriten } from './hooks'
 import { QuelleDrawerHeader } from './QuelleDrawerHeader'
 import type { Tisch } from './Tisch'
 import type { Umbuchung } from './Umbuchung'
@@ -56,7 +56,7 @@ export function HistorieUmbuchungDrawer({
     isPending: tischeLoading,
     isError: tischeError,
     refetch: reloadTische,
-  } = useAktiveTische()
+  } = useAktiveTischeMitFavoriten()
 
   const umbuchbareMengen = useMemo(() => toMengen(positionen), [positionen])
   const auswahl = useMengen<string>(

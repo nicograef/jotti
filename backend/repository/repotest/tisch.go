@@ -73,16 +73,6 @@ func (m *TischRepo) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	return result, m.err
 }
 
-func (m *TischRepo) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
-	var result []tisch.AktiverTisch
-	for _, t := range m.tische {
-		if t.Status == tisch.ActiveStatus {
-			result = append(result, tisch.AktiverTisch{ID: t.ID, Name: t.Name, SaldoCents: 0})
-		}
-	}
-	return result, m.err
-}
-
 func (m *TischRepo) CreateTisch(ctx context.Context, t tisch.Tisch) (int, error) {
 	newID := len(m.tische) + 1
 	t.ID = newID

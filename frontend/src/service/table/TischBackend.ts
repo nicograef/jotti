@@ -17,10 +17,8 @@ import {
   AktiverTischMitFavoritSchema,
   type EigeneUebersicht,
   EigeneUebersichtSchema,
-  type Tisch,
   type TischHistorieEintrag,
   TischHistorieEintragSchema,
-  TischSchema,
   type TischSession,
   TischSessionSchema,
 } from './Tisch'
@@ -32,15 +30,6 @@ export class TischBackend {
 
   constructor(backend: BackendClient) {
     this.backend = backend
-  }
-
-  public async getAktiveTische(): Promise<Tisch[]> {
-    const { tische } = await this.backend.post(
-      'service/get-aktive-tische',
-      {},
-      z.object({ tische: z.array(TischSchema) }),
-    )
-    return tische
   }
 
   public async bestellungAufnehmen(

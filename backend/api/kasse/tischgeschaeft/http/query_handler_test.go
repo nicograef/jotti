@@ -22,10 +22,6 @@ type mockQuery struct {
 	err      error
 }
 
-func (m mockQuery) GetAktiveTische(ctx context.Context) ([]tisch.AktiverTisch, error) {
-	return []tisch.AktiverTisch{{ID: m.tisch.ID, Name: m.tisch.Name, SaldoCents: 0}}, m.err
-}
-
 func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.HistorieEintrag, error) {
 	return []kasse.HistorieEintrag{{Art: kasse.HistorieEintragBestellung, Bestellung: &m.order}}, m.err
 }

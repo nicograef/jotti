@@ -38,10 +38,6 @@ func (m *umbuchungTischRepoMock) GetAlleTische(_ context.Context) ([]tisch.Tisch
 	return nil, nil
 }
 
-func (m *umbuchungTischRepoMock) GetAktiveTische(_ context.Context, _ int) ([]tisch.AktiverTisch, error) {
-	return nil, nil
-}
-
 func (m *umbuchungTischRepoMock) GetAktiveTischeMitFavoriten(_ context.Context, _, _ int) ([]tisch.AktiverTischMitFavorit, error) {
 	return nil, nil
 }

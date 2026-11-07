@@ -6,28 +6,12 @@ import type { QueryResult } from '@/lib/queryClient'
 import type {
   AktiverTischMitFavorit,
   EigeneUebersicht,
-  Tisch,
   TischHistorieEintrag,
   TischSession,
 } from './Tisch'
 import { TischBackend } from './TischBackend'
 
 export const tischBackend = new TischBackend(BackendSingleton)
-
-export function useAktiveTische(): QueryResult<Tisch[]> & {
-  tische: Tisch[]
-} {
-  const {
-    data: tische = [],
-    isPending,
-    isError,
-    refetch,
-  } = useQuery({
-    queryKey: ['aktive-tische'],
-    queryFn: () => tischBackend.getAktiveTische(),
-  })
-  return { tische, isPending, isError, refetch }
-}
 
 export function useTischHistorie(
   tischId: number,
@@ -78,12 +62,12 @@ function sortiereNachName(
   )
 }
 
-export function useAktiveTischeMitFavoriten(): Omit<
-  QueryResult<AktiverTischMitFavorit[]>,
-  'isPending'
+export function useAktiveTischeMitFavoriten(): QueryResult<
+  AktiverTischMitFavorit[]
 > & { tische: AktiverTischMitFavorit[] } {
   const {
     data: tische = [],
+    isPending,
     isError,
     refetch,
   } = useQuery({
@@ -91,7 +75,7 @@ export function useAktiveTischeMitFavoriten(): Omit<
     queryFn: () => tischBackend.getAktiveTischeMitFavoriten(),
     select: sortiereNachName,
   })
-  return { tische, isError, refetch }
+  return { tische, isPending, isError, refetch }
 }
 
 export const MEINE_TISCHE_STATE_KEY = 'meine-tische-state'

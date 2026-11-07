@@ -63,24 +63,6 @@ func (r Repository) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int
 	return result, nil
 }
 
-func (r Repository) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
-	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
-	if err != nil {
-		return nil, db.Error(err)
-	}
-
-	tische := make([]tisch.AktiverTisch, 0, len(rows))
-	for _, row := range rows {
-		tische = append(tische, tisch.AktiverTisch{
-			ID:         row.ID,
-			Name:       row.Name,
-			SaldoCents: row.SaldoCents,
-		})
-	}
-
-	return tische, nil
-}
-
 func (r Repository) GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error) {
 	rows, err := r.q.GetAktiveTischeMitFavoriten(ctx, dbgen.GetAktiveTischeMitFavoritenParams{
 		UserID:          userID,

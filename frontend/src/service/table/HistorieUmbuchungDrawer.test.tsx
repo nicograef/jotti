@@ -19,8 +19,8 @@ vi.mock('sonner', () => ({
 
 const aktiveTische = {
   tische: [
-    { id: 1, name: 'Stammtisch', saldoCents: 0 },
-    { id: 2, name: 'Nebentisch', saldoCents: 0 },
+    { id: 1, name: 'Stammtisch', saldoCents: 0, istFavorit: false },
+    { id: 2, name: 'Nebentisch', saldoCents: 0, istFavorit: false },
   ],
 }
 
@@ -35,7 +35,7 @@ afterEach(() => {
 
 function backend(): FakeBackend {
   return new FakeBackend()
-    .respond('service/get-aktive-tische', aktiveTische)
+    .respond('service/get-aktive-tische-mit-favoriten', aktiveTische)
     .respond('service/bestellung-umbuchen', {})
 }
 
@@ -248,7 +248,7 @@ describe('HistorieUmbuchungDrawer', () => {
 
 describe('HistorieUmbuchungDrawer bei Ladefehler der Ziel-Tische', () => {
   it('zeigt den Hinweis statt einer leeren Auswahl', async () => {
-    renderDrawer(backend().fail('service/get-aktive-tische'))
+    renderDrawer(backend().fail('service/get-aktive-tische-mit-favoriten'))
 
     expect(
       await screen.findByText('Ziel-Tische konnten nicht geladen werden'),
@@ -266,7 +266,10 @@ describe('HistorieUmbuchungDrawer bei Ladefehler der Ziel-Tische', () => {
       .mockReturnValue(aktiveTische)
     const user = userEvent.setup()
     renderDrawer(
-      backend().respond('service/get-aktive-tische', getAktiveTische),
+      backend().respond(
+        'service/get-aktive-tische-mit-favoriten',
+        getAktiveTische,
+      ),
     )
 
     await user.click(
