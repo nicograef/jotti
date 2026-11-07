@@ -41,7 +41,7 @@ const rueckgabe: PfandrueckgabeHistorieEintrag = {
   tischId: 4,
   userName: 'Anna',
   getaetigtAm: '2026-06-08T10:00:00Z',
-  positionen: [glas],
+  positionen: [{ ...glas, kommentar: '' }],
   gesamtbetragCents: 400,
   kommentar: '',
   offenePositionen: [glas],

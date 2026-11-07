@@ -70,7 +70,7 @@ const VorgangStornierungSchema = z.object({
 export const VorgangHistorieBasisSchema = z.object({
   userName: z.string(),
   getaetigtAm: DateStringSchema,
-  positionen: GebuchtePositionSchema.array(),
+  positionen: GebuchtePositionSchema.extend({ kommentar: z.string() }).array(),
   gesamtbetragCents: z.number().int().min(0),
   kommentar: z.string(),
   offenePositionen: GebuchtePositionSchema.array(),

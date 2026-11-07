@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -64,6 +70,7 @@ const verkauf: VorgangEintrag = {
       steuersatz: 'regel',
       einzelpreisCents: 500,
       menge: 2,
+      kommentar: '',
     },
   ],
   gesamtbetragCents: 1000,
@@ -98,6 +105,7 @@ describe('VorgangHistorie', () => {
           steuersatz: 'regel',
           einzelpreisCents: 500,
           menge: 2,
+          kommentar: '',
         },
         {
           positionId: '00000000-0000-4000-8000-000000000004',
@@ -108,12 +116,46 @@ describe('VorgangHistorie', () => {
           steuersatz: 'ermaessigt',
           einzelpreisCents: 150,
           menge: 1,
+          kommentar: '',
         },
       ],
     }
     renderHistorie([mehrpositionenVerkauf])
 
     expect(screen.getByText('2× Cola 0,5l, 1× Brezel')).toBeInTheDocument()
+  })
+
+  it('zeigt den Positionskommentar unter seiner Position im Detail', async () => {
+    const user = userEvent.setup()
+    renderHistorie([
+      {
+        ...verkauf,
+        positionen: [
+          {
+            ...verkauf.positionen[0],
+            produktName: 'Bratwurst',
+            varianteName: 'mit Brot',
+            kommentar: '1 davon ohne Senf',
+          },
+          {
+            ...verkauf.positionen[0],
+            positionId: '00000000-0000-4000-8000-000000000004',
+            produktName: 'Bier',
+            varianteName: '0,5l',
+            kommentar: '',
+          },
+        ],
+      },
+    ])
+
+    await user.click(screen.getByRole('button', { name: /Verkauf/ }))
+
+    const dialog = screen.getByRole('dialog')
+    const kommentar = within(dialog).getByText('„1 davon ohne Senf“')
+    const zeile = kommentar.parentElement
+    expect(zeile).toHaveTextContent(/Bratwurst mit Brot/)
+    expect(zeile).not.toHaveTextContent(/Bier/)
+    expect(within(dialog).getAllByText(/„/)).toHaveLength(1)
   })
 
   it('cancels selected positions with exactly one stornieren call', async () => {

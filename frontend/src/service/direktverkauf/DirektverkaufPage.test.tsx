@@ -55,7 +55,7 @@ const stornierterVerkauf = {
   verkaufId,
   userName: 'Anna',
   getaetigtAm: '2026-06-08T10:00:00Z',
-  positionen: [cola],
+  positionen: [{ ...cola, kommentar: '' }],
   gesamtbetragCents: 1000,
   kommentar: '',
   offenePositionen: [{ ...cola, menge: 1 }],
