@@ -316,13 +316,12 @@ func (w *tseSignaturWorker) processAuftrag(ctx context.Context, client tseWorker
 		return err
 	}
 
+	// Only times and a signature the TSE logged may be stored as TSE data; a gap concerns this job only.
 	logTimeStart := nonZeroTime(startLogTime, finishResult.LogTimeStart)
-	if logTimeStart.IsZero() {
-		logTimeStart = w.now().UTC()
-	}
 	logTimeEnd := nonZeroTime(finishResult.LogTime, finishResult.LogTimeEnd)
-	if logTimeEnd.IsZero() {
-		logTimeEnd = logTimeStart
+	if logTimeStart.IsZero() || logTimeEnd.IsZero() || finishResult.Signature == "" {
+		return tse.AuftragsFehler{Err: fmt.Errorf("transaktion %s: fiskaly lieferte unvollständige Signaturdaten (Start %v, Ende %v, Signatur leer %t)",
+			auftrag.TxID, logTimeStart, logTimeEnd, finishResult.Signature == "")}
 	}
 
 	return w.store.QuittiereTSESignaturauftrag(ctx, auftrag.ID, tse.Signatur{

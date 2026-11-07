@@ -174,7 +174,7 @@ func (c txAbhaengigerClient) FinishTransaction(_ context.Context, txID string, _
 	if err, ok := c.ablehnungen[txID]; ok {
 		return tse.FinishResult{}, err
 	}
-	return tse.FinishResult{TransactionNumber: 60, SignatureCounter: 900, SerialNumberTSE: "TSE-SN", Signature: "SIG-" + txID}, nil
+	return tse.FinishResult{TransactionNumber: 60, SignatureCounter: 900, SerialNumberTSE: "TSE-SN", LogTimeEnd: time.Date(2026, 6, 10, 20, 0, 2, 0, time.UTC), Signature: "SIG-" + txID}, nil
 }
 
 func TestTSESignaturWorker_ProcessOnce_Success(t *testing.T) {
@@ -330,6 +330,46 @@ func TestTSESignaturWorker_ProcessOnce_UnerwarteterZustandIstAuftragsFehler(t *t
 	}
 }
 
+// A time or signature the TSE did not deliver is never filled in: the job fails its attempt and stays unsigned.
+func TestTSESignaturWorker_ProcessOnce_UnvollstaendigeSignaturdatenSindAuftragsFehler(t *testing.T) {
+	start := time.Date(2026, 6, 10, 18, 0, 1, 0, time.UTC)
+	ende := time.Date(2026, 6, 10, 18, 0, 2, 0, time.UTC)
+	tests := []struct {
+		name     string
+		startLog time.Time
+		finish   tse.FinishResult
+	}{
+		{"ohne Startzeit", time.Time{}, tse.FinishResult{LogTimeEnd: ende, Signature: "SIG"}},
+		{"ohne Endzeit", start, tse.FinishResult{Signature: "SIG"}},
+		{"ohne Signatur", start, tse.FinishResult{LogTimeEnd: ende}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &mockTSESignaturStore{offene: []tse_repo.OffenerSignaturauftrag{{ID: 13, TxID: "tx-13", ProcessType: "Kassenbeleg-V1", ProcessData: "Beleg^1.00"}}}
+			worker := &tseSignaturWorker{
+				settingsRepo: &mockTSESettingsReader{conf: configuredTSE()},
+				store:        store,
+				newTSEClient: newWorkerClient(tsetest.FakeClient{
+					RetrieveErr:    tse.ErrTransactionNichtGefunden,
+					StartResponse:  tse.StartResult{LogTime: tt.startLog},
+					FinishResponse: tt.finish,
+				}),
+				now: time.Now,
+			}
+
+			if err := worker.processOnce(context.Background()); err != nil {
+				t.Fatalf("expected no durchlauf error, got %v", err)
+			}
+			if len(store.quittierungen) != 0 {
+				t.Errorf("expected no quittierung, got %+v", store.quittierungen)
+			}
+			if len(store.fehlversuche) != 1 || store.fehlversuche[0].AuftragID != 13 {
+				t.Errorf("expected fehlversuch for auftrag 13, got %+v", store.fehlversuche)
+			}
+		})
+	}
+}
+
 // During backoff no trigger or tick calls fiskaly; afterwards the half-open probe grows the backoff on failure.
 // On success the full backlog signs and the first signature closes the period.
 func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
@@ -383,7 +423,7 @@ func TestTSESignaturWorker_StoerungBackoffUndHalfOpenProbe(t *testing.T) {
 	client.FakeClient = tsetest.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 70, LogTime: jetzt},
-		FinishResponse: tse.FinishResult{TransactionNumber: 70, SignatureCounter: 900, SerialNumberTSE: "TSE-SN", Signature: "SIG"},
+		FinishResponse: tse.FinishResult{TransactionNumber: 70, SignatureCounter: 900, SerialNumberTSE: "TSE-SN", LogTimeEnd: jetzt, Signature: "SIG"},
 	}
 	jetzt = jetzt.Add(11 * time.Second)
 	if err := worker.processOnce(ctx); err != nil {
@@ -678,7 +718,7 @@ func signierenderFakeClient() tseClientFactory {
 	return newWorkerClient(tsetest.FakeClient{
 		RetrieveErr:    tse.ErrTransactionNichtGefunden,
 		StartResponse:  tse.StartResult{TransactionNumber: 50, LogTime: time.Date(2026, 6, 10, 19, 0, 1, 0, time.UTC)},
-		FinishResponse: tse.FinishResult{TransactionNumber: 50, SignatureCounter: 800, SerialNumberTSE: "TSE-SN", Signature: "SIG"},
+		FinishResponse: tse.FinishResult{TransactionNumber: 50, SignatureCounter: 800, SerialNumberTSE: "TSE-SN", LogTimeEnd: time.Date(2026, 6, 10, 19, 0, 2, 0, time.UTC), Signature: "SIG"},
 	})
 }
 
