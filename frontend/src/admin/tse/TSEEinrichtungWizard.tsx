@@ -19,9 +19,13 @@ import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
-import { ErgebnisSchritt } from './ErgebnisSchritt'
+import { ErgebnisSchritt, UnvollstaendigSchritt } from './ErgebnisSchritt'
 import { checkTSESetup, useTSEEinrichtung } from './hooks'
-import { SETUP_FEHLER, ZUGANGSDATEN_FEHLER } from './setupFehler'
+import {
+  SETUP_FEHLER,
+  unvollstaendigAnzeigen,
+  ZUGANGSDATEN_FEHLER,
+} from './setupFehler'
 import {
   type TSEEinrichtenErgebnis,
   type TSESetupBefund,
@@ -35,6 +39,8 @@ export function TSEEinrichtungWizard() {
   const [apiSecret, setApiSecret] = useState('')
   const [befund, setBefund] = useState<TSESetupBefund | null>(null)
   const [ergebnis, setErgebnis] = useState<TSEEinrichtenErgebnis | null>(null)
+  const [unvollstaendig, setUnvollstaendig] =
+    useState<TSEEinrichtenErgebnis | null>(null)
 
   // Die Zugangsdaten sind aus dem fiskaly-HUB abgetippt und werden
   // nirgends gespeichert; ein Reload verlangt den ganzen Weg dorthin erneut.
@@ -52,6 +58,7 @@ export function TSEEinrichtungWizard() {
   const handlePruefen = async () => {
     await run(async () => {
       setBefund(await checkTSESetup({ apiKey, apiSecret }))
+      setUnvollstaendig(null)
     })
   }
 
@@ -62,6 +69,7 @@ export function TSEEinrichtungWizard() {
     setApiSecret('')
     setBefund(null)
     setErgebnis(null)
+    setUnvollstaendig(null)
   }
 
   return (
@@ -79,12 +87,19 @@ export function TSEEinrichtungWizard() {
             ergebnis={ergebnis}
             onFertig={zurueckZuZugangsdaten}
           />
+        ) : unvollstaendig ? (
+          <UnvollstaendigSchritt
+            ergebnis={unvollstaendig}
+            loading={loading}
+            onErneutPruefen={() => void handlePruefen()}
+          />
         ) : befund ? (
           <BefundSchritt
             apiKey={apiKey}
             apiSecret={apiSecret}
             befund={befund}
             onEingerichtet={setErgebnis}
+            onUnvollstaendig={setUnvollstaendig}
             onZuruck={zurueckZuZugangsdaten}
           />
         ) : (
@@ -163,12 +178,14 @@ function BefundSchritt({
   apiSecret,
   befund,
   onEingerichtet,
+  onUnvollstaendig,
   onZuruck,
 }: {
   apiKey: string
   apiSecret: string
   befund: TSESetupBefund
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
+  onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
   onZuruck: () => void
 }) {
   // Die „eigene" TSS (diese Kasse ist dort schon angemeldet) zuerst, damit der
@@ -199,6 +216,7 @@ function BefundSchritt({
               umgebung={befund.umgebung}
               tss={tss}
               onUebernommen={onEingerichtet}
+              onUnvollstaendig={onUnvollstaendig}
             />
           ))}
           {istTest && (
@@ -206,6 +224,7 @@ function BefundSchritt({
               apiKey={apiKey}
               apiSecret={apiSecret}
               onEingerichtet={onEingerichtet}
+              onUnvollstaendig={onUnvollstaendig}
             />
           )}
         </div>
@@ -215,6 +234,7 @@ function BefundSchritt({
           apiSecret={apiSecret}
           umgebung={befund.umgebung}
           onEingerichtet={onEingerichtet}
+          onUnvollstaendig={onUnvollstaendig}
         />
       ) : (
         <Alert variant="destructive">
@@ -239,10 +259,12 @@ function NeueTseTrotzdemAnlegen({
   apiKey,
   apiSecret,
   onEingerichtet,
+  onUnvollstaendig,
 }: {
   apiKey: string
   apiSecret: string
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
+  onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
 }) {
   const [offen, setOffen] = useState(false)
 
@@ -260,6 +282,7 @@ function NeueTseTrotzdemAnlegen({
           umgebung="TEST"
           neuAnlegenTrotzVorhandener
           onEingerichtet={onEingerichtet}
+          onUnvollstaendig={onUnvollstaendig}
         />
       </CollapsibleContent>
     </Collapsible>
@@ -272,12 +295,14 @@ function BestaetigungSchritt({
   umgebung,
   neuAnlegenTrotzVorhandener = false,
   onEingerichtet,
+  onUnvollstaendig,
 }: {
   apiKey: string
   apiSecret: string
   umgebung: Umgebung
   neuAnlegenTrotzVorhandener?: boolean
   onEingerichtet: (ergebnis: TSEEinrichtenErgebnis) => void
+  onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
 }) {
   const [tippBestaetigung, setTippBestaetigung] = useState('')
   const { richteTSEEin } = useTSEEinrichtung()
@@ -297,6 +322,7 @@ function BestaetigungSchritt({
       tse_einrichtung_fehlgeschlagen:
         'Die Einrichtung ist fehlgeschlagen. Bitte später erneut versuchen.',
     },
+    onCode: unvollstaendigAnzeigen(onUnvollstaendig),
   })
 
   const istLive = umgebung === 'LIVE'

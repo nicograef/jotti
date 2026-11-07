@@ -13,7 +13,7 @@ import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
 import { useTSEEinrichtung } from './hooks'
-import { SETUP_FEHLER } from './setupFehler'
+import { SETUP_FEHLER, unvollstaendigAnzeigen } from './setupFehler'
 import {
   type TSEEinrichtenErgebnis,
   type TSSBefund,
@@ -26,12 +26,14 @@ export function UebernahmeSchritt({
   umgebung,
   tss,
   onUebernommen,
+  onUnvollstaendig,
 }: {
   apiKey: string
   apiSecret: string
   umgebung: Umgebung
   tss: TSSBefund
   onUebernommen: (ergebnis: TSEEinrichtenErgebnis) => void
+  onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
 }) {
   const [pin, setPin] = useState('')
   const [pinUnbekannt, setPinUnbekannt] = useState(false)
@@ -57,6 +59,7 @@ export function UebernahmeSchritt({
     // Die Sackgasse „PIN unbekannt" wird unten als bleibende Meldung mit
     // Auswegen gezeigt, nicht als flüchtiger Toast.
     onCode: {
+      ...unvollstaendigAnzeigen(onUnvollstaendig),
       tse_setup_pin_unbekannt: () => {
         setPinUnbekannt(true)
       },
@@ -118,6 +121,7 @@ export function UebernahmeSchritt({
             umgebung={umgebung}
             tssId={tss.id}
             onUebernommen={onUebernommen}
+            onUnvollstaendig={onUnvollstaendig}
           />
         </div>
       )}
@@ -189,12 +193,14 @@ function PukReset({
   umgebung,
   tssId,
   onUebernommen,
+  onUnvollstaendig,
 }: {
   apiKey: string
   apiSecret: string
   umgebung: Umgebung
   tssId: string
   onUebernommen: (ergebnis: TSEEinrichtenErgebnis) => void
+  onUnvollstaendig: (ergebnis: TSEEinrichtenErgebnis) => void
 }) {
   const [offen, setOffen] = useState(false)
   const [puk, setPuk] = useState('')
@@ -216,6 +222,7 @@ function PukReset({
     // Der falsche PUK bleibt als bleibende Meldung mit Ausweg stehen, nicht
     // als flüchtiger Toast.
     onCode: {
+      ...unvollstaendigAnzeigen(onUnvollstaendig),
       tse_setup_puk_unbekannt: () => {
         setPukUnbekannt(true)
       },

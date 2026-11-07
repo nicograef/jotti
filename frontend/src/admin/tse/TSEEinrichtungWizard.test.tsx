@@ -54,6 +54,12 @@ const einsatzbereiterBefund: TSESetupBefund = {
   neuanlageMoeglich: false,
 }
 
+const leererBefund: TSESetupBefund = {
+  umgebung: 'TEST',
+  vorhandeneTss: [],
+  neuanlageMoeglich: true,
+}
+
 const neueTseErgebnis: TSEEinrichtenErgebnis = {
   tssId: 'tss-1',
   clientId: 'client-1',
@@ -196,6 +202,43 @@ describe('TSEEinrichtungWizard im Vorgangs-Register', () => {
     // Erst „Fertig" gibt Geheimnisse und Zugangsdaten frei.
     await user.click(screen.getByRole('button', { name: 'Fertig' }))
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
+  })
+})
+
+describe('TSEEinrichtungWizard — gescheiterte Einrichtung', () => {
+  it('zeigt PUK und PIN einer unvollständigen Einrichtung und bietet nach erneuter Prüfung die Übernahme an', async () => {
+    const user = userEvent.setup()
+    const befunde = [leererBefund, uebernehmbarerBefund]
+    await bisZumBefund(
+      user,
+      backend(leererBefund)
+        .respond('admin/tse-setup-pruefen', () => befunde.shift())
+        .fail(
+          'admin/tse-einrichten',
+          new BackendError(
+            400,
+            'tse_einrichtung_unvollstaendig',
+            neueTseErgebnis,
+          ),
+        ),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'TSE einrichten' }))
+
+    expect(await screen.findByText('PUK-123456')).toBeInTheDocument()
+    expect(screen.getByText('12345')).toBeInTheDocument()
+    const erneutPruefen = screen.getByRole('button', {
+      name: 'TSE erneut prüfen',
+    })
+    expect(erneutPruefen).toBeDisabled()
+
+    await user.click(screen.getByRole('checkbox'))
+    await user.click(erneutPruefen)
+
+    expect(
+      await screen.findByRole('button', { name: 'TSE übernehmen' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('PUK-123456')).not.toBeInTheDocument()
   })
 })
 

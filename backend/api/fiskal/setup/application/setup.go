@@ -41,6 +41,30 @@ type TSESetupErgebnis struct {
 	Umgebung string
 }
 
+// TSEEinrichtungUnvollstaendigError is a step that failed after the TSS or new admin secrets came into being.
+// It carries the secrets, because they exist nowhere else and the takeover that finishes the setup may need them.
+type TSEEinrichtungUnvollstaendigError struct {
+	Ergebnis TSESetupErgebnis
+	Ursache  error
+}
+
+// Error leaves out PUK and PIN, so logging the error cannot leak them.
+func (e *TSEEinrichtungUnvollstaendigError) Error() string {
+	return "tse einrichtung unvollstaendig: " + e.Ursache.Error()
+}
+
+func (e *TSEEinrichtungUnvollstaendigError) Unwrap() error {
+	return e.Ursache
+}
+
+// unvollstaendig keeps err unchanged when the failed run created no new secret.
+func unvollstaendig(ergebnis TSESetupErgebnis, err error) error {
+	if ergebnis.PUK == "" && ergebnis.AdminPIN == "" {
+		return err
+	}
+	return &TSEEinrichtungUnvollstaendigError{Ergebnis: ergebnis, Ursache: err}
+}
+
 // RichteTSEEin runs the fiskaly lifecycle on an empty account and saves only after it completes.
 // LIVE guard and the existing-TSS lock with its TEST-only override: docs/handbuch.md §3.13.
 func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredentials, bestaetigteUmgebung tse.Umgebung, neuAnlegenTrotzVorhandener bool) (TSESetupErgebnis, error) {
@@ -91,6 +115,13 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		}
 		return TSESetupErgebnis{}, einrichtungsFehler(log, err, "tss anlegen", "")
 	}
+	ergebnis := TSESetupErgebnis{
+		TssID:    erstellt.ID,
+		ClientID: clientID,
+		PUK:      erstellt.PUK,
+		AdminPIN: pin,
+		Umgebung: string(umgebung),
+	}
 	if err := vollendeLebenszyklus(ctx, log, client, lebenszyklus{
 		start:        tse.TSSCreated,
 		tssID:        erstellt.ID,
@@ -100,22 +131,16 @@ func (c Command) RichteTSEEin(ctx context.Context, credentials tse.SetupCredenti
 		seriennummer: seriennummer,
 		aktion:       clientRegistrieren,
 	}); err != nil {
-		return TSESetupErgebnis{}, err
+		return TSESetupErgebnis{}, unvollstaendig(ergebnis, err)
 	}
 
 	if err := c.saveEinrichtung(ctx, log, client, credentials, erstellt.ID, clientID); err != nil {
-		return TSESetupErgebnis{}, err
+		return TSESetupErgebnis{}, unvollstaendig(ergebnis, err)
 	}
 
 	log.Info("TSE setup completed", "tss_id", erstellt.ID, "umgebung", string(umgebung))
 
-	return TSESetupErgebnis{
-		TssID:    erstellt.ID,
-		ClientID: clientID,
-		PUK:      erstellt.PUK,
-		AdminPIN: pin,
-		Umgebung: string(umgebung),
-	}, nil
+	return ergebnis, nil
 }
 
 // UebernimmTSE drives an existing TSS from its current state to a registered client,
@@ -168,6 +193,13 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 	if err != nil {
 		return TSESetupErgebnis{}, err
 	}
+	ergebnis := TSESetupErgebnis{
+		TssID:    tssID,
+		ClientID: clientID,
+		PUK:      zugang.neuerPUK,
+		AdminPIN: zugang.neuePIN,
+		Umgebung: string(umgebung),
+	}
 
 	if err := vollendeLebenszyklus(ctx, log, client, lebenszyklus{
 		start:        state,
@@ -178,22 +210,16 @@ func (c Command) UebernimmTSE(ctx context.Context, credentials tse.SetupCredenti
 		seriennummer: seriennummer,
 		aktion:       aktion,
 	}); err != nil {
-		return TSESetupErgebnis{}, err
+		return TSESetupErgebnis{}, unvollstaendig(ergebnis, err)
 	}
 
 	if err := c.saveEinrichtung(ctx, log, client, credentials, tssID, clientID); err != nil {
-		return TSESetupErgebnis{}, err
+		return TSESetupErgebnis{}, unvollstaendig(ergebnis, err)
 	}
 
 	log.Info("TSE takeover completed", "tss_id", tssID, "umgebung", string(umgebung), "ausgangszustand", string(state))
 
-	return TSESetupErgebnis{
-		TssID:    tssID,
-		ClientID: clientID,
-		PUK:      zugang.neuerPUK,
-		AdminPIN: zugang.neuePIN,
-		Umgebung: string(umgebung),
-	}, nil
+	return ergebnis, nil
 }
 
 // vorbereiteEinrichtung runs the checks RichteTSEEin and UebernimmTSE share before any write at fiskaly.

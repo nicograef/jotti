@@ -84,29 +84,11 @@ export function ErgebnisSchritt({
       )}
 
       {hatNeueGeheimnisse && (
-        <>
-          <div className="grid gap-3 rounded-md border p-4">
-            {hatNeuenPuk && <Geheimnis label="Admin-PUK" wert={ergebnis.puk} />}
-            {hatNeuePin && (
-              <Geheimnis label="Admin-PIN" wert={ergebnis.adminPin} />
-            )}
-          </div>
-
-          <label className="flex items-start gap-2 text-sm">
-            <Checkbox
-              checked={verwahrt}
-              onCheckedChange={(checked) => {
-                setVerwahrt(checked === true)
-              }}
-              className="mt-0.5"
-            />
-            <span>
-              {hatNeuenPuk
-                ? 'Ich habe Admin-PUK und Admin-PIN sicher verwahrt.'
-                : 'Ich habe die neue Admin-PIN sicher verwahrt.'}
-            </span>
-          </label>
-        </>
+        <GeheimnisVerwahrung
+          ergebnis={ergebnis}
+          verwahrt={verwahrt}
+          onVerwahrtChange={setVerwahrt}
+        />
       )}
 
       {status ? (
@@ -127,6 +109,89 @@ export function ErgebnisSchritt({
         </Button>
       )}
     </div>
+  )
+}
+
+// Ein Schritt nach dem Entstehen von PUK oder PIN ist gescheitert. Die
+// Übernahme schließt die Einrichtung ab und braucht ab UNINITIALIZED die PIN.
+export function UnvollstaendigSchritt({
+  ergebnis,
+  loading,
+  onErneutPruefen,
+}: {
+  ergebnis: TSEEinrichtenErgebnis
+  loading: boolean
+  onErneutPruefen: () => void
+}) {
+  const [verwahrt, setVerwahrt] = useState(false)
+
+  useOffenerVorgang(true)
+
+  return (
+    <div className="grid gap-4">
+      <Alert variant="destructive">
+        <AlertTitle>Einrichtung nicht abgeschlossen</AlertTitle>
+        <AlertDescription>
+          {ergebnis.puk !== ''
+            ? 'Notiere Admin-PUK und Admin-PIN jetzt und verwahre sie sicher außerhalb von jotti.'
+            : 'Notiere die neue Admin-PIN jetzt und verwahre sie sicher außerhalb von jotti.'}{' '}
+          Sie werden nicht gespeichert und können nicht erneut angezeigt werden.
+          Prüfe danach die TSE: jotti bietet die angelegte TSE zur Übernahme an.
+        </AlertDescription>
+      </Alert>
+
+      <GeheimnisVerwahrung
+        ergebnis={ergebnis}
+        verwahrt={verwahrt}
+        onVerwahrtChange={setVerwahrt}
+      />
+
+      <Button
+        className="w-fit"
+        onClick={onErneutPruefen}
+        disabled={!verwahrt || loading}
+      >
+        {loading ? 'Prüfe…' : 'TSE erneut prüfen'}
+      </Button>
+    </div>
+  )
+}
+
+function GeheimnisVerwahrung({
+  ergebnis,
+  verwahrt,
+  onVerwahrtChange,
+}: {
+  ergebnis: TSEEinrichtenErgebnis
+  verwahrt: boolean
+  onVerwahrtChange: (verwahrt: boolean) => void
+}) {
+  const hatNeuenPuk = ergebnis.puk !== ''
+
+  return (
+    <>
+      <div className="grid gap-3 rounded-md border p-4">
+        {hatNeuenPuk && <Geheimnis label="Admin-PUK" wert={ergebnis.puk} />}
+        {ergebnis.adminPin !== '' && (
+          <Geheimnis label="Admin-PIN" wert={ergebnis.adminPin} />
+        )}
+      </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <Checkbox
+          checked={verwahrt}
+          onCheckedChange={(checked) => {
+            onVerwahrtChange(checked === true)
+          }}
+          className="mt-0.5"
+        />
+        <span>
+          {hatNeuenPuk
+            ? 'Ich habe Admin-PUK und Admin-PIN sicher verwahrt.'
+            : 'Ich habe die neue Admin-PIN sicher verwahrt.'}
+        </span>
+      </label>
+    </>
   )
 }
 

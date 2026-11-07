@@ -19,6 +19,10 @@ diese Kasse dort nicht angemeldet.
 geschlossen), startet ihr den Assistenten einfach erneut. jotti erkennt den
 tatsächlichen Zustand bei fiskaly und holt nur die fehlenden Schritte nach.
 
+Scheitert ein Schritt, nachdem fiskaly die TSS angelegt hat, zeigt jotti Admin-PUK
+und Admin-PIN trotzdem einmalig an. Notiert sie und klickt „TSE erneut prüfen".
+jotti bietet die angelegte TSS dann zur Übernahme an.
+
 Es entsteht keine zweite TSS. Nur ein seltener Fall ist anders: ein Abbruch genau
 zwischen dem Setzen der Admin-PIN und der Ergebnis-Anzeige. Dann fragt die
 Wiederaufnahme nach einer Admin-PIN, die euch nie angezeigt wurde.

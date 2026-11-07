@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 	"time"
@@ -118,6 +119,26 @@ type tseEinrichtenResponse struct {
 	Umgebung string `json:"umgebung"`
 }
 
+func neueTSEEinrichtenResponse(ergebnis application.TSESetupErgebnis) tseEinrichtenResponse {
+	return tseEinrichtenResponse{
+		TssID:    ergebnis.TssID,
+		ClientID: ergebnis.ClientID,
+		Puk:      ergebnis.PUK,
+		AdminPin: ergebnis.AdminPIN,
+		Umgebung: ergebnis.Umgebung,
+	}
+}
+
+// sendeEinrichtungsFehler delivers the secrets of an unfinished setup in the error details,
+// because no other response will ever carry them.
+func sendeEinrichtungsFehler(w http.ResponseWriter, err error, codes []helper.ErrorCode) {
+	if u, ok := errors.AsType[*application.TSEEinrichtungUnvollstaendigError](err); ok {
+		helper.SendClientError(w, "tse_einrichtung_unvollstaendig", neueTSEEinrichtenResponse(u.Ergebnis))
+		return
+	}
+	helper.MapError(w, err, codes)
+}
+
 // UpdateTSEKonfigurationHandler reads the TSS Stammdaten from fiskaly before saving, so it budgets
 // the write like the setup handlers.
 func (h *CommandHandler) UpdateTSEKonfigurationHandler() http.HandlerFunc {
@@ -178,20 +199,14 @@ func (h *CommandHandler) RichteTSEEinHandler() http.HandlerFunc {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
-			helper.MapError(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
+			sendeEinrichtungsFehler(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
 				{Err: application.ErrTSEBereitsEingerichtet, Code: "tse_bereits_eingerichtet"},
 				{Err: application.ErrTSESetupTSSLimitErreicht, Code: "tse_setup_tss_limit_erreicht"},
 			}, setupFehlerSchluss))
 			return
 		}
 
-		helper.SendResponse(w, tseEinrichtenResponse{
-			TssID:    ergebnis.TssID,
-			ClientID: ergebnis.ClientID,
-			Puk:      ergebnis.PUK,
-			AdminPin: ergebnis.AdminPIN,
-			Umgebung: ergebnis.Umgebung,
-		})
+		helper.SendResponse(w, neueTSEEinrichtenResponse(ergebnis))
 	}
 }
 
@@ -222,7 +237,7 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 		helper.ExtendWriteDeadline(w, r, tseSetupWriteTimeout)
 
 		if err != nil {
-			helper.MapError(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
+			sendeEinrichtungsFehler(w, err, slices.Concat(setupFehlerKopf, []helper.ErrorCode{
 				{Err: application.ErrTSESetupTSSNichtGefunden, Code: "tse_setup_tss_nicht_gefunden"},
 				{Err: application.ErrTSESetupPINErforderlich, Code: "tse_setup_pin_erforderlich"},
 				{Err: application.ErrTSESetupPINUnbekannt, Code: "tse_setup_pin_unbekannt"},
@@ -232,12 +247,6 @@ func (h *CommandHandler) UebernimmTSEHandler() http.HandlerFunc {
 			return
 		}
 
-		helper.SendResponse(w, tseEinrichtenResponse{
-			TssID:    ergebnis.TssID,
-			ClientID: ergebnis.ClientID,
-			Puk:      ergebnis.PUK,
-			AdminPin: ergebnis.AdminPIN,
-			Umgebung: ergebnis.Umgebung,
-		})
+		helper.SendResponse(w, neueTSEEinrichtenResponse(ergebnis))
 	}
 }

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ type stubCommandRepo struct {
 	identitaet             tse.Kassenidentitaet
 	gespeichert            *tse.Konfiguration
 	gespeicherteStammdaten *tse.Stammdaten
+	saveErr                error
 }
 
 func (s *stubCommandRepo) GetKassenidentitaet(context.Context) (tse.Kassenidentitaet, error) {
@@ -28,6 +30,9 @@ func (s *stubCommandRepo) SaveEinrichtung(_ context.Context, c tse.Konfiguration
 }
 
 func (s *stubCommandRepo) SaveEinrichtungMitStammdaten(_ context.Context, c tse.Konfiguration, st tse.Stammdaten) error {
+	if s.saveErr != nil {
+		return s.saveErr
+	}
 	s.gespeicherteStammdaten = &st
 	s.gespeichert = &c
 	return nil
@@ -177,21 +182,48 @@ func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
 	}
 }
 
-// A failed lifecycle step must leave no half configuration in the database.
-func TestRichteTSEEin_AbbruchSpeichertNicht(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
-	client := &tsetest.FakeSetupClient{
-		UmgebungResponse:  tse.UmgebungTest,
-		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
-		RegistriereErr:    errors.New("client registration failed"),
+// Once fiskaly created the TSS, a failing step must not lose PUK and PIN: the error carries them,
+// and nothing is saved, so a takeover finishes the setup.
+func TestRichteTSEEin_FehlerNachAnlageLiefertGeheimnisse(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  tsetest.FakeSetupClient
+		saveErr error
+		ursache error
+	}{
+		{name: "client registration", client: tsetest.FakeSetupClient{RegistriereErr: errors.New("client registration failed")}, ursache: ErrTSEEinrichtung},
+		{name: "stammdaten fetch", client: tsetest.FakeSetupClient{StammdatenErr: errors.New("fiskaly stammdaten read failed")}, ursache: ErrTSEEinrichtung},
+		{name: "save", saveErr: errors.New("db down"), ursache: ErrDatabase},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}, saveErr: tt.saveErr}
+			client := tt.client
+			client.UmgebungResponse = tse.UmgebungLive
+			client.CreateTSSResponse = tse.TSSErstellt{ID: "tss-neu", PUK: "puk-123", State: "CREATED"}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
-	if !errors.Is(err, ErrTSEEinrichtung) {
-		t.Errorf("expected ErrTSEEinrichtung on a failing step, got %v", err)
-	}
-	if repo.gespeichert != nil {
-		t.Error("expected no configuration to be saved when a step fails")
+			_, err := commandMit(repo, &client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungLive, false)
+
+			if !errors.Is(err, tt.ursache) {
+				t.Errorf("expected cause %v, got %v", tt.ursache, err)
+			}
+			u, ok := errors.AsType[*TSEEinrichtungUnvollstaendigError](err)
+			if !ok {
+				t.Fatalf("expected TSEEinrichtungUnvollstaendigError, got %v", err)
+			}
+			if u.Ergebnis.TssID != "tss-neu" || u.Ergebnis.PUK != "puk-123" || u.Ergebnis.Umgebung != "LIVE" {
+				t.Errorf("expected tss id, puk and environment of the created TSS, got %+v", u.Ergebnis)
+			}
+			if u.Ergebnis.AdminPIN == "" || u.Ergebnis.AdminPIN != client.GesetzteAdminPIN {
+				t.Errorf("expected the admin pin set on the TSS, got %q vs %q", u.Ergebnis.AdminPIN, client.GesetzteAdminPIN)
+			}
+			if strings.Contains(err.Error(), "puk-123") || strings.Contains(err.Error(), u.Ergebnis.AdminPIN) {
+				t.Errorf("expected the error text to omit puk and pin, got %q", err.Error())
+			}
+			if repo.gespeichert != nil || repo.gespeicherteStammdaten != nil {
+				t.Errorf("expected no write, got %+v / %+v", repo.gespeichert, repo.gespeicherteStammdaten)
+			}
+		})
 	}
 }
 
@@ -298,6 +330,50 @@ func TestUebernimmTSE_WiederaufnahmeCreated(t *testing.T) {
 	}
 	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-halb" {
 		t.Errorf("expected the configuration to be saved for the resumed TSS, got %+v", repo.gespeichert)
+	}
+}
+
+// A takeover from CREATED creates PUK and PIN itself, so a later failure hands them over too.
+func TestUebernimmTSE_FehlerNachNeuenGeheimnissenLiefertSie(t *testing.T) {
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
+	client := &tsetest.FakeSetupClient{
+		UmgebungResponse:    tse.UmgebungTest,
+		TSSResponse:         []tse.TSSInfo{{ID: "tss-halb", State: "CREATED"}},
+		GetAdminPUKResponse: "puk-refetch",
+		StammdatenErr:       errors.New("fiskaly stammdaten read failed"),
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-halb", "", "")
+
+	u, ok := errors.AsType[*TSEEinrichtungUnvollstaendigError](err)
+	if !ok {
+		t.Fatalf("expected TSEEinrichtungUnvollstaendigError, got %v", err)
+	}
+	if u.Ergebnis.PUK != "puk-refetch" || u.Ergebnis.AdminPIN == "" || u.Ergebnis.AdminPIN != client.GesetzteAdminPIN {
+		t.Errorf("expected the refetched puk and the pin set on the TSS, got %+v (set %q)", u.Ergebnis, client.GesetzteAdminPIN)
+	}
+}
+
+// Without new secrets a failed takeover keeps its plain error.
+func TestUebernimmTSE_FehlerOhneNeueGeheimnisse(t *testing.T) {
+	seriennummer := uuid.New()
+	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
+	client := &tsetest.FakeSetupClient{
+		UmgebungResponse: tse.UmgebungTest,
+		TSSResponse:      []tse.TSSInfo{{ID: "tss-init", State: "INITIALIZED"}},
+		ClientsByTSS: map[string][]tse.ClientInfo{
+			"tss-init": {{ID: uuid.NewString(), SerialNumber: seriennummer.String(), State: "REGISTERED"}},
+		},
+		StammdatenErr: errors.New("fiskaly stammdaten read failed"),
+	}
+
+	_, err := commandMit(repo, client).UebernimmTSE(context.Background(), zugangsdaten(), tse.UmgebungTest, "tss-init", "", "")
+
+	if !errors.Is(err, ErrTSEEinrichtung) {
+		t.Errorf("expected ErrTSEEinrichtung, got %v", err)
+	}
+	if _, ok := errors.AsType[*TSEEinrichtungUnvollstaendigError](err); ok {
+		t.Errorf("expected no secrets to hand over, got %v", err)
 	}
 }
 
@@ -727,24 +803,6 @@ func TestUebernimmTSE_PINResetPersistiertStammdaten(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
-}
-
-// A failed fetch writes nothing: tse_konfiguration must not name a TSS whose Stammdaten tse.csv lacks.
-func TestRichteTSEEin_StammdatenAbrufFehlerKipptSetup(t *testing.T) {
-	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
-	client := &tsetest.FakeSetupClient{
-		UmgebungResponse:  tse.UmgebungTest,
-		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
-		StammdatenErr:     errors.New("fiskaly stammdaten read failed"),
-	}
-
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
-	if !errors.Is(err, ErrTSEEinrichtung) {
-		t.Errorf("expected ErrTSEEinrichtung when stammdaten fetch fails, got %v", err)
-	}
-	if repo.gespeichert != nil || repo.gespeicherteStammdaten != nil {
-		t.Errorf("expected no write, got %+v / %+v", repo.gespeichert, repo.gespeicherteStammdaten)
-	}
 }
 
 // The setup client factory fails if called, proving the guard runs before any fiskaly work.

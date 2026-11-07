@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { BackendClient } from '@/lib/Backend'
+import type { BackendClient, BackendError } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
 const UmgebungSchema = z.enum(['TEST', 'LIVE'])
@@ -110,6 +110,15 @@ const TSEEinrichtenErgebnisSchema = z.object({
   umgebung: UmgebungSchema,
 })
 export type TSEEinrichtenErgebnis = z.infer<typeof TSEEinrichtenErgebnisSchema>
+
+// Scheitert ein Schritt, nachdem PUK oder PIN entstanden sind, liefert der
+// Fehler tse_einrichtung_unvollstaendig sie in den details mit.
+export function unvollstaendigeEinrichtung(
+  error: BackendError,
+): TSEEinrichtenErgebnis | null {
+  const { success, data } = TSEEinrichtenErgebnisSchema.safeParse(error.details)
+  return success ? data : null
+}
 
 const TSEStatusSchema = z.object({
   umgebung: z.string(),

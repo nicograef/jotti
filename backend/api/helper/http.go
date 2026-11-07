@@ -11,7 +11,7 @@ import (
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
-// errorResponse is the uniform error body: Code is a stable snake_case key, Details is structured only for two codes.
+// errorResponse is the uniform error body: Code is a stable snake_case key, Details is structured only for three codes.
 // See docs/handbuch.md §6.2 (Fehlerformat).
 type errorResponse struct {
 	Code    string `json:"code"`

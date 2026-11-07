@@ -183,6 +183,43 @@ func TestRichteTSEEinHandler_Success(t *testing.T) {
 	}
 }
 
+// A setup that failed after fiskaly created the TSS still hands PUK and admin PIN to the admin.
+func TestRichteTSEEinHandler_UnvollstaendigLiefertGeheimnisse(t *testing.T) {
+	handler := &CommandHandler{Command: &mockTSESetupCommand{einrichtErr: &application.TSEEinrichtungUnvollstaendigError{
+		Ergebnis: application.TSESetupErgebnis{TssID: "tss-neu", ClientID: "client-1", PUK: "puk-xyz", AdminPIN: "1234567890", Umgebung: "LIVE"},
+		Ursache:  application.ErrDatabase,
+	}}}
+
+	body := `{"apiKey":"my-key","apiSecret":"my-secret","umgebung":"LIVE"}`
+	req := httptest.NewRequest(http.MethodPost, "/admin/tse-einrichten", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	handler.RichteTSEEinHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		Code    string `json:"code"`
+		Details struct {
+			TssID    string `json:"tssId"`
+			Puk      string `json:"puk"`
+			AdminPin string `json:"adminPin"`
+			Umgebung string `json:"umgebung"`
+		} `json:"details"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if resp.Code != "tse_einrichtung_unvollstaendig" {
+		t.Errorf("expected code tse_einrichtung_unvollstaendig, got %q", resp.Code)
+	}
+	if resp.Details.TssID != "tss-neu" || resp.Details.Puk != "puk-xyz" || resp.Details.AdminPin != "1234567890" || resp.Details.Umgebung != "LIVE" {
+		t.Errorf("expected the secrets of the created TSS in the details, got %+v", resp.Details)
+	}
+}
+
 func TestRichteTSEEinHandler_InvalidUmgebung(t *testing.T) {
 	handler := &CommandHandler{Command: &mockTSESetupCommand{}}
 
