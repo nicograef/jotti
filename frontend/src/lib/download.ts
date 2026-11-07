@@ -8,7 +8,6 @@ export function triggerBrowserDownload(blob: Blob, filename: string): void {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  // WebKit bricht den Download ab, wenn die URL im selben Task freigegeben wird.
   setTimeout(() => {
     URL.revokeObjectURL(url)
   }, 40_000)

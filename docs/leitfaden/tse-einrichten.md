@@ -10,7 +10,7 @@ Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälsch
 > als dem Kassenrechner und spielt dort Einrichtung und Verkauf einmal durch.
 >
 > Jeder Übungsverkauf bleibt für immer im Kassenjournal seiner Installation und
-> erscheint in jedem Export. Auf dem Kassenrechner, der auf LIVE geht, liegt
+> in jedem Datenbank-Backup. Auf dem Kassenrechner, der auf LIVE geht, liegt
 > deshalb keine Übungs-Kassensitzung.
 
 ## Schritt 1: fiskaly-Konto und API-Key
@@ -51,7 +51,7 @@ So verwahrt ihr richtig:
 - Nicht nur auf dem Gerät, das ihr für die Einrichtung benutzt habt.
 - So, dass die Nachfolge im Vorstand sie wiederfindet.
 
-> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, hilft der verwahrte Admin-PUK. jotti setzt die PIN darüber zurück (siehe [TSE-Sonderfälle](tse-sonderfaelle.md)). Gehen PUK und PIN beide verloren, könnt ihr eine bereits personalisierte TSS nicht mehr übernehmen. Der Admin-PUK ist deshalb euer wichtigstes Geheimnis.
+> ⚠️ **Verlust hat Folgen.** Ist nur die Admin-PIN verloren oder gesperrt, hilft der verwahrte Admin-PUK. jotti setzt die PIN darüber zurück (siehe [TSE-Sonderfälle](tse-sonderfaelle.md)). Sind PUK und PIN verloren, könnt ihr eine personalisierte TSS nur noch übernehmen, wenn sie für diese Kasse einsatzbereit ist. Der Admin-PUK ist deshalb euer wichtigstes Geheimnis.
 
 ## Von TEST zu LIVE wechseln (inkl. Kosten)
 

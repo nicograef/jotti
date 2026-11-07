@@ -6,7 +6,7 @@ import (
 )
 
 // Stammdaten feed the DSFinV-K tse.csv and never change over a TSS lifetime.
-// The setup reads them once and stores them as a singleton.
+// The setup reads them once and stores them as the current singleton and per TSS serial (tse_stammdaten_je_tss).
 type Stammdaten struct {
 	// Seriennummer is fiskaly's TSS serial_number, the hex SHA-256 of the public key (DSFinV-K TSE_SERIAL).
 	Seriennummer        string

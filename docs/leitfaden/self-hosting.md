@@ -16,7 +16,7 @@ reicht für ein durchschnittliches Vereinsfest.
 
 Der Prozessor muss x86-64 sein (amd64). Die veröffentlichten Images gibt es nur
 für diese Architektur; auf ARM-Servern (etwa Raspberry Pi oder ARM-VPS) laufen sie
-nicht. Typisches Angebot: netcup VPS 500 G12 oder vergleichbar (ca. 6 €/Monat).
+nicht. Typisches Angebot: netcup VPS 500 G12.5 oder vergleichbar (ca. 10 €/Monat).
 
 Zusätzlich braucht ihr eine Domain, die per DNS auf den Server zeigt, sowie ein
 TLS-Zertifikat. Das Zertifikat holt jotti automatisch.

@@ -224,8 +224,8 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 	}
 
 	// Störungsprotokoll: das aufgelöste Ausfallfenster (Samstag) liegt als geschlossener
-	// tse_fehler-Zeitraum vor; kein Zeitraum ist aktiv — das offene Fenster der laufenden
-	// Sitzung materialisiert erst zur Laufzeit über Worker und Watchdog.
+	// tse_fehler-Zeitraum vor; kein Zeitraum ist aktiv. Zur Laufzeit öffnet der Worker ohne
+	// TSE-Konfiguration einen keine_konfiguration-Zeitraum.
 	var geschlosseneStoerungen, aktiveStoerungen int
 	if err := db.QueryRow(`SELECT COUNT(*) FILTER (WHERE ende IS NOT NULL AND grund_art = 'tse_fehler'),
 		COUNT(*) FILTER (WHERE ende IS NULL) FROM tse_stoerungen`).Scan(&geschlosseneStoerungen, &aktiveStoerungen); err != nil {
@@ -281,7 +281,7 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("%d fehlgeschlagene/verworfene Druckaufträge ohne Fehlertext oder mit zu wenigen Versuchen", fehlerhaftOhneGrund)
 	}
 
-	// TSE-Konfiguration bleibt leer — der Signatur-Worker bleibt inaktiv.
+	// TSE-Konfiguration bleibt leer: der Signatur-Worker signiert nichts, er markiert offene Aufträge tse_nicht_konfiguriert.
 	var tseKonfiguration string
 	if err := db.QueryRow("SELECT api_key || api_secret || tss_id || client_id FROM tse_konfiguration WHERE id = 1").Scan(&tseKonfiguration); err != nil {
 		t.Fatalf("TSE-Konfiguration abfragen: %v", err)

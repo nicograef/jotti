@@ -156,7 +156,7 @@ func TestBestellungUmbuchen_HappyPath(t *testing.T) {
 	}
 }
 
-// The Kommentar is cut to the schema limit of 100 bytes (zog's Max counts bytes). The target name ends
+// The Kommentar is cut to 100 bytes, which keeps it within the schema's 100 characters. The target name ends
 // on a rune boundary, the source name forces a one-byte step back so no UTF-8 sequence splits.
 func TestBestellungUmbuchen_KommentarWirdGekuerzt(t *testing.T) {
 	ctx := context.Background()

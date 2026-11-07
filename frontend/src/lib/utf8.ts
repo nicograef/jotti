@@ -23,8 +23,6 @@ export function kuerzeAufUtf8Bytes(text: string, maxBytes: number): string {
   return text.slice(0, ende)
 }
 
-// zogs Max zählt UTF-8-Bytes, nicht Zeichen: ein String-Limit, das das Backend
-// annimmt, muss hier ebenfalls in Bytes gezählt werden.
 export function maxUtf8Bytes(
   schema: z.ZodString,
   maxBytes: number,

@@ -86,7 +86,8 @@ type stoerungZeile struct {
 }
 
 // stoerungszeitraeumeAus turns the resolved outage windows into the closed tse_fehler periods production would have logged.
-// The open window of the running session is left out: worker and watchdog create it live after app start.
+// The open window of the running session is left out: without a TSE configuration the worker marks its jobs
+// tse_nicht_konfiguriert after app start and opens a keine_konfiguration period.
 func stoerungszeitraeumeAus(fenster []ausfallFenster) []stoerungZeile {
 	var zeilen []stoerungZeile
 	for _, f := range fenster {

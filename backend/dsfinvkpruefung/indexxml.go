@@ -161,7 +161,8 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 		tab.rangeFrom = t.Range.From
 	}
 
-	// DTD: <!ELEMENT VariableLength (…, VariableColumn+ …)>, so at least one column.
+	// DTD: VariableLength needs VariablePrimaryKey+ or VariableColumn+; the official index.xml declares
+	// no primary keys, so at least one VariableColumn.
 	if len(t.VariableLength.Columns) == 0 {
 		befunde = append(befunde, Befund{
 			Datei:   indexDatei,

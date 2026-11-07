@@ -161,8 +161,8 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	return nil
 }
 
-// maxUmbuchungKommentarBytes ist die Grenze des Kommentars im eingefrorenen
-// Event-Schema (bestellungUmgebuchtV1DataSchema); zogs Max zählt Bytes.
+// maxUmbuchungKommentarBytes hält den Kommentar unter der Grenze des eingefrorenen Event-Schemas
+// (100 Zeichen, bestellungUmgebuchtV1DataSchema); in Bytes gekürzt bleibt er sicher darunter.
 const maxUmbuchungKommentarBytes = 100
 
 // truncateBytes kürzt auf höchstens maxBytes und rückt bis zum Anfang der angeschnittenen UTF-8-Folge zurück, damit kein Umlaut zerfällt.
@@ -179,7 +179,7 @@ func truncateBytes(s string, maxBytes int) string {
 	return s[:cut]
 }
 
-// buildUmbuchungKommentar: Tischname (bis 100 Bytes) plus Präfix reißt die Schemagrenze — gekürzt
+// buildUmbuchungKommentar: Tischname (bis 100 Zeichen) plus Präfix reißt die Schemagrenze — gekürzt
 // wird der Name, das Präfix bleibt ganz.
 func buildUmbuchungKommentar(prefix string, tischName string) string {
 	return prefix + truncateBytes(tischName, maxUmbuchungKommentarBytes-len(prefix))

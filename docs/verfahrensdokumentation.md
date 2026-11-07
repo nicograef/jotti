@@ -9,7 +9,7 @@ description: 'Muster-Verfahrensdokumentation für die Kassenführung mit jotti: 
 
 ## Was eine Verfahrensdokumentation leistet
 
-Die GoBD (BMF-Schreiben vom 28.11.2019) verlangen vom Betreiber eines elektronischen Kassensystems eine Verfahrensdokumentation: eine nachvollziehbare Beschreibung, wie das System steuerlich relevante Daten erzeugt, verarbeitet, sichert und aufbewahrt. Sie versetzt einen sachverständigen Dritten (Betriebsprüfer) in die Lage, den Kassenprozess in angemessener Zeit zu verstehen und zu prüfen. Dieses Dokument erfüllt diese Pflicht für die Kassenführung mit jotti.
+Die GoBD (BMF-Schreiben vom 28.11.2019, geändert 11.03.2024 und 14.07.2025) verlangen vom Betreiber eines elektronischen Kassensystems eine Verfahrensdokumentation: eine nachvollziehbare Beschreibung, wie das System steuerlich relevante Daten erzeugt, verarbeitet, sichert und aufbewahrt. Sie versetzt einen sachverständigen Dritten (Betriebsprüfer) in die Lage, den Kassenprozess in angemessener Zeit zu verstehen und zu prüfen. Dieses Dokument erfüllt diese Pflicht für die Kassenführung mit jotti.
 
 Zugleich ist dieses Dokument die Herstellerdokumentation nach BSI TR-03153-1 Kap. 3.9.3: Abschnitt 2 beschreibt die Nutzung mehrerer Eingabegeräte an der TSE, Abschnitt 4 die Durchführungszeiten der Signaturerstellung und die möglichen Verzögerungen bei gleichzeitig abzusichernden Vorgängen.
 
@@ -131,7 +131,7 @@ Stornierungen sind ausschließlich `serviceleitung` und `admin` vorbehalten; die
 
 ## 7. Archivierung und Aufbewahrung
 
-Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügbar, lesbar und unveränderbar aufzubewahren (§§ 146, 147 AO). jotti stellt die Daten in offenen, ohne Spezialsoftware lesbaren Formaten bereit; die sichere Aufbewahrung selbst ist Betreiberpflicht.
+jotti setzt für alle steuerlich relevanten Daten die Zehnjahresfrist für Aufzeichnungen an (§ 147 Abs. 3 AO); sie sind vollständig, jederzeit verfügbar, lesbar und unveränderbar aufzubewahren. jotti stellt die Daten in offenen, ohne Spezialsoftware lesbaren Formaten bereit; die sichere Aufbewahrung selbst ist Betreiberpflicht.
 
 | Artefakt                                                                  | Quelle                                                  | Aufbewahrung                                                     |
 | ------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -142,7 +142,7 @@ Alle steuerlich relevanten Daten sind 10 Jahre vollständig, jederzeit verfügba
 | Kassen-Seriennummer                                                       | Admin-Bereich; im DB-Backup enthalten                   | dauerhaft                                                        |
 | TSE-Export (TAR) je TSS                                                   | TSE-Anbieter «z. B. fiskaly», nicht jotti               | 10 Jahre; vor Außerbetriebnahme der TSS oder Vertragsende ziehen |
 
-Der DSFinV-K-Export liest Betreiber-Stammdaten, Tischnamen und Softwareversion erst beim Export. Der Betreiber archiviert ihn deshalb direkt nach jedem Veranstaltungstag und vor einer Änderung dieser Daten, einem TSE-Wechsel oder einem Update (→ [compliance.md §4.3](compliance.md#43-aufbewahrungsstrategie-f-10)).
+Der DSFinV-K-Export liest Betreiber-Stammdaten, Tischnamen und Softwareversion erst beim Export. Der Betreiber archiviert ihn deshalb direkt nach jedem Veranstaltungstag und vor einer Änderung dieser Daten oder einem Update (→ [compliance.md §4.3](compliance.md#43-aufbewahrungsstrategie-f-10)).
 
 **Aufbewahrung in diesem Verein (auszufüllen):** «Beschreibt, wo und wie ihr archiviert. Beispiel: Nach jedem Veranstaltungstag exportieren wir die DSFinV-K-ZIP und legen sie auf einem USB-Stick im Vereinssafe sowie zusätzlich in «Cloud-Speicher» ab. Tägliche Datenbank-Backups laufen «automatisch über … / manuell durch …». Verantwortlich: «Name».»
 

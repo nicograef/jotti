@@ -59,7 +59,7 @@ function DrawerContent({
   pending?: boolean
 }) {
   // Radix calls dismiss handlers with the closure of their registration, so a directly read `pending` is stale
-  // in the Escape handler (radix-ui 1.6.7, pinned by ZahlungDrawer.test.tsx). The ref always hands over the current value.
+  // in the Escape handler (pinned by ZahlungDrawer.test.tsx). The ref always hands over the current value.
   const pendingRef = React.useRef(pending)
   React.useEffect(() => {
     pendingRef.current = pending

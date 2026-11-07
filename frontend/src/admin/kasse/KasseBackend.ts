@@ -21,7 +21,7 @@ export const KassensitzungEroeffnenSchema = z.object({
 })
 
 // Nur die aktive Sitzung liefert den Eröffnungszeitpunkt (RFC-3339); die
-// abgeschlossenen Sitzungen im Reporting geben ihn nicht mit.
+// Sitzungsliste im Reporting gibt ihn nicht mit.
 const AktiveKassensitzungSchema = KassensitzungSchema.extend({
   eroeffnetAm: z.string(),
 })

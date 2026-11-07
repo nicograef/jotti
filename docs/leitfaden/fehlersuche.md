@@ -50,9 +50,11 @@ vollständigen Hostnamen aus der Status-Seite eintragen.
 Andere Router, gleiches Prinzip (`lokal.jotti.rocks` ausnehmen), andere
 Bezeichnungen:
 
-- **Pi-hole / dnsmasq:** in der Konfigurationsdatei `rebind-domain-ok=/lokal.jotti.rocks/`
-- **OpenWrt (LuCI):** Network → DHCP and DNS → Rebind protection → Domain whitelist
-  → `lokal.jotti.rocks`
+- **Pi-hole v6:** Settings → All settings → Miscellaneous → `misc.dnsmasq_lines`:
+  `rebind-domain-ok=/lokal.jotti.rocks/`
+- **dnsmasq:** in der Konfigurationsdatei `rebind-domain-ok=/lokal.jotti.rocks/`
+- **OpenWrt (LuCI):** Network → DNS → Filter → Domain whitelist (bis 24.10:
+  Network → DHCP and DNS → Filter) → `lokal.jotti.rocks`
 - **Speedport (Telekom):** Netzwerk → DNS-Rebind-Schutz → Domain zur Liste
   hinzufügen → `lokal.jotti.rocks`
 

@@ -171,9 +171,9 @@ einspielt, steht unter [Der Weg zurück](#der-weg-zurück-wenn-das-update-schief
 > 🔁 **Nur vorwärts, kein Downgrade.** Spielt keine ältere Version über eine
 > neuere Datenbank. Updates verändern die Datenbank; eine alte Version kann mit
 > den neuen Daten nicht mehr starten. Der Starter verweigert einen solchen
-> Rückschritt selbst. Nach einer Wiederherstellung gilt das nicht — dann steht
-> die Datenbank selbst wieder auf dem alten Stand (siehe [Der Weg
-> zurück](#der-weg-zurück-wenn-das-update-schiefgeht)).
+> Rückschritt selbst. Nach einer Wiederherstellung steht die Datenbank selbst
+> wieder auf dem alten Stand; verweigert der Starter trotzdem, siehe [Der Weg
+> zurück](#der-weg-zurück-wenn-das-update-schiefgeht).
 
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht alle
 > Docker-Volumes und damit Daten, Installations-Schlüssel und Zertifikat

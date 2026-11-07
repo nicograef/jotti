@@ -11,7 +11,7 @@ Weitere Einstellungen  # Fritz!Box-Router-Oberfläche, Pfad zum DNS-Rebind-Schut
 Automatisch  # Android-Systemeinstellung "Privates DNS" auf dem Handy, außerhalb von jotti
 Source code (zip)  # GitHub-Releases-Seite, außerhalb von jotti
 Mitteilung über elektronische Aufzeichnungssysteme  # Formularname im ELSTER-Portal, außerhalb von jotti
-Verkauf an eine Vielzahl nicht bekannter Personen  # UStAE-Wortlaut zu § 146a Abs. 2 Satz 2 AO, docs/rechtsquellen/verwaltung-bmf/UStAE-konsolidiert-2026-06-02.pdf
+Verkauf von Waren an eine Vielzahl von nicht bekannten Personen  # Gesetzeswortlaut § 146a Abs. 2 Satz 2 AO, docs/rechtsquellen/gesetze/AO.pdf
 öffentlicher Name zeigt auf eine private IP  # eigene Umschreibung der DNS-Rebind-Bedingung, kein zitiertes Bedienelement
 auf Handy A geht, auf Handy B aber nicht  # eigene Umschreibung eines Symptoms, kein zitiertes Bedienelement
 Nachsigniert am …  # Text auf dem gedruckten Kassenbeleg, backend/api/druck/bondruck/application/escpos/formatter.go:285

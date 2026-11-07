@@ -4,7 +4,7 @@ import { KategorieSchema, SteuersatzSchema } from '@/lib/produktSchemas'
 import { maxUtf8Bytes } from '@/lib/utf8'
 import { DateStringSchema } from '@/lib/utils'
 
-// Die eingefrorenen Event-Schemas begrenzen den Kommentar auf 100 UTF-8-Bytes.
+// Die eingefrorenen Event-Schemas begrenzen den Kommentar auf 100 Zeichen.
 export const KOMMENTAR_MAX_BYTES = 100
 
 export const KommentarSchema = maxUtf8Bytes(z.string(), KOMMENTAR_MAX_BYTES)

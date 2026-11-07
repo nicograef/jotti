@@ -24,7 +24,7 @@ export const KassensitzungStatus = {
 export type KassensitzungStatus =
   (typeof KassensitzungStatus)[keyof typeof KassensitzungStatus]
 
-// Das Backend zählt beide Grenzen in UTF-8-Bytes.
+// Das Backend zählt beide Grenzen in Zeichen.
 export const BezeichnungSchema = maxUtf8Bytes(
   z.string().min(1, { message: 'Bezeichnung ist erforderlich.' }),
   200,

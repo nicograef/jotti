@@ -24,7 +24,7 @@ Für mobile Geräte gilt: Kann ein Gerät Zahlungsvorgänge eigenständig und of
 
 ### 2.3 GoBD
 
-Die GoBD (BMF-Schreiben 28.11.2019) fordern Nachvollziehbarkeit, Vollständigkeit, Richtigkeit, Zeitgerechtigkeit, Ordnung und Unveränderbarkeit. Sie gelten für alle Steuerpflichtigen, einschließlich gemeinnütziger Vereine im wirtschaftlichen Geschäftsbetrieb. [4]
+Die GoBD (BMF-Schreiben 28.11.2019, geändert 11.03.2024 und 14.07.2025) fordern Nachvollziehbarkeit, Vollständigkeit, Richtigkeit, Zeitgerechtigkeit, Ordnung und Unveränderbarkeit. Sie gelten für alle Buchführungs- und Aufzeichnungspflichtigen, einschließlich gemeinnütziger Vereine im wirtschaftlichen Geschäftsbetrieb. [4]
 
 ### 2.4 Belegausgabepflicht (§ 146a Abs. 2 AO, § 6 KassenSichV)
 
@@ -105,10 +105,10 @@ Die `processType`-Werte sind in der DSFinV-K, Anhang I, festgelegt; der AEAO zu 
 
 ### 3.5 TSE-Varianten und Anbieter-Entscheidung
 
-| Variante     | Beschreibung                                       | Beispiel-Anbieter                                   |
-| ------------ | -------------------------------------------------- | --------------------------------------------------- |
-| Hardware-TSE | Physisches Gerät (USB-Stick, microSD-/SD-Karte)    | Swissbit, Epson, cryptovision (für D-Trust)         |
-| Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal, Swissbit, Diebold Nixdorf |
+| Variante     | Beschreibung                                       | Beispiel-Anbieter                                       |
+| ------------ | -------------------------------------------------- | ------------------------------------------------------- |
+| Hardware-TSE | Physisches Gerät (USB-Stick, microSD-/SD-Karte)    | Swissbit, Epson, Diebold Nixdorf, cryptovision (Eviden) |
+| Cloud-TSE    | TSE als Cloud-Service, Kommunikation via HTTPS-API | fiskaly, Deutsche Fiskal, Swissbit, Diebold Nixdorf     |
 
 jotti bindet die Cloud-TSE von fiskaly an (API-first, BSI-zertifiziert nach TR-03153, unterstützt alle drei processTypes); Entscheidung und Gründe: [decisions.md, D09](decisions.md). Das Backend-Interface `TSEClient` bleibt anbieter-agnostisch (Adapter-Pattern); `Credentials` und die Einrichtung sind auf fiskaly zugeschnitten, ein zweiter Anbieter wäre mehr als ein Adapter-Austausch.
 
@@ -156,7 +156,7 @@ Konformitätsbedingungen dieses Pfades:
 - **Ausfalldokumentation:** Das Störungsprotokoll (`tse_stoerungen`) dokumentiert jede TSE-weite Störung als Zeitraum mit Grund (AEAO zu § 146a, 1.14.1). Die Auftragstabelle hält den Status jedes einzelnen Vorgangs.
 - **Belegausweisung:** Ein nach dem Ausfall nachsignierter Beleg trägt den Vermerk „Nachsigniert am …"; die TSE-Zeitpunkte weichen dann vom Belegdatum ab. Ein Vorgang ohne konfigurierte TSE trägt den Vermerk „keine TSE konfiguriert". Im DSFinV-K-Export erhalten noch unsignierte Vorgänge eine `TSE_TA_FEHLER`-Zeile. Ihr Text nennt den Auftragsstand: „Signatur ausstehend" (offen), „TSE-Ausfall" (fehlgeschlagen) oder „keine TSE konfiguriert".
 
-Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt einen frühen Start der Protokollierung. Sie beginnt in der TSE „unmittelbar mit Beginn des aufzuzeichnenden Vorgangs". jotti startet die TSE-Transaktion nicht im Kassier-Request. Der Signatur-Worker startet sie wenige Sekunden später (Start und Finish unmittelbar nacheinander, §3.2).
+Einordnung zur Protokollierungspflicht (AEAO zu § 146a, Nr. 2.2.2): Die Norm verlangt einen frühen Start der Protokollierung. Sie beginnt in der TSE „unmittelbar mit Beginn eines aufzuzeichnenden Vorgangs". jotti startet die TSE-Transaktion nicht im Kassier-Request. Der Signatur-Worker startet sie wenige Sekunden später (Start und Finish unmittelbar nacheinander, §3.2).
 
 Diese Entkopplung ist eine bewusste Architekturentscheidung:
 
@@ -198,12 +198,12 @@ Einmalige Ausnahme vom Radierverbot: Die Migration `03_ausgabe_entfernen` (jotti
 
 Die aufzubewahrenden Daten entstehen in offenen, ohne proprietäre Software lesbaren Formaten. Der DSFinV-K-Export ist die maschinell auswertbare Standardform. Das Datenbank-Backup enthält das vollständige Kassenjournal im Rohformat samt TSE-Signaturen und Stammdaten. Die Log-Nachrichten der TSE speichert jotti nicht, nur die Signaturdaten je Vorgang. Sie sind als TAR-Export der TSE aufzubewahren (§ 146a Abs. 1 Satz 4 AO; AEAO zu § 146a, Nr. 1.13.1 und 1.15.2).
 
-Der DSFinV-K-Export liest Betreiber-Stammdaten, Tischnamen und Softwareversion zum Exportzeitpunkt (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)). Maßgeblich ist deshalb der direkt nach dem Veranstaltungstag archivierte Export. Vor einer Änderung dieser Daten, einem TSE-Wechsel oder einem Update archiviert der Betreiber den Export jeder Kassensitzung. Die Aufbewahrung selbst (Speicherung, Lesbarkeit über 10 Jahre, Zugriffsschutz) bleibt Betreiberpflicht (§8).
+Der DSFinV-K-Export liest Betreiber-Stammdaten, Tischnamen und Softwareversion zum Exportzeitpunkt (→ [handbuch.md §3.11](handbuch.md#311-tagesabschluss-z-bon)). Maßgeblich ist deshalb der direkt nach dem Veranstaltungstag archivierte Export. Vor einer Änderung dieser Daten oder einem Update archiviert der Betreiber den Export jeder Kassensitzung. Die Aufbewahrung selbst (Speicherung, Lesbarkeit über 10 Jahre, Zugriffsschutz) bleibt Betreiberpflicht (§8).
 
 | Artefakt                                                                  | Format                                         | Quelle                                                             | Aufbewahrung                                                     | Wiederherstellung / Lesbarkeit                                      |
 | ------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | DSFinV-K-Export je Kassensitzung                                          | CSV, index.xml, DTD (ZIP)                      | Admin-Bereich → „Berichte & Export" → „Archiv herunterladen (ZIP)" | 10 Jahre, an mindestens zwei getrennten Orten                    | mit jeder Tabellenkalkulation oder Prüfsoftware (IDEA) lesbar       |
-| Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | pg_dump (.sql)                                 | automatisch vor jedem Update; Server: `make prod-backup`           | 10 Jahre                                                         | `jotti-restore.cmd` (Standardweg) bzw. `make prod-restore` (Server) |
+| Datenbank-Backup (rohes Kassenjournal samt TSE-Signaturen und Stammdaten) | pg_dump (.sql; Server: .sql.gz)                | automatisch vor jedem Update; Server: `make prod-backup`           | 10 Jahre                                                         | `jotti-restore.cmd` (Standardweg) bzw. `make prod-restore` (Server) |
 | Z-Bons (Tagesabschlüsse)                                                  | im Kassenjournal und DSFinV-K-Export enthalten | Tagesabschluss (K-22)                                              | 10 Jahre                                                         | Teil von Export und Backup                                          |
 | Zählprotokolle (Kassensturz)                                              | Papier oder digital                            | manuell beim Kassensturz (K-21)                                    | 10 Jahre                                                         | Betreiber                                                           |
 | Kassen-Seriennummer                                                       | UUID                                           | Admin-Bereich; im DB-Backup enthalten                              | dauerhaft                                                        | aus Admin-Bereich oder Backup                                       |
@@ -217,14 +217,14 @@ Laienverständliche Anleitung für Vereine: [Leitfaden, Datenaufbewahrung](leitf
 
 Gemäß § 146a Abs. 2 AO und § 6 KassenSichV muss für jeden Kassiervorgang in unmittelbarem zeitlichem Zusammenhang ein Beleg erzeugt werden. Er wird dem Kunden zur Verfügung gestellt, gedruckt oder (mit Zustimmung) elektronisch. [1, 2]
 
-> **Befreiung (§ 146a Abs. 2 Satz 2 AO):** Das Finanzamt kann von der Pflicht zur Aushändigung befreien. Voraussetzung ist ein „Verkauf von Waren an eine Vielzahl nicht bekannter Personen". Zu beachten:
+> **Befreiung (§ 146a Abs. 2 Satz 2 AO):** Das Finanzamt kann von der Pflicht zur Aushändigung befreien. Voraussetzung ist ein „Verkauf von Waren an eine Vielzahl von nicht bekannten Personen". Zu beachten:
 >
 > - Die Befreiung betrifft nur die Aushändigung, TSE-Absicherung, Erfassung und Belegerzeugung bleiben Pflicht; der Beleg muss jederzeit erstellbar sein.
-> - Sie wird nicht automatisch gewährt: schriftlicher Antrag beim Finanzamt nach § 148 AO, nur für den Einzelfall, widerruflich.
+> - Sie wird nicht automatisch gewährt: Antrag beim Finanzamt nach § 148 AO, nur für den Einzelfall, widerruflich.
 > - Sie setzt eine nachgewiesene sachliche Härte für den einzelnen Verein voraus. Die Kosten der Belegausgabe allein sind keine (AEAO zu § 146a, Nr. 2.5.9). [15]
 > - Verlangt ein Gast einen Beleg, ist er auszuhändigen.
 >
-> Ohne bewilligte Befreiung muss der Verein für jeden Kassiervorgang einen Beleg erstellen und ihn dem Gast anbieten. Erst mit bewilligter Befreiung genügt der Druck auf Verlangen. jotti druckt den Kassenbeleg deshalb nicht automatisch, sondern auf Anforderung (→ [anforderungen.md F-03](anforderungen.md)); erstellbar ist er jederzeit.
+> Ohne bewilligte Befreiung muss der Verein für jeden Kassiervorgang einen Beleg erstellen und ihn dem Gast anbieten. Erst mit bewilligter Befreiung genügt der Druck auf Verlangen. jotti druckt den Kassenbeleg auf Anforderung (→ [anforderungen.md F-03](anforderungen.md)). Ohne bewilligte Befreiung fordert die Servicekraft ihn deshalb für jeden Kassiervorgang an und bietet ihn an (AEAO Nr. 2.5.8). Erstellbar ist er jederzeit.
 
 > **Arbeitsbon ≠ Kassenbeleg:** Der automatische Arbeitsbon (Küche/Theke, ohne Preise) ist rein operativ, kein Beleg i. S. v. § 146a AO, keine TSE-Transaktion. Nur der Kassenbeleg (auf Anforderung pro Kassiervorgang) ist der fiskalische Beleg mit den Pflichtangaben aus §5.2. Details: [handbuch.md §4.5](handbuch.md#45-bondruck-arbeitsbon-und-kassenbeleg-k-12).
 
@@ -311,7 +311,7 @@ Lehnt der Gast ab, ist die Pflicht dennoch erfüllt. § 146a Abs. 2 AO verlangt 
 
 Bei Kassen-Nachschau oder Betriebsprüfung verlangt die Finanzverwaltung einen genormten Export nach DSFinV-K, lesbar durch die Prüfsoftware IDEA. Verbindlich ist v2.4, Stand Dezember 2023. [5] jotti hält den Versionsstring deshalb in einer einzigen Konstante (`dsfinvk.Version`) fest. Eine künftige DSFinV-K-Version ändert ihn an einer Stelle im Code.
 
-Das Test-Paket `backend/dsfinvkpruefung` prüft in einem Integrationstest die Exporte des Seed-Szenarios gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Es parst CSV und `index.xml` unabhängig vom Erzeuger (`api/fiskal/dsfinvk`), damit ein beiderseits geteilter Formatfehler auffällt. Beträge plausibilisiert es nicht; das leisten die Golden-File-Tests des Erzeugers.
+Das Test-Paket `backend/dsfinvkpruefung` prüft in einem Integrationstest die Exporte des Seed-Szenarios gegen die Struktur- und Inhaltsregeln der DSFinV-K 2.4. Es parst CSV und `index.xml` unabhängig vom Erzeuger (`api/fiskal/dsfinvk`), damit ein beiderseits geteilter Formatfehler auffällt. Beträge plausibilisiert es nicht; das leisten die Golden-Row-Tests des Erzeugers.
 
 ### 6.2 Dateiformat und Grundregeln
 
@@ -376,7 +376,7 @@ Der Bonkopf (`transactions.csv`) führt zusätzlich `BEDIENER_ID` und `BEDIENER_
 
 Das Feld `ABRECHNUNGSKREIS` (in `allocation_groups.csv`, je `BON_ID`) verknüpft Bestellungen und Zahlungen eines Tisches zu einer logischen Einheit, Beispieltabelle und Ablauf: → [§3.6](#36-das-festzelt-muster-atomare-tse-transaktionen).
 
-- **Vergabe:** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`), intern Subject `kassensitzung-{nr}/tisch-{id}`. Das Format erlaubt beliebige Strings bis 50 Zeichen; `Tisch {Name}` ist eine jotti-interne Konvention. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
+- **Vergabe:** pro Tisch und Kassensitzung, Wert = Tischname (z. B. `Tisch 42`), intern Subject `kassensitzung-{nr}/tisch-{id}`. Das Format erlaubt beliebige Strings bis 50 Zeichen. jotti kürzt längere Namen auf 50 Zeichen. Fehlt der Tisch in den Stammdaten, setzt jotti `Tisch {ID}`. Jeder Tisch erhält seinen eigenen Abrechnungskreis, ein Gesamt-Schlüssel für alle Tische verstieße gegen die GoBD-Nachvollziehbarkeit. Der Tagesabschluss schließt die Kassensitzung und damit alle Tisch-Sessions.
 - **Mehrere Gästegruppen am selben Tisch:** teilen sich einen Abrechnungskreis — zulässig, solange alle Bons korrekt verknüpft sind.
 - **Direktverkauf:** sofort geschlossene Transaktion ohne Tisch, im Export ohne `ABRECHNUNGSKREIS` (das Feld ist optional). Keine `Bestellung-V1` nötig, direkt als `Kassenbeleg-V1` abgesichert.
 - **Pfandrückgabe:** Rückgabe und Stornierung tragen den Tischnamen aus der `tischId` ihres eigenen Events. Mit `tischId` 0 (Theke) bleibt `ABRECHNUNGSKREIS` leer.

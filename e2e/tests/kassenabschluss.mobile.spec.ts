@@ -32,7 +32,7 @@ test.describe('Kassenabschluss beendet die laufende Kassensitzung', () => {
     request,
   }) => {
     // Höheres Timeout als der Standard: das Ausgleichen aller vom Drehbuch
-    // offen gelassenen Tische (settleAlleOffenenTische) durchläuft rund 20
+    // offen gelassenen Tische (settleAlleOffenenTische) durchläuft neun
     // Tische mit vielen Positionen und braucht dadurch spürbar länger als ein
     // einzelner Kernflow.
     test.setTimeout(120_000)

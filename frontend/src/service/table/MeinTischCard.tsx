@@ -26,7 +26,7 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
 
   // Farbsemantik: eigene offene Positionen fordern zur Aktion auf (amber), nur
   // fremde offene sind neutral wartend (muted), alles erledigt ist grün. Rot
-  // bleibt Storno-/Fehlerzuständen vorbehalten (docs/decisions.md D04).
+  // bleibt Storno-/Fehlerzuständen vorbehalten.
   const statusFarbe = alleErledigt
     ? 'bg-green-600'
     : anzahlEigeneOffen > 0

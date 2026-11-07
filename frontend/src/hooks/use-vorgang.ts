@@ -10,8 +10,9 @@ export interface Vorgang<K extends string | number> {
   // Neu, sobald die Auswahl leer wird oder sich wieder füllt; ein Retry behält ihn.
   vorgangId: string
   // Schlüssel für einen Absendeversuch mit diesem Inhalt. Nach einem Fehlversuch
-  // mit anderem Inhalt ist der alte verbraucht: das Backend hielte die geänderte
-  // Buchung für ein Duplikat und verwürfe sie stillschweigend.
+  // mit anderem Inhalt ist der alte verbraucht: das Backend verwürfe die geänderte
+  // Buchung stillschweigend als Duplikat (Bestellung, Direktverkauf) oder wiese
+  // sie mit vorgang_abweichend ab (Zahlung).
   schluesselFuer: (inhalt: unknown) => string
   // Leer, sobald die Auswahl leer wird oder sich wieder füllt.
   kommentar: string

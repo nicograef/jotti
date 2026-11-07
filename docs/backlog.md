@@ -6,7 +6,8 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 
 - [ ] Kassenabschluss-Wiederanlauf nach einer Geldbewegung: Steht ein Kassensturz und bewegt sich
       danach Geld, bricht jeder Wiederanlauf mit `ErrBuchungenNachKassensturz` ab. Geldbewegungen
-      sind Tischzahlung, Direktverkauf, Storno mit Rückgabe und Geldtransit. Kein Befehl hebt einen
+      sind Tischzahlung, Direktverkauf, Storno mit Rückgabe, Pfandrückgabe samt Storno und
+      Geldtransit. Kein Befehl hebt einen
       Kassensturz auf. Die Kassensitzung bleibt offen, das Frontend sagt „Bitte den Administrator kontaktieren".
       Reparaturweg (z. B. zweiter Kassensturz beim Wiederanlauf) bauen oder Admin-Ablauf
       dokumentieren.
@@ -19,9 +20,9 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Windows: `jotti-restore.cmd` liest nur `jotti-*.sql` aus dem Volume; für `manuell-*.sql` auf
       dem Host gibt es keinen dokumentierten Weg. Restore-Weg dokumentieren oder das Skript
       erweitern.
-- [ ] `JOTTI_DOMAIN` bei jedem Compose-Befehl des Public-Stacks: Folge der Entscheidung Option A —
-      jeder Compose-Befehl mit `docker-compose.prod.yml` (auch `make prod-down`, `make prod-logs`)
-      verlangt die Variable. Option A (hinnehmen) laut statt still bestätigen.
+- [ ] `JOTTI_DOMAIN` bei jedem Compose-Befehl des Public-Stacks: Jeder Compose-Befehl
+      mit `docker-compose.prod.yml` (auch `make prod-down`, `make prod-logs`) verlangt die
+      Variable. Die Pflicht hinnehmen und das ausdrücklich festhalten.
 - [ ] Rabatt und Gutschrift: Ein Verein fragt danach. Eine Gutschrift für ein reklamiertes Getränk deckt
       die Stornierung ab. Ein Rabatt bräuchte eine negative Positionszeile vom Typ „Rabatt" je Steuersatz
       (DSFinV-K Tz. 4.2.4) und Folgeversionen der Zahlungs-Events. Offen: nur bei weiterer Nachfrage.

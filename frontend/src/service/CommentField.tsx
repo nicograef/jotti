@@ -77,7 +77,7 @@ export function KommentarField({
         value={value}
         onChange={(e) => {
           setTouched(true)
-          // maxLength zählt UTF-16-Einheiten, das Backend Bytes: Umlaute sprengen sonst das Limit.
+          // maxLength zählt UTF-16-Einheiten, das Backend Codepoints: Emoji sprengen sonst das Limit.
           const vorher = value ?? letzterWert.current
           let neu = e.target.value
           if (utf8Bytes(neu) > KOMMENTAR_MAX_BYTES) {

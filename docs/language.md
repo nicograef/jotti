@@ -108,7 +108,7 @@ Pfand tippt die Servicekraft beim Verkauf als eigene Position eines Pfand-Produk
 | Verrechnung               | Pfandrückgabe im selben Abschluss wie eine Zahlung oder ein Direktverkauf; bar fließt nur die Differenz.                  | Guthaben, Gutschrift, Pfandabzug         | Go `enrichment.PfandEingabe` · JSON `pfand` in `/service/zahlung-kassieren` und `/service/direktverkauf-taetigen` |
 | Pfandrückgabe-Stornierung | Positionsgenaue Korrektur einer irrtümlichen Pfandrückgabe durch Serviceleitung oder Admin, mit Pflichtkommentar.         | Rückgabe-Storno, Pfand-Korrektur         | Event `pfandrueckgabe-storniert:v1` · JSON `stornierungId` · API `/serviceleitung/pfandrueckgabe-stornieren`      |
 
-„Gutschrift" bleibt aus Code und Oberfläche fern. Im Umsatzsteuerrecht ist sie eine Rechnung, die der Leistungsempfänger ausstellt (§ 14 Abs. 2 Satz 2 UStG).
+„Gutschrift" bleibt aus Code und Oberfläche fern. Im Umsatzsteuerrecht ist sie eine Rechnung, die der Leistungsempfänger ausstellt (§ 14 Abs. 2 Satz 5 UStG).
 
 ### Weitere Typen und Felder (Kasse)
 
@@ -158,7 +158,7 @@ Jeder Typ existiert als Go-Struct (`domain/reporting/`) und als Zod-Schema `<Typ
 
 | Begriff                | Bedeutung                                                                                                                                                 |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ReportingData          | Vollständiger Reporting-Datensatz einer Kassensitzung: Summary + Breakdowns + Stornierungen + ProduktStatistik                                            |
+| ReportingData          | Vollständiger Reporting-Datensatz einer Kassensitzung: Metadaten + Summary + Breakdowns + UmsatzProSteuersatz + Stornierungen + ProduktStatistik          |
 | Summary                | Aggregierte Kennzahlen einer Kassensitzung (Umsatz, Bestellungen, Stornierungen, Geldtransit, Direktverkauf, Pfandrückgaben, Anzahlen)                    |
 | Breakdowns             | Aufschlüsselung je Servicekraft: `AbrechnungProServicekraft []AbrechnungServicekraft`                                                                     |
 | AbrechnungServicekraft | Bargeld-Abrechnung des Tischservice: `kassiertCents`, `ruecknahmenCents`, `pfandCents`, `abzugebenCents`, `anzahlStornierungen`                           |

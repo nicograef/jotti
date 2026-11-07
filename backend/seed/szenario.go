@@ -555,9 +555,9 @@ func demoSzenario() szenario {
 				StartVorJetzt:       5 * time.Hour,
 				Dauer:               5 * time.Hour,
 				Abgeschlossen:       false,
-				// Kurzer TSE-Aussetzer am laufenden Tag: Die Aufträge des Fensters bleiben
-				// offen und ohne Fehlertext, weil der Worker ohne TSE-Konfiguration nie
-				// einen Signierversuch startet.
+				// Kurzer TSE-Aussetzer am laufenden Tag: Die Aufträge des Fensters werden offen
+				// und ohne Fehlertext geseedet; ohne TSE-Konfiguration markiert der Worker sie
+				// nach dem App-Start tse_nicht_konfiguriert, statt zu signieren.
 				TSEAusfaelle: []tseAusfall{{NachStart: 4 * time.Hour, Dauer: 10 * time.Minute}},
 				// Abdeckung des Kassenbeleg-Druckers stand offen — fehlgeschlagene
 				// Kassenbelege für die Fehlerliste des laufenden Tags.

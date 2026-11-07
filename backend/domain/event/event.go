@@ -21,7 +21,7 @@ var (
 	ErrInvalidVersion = errors.New("event version must be >= 1")
 )
 
-// Event represents a CNCF Cloudevent with additional fields for user association.
+// Event is modelled on CNCF CloudEvents (id, type, subject, time) plus user fields; it has no source or specversion.
 type Event struct {
 	ID       int
 	UserID   int

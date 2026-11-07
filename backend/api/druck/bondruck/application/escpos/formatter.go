@@ -518,7 +518,7 @@ func steuerMatrixLabel(satz steuer.Steuersatz) string {
 }
 
 // qrVersionForLengthM returns the smallest QR version (1-40) whose level-M byte-mode capacity
-// holds payloadLen bytes. Data codewords from ISO/IEC 18004:2015 Table 7, minus the mode indicator
+// holds payloadLen bytes. Data codewords for level M from ISO/IEC 18004, minus the mode indicator
 // and character count: 2 bytes for V1-V9, 3 bytes for V10-V40.
 func qrVersionForLengthM(payloadLen int) int {
 	codewords := [40]int{

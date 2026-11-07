@@ -1,5 +1,5 @@
 # Release variant of the LAN stack: ships inside the Windows release ZIP and is
-# what jotti-start.exe runs. Same shape as docker-compose.local.yml, but the four
+# what jotti-start.exe runs. Same shape as docker-compose.local.yml, but the three
 # buildable services pull pre-built GHCR images — the ZIP carries no source tree.
 # The tag `RELEASE_VERSION` is a placeholder that the release workflow pins before
 # the ZIP is assembled, so this committed file is a template, never runnable as-is.

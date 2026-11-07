@@ -111,7 +111,7 @@ func TestBuildBestellungProcessData_CSVFormat(t *testing.T) {
 }
 
 // Rücknahmen (geldneutrale Korrektur, Umbuchungs-Abgang) tragen negative Mengen (DSFinV-K
-// Anhang I) — sonst wäre die Rücknahme TSE-seitig nicht von einer Neubestellung trennbar.
+// Tz. 4.2.3) — sonst wäre die Rücknahme TSE-seitig nicht von einer Neubestellung trennbar.
 func TestBuildBestellungProcessData_NegativeMengen(t *testing.T) {
 	positionen := []Position{
 		{ProduktName: "Bier", VarianteName: "0,5l", EinzelpreisCents: 450, Menge: 2},

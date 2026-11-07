@@ -63,8 +63,8 @@ func BuildKassenbelegProcessData(positionen []Position, zahlbetragCents int, fak
 }
 
 // BuildBestellungProcessData renders Bestellung-V1 CSV per DSFinV-K Anhang I (docs/compliance.md
-// §3.4). faktor -1 negates quantities for a Rücknahme (Korrektur, Umbuchung-Abgang), as Anhang I
-// prescribes for order cancellations; unsigned, the TSE record would look like a new order.
+// §3.4). faktor -1 negates quantities for a Rücknahme (Korrektur, Umbuchung-Abgang), as DSFinV-K
+// Tz. 4.2.3 prescribes for order cancellations; unsigned, the TSE record would look like a new order.
 func BuildBestellungProcessData(positionen []Position, faktor int) (string, error) {
 	if len(positionen) == 0 {
 		return "", fmt.Errorf("bestellung processData requires at least one position")

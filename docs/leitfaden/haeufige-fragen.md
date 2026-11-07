@@ -128,7 +128,7 @@ Kassensitzung. Den Ablauf beschreibt [Mehrtägiges Fest](veranstaltungstag.md#me
 
 **Was kostet der Betrieb?** jotti ist für euch kostenlos. Laufende Kosten entstehen
 nur für die Cloud-TSE von fiskaly und, beim Experten-Weg, für den VPS
-(ca. 6 €/Monat). Der Standardweg kommt ohne Servermiete aus.
+(ca. 10 €/Monat). Der Standardweg kommt ohne Servermiete aus.
 
 fiskaly veröffentlicht für die TSE keinen Preis. Ein Wiederverkäufer (HKSoftware)
 nennt rund 13 €/Monat oder 143 €/Jahr netto je Kasse. Er bündelt die TSE mit

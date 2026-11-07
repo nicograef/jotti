@@ -13,7 +13,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: 'Warum nicht Excel oder eine Profi-Kasse?',
-    a: 'Stift und Papier oder eine Excel-Tabelle bieten keine gemeinsame Tisch-Übersicht und erfüllen die gesetzlichen Kassenregeln (TSE, Belegausgabe) nicht. Eine Profi-Kasse kann das, ist aber für den täglichen Gastrobetrieb gemacht, kostet 30 bis 100 € im Monat plus Hardware und oft mit Vertragslaufzeit — für zwei, drei Feste im Jahr lohnt sich das selten. jotti ist kostenlos, läuft auf euren eigenen Smartphones und bringt die fiskalischen Bausteine ab Werk mit.',
+    a: 'Stift und Papier oder eine Excel-Tabelle bieten keine gemeinsame Tisch-Übersicht und erfüllen die gesetzlichen Kassenregeln (TSE, Belegausgabe) nicht. Eine Profi-Kasse kann das, ist aber für den täglichen Gastrobetrieb gemacht, kostet 30 bis 200 € im Monat plus Hardware und oft mit Vertragslaufzeit — für zwei, drei Feste im Jahr lohnt sich das selten. jotti ist kostenlos, läuft auf euren eigenen Smartphones und bringt die fiskalischen Bausteine ab Werk mit.',
   },
   {
     q: 'Ist jotti wirklich TSE-konform?',

@@ -155,8 +155,8 @@ das Update Ärger macht.
 > ⛔ **Niemals `docker compose down -v` ausführen.** Das `-v` löscht **alle**
 > Docker-Volumes — und damit **Daten, Installations-Schlüssel und das grüne
 > Zertifikat** unwiderruflich. Auch ein Update bringt sie dann nicht zurück. Zum
-> Beenden immer **`jotti-stop.cmd`** verwenden: das stoppt nur die Container und
-> lässt alles erhalten.
+> Beenden immer **`jotti-stop.cmd`** verwenden: das entfernt nur die Container und
+> lässt die Volumes erhalten.
 
 **Geht beim Update etwas schief:** **`jotti-restore.cmd`** doppelklicken — es
 spielt das automatische Backup von vor dem Update zurück. Den vollständigen

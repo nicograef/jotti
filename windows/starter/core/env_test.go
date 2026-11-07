@@ -28,7 +28,7 @@ func TestMaterializeEnvCreatesWhenMissing(t *testing.T) {
 	if !strings.HasPrefix(content, "#") {
 		t.Fatalf("Inhalt beginnt nicht mit Kommentar-Header:\n%s", content)
 	}
-	// Die vier Keys aus .env.example muessen vorhanden sein.
+	// Die vier Keys, die EnvContent schreibt, muessen vorhanden sein.
 	for _, key := range []string{"POSTGRES_USER=admin", "POSTGRES_PASSWORD=", "JWT_SECRET=", "RELAY_AUTH_TOKEN="} {
 		if !strings.Contains(content, key) {
 			t.Fatalf("Inhalt enthaelt %q nicht:\n%s", key, content)

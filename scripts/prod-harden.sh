@@ -98,7 +98,7 @@ if ! command -v ufw &>/dev/null; then
 fi
 
 # `ufw limit` and `ufw allow` update a rule that already exists, so re-running
-# is a no-op. `limit` denies an address after six connections within 30 s. The
+# is a no-op. `limit` denies an address's 6th connection within 30 s. The
 # default-deny policy only takes effect on `enable`, which happens last.
 $SUDO ufw limit "$SSH_PORT/tcp" comment 'SSH'
 $SUDO ufw allow 80/tcp comment 'jotti HTTP'
