@@ -13,7 +13,7 @@ import {
 } from '../settings/DruckstationBackend'
 import { STEUERSATZ_LABEL } from './Produkt'
 
-export interface ProduktGruppe {
+interface ProduktGruppe {
   kategorie: Kategorie
   label: string
   produkte: Produkt[]

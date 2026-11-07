@@ -27,8 +27,8 @@ const tseBackend = new TSEBackend(BackendSingleton)
 
 export const TSE_KONFIGURATION_KEY = 'tse-konfiguration'
 export const TSE_STATUS_KEY = 'tse-status'
-export const TSE_SIGNATUR_QUEUE_KEY = 'tse-signatur-queue'
-export const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
+const TSE_SIGNATUR_QUEUE_KEY = 'tse-signatur-queue'
+const TSE_STOERUNGEN_KEY = 'tse-stoerungen'
 
 // Jede Änderung der Konfiguration ändert auch istKonfiguriert im Status.
 function invalidiereTSE(queryClient: QueryClient): Promise<unknown> {

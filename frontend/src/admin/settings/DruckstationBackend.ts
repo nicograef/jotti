@@ -69,7 +69,7 @@ export function hatBonmodus(kategorie: Kategorie): boolean {
 }
 
 // Nach mehreren Fehlversuchen (rund 5 Minuten) aufgegeben.
-export const FehlgeschlagenerDruckauftragSchema = z.object({
+const FehlgeschlagenerDruckauftragSchema = z.object({
   id: z.number(),
   bonArt: z.string(),
   zielIp: z.string(),
@@ -140,7 +140,7 @@ const BON_ART_SUBSTANTIV: Record<string, { singular: string; plural: string }> =
     testbon: { singular: 'Testbon', plural: 'Testbons' },
   }
 
-export interface FehlBonBeschreibung {
+interface FehlBonBeschreibung {
   singular: string
   plural: string
   // Nur eine reine Arbeitsbon-Menge landet an einer Ausgabestation

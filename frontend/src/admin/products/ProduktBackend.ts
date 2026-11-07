@@ -28,7 +28,7 @@ export const UpdateProduktSchema = CreateProduktSchema.extend({
   id: ProduktIdSchema,
 })
 
-export const VerschiebeProduktSchema = z.object({
+const VerschiebeProduktSchema = z.object({
   id: ProduktIdSchema,
   richtung: RichtungSchema,
 })
@@ -45,12 +45,12 @@ export const UpdateVarianteSchema = z.object({
   preisCents: PreisCentsEingabeSchema,
 })
 
-export const VerschiebeVarianteSchema = z.object({
+const VerschiebeVarianteSchema = z.object({
   id: VarianteIdSchema,
   richtung: RichtungSchema,
 })
 
-export const SortiereVariantenSchema = z.object({
+const SortiereVariantenSchema = z.object({
   produktId: ProduktIdSchema,
 })
 

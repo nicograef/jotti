@@ -22,7 +22,7 @@ export const KassensitzungEroeffnenSchema = z.object({
 
 // Nur die aktive Sitzung liefert den Eröffnungszeitpunkt (RFC-3339); die
 // abgeschlossenen Sitzungen im Reporting geben ihn nicht mit.
-export const AktiveKassensitzungSchema = KassensitzungSchema.extend({
+const AktiveKassensitzungSchema = KassensitzungSchema.extend({
   eroeffnetAm: z.string(),
 })
 export type AktiveKassensitzung = z.infer<typeof AktiveKassensitzungSchema>
@@ -43,7 +43,7 @@ export const KasseAbschliessenSchema = z.object({
 
 // ausfallResteAnzahl: Vorgänge, die die TSE noch nachsigniert.
 // ohneKonfigurationAnzahl: Vorgänge ohne Signatur mangels TSE-Konfiguration.
-export const KassenabschlussErgebnisSchema = z.object({
+const KassenabschlussErgebnisSchema = z.object({
   ausfallResteAnzahl: z.number().int(),
   ohneKonfigurationAnzahl: z.number().int(),
 })

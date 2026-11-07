@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { SteuersatzSchema } from '@/lib/produktSchemas'
 
-export const SummarySchema = z.object({
+const SummarySchema = z.object({
   gesamtUmsatzCents: z.number().int(),
   gesamtBestellungenCents: z.number().int(),
   gesamtStornierungenCents: z.number().int(),
@@ -17,7 +17,7 @@ export const SummarySchema = z.object({
 })
 
 // userName ist der eingefrorene Username, name der live aufgelöste Klarname.
-export const ServicekraftRefSchema = z.object({
+const ServicekraftRefSchema = z.object({
   userId: z.number().int(),
   userName: z.string(),
   name: z.string(),
@@ -26,7 +26,7 @@ export const ServicekraftRefSchema = z.object({
 // abzugebenCents = kassiertCents − ruecknahmenCents − pfandCents and may be negative;
 // Direktverkäufe and Pfand at the counter are not included.
 // anzahlStornierungen counts both Tisch-Storno kinds as a control counter.
-export const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
+const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
   kassiertCents: z.number().int(),
   anzahlZahlungen: z.number().int(),
   ruecknahmenCents: z.number().int(),
@@ -35,7 +35,7 @@ export const AbrechnungServicekraftSchema = ServicekraftRefSchema.extend({
   abzugebenCents: z.number().int(),
 })
 
-export const StornierungPositionSchema = z.object({
+const StornierungPositionSchema = z.object({
   produktName: z.string(),
   varianteName: z.string(),
   menge: z.number().int(),
@@ -45,7 +45,7 @@ export const StornierungPositionSchema = z.object({
 // akteur hat den Storno ausgelöst; betroffene sind die Servicekräfte, deren
 // Vorgang er rückgängig macht (Storno-Zuordnung). betroffene liefert das
 // Backend nie leer.
-export const StornierungDetailSchema = z.object({
+const StornierungDetailSchema = z.object({
   zeitpunkt: z.string(),
   quelle: z.enum(['tisch', 'direktverkauf']),
   barRueckgabe: z.boolean(),
@@ -59,7 +59,7 @@ export const StornierungDetailSchema = z.object({
 })
 export type StornierungDetail = z.infer<typeof StornierungDetailSchema>
 
-export const UmsatzSteuersatzSchema = z.object({
+const UmsatzSteuersatzSchema = z.object({
   satz: SteuersatzSchema,
   bruttoCents: z.number().int(),
   nettoCents: z.number().int(),
@@ -68,7 +68,7 @@ export const UmsatzSteuersatzSchema = z.object({
 
 // ausgegebeneMenge (Produktion) und umsatzCents (Bestellwert) ruhen auf derselben
 // Ereignismenge und Gewichtung; kassierte Zahlungen ändern den Umsatz nicht.
-export const VarianteStatistikSchema = z.object({
+const VarianteStatistikSchema = z.object({
   varianteId: z.number().int(),
   varianteName: z.string(),
   ausgegebeneMenge: z.number().int(),
@@ -77,7 +77,7 @@ export const VarianteStatistikSchema = z.object({
 
 // Vom Backend fertig gruppiert und sortiert; Ein-Varianten-Produkte tragen
 // genau eine Variante.
-export const ProduktStatistikSchema = z.object({
+const ProduktStatistikSchema = z.object({
   kategorie: z.string(),
   produktName: z.string(),
   ausgegebeneMenge: z.number().int(),
@@ -99,14 +99,14 @@ export type AbgeschlosseneSitzung = z.infer<typeof AbgeschlosseneSitzungSchema>
 
 // Aus den Journal-Events projiziert; die Felder bleiben leer, solange das
 // zugehörige Event fehlt (etwa bei einer offenen Sitzung).
-export const MetadatenSchema = z.object({
+const MetadatenSchema = z.object({
   eroeffnetAm: z.string().nullable(),
   abgeschlossenAm: z.string().nullable(),
   abgeschlossenVon: z.string(),
   kassensturzDifferenzCents: z.number().int().nullable(),
 })
 
-export const OffenerTischSchema = z.object({
+const OffenerTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
   saldoCents: z.number().int(),
@@ -115,13 +115,13 @@ export type OffenerTisch = z.infer<typeof OffenerTischSchema>
 
 // Ohne Betrag: der offene Saldo wird auf Servicekraft-Ebene aggregiert
 // (ServicekraftLiveSchema.offenCents).
-export const OffeneArbeitTischSchema = z.object({
+const OffeneArbeitTischSchema = z.object({
   tischId: z.number().int(),
   tischName: z.string(),
 })
 
 // erledigt ist true, wenn keine offene eigene Arbeit mehr besteht.
-export const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
+const ServicekraftLiveSchema = ServicekraftRefSchema.extend({
   kassiertCents: z.number().int(),
   ruecknahmenCents: z.number().int(),
   anzahlStornierungen: z.number().int(),

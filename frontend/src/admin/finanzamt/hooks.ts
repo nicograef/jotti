@@ -15,8 +15,8 @@ import {
 
 const betreiberBackend = new BetreiberBackend(BackendSingleton)
 
-export const KASSENIDENTITAET_KEY = 'kassenidentitaet'
-export const BETREIBER_KEY = 'betreiber'
+const KASSENIDENTITAET_KEY = 'kassenidentitaet'
+const BETREIBER_KEY = 'betreiber'
 
 export function useKassenidentitaet(): {
   kassenidentitaet: Kassenidentitaet | undefined

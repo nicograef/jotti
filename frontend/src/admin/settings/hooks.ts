@@ -12,9 +12,8 @@ import {
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
 
-export const DRUCKSTATIONEN_KEY = 'druckstationen'
-export const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY =
-  'fehlgeschlagene-druckauftraege'
+const DRUCKSTATIONEN_KEY = 'druckstationen'
+const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY = 'fehlgeschlagene-druckauftraege'
 
 interface DruckstationenResult extends QueryResult<DruckstationConfig[]> {
   druckstationen: DruckstationConfig[]

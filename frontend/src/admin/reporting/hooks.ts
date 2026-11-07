@@ -16,9 +16,8 @@ import type {
 
 const reportingBackend = new ReportingBackend(BackendSingleton)
 
-export const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY =
-  'abgeschlossene-kassensitzungen'
-export const REPORT_KEY = 'report'
+const ABGESCHLOSSENE_KASSENSITZUNGEN_KEY = 'abgeschlossene-kassensitzungen'
+const REPORT_KEY = 'report'
 export const LIVE_REPORTING_KEY = 'live-reporting'
 
 export function useAbgeschlosseneKassensitzungen(): QueryResult<

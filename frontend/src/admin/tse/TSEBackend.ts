@@ -3,10 +3,10 @@ import { z } from 'zod'
 import type { BackendClient } from '@/lib/Backend'
 import { DateStringSchema } from '@/lib/utils'
 
-export const UmgebungSchema = z.enum(['TEST', 'LIVE'])
+const UmgebungSchema = z.enum(['TEST', 'LIVE'])
 export type Umgebung = z.infer<typeof UmgebungSchema>
 
-export const TSEKonfigurationSchema = z.object({
+const TSEKonfigurationSchema = z.object({
   apiKeyGesetzt: z.boolean(),
   apiSecretGesetzt: z.boolean(),
   tssId: z.string(),
@@ -15,7 +15,7 @@ export const TSEKonfigurationSchema = z.object({
 })
 export type TSEKonfiguration = z.infer<typeof TSEKonfigurationSchema>
 
-export const TSEVerbindungStatusSchema = z.object({
+const TSEVerbindungStatusSchema = z.object({
   umgebung: UmgebungSchema,
   tssState: z.string().min(1, 'TSS-Status fehlt'),
   clientState: z.string().min(1, 'Client-Status fehlt'),
@@ -34,20 +34,20 @@ export function verbindungIstSigniertfaehig(
   )
 }
 
-export const TSEClientBefundSchema = z.object({
+const TSEClientBefundSchema = z.object({
   id: z.string(),
   serialNumber: z.string(),
   state: z.string(),
 })
 
-export const TSSBefundSchema = z.object({
+const TSSBefundSchema = z.object({
   id: z.string(),
   state: z.string(),
   passenderClient: TSEClientBefundSchema.nullable(),
 })
 export type TSSBefund = z.infer<typeof TSSBefundSchema>
 
-export const TSESetupBefundSchema = z.object({
+const TSESetupBefundSchema = z.object({
   umgebung: UmgebungSchema,
   vorhandeneTss: z.array(TSSBefundSchema),
 })
@@ -69,7 +69,7 @@ const tssIdField = z
   .min(1, 'TSS-ID ist erforderlich')
   .max(255, 'TSS-ID darf höchstens 255 Zeichen lang sein')
 
-export const TSESetupZugangsdatenSchema = z.object({
+const TSESetupZugangsdatenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
 })
@@ -77,7 +77,7 @@ export type TSESetupZugangsdaten = z.infer<typeof TSESetupZugangsdatenSchema>
 
 // neuAnlegenTrotzVorhandener erzwingt in TEST eine zweite, frische TSE trotz
 // vorhandener TSS; in LIVE ist das im Backend hart gesperrt.
-export const TSEEinrichtenSchema = z.object({
+const TSEEinrichtenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
   umgebung: UmgebungSchema,
@@ -87,7 +87,7 @@ export type TSEEinrichten = z.infer<typeof TSEEinrichtenSchema>
 
 // pin carries the stored Admin-PIN from state UNINITIALIZED on and stays empty at CREATED (jotti fetches PUK and PIN itself).
 // puk is set only for the PIN reset: with a lost or locked PIN jotti sets a fresh one and completes the takeover.
-export const TSEUebernehmenSchema = z.object({
+const TSEUebernehmenSchema = z.object({
   apiKey: apiKeyField,
   apiSecret: apiSecretField,
   umgebung: UmgebungSchema,
@@ -106,7 +106,7 @@ export type TSEUebernehmen = z.infer<typeof TSEUebernehmenSchema>
 
 // PUK und Admin-PIN kommen genau einmal mit der Antwort, werden nie gespeichert
 // und dem Admin einmalig zur externen Verwahrung gezeigt.
-export const TSEEinrichtenErgebnisSchema = z.object({
+const TSEEinrichtenErgebnisSchema = z.object({
   tssId: z.string(),
   clientId: z.string(),
   puk: z.string(),
@@ -115,7 +115,7 @@ export const TSEEinrichtenErgebnisSchema = z.object({
 })
 export type TSEEinrichtenErgebnis = z.infer<typeof TSEEinrichtenErgebnisSchema>
 
-export const TSEStatusSchema = z.object({
+const TSEStatusSchema = z.object({
   umgebung: z.string(),
   istKonfiguriert: z.boolean(),
 })
@@ -123,7 +123,7 @@ export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
 // Backlog: open Aufträge and the oldest one's age; throughput over a sliding 15-minute window (signatures/minute, p95).
 // fehlgeschlageneAuftraege and letzterFehler cover only the active Kassensitzung, so closing it clears the warning.
-export const TSESignaturQueueSchema = z.object({
+const TSESignaturQueueSchema = z.object({
   offeneAuftraege: z.number().int(),
   fehlgeschlageneAuftraege: z.number().int(),
   letzterFehler: z.string(),
@@ -135,7 +135,7 @@ export type TSESignaturQueue = z.infer<typeof TSESignaturQueueSchema>
 
 // Störungsprotokoll (TSE-Ausfalldokumentation); ende ist null, solange die
 // Störung andauert.
-export const TSEStoerungSchema = z.object({
+const TSEStoerungSchema = z.object({
   id: z.number().int(),
   beginn: DateStringSchema,
   ende: DateStringSchema.nullable(),
