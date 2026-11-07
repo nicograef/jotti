@@ -20,7 +20,7 @@ func Open() *sql.DB {
 	port := envOrDefault("POSTGRES_PORT", "5432")
 	user := envOrDefault("POSTGRES_USER", "admin")
 	password := envOrDefault("POSTGRES_PASSWORD", "admin")
-	dbName := envAnyOrDefault([]string{"POSTGRES_DBNAME", "POSTGRES_DB"}, "jotti")
+	dbName := envOrDefault("POSTGRES_DBNAME", "jotti")
 
 	db, err := sql.Open("pgx", dbpkg.ConnString(host, port, user, password, dbName))
 	if err != nil {
@@ -44,14 +44,4 @@ func envOrDefault(name string, fallback string) string {
 	}
 
 	return value
-}
-
-func envAnyOrDefault(names []string, fallback string) string {
-	for _, name := range names {
-		if value := os.Getenv(name); value != "" {
-			return value
-		}
-	}
-
-	return fallback
 }
