@@ -18,6 +18,12 @@ type Position struct {
 	Menge            int    `json:"menge"`
 }
 
+// KommentiertePosition is a booked position with its Positionskommentar, "" when it has none.
+type KommentiertePosition struct {
+	Position
+	Kommentar string `json:"kommentar"`
+}
+
 type Stornierung struct {
 	StornierungID          string    `json:"stornierungId"`
 	StorniertAm            time.Time `json:"storniertAm"`
@@ -27,21 +33,21 @@ type Stornierung struct {
 // HistorieEintrag carries kasse.VorgangHistorieEintrag; each history entry DTO embeds it, and
 // encoding/json flattens the embedded fields into the entry.
 type HistorieEintrag struct {
-	UserName             string        `json:"userName"`
-	GetaetigtAm          time.Time     `json:"getaetigtAm"`
-	Positionen           []Position    `json:"positionen"`
-	GesamtbetragCents    int           `json:"gesamtbetragCents"`
-	Kommentar            string        `json:"kommentar"`
-	OffenePositionen     []Position    `json:"offenePositionen"`
-	GesamtStorniertCents int           `json:"gesamtStorniertCents"`
-	Stornierungen        []Stornierung `json:"stornierungen"`
+	UserName             string                 `json:"userName"`
+	GetaetigtAm          time.Time              `json:"getaetigtAm"`
+	Positionen           []KommentiertePosition `json:"positionen"`
+	GesamtbetragCents    int                    `json:"gesamtbetragCents"`
+	Kommentar            string                 `json:"kommentar"`
+	OffenePositionen     []Position             `json:"offenePositionen"`
+	GesamtStorniertCents int                    `json:"gesamtStorniertCents"`
+	Stornierungen        []Stornierung          `json:"stornierungen"`
 }
 
 func ToHistorieEintrag(e kasse.VorgangHistorieEintrag) HistorieEintrag {
 	return HistorieEintrag{
 		UserName:             e.UserName,
 		GetaetigtAm:          e.GetaetigtAm,
-		Positionen:           toPositionen(e.Positionen),
+		Positionen:           toKommentiertePositionen(e.Positionen),
 		GesamtbetragCents:    e.GesamtbetragCents,
 		Kommentar:            e.Kommentar,
 		OffenePositionen:     toPositionen(e.OffenePositionen),
@@ -53,18 +59,30 @@ func ToHistorieEintrag(e kasse.VorgangHistorieEintrag) HistorieEintrag {
 func toPositionen(positionen []kasse.Position) []Position {
 	out := make([]Position, 0, len(positionen))
 	for _, p := range positionen {
-		out = append(out, Position{
-			PositionID:       p.PositionID,
-			VarianteID:       p.VarianteID,
-			ProduktName:      p.ProduktName,
-			VarianteName:     p.VarianteName,
-			Kategorie:        p.Kategorie,
-			Steuersatz:       p.Steuersatz,
-			EinzelpreisCents: p.EinzelpreisCents,
-			Menge:            p.Menge,
-		})
+		out = append(out, toPosition(p))
 	}
 	return out
+}
+
+func toKommentiertePositionen(positionen []kasse.Position) []KommentiertePosition {
+	out := make([]KommentiertePosition, 0, len(positionen))
+	for _, p := range positionen {
+		out = append(out, KommentiertePosition{Position: toPosition(p), Kommentar: p.Kommentar})
+	}
+	return out
+}
+
+func toPosition(p kasse.Position) Position {
+	return Position{
+		PositionID:       p.PositionID,
+		VarianteID:       p.VarianteID,
+		ProduktName:      p.ProduktName,
+		VarianteName:     p.VarianteName,
+		Kategorie:        p.Kategorie,
+		Steuersatz:       p.Steuersatz,
+		EinzelpreisCents: p.EinzelpreisCents,
+		Menge:            p.Menge,
+	}
 }
 
 func toStornierungen(stornierungen []kasse.VorgangStornierung) []Stornierung {
