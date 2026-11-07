@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/config"
@@ -129,6 +128,7 @@ func TestSetupRoutes_ResetSeedRouteGuardedByEnv(t *testing.T) {
 func TestRun_ContextCancellation(t *testing.T) {
 	setRequiredConfigEnv(t)
 	cfg := config.Load()
+	cfg.Port = 0 // a free port, so parallel test runs never collide on :3000
 	app := NewApp(cfg, &sql.DB{}, "dev")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -137,8 +137,6 @@ func TestRun_ContextCancellation(t *testing.T) {
 	go func() {
 		errChan <- app.Run(ctx)
 	}()
-
-	time.Sleep(100 * time.Millisecond)
 
 	cancel()
 
