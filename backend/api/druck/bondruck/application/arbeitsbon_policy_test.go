@@ -166,9 +166,6 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 	}
 }
 
-// Regression: Wenn die Tisch-ID nicht dem Tisch-Namen entspricht (z.B. Tisch-ID 18 heißt
-// "Tisch 15", weil zwischendurch andere Tische angelegt wurden), muss der übergebene
-// tischName auf dem Bon stehen — nicht die ID aus dem Subject.
 func decodePayload(t *testing.T, auftrag druckstation.NeuerDruckauftrag) string {
 	t.Helper()
 	raw, err := base64.StdEncoding.DecodeString(auftrag.Payload)
@@ -235,6 +232,9 @@ func TestCreateArbeitsbonAuftraege_ProPosition_PositionskommentarNurAufSeinemEin
 	}
 }
 
+// Regression: Wenn die Tisch-ID nicht dem Tisch-Namen entspricht (z.B. Tisch-ID 18 heißt
+// "Tisch 15", weil zwischendurch andere Tische angelegt wurden), muss der übergebene
+// tischName auf dem Bon stehen — nicht die ID aus dem Subject.
 func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 	positionen := []kasse.Position{
 		position("Pommes", "gross", "essen", 1),
