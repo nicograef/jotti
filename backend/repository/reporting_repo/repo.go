@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -22,19 +23,11 @@ func NewRepository(db *sql.DB) Repository {
 	return Repository{q: dbgen.New(db)}
 }
 
-// stornierungPositionJSON is used for deserializing position data from the stornierung event JSONB.
-type stornierungPositionJSON struct {
-	ProduktName      string `json:"produktName"`
-	VarianteName     string `json:"varianteName"`
-	Menge            int    `json:"menge"`
-	EinzelpreisCents int    `json:"einzelpreisCents"`
-}
-
 // stornierungEventData holds the shared JSONB fields of the storno events. The query normalizes the total
 // (gesamtStornierungCents or gesamtCents) into its own column.
 type stornierungEventData struct {
 	Kommentar  string                    `json:"kommentar"`
-	Positionen []stornierungPositionJSON `json:"positionen"`
+	Positionen []kasse.PositionEventData `json:"positionen"`
 }
 
 // servicekraftRefJSON decodes one entry of the betroffene column of GetStornierungen.
@@ -133,11 +126,6 @@ func (r Repository) GetReporting(ctx context.Context, kassensitzungNr int) (repo
 	}, nil
 }
 
-// kassensturzDataJSON decodes the count difference of the kassensturz-durchgefuehrt:v1 event.
-type kassensturzDataJSON struct {
-	DifferenzCents int `json:"differenzCents"`
-}
-
 func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, error) {
 	metadaten := reporting.Metadaten{}
 
@@ -153,7 +141,7 @@ func toMetadaten(row dbgen.GetKassensitzungMetadatenRow) (reporting.Metadaten, e
 		metadaten.AbgeschlossenVon = row.AbgeschlossenVon.String
 	}
 	// Without a Kassensturz the query yields the JSON literal 'null', which decodes to a nil pointer.
-	var data *kassensturzDataJSON
+	var data *kasse.KassensturzDurchgefuehrtV1Data
 	if err := json.Unmarshal(row.KassensturzData, &data); err != nil {
 		return reporting.Metadaten{}, fmt.Errorf("unmarshal kassensturz data: %w", err)
 	}
@@ -213,7 +201,7 @@ func (r Repository) GetLiveReporting(ctx context.Context, kassensitzungNr int) (
 	}, nil
 }
 
-func toStornierungPosition(p stornierungPositionJSON) reporting.StornierungPosition {
+func toStornierungPosition(p kasse.PositionEventData) reporting.StornierungPosition {
 	return reporting.StornierungPosition{
 		ProduktName:      p.ProduktName,
 		VarianteName:     p.VarianteName,
@@ -222,7 +210,7 @@ func toStornierungPosition(p stornierungPositionJSON) reporting.StornierungPosit
 	}
 }
 
-func toStornierungPositionen(positionen []stornierungPositionJSON) []reporting.StornierungPosition {
+func toStornierungPositionen(positionen []kasse.PositionEventData) []reporting.StornierungPosition {
 	out := make([]reporting.StornierungPosition, len(positionen))
 	for i, p := range positionen {
 		out[i] = toStornierungPosition(p)
