@@ -12,6 +12,7 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 type mockService struct {
@@ -172,5 +173,19 @@ func TestExportHandler_InvalidKassensitzungNr(t *testing.T) {
 		if rec.Code != http.StatusBadRequest {
 			t.Errorf("kassensitzungNr %d: expected status 400, got %d", nr, rec.Code)
 		}
+	}
+}
+
+// zog's Required() mutates its receiver. The reporting and Kassenführung handlers require a
+// KassensitzungNr, and their schemas must not make the export's optional field required.
+func TestExportHandler_NullBleibtNebenPflichtSchemaGueltig(t *testing.T) {
+	_ = kasse.KassensitzungNrSchema().Required()
+	h := &Handler{Service: &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}}
+
+	rec := httptest.NewRecorder()
+	performRequest(t, h.ExportHandler(), rec, 0)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200 for kassensitzungNr 0, got %d", rec.Code)
 	}
 }

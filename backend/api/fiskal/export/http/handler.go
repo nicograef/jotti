@@ -35,7 +35,7 @@ type exportRequest struct {
 
 // Not Required: zog skips the zero value, so 0 selects the default session.
 var exportSchema = z.Struct(z.Shape{
-	"KassensitzungNr": kasse.KassensitzungNrSchema,
+	"KassensitzungNr": kasse.KassensitzungNrSchema(),
 })
 
 // ExportHandler streams the chosen Kassensitzung's DSFinV-K ZIP. The /admin/ mount

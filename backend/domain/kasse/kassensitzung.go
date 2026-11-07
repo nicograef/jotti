@@ -9,10 +9,13 @@ import (
 
 type KassensitzungStatus string
 
-// KassensitzungNrSchema bounds a Z-Nummer like an ID: the int4 column holds at most MaxInt32.
-var KassensitzungNrSchema = z.Int().
-	GTE(1, z.Message("Ungültige Kassensitzungsnummer")).
-	LTE(math.MaxInt32, z.Message("Ungültige Kassensitzungsnummer"))
+// KassensitzungNrSchema bounds a Z-Nummer like an ID: the int4 column holds at most MaxInt32. Each
+// call builds a fresh schema, because zog's Required() mutates its receiver and one field is optional.
+func KassensitzungNrSchema() *z.NumberSchema[int] {
+	return z.Int().
+		GTE(1, z.Message("Ungültige Kassensitzungsnummer")).
+		LTE(math.MaxInt32, z.Message("Ungültige Kassensitzungsnummer"))
+}
 
 type Kassensitzung struct {
 	ZNr         int

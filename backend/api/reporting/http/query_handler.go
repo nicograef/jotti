@@ -28,7 +28,7 @@ type getReportingRequest struct {
 }
 
 var getReportingSchema = z.Struct(z.Shape{
-	"KassensitzungNr": kasse.KassensitzungNrSchema.Required(),
+	"KassensitzungNr": kasse.KassensitzungNrSchema().Required(),
 })
 
 type metadatenResponse struct {

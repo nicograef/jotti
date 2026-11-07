@@ -64,7 +64,7 @@ type valueCase struct {
 }
 
 var valueCases = []valueCase{
-	{schema: "kasse.KassensitzungNrSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(kasse.KassensitzungNrSchema)},
+	{schema: "kasse.KassensitzungNrSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(kasse.KassensitzungNrSchema().Required())},
 	{schema: "kasse.PositionEingabeSchema", smallest: 1, largest: 999, accepts: acceptsNumber(kasse.PositionEingabeSchema)},
 	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(produkt.IDSchema)},
 	{schema: "produkt.PreisCentsSchema", smallest: 1, largest: 99999, accepts: acceptsNumber(produkt.PreisCentsSchema)},
@@ -198,7 +198,7 @@ func exceptionReason(schema string) string {
 	return ""
 }
 
-// declaredFieldSchemas keys every exported *Schema below backend/domain as
+// declaredFieldSchemas keys every exported *Schema variable or constructor below backend/domain as
 // "<package directory>.<identifier>".
 func declaredFieldSchemas(t *testing.T) map[string]token.Position {
 	t.Helper()
@@ -234,6 +234,12 @@ func declaredFieldSchemas(t *testing.T) map[string]token.Position {
 func exportedSchemaNames(file *ast.File) []*ast.Ident {
 	names := []*ast.Ident{}
 	for _, decl := range file.Decls {
+		if funcDecl, ok := decl.(*ast.FuncDecl); ok {
+			if funcDecl.Recv == nil && isSchemaName(funcDecl.Name.Name) {
+				names = append(names, funcDecl.Name)
+			}
+			continue
+		}
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok || genDecl.Tok != token.VAR {
 			continue

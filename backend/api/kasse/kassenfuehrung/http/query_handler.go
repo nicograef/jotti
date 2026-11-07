@@ -33,7 +33,7 @@ type kassensitzungNrRequest struct {
 }
 
 var kassensitzungNrSchema = z.Struct(z.Shape{
-	"KassensitzungNr": kasse.KassensitzungNrSchema.Required(),
+	"KassensitzungNr": kasse.KassensitzungNrSchema().Required(),
 })
 
 // Invariante (vor Kassensturz): anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
