@@ -3,7 +3,6 @@
 package test
 
 import (
-	"context"
 	"database/sql"
 	"net/http"
 
@@ -12,51 +11,39 @@ import (
 	"github.com/nicograef/jotti/backend/seed"
 )
 
-type Zugangsdaten struct {
+type zugangsdaten struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type ResetResponse struct {
-	Admin          Zugangsdaten `json:"admin"`
-	Serviceleitung Zugangsdaten `json:"serviceleitung"`
-	Service        Zugangsdaten `json:"service"`
-}
-
-type reseter interface {
-	ResetAndSeed(ctx context.Context) error
-}
-
-type dbReseter struct {
-	db *sql.DB
-}
-
-func (r dbReseter) ResetAndSeed(ctx context.Context) error {
-	return seed.ResetAndSeed(ctx, r.db)
+type resetResponse struct {
+	Admin          zugangsdaten `json:"admin"`
+	Serviceleitung zugangsdaten `json:"serviceleitung"`
+	Service        zugangsdaten `json:"service"`
 }
 
 type Handler struct {
-	Reseter reseter
+	DB *sql.DB
 }
 
 func NewHandler(db *sql.DB) Handler {
-	return Handler{Reseter: dbReseter{db: db}}
+	return Handler{DB: db}
 }
 
 func (h Handler) ResetAndSeedHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log := logging.FromContext(r.Context())
 
-		if err := h.Reseter.ResetAndSeed(r.Context()); err != nil {
+		if err := seed.ResetAndSeed(r.Context(), h.DB); err != nil {
 			log.Error("reset-and-seed failed", "error", err)
 			helper.SendServerError(w)
 			return
 		}
 
-		helper.SendResponse(w, ResetResponse{
-			Admin:          Zugangsdaten{Username: seed.DemoAdminUsername, Password: seed.DemoPassword},
-			Serviceleitung: Zugangsdaten{Username: seed.DemoServiceleitungUsername, Password: seed.DemoPassword},
-			Service:        Zugangsdaten{Username: seed.DemoServiceUsername, Password: seed.DemoPassword},
+		helper.SendResponse(w, resetResponse{
+			Admin:          zugangsdaten{Username: seed.DemoAdminUsername, Password: seed.DemoPassword},
+			Serviceleitung: zugangsdaten{Username: seed.DemoServiceleitungUsername, Password: seed.DemoPassword},
+			Service:        zugangsdaten{Username: seed.DemoServiceUsername, Password: seed.DemoPassword},
 		})
 	}
 }
