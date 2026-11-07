@@ -129,7 +129,7 @@ Im Festzelt-Betrieb laufen an einem Tisch über Stunden Bestellrunden und Teilza
 | 20:00 | Teilzahlung 14,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1003) |
 | 21:00 | Restzahlung 18,00 € bar (2 Gäste) | `Kassenbeleg-V1` (Nr. 1004) |
 
-Jeder Zahlungsbeleg trägt zusätzlich den Startzeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht → §5.3). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS` (Vergabe und Verhalten bei mehreren Gästegruppen am selben Tisch → §6.5).
+Jeder Zahlungsbeleg trägt zusätzlich den Erfassungszeitpunkt der ersten Bestellung in Klarschrift (Durchbedienen-Pflicht und Abweichung → §5.3). Der Betriebsprüfer rekonstruiert den vollständigen Tischverlauf über den gemeinsamen `ABRECHNUNGSKREIS` (Vergabe und Verhalten bei mehreren Gästegruppen am selben Tisch → §6.5).
 
 ### 3.7 Seriennummer-Generierung bei Self-hosted Docker-Instanzen
 
@@ -250,7 +250,9 @@ Manche Bestellungen werden mit `Bestellung-V1` abgesichert und erst später beza
 Der Zahlungsbeleg trägt also zwei Zeitstempel:
 
 - den TSE-`logTime` der aktuellen `Kassenbeleg-V1`-Transaktion
-- den Erfassungszeitpunkt der ersten Bestellung der Tisch-Session in Klarschrift (Event-Zeit, weil die TSE-Signatur asynchron entsteht)
+- den Erfassungszeitpunkt der ersten Bestellung der Tisch-Session in Klarschrift (Event-Zeit)
+
+**Abweichung:** DSFinV-K Tz. 2.7.2 verlangt den Start-Zeitpunkt der ersten TSE-Transaktion `Bestellung`. jotti druckt die Event-Zeit, weil die Signatur asynchron entsteht; der TSE-Start liegt Sekunden danach. Damit erfüllt der Beleg diese Voraussetzung der Erleichterung beim Durchbedienen nicht wörtlich.
 
 Beispiel (Tisch 42, Maihock):
 

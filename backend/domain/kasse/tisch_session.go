@@ -110,9 +110,9 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 	return state, nil
 }
 
-// setErsteBestellungLogTime stempelt den Zeitpunkt der ersten Bestellung, sofern noch nicht
-// gesetzt (AEAO 1.14.3: Das Aufzeichnungssystem stellt den Zeitpunkt, die TSE-Signatur
-// entsteht asynchron). Eine Umbuchung auf einen leeren Zieltisch zählt als erste Bestellung.
+// setErsteBestellungLogTime stempelt die Event-Zeit der ersten Bestellung, sofern noch nicht gesetzt; eine
+// Umbuchung auf einen leeren Zieltisch zählt als erste Bestellung. Der Beleg druckt sie, obwohl DSFinV-K
+// Tz. 2.7.2 den Start der ersten TSE-Transaktion Bestellung verlangt (docs/compliance.md §5.3).
 func setErsteBestellungLogTime(state *TischSession, eventTime time.Time) {
 	if state.ErsteBestellungLogTime != nil {
 		return
