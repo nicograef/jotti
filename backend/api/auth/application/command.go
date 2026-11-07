@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/internal/jwt"
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 

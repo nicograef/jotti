@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/internal/jwt"
 
 	"github.com/nicograef/jotti/backend/internal/logging"
 	"golang.org/x/time/rate"

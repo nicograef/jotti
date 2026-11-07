@@ -16,7 +16,7 @@ import (
 	"github.com/nicograef/jotti/backend/app"
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/db/dbtest"
-	"github.com/nicograef/jotti/backend/domain/jwt"
+	"github.com/nicograef/jotti/backend/internal/jwt"
 )
 
 const (

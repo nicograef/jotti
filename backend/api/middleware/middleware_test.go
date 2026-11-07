@@ -11,8 +11,8 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/nicograef/jotti/backend/db"
-	"github.com/nicograef/jotti/backend/domain/jwt"
 	"github.com/nicograef/jotti/backend/domain/user"
+	"github.com/nicograef/jotti/backend/internal/jwt"
 )
 
 type stubUsers struct {
