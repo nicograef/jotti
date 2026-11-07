@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"slices"
 
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
@@ -195,30 +196,18 @@ func (c Command) DeleteProdukt(ctx context.Context, produktID int) error {
 func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID int) error {
 	log := logging.FromContext(ctx)
 
-	produkt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
+	eigenesProdukt, err := c.ProduktRepo.GetProdukt(ctx, produktID)
 	if err != nil {
 		return fromProduktError(err, log, "variante deletion", "produkt_id", produktID)
 	}
 
-	variante, err := c.ProduktRepo.GetVariante(ctx, varianteID)
-	if err != nil {
-		return fromVarianteError(err, log, "deletion", "variante_id", varianteID)
-	}
-
-	// Ohne den Abgleich löscht eine fremde varianteId die Variante eines anderen
-	// Produkts.
-	gehoertZumProdukt := false
-	for i := range produkt.Varianten {
-		if produkt.Varianten[i].ID == variante.ID {
-			gehoertZumProdukt = true
-			break
-		}
-	}
-	if !gehoertZumProdukt {
+	// Only a Variante of this Produkt is deleted; a foreign varianteId would delete another Produkt's.
+	idx := slices.IndexFunc(eigenesProdukt.Varianten, func(v produkt.Variante) bool { return v.ID == varianteID })
+	if idx < 0 {
 		log.Warn("Variante does not belong to produkt", "produkt_id", produktID, "variante_id", varianteID)
 		return ErrVarianteNotFound
 	}
-
+	variante := eigenesProdukt.Varianten[idx]
 	variante.Delete()
 
 	err = c.ProduktRepo.UpdateVariante(ctx, variante)
