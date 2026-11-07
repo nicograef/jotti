@@ -233,12 +233,12 @@ Keine Produktänderung und kein Löschen hinterlässt eine Verknüpfung, die ein
 
 ### Acceptance criteria
 
-- [ ] Steuersatzwechsel, Kennzeichen aus und Kennzeichen an scheitern bei bestehender Verknüpfung mit ihrem Sentinel und schreiben nichts; ohne Verknüpfung gelingt jede dieser Änderungen. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestUpdateProdukt_PfandVerknuepfung' -v`
-- [ ] `TestDeleteVariante_EntferntPfandVerweise` und `TestDeleteProduktMitVarianten_EntferntPfandVerweise`: Löschen einer Pfand-Variante und eines Pfand-Produkts setzt jeden Verweis darauf auf NULL; ein Verweis auf eine andere Variante bleibt. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestDelete.*_EntferntPfandVerweise$' make check-integration`
-- [ ] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
-- [ ] Admin: Beide Lösch-Dialoge nennen „Verknüpfte Varianten verlieren ihr Pfand." genau dann, wenn eine Variante auf das Gelöschte zeigt. Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'verlieren ihr Pfand'`
-- [ ] Handbuch §4.1 beschreibt Prüfung und Löschen. Verify: `grep -n 'pfand_noch_verknuepft' docs/handbuch.md`
-- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
+- [x] Steuersatzwechsel, Kennzeichen aus und Kennzeichen an scheitern bei bestehender Verknüpfung mit ihrem Sentinel und schreiben nichts; ohne Verknüpfung gelingt jede dieser Änderungen. Verify: `cd backend && go test ./api/stammdaten/produkt/application/ -run 'TestUpdateProdukt_PfandVerknuepfung' -v`
+- [x] `TestDeleteVariante_EntferntPfandVerweise` und `TestDeleteProduktMitVarianten_EntferntPfandVerweise`: Löschen einer Pfand-Variante und eines Pfand-Produkts setzt jeden Verweis darauf auf NULL; ein Verweis auf eine andere Variante bleibt. Verify: `TEST_PG_PORT=5447 TEST_PKG='./repository/produkt_repo/' TEST_RUN='^TestDelete.*_EntferntPfandVerweise$' make check-integration`
+- [x] Jeder neue Sentinel hat einen Fehlercode. Verify: `cd backend && go test ./api/ -run TestErrorMappingContract`
+- [x] Admin: Beide Lösch-Dialoge nennen „Verknüpfte Varianten verlieren ihr Pfand." genau dann, wenn eine Variante auf das Gelöschte zeigt. Verify: `cd frontend && pnpm exec vitest run src/admin/products/Products.test.tsx -t 'verlieren ihr Pfand'`
+- [x] Handbuch §4.1 beschreibt Prüfung und Löschen. Verify: `grep -n 'pfand_noch_verknuepft' docs/handbuch.md`
+- [x] Gate grün. Verify: `make check check-repo check-format && make lint && TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-autopfand-e2e E2E_STACK_PORT=8091 make test-e2e`
 
 ## Phase 4: Bestellen mit Auto-Pfand
 
