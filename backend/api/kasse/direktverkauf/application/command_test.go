@@ -229,6 +229,42 @@ func TestDirektverkaufTaetigen_FriertPfandKennzeichenEin(t *testing.T) {
 	}
 }
 
+func TestDirektverkaufTaetigen_SchreibtPositionskommentar(t *testing.T) {
+	produkte := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
+	produkte.AddVariante(testProduct.ID, testVariant)
+	zweiteVariante := testVariant
+	zweiteVariante.ID = 2
+	zweiteVariante.Name = "Cola 0,3l"
+	produkte.AddVariante(testProduct.ID, zweiteVariante)
+	spy := &spyEventRepo{}
+	command := newCommand(spy, testOpenKS)
+	command.ProduktRepo = produkte
+
+	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2, Kommentar: "ohne Eis"},
+		{ProduktID: testProduct.ID, VarianteID: zweiteVariante.ID, Menge: 1},
+	}, "", nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.written) != 1 || spy.written[0].event.Type != "direktverkauf-getaetigt:v2" {
+		t.Fatalf("expected one direktverkauf-getaetigt:v2, got %+v", spy.written)
+	}
+	var data struct {
+		Positionen []map[string]json.RawMessage `json:"positionen"`
+	}
+	if err := json.Unmarshal(spy.written[0].event.Data, &data); err != nil {
+		t.Fatalf("unmarshal event data: %v", err)
+	}
+	if got := string(data.Positionen[0]["kommentar"]); got != `"ohne Eis"` {
+		t.Errorf("positionen[0].kommentar = %s, want \"ohne Eis\"", got)
+	}
+	if _, ok := data.Positionen[1]["kommentar"]; ok {
+		t.Errorf("positionen[1] carries a kommentar key, want it absent: %v", data.Positionen[1])
+	}
+}
+
 // Ein deaktivierte (inactive) Variante taucht im Verkaufs-Menü nicht auf, kann
 // aber per direktem POST referenziert werden — der Command lehnt sie ab.
 func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
