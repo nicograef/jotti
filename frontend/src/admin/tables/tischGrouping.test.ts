@@ -9,8 +9,6 @@ function tisch(id: number, name: string, saldoCents = 0): Tisch {
     name,
     status: 'active',
     saldoCents,
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-01T10:00:00Z',
   }
 }
 

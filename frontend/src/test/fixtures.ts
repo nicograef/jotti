@@ -15,12 +15,8 @@ export const testProdukt: Produkt = {
       name: 'Normal',
       preisCents: 350,
       status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
     },
   ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
 }
 
 // Eine unbezahlte Position „Bratwurst Normal" zu 3,50 €, bestellt von User 1.

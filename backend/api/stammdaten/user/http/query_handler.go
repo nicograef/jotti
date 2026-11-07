@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/domain/user"
@@ -18,13 +17,11 @@ type QueryHandler struct {
 }
 
 type benutzer struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Username  string    `json:"username"`
-	Role      string    `json:"role"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Status   string `json:"status"`
 }
 
 type getUsersResponse struct {
@@ -33,13 +30,11 @@ type getUsersResponse struct {
 
 func toUser(u user.User) benutzer {
 	return benutzer{
-		ID:        u.ID,
-		Name:      u.Name,
-		Username:  u.Username,
-		Role:      string(u.Role),
-		Status:    string(u.Status),
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:       u.ID,
+		Name:     u.Name,
+		Username: u.Username,
+		Role:     string(u.Role),
+		Status:   string(u.Status),
 	}
 }
 

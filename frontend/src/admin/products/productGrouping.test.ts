@@ -19,8 +19,6 @@ function produkt(overrides: Partial<Produkt>): Produkt {
     pfand: false,
     status: 'active',
     varianten: [],
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-01T10:00:00Z',
     ...overrides,
   }
 }
@@ -97,8 +95,6 @@ describe('produktUnterzeile', () => {
             name: 'klein',
             preisCents: 100,
             status: 'active',
-            createdAt: '2026-07-01T10:00:00Z',
-            updatedAt: '2026-07-01T10:00:00Z',
           },
         ],
       }),

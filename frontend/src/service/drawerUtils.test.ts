@@ -142,12 +142,8 @@ describe('toBestellungData', () => {
         name: 'mit Ketchup',
         preisCents: 300,
         status: 'active',
-        createdAt: '2025-01-01T00:00:00Z',
-        updatedAt: '2025-01-01T00:00:00Z',
       },
     ],
-    createdAt: '2025-01-01T00:00:00Z',
-    updatedAt: '2025-01-01T00:00:00Z',
   }
 
   it('sets the receipt preview name to {Produkt} {Variante}', () => {

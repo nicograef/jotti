@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 import { EntityStatusSchema } from '@/lib/entityStatus'
 import { createNameSchema } from '@/lib/nameSchema'
-import { DateStringSchema } from '@/lib/utils'
 
 export const TischIdSchema = z.number().int().min(1)
 const TischNameSchema = createNameSchema(100)
@@ -14,8 +13,6 @@ export const TischSchema = z.object({
   // Offener Saldo in der aktuell offenen Kassensitzung (Cent; 0 ohne Saldo oder
   // ohne offene Sitzung). Reine Backend-Projektion.
   saldoCents: z.number().int().min(0),
-  createdAt: DateStringSchema,
-  updatedAt: DateStringSchema,
 })
 export type Tisch = z.infer<typeof TischSchema>
 

@@ -56,12 +56,8 @@ const pfandProdukt: Produkt = {
       name: 'Glas',
       preisCents: 200,
       status: 'active',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-01T00:00:00Z',
     },
   ],
-  createdAt: '2025-01-01T00:00:00Z',
-  updatedAt: '2025-01-01T00:00:00Z',
 }
 
 // Die feste Spalte (variant="spalte") ist container-neutral testbar: kein

@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
@@ -18,12 +17,10 @@ type QueryHandler struct {
 }
 
 type tisch struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	Status     string    `json:"status"`
-	SaldoCents int       `json:"saldoCents"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+	SaldoCents int    `json:"saldoCents"`
 }
 
 type getAllTischeResponse struct {
@@ -36,8 +33,6 @@ func toTisch(src application.TischMitSaldo) tisch {
 		Name:       src.Tisch.Name,
 		Status:     string(src.Tisch.Status),
 		SaldoCents: src.SaldoCents,
-		CreatedAt:  src.Tisch.CreatedAt,
-		UpdatedAt:  src.Tisch.UpdatedAt,
 	}
 }
 

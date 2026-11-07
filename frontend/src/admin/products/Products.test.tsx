@@ -21,8 +21,6 @@ function variante(overrides: Partial<Produkt['varianten'][number]> = {}) {
     name: 'Standard',
     preisCents: 350,
     status: 'active' as const,
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-01T10:00:00Z',
     ...overrides,
   }
 }
@@ -36,8 +34,6 @@ function produkt(overrides: Partial<Produkt>): Produkt {
     pfand: false,
     status: 'active',
     varianten: [variante()],
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-01T10:00:00Z',
     ...overrides,
   }
 }

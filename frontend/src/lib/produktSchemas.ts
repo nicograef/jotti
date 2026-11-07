@@ -2,7 +2,6 @@ import { z } from 'zod'
 
 import { EntityStatusSchema } from '@/lib/entityStatus'
 import { createNameSchema } from '@/lib/nameSchema'
-import { DateStringSchema } from '@/lib/utils'
 
 // Response-Vertrag beider Produkt-Lesepfade — `admin/get-all-produkte` und
 // `service/get-aktive-produkte` liefern dasselbe DTO, deshalb liegen die
@@ -62,8 +61,6 @@ export const VarianteSchema = z.object({
   name: NameSchema,
   preisCents: PreisCentsSchema,
   status: EntityStatusSchema,
-  createdAt: DateStringSchema,
-  updatedAt: DateStringSchema,
 })
 export type Variante = z.infer<typeof VarianteSchema>
 
@@ -75,7 +72,5 @@ export const ProduktSchema = z.object({
   pfand: z.boolean(),
   status: EntityStatusSchema,
   varianten: z.array(VarianteSchema),
-  createdAt: DateStringSchema,
-  updatedAt: DateStringSchema,
 })
 export type Produkt = z.infer<typeof ProduktSchema>

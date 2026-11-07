@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
@@ -20,12 +19,10 @@ type QueryHandler struct {
 }
 
 type variante struct {
-	ID         int       `json:"id"`
-	Name       string    `json:"name"`
-	PreisCents int       `json:"preisCents"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	PreisCents int    `json:"preisCents"`
+	Status     string `json:"status"`
 }
 
 type produkt struct {
@@ -36,8 +33,6 @@ type produkt struct {
 	Pfand      bool       `json:"pfand"`
 	Status     string     `json:"status"`
 	Varianten  []variante `json:"varianten"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
 }
 
 type getAllProdukteResponse struct {
@@ -55,8 +50,6 @@ func toVariante(v dom.Variante) variante {
 		Name:       v.Name,
 		PreisCents: v.PreisCents,
 		Status:     string(v.Status),
-		CreatedAt:  v.CreatedAt,
-		UpdatedAt:  v.UpdatedAt,
 	}
 }
 
@@ -74,8 +67,6 @@ func toProdukt(p dom.Produkt) produkt {
 		Pfand:      p.Pfand,
 		Status:     string(p.Status),
 		Varianten:  varianten,
-		CreatedAt:  p.CreatedAt,
-		UpdatedAt:  p.UpdatedAt,
 	}
 }
 

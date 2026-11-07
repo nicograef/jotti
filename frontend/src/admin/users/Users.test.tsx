@@ -23,8 +23,6 @@ function user(overrides: Partial<User> = {}): User {
     username: 'sophie',
     role: 'service',
     status: 'active',
-    createdAt: '2026-07-01T10:00:00Z',
-    updatedAt: '2026-07-01T10:00:00Z',
     ...overrides,
   }
 }
