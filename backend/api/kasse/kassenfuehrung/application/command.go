@@ -107,35 +107,13 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userName string, bezeichnung string, betragCents int) (int, error) {
 	log := logging.FromContext(ctx)
 
-	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			log.Warn("Kassensitzung blocked: betreiber not configured")
-			return 0, ErrBetreiberNichtKonfiguriert
-		}
-		log.Error("Failed to check betreiber configuration", "error", err)
-		return 0, ErrDatabase
+	if err := c.pruefeBetreiber(ctx); err != nil {
+		return 0, err
 	}
-	if err = betreiber.Validate(); err != nil {
-		log.Warn("Kassensitzung blocked: betreiber not configured", "error", err)
-		return 0, ErrBetreiberNichtKonfiguriert
-	}
-
-	// Ohne konfigurierte TSE wird nicht gesperrt (jotti funktioniert vollständig ohne); der
-	// unsignierte Betrieb soll nur im Log stehen. Best effort: ein Lesefehler unterdrückt die Warnung.
-	ohneTSE := false
-	if conf, err := c.TSERepo.GetTSEKonfiguration(ctx); err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			ohneTSE = true
-		} else {
-			log.Error("Failed to load TSE-Konfiguration", "error", err)
-		}
-	} else if !conf.IstKonfiguriert() {
-		ohneTSE = true
-	}
+	ohneTSE := c.ohneTSEKonfiguration(ctx)
 
 	// Aktive Sitzung deckt 'offen' und 'wird_abgeschlossen' ab: Während ein Abschluss läuft, darf
-	// keine zweite Sitzung eröffnet werden (idx_kassensitzungen_eine_aktiv wäre die letzte Bremse).
+	// keine zweite Sitzung eröffnet werden (idx_kassensitzungen_eine_aktiv ist die letzte Bremse).
 	existing, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
 		log.Error("Failed to check for existing active Kassensitzung", "error", err)
@@ -179,6 +157,39 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		log.Warn("Kassensitzung ohne TSE-Konfiguration eroeffnet; Vorgaenge werden nicht signiert", "z_nr", zNr)
 	}
 	return zNr, nil
+}
+
+func (c Command) pruefeBetreiber(ctx context.Context) error {
+	log := logging.FromContext(ctx)
+
+	betreiber, err := c.BetreiberRepo.GetBetreiber(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn("Kassensitzung blocked: betreiber not configured")
+			return ErrBetreiberNichtKonfiguriert
+		}
+		log.Error("Failed to check betreiber configuration", "error", err)
+		return ErrDatabase
+	}
+	if err = betreiber.Validate(); err != nil {
+		log.Warn("Kassensitzung blocked: betreiber not configured", "error", err)
+		return ErrBetreiberNichtKonfiguriert
+	}
+	return nil
+}
+
+// ohneTSEKonfiguration: ohne konfigurierte TSE wird nicht gesperrt (jotti funktioniert vollständig
+// ohne); der unsignierte Betrieb soll nur im Log stehen. Best effort: ein Lesefehler unterdrückt die Warnung.
+func (c Command) ohneTSEKonfiguration(ctx context.Context) bool {
+	conf, err := c.TSERepo.GetTSEKonfiguration(ctx)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			return true
+		}
+		logging.FromContext(ctx).Error("Failed to load TSE-Konfiguration", "error", err)
+		return false
+	}
+	return !conf.IstKonfiguriert()
 }
 
 // geldtransitID is the client's idempotency key: on a UniqueViolation a stored event with that
@@ -243,19 +254,9 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 
 	// Signatur-Gate vor der Barriere: prüft sofort, wartet nie. Ein ausstehender
 	// Auftrag blockiert; nichts wurde bis hier verändert, kein Reset nötig.
-	gate, err := c.checkSignaturGate(ctx, ks.ZNr)
+	ergebnis, err = c.pruefeSignaturenVorAbschluss(ctx, ks.ZNr)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
-	}
-	if gate.ausstehendAnzahl > 0 {
-		log.Warn("Kassenabschluss blockiert: Signaturen ausstehend", "z_nr", ks.ZNr, "ausstehend", gate.ausstehendAnzahl)
-		return KassenabschlussErgebnis{}, &SignaturenAusstehendError{
-			Anzahl: gate.ausstehendAnzahl,
-		}
-	}
-	ergebnis = KassenabschlussErgebnis{
-		AusfallResteAnzahl:      gate.ausfallResteAnzahl,
-		OhneKonfigurationAnzahl: gate.ohneKonfigurationAnzahl,
 	}
 
 	// Barriere setzen: Der UPDATE wartet auf laufende Buchungen (FOR SHARE); danach lehnt der
@@ -290,54 +291,18 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, ErrDatabase
 	}
 
-	kassenbestand, err := c.KassenjournalRepo.GetKassenbestand(ctx, ks.ZNr)
-	if err != nil {
-		log.Error("Failed to get Kassenbestand for Kassenabschluss", "error", err, "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, ErrDatabase
-	}
-	sollBestandCents := kassenbestand.SollBestandCents
-
-	// Wiederanlauf: an earlier attempt's Kassensturz counts, with its Ist-Bestand. Bookings since then
-	// abort, or the old Ist-Bestand would book them as Differenz: a later event in this stream
-	// (Geldtransit) or a changed Soll-Bestand (Tisch and Direktverkauf sub-streams) reveals them.
-	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, subject)
+	bestand, err := c.ermittleAbschlussBestand(ctx, ks.ZNr, istBestandCents)
 	if err != nil {
 		return KassenabschlussErgebnis{}, err
 	}
-	if buchungenNachSturz {
-		log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Buchungen nach dem protokollierten Kassensturz", "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
-	}
-	if vorhandenerSturz != nil {
-		// Verglichen wird ohne die abschluss-eigene Differenzbuchung: steht sie schon, entspricht
-		// sollBestandCents dem gezählten Ist-Bestand und verdeckte jede Zwischenbuchung. Der
-		// Kassensturz protokolliert seinen Soll-Bestand ebenfalls ohne Differenz.
-		sollOhneDifferenzCents := kassenbestand.SollBestandOhneDifferenzCents()
-		if sollOhneDifferenzCents != vorhandenerSturz.SollBestandCents {
-			log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert", "z_nr", ks.ZNr, "soll_kassensturz_cents", vorhandenerSturz.SollBestandCents, "soll_ohne_differenz_cents", sollOhneDifferenzCents)
-			return KassenabschlussErgebnis{}, ErrBuchungenNachKassensturz
-		}
-		log.Info("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen", "z_nr", ks.ZNr)
-		istBestandCents = vorhandenerSturz.IstBestandCents
-	}
-	differenzCents := sollBestandCents - istBestandCents
 
-	// Invariant: Tisch-Saldo-Sperre — all tisch sessions must have saldo_cents = 0
-	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, ks.ZNr)
-	if err != nil {
-		log.Error("Failed to get tisch sessions for Kassenabschluss", "error", err, "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, ErrDatabase
-	}
-	for _, s := range sessions {
-		if s.SaldoCents != 0 {
-			log.Warn("Kassenabschluss rejected: Tisch has non-zero saldo", "z_nr", ks.ZNr, "tisch_id", s.TischID, "saldo_cents", s.SaldoCents)
-			return KassenabschlussErgebnis{}, ErrTischeSaldoOffen
-		}
+	if err := c.pruefeTischSalden(ctx, ks.ZNr); err != nil {
+		return KassenabschlussErgebnis{}, err
 	}
 
 	// 1. Kassensturz (entfällt im Wiederanlauf: bereits im Journal)
-	if vorhandenerSturz == nil {
-		kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, sollBestandCents, istBestandCents, differenzCents)
+	if !bestand.sturzVorhanden {
+		kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, bestand.sollCents, bestand.istCents, bestand.differenzCents())
 		if err != nil {
 			log.Error("Failed to create kassensturz-durchgefuehrt event", "error", err, "z_nr", ks.ZNr)
 			return KassenabschlussErgebnis{}, err
@@ -349,8 +314,8 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 
 	// 2. Differenzbuchung nur bei Differenz ungleich Null
-	if differenzCents != 0 {
-		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, differenzCents)
+	if bestand.differenzCents() != 0 {
+		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, bestand.differenzCents())
 		if err != nil {
 			log.Error("Failed to create differenz-soll-ist-gebucht event", "error", err, "z_nr", ks.ZNr)
 			return KassenabschlussErgebnis{}, err
@@ -361,45 +326,145 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		expectedVersion++
 	}
 
-	// 3. Tagesabschluss: Kassensturz- und Differenz-Events sind bereits committed (kein
-	// In-Memory-Anhängen nötig; die Differenzbuchung ist summen-neutral).
+	// 3. Tagesabschluss
+	if err := c.schreibeTagesabschluss(ctx, ks, userID, userName, expectedVersion); err != nil {
+		return KassenabschlussErgebnis{}, err
+	}
+
+	c.raeumeDruckOutboxAuf(ctx, ks.ZNr)
+
+	log.Info("Kasse abgeschlossen", "z_nr", ks.ZNr, "soll_cents", bestand.sollCents, "ist_cents", bestand.istCents, "differenz_cents", bestand.differenzCents(), "ausfall_reste", ergebnis.AusfallResteAnzahl, "ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl)
+	return ergebnis, nil
+}
+
+// pruefeSignaturenVorAbschluss blocks on an ausstehend Signaturauftrag and reports the Ausfall rests.
+func (c Command) pruefeSignaturenVorAbschluss(ctx context.Context, zNr int) (KassenabschlussErgebnis, error) {
+	gate, err := c.checkSignaturGate(ctx, zNr)
+	if err != nil {
+		return KassenabschlussErgebnis{}, err
+	}
+	if gate.ausstehendAnzahl > 0 {
+		logging.FromContext(ctx).Warn("Kassenabschluss blockiert: Signaturen ausstehend", "z_nr", zNr, "ausstehend", gate.ausstehendAnzahl)
+		return KassenabschlussErgebnis{}, &SignaturenAusstehendError{
+			Anzahl: gate.ausstehendAnzahl,
+		}
+	}
+	return KassenabschlussErgebnis{
+		AusfallResteAnzahl:      gate.ausfallResteAnzahl,
+		OhneKonfigurationAnzahl: gate.ohneKonfigurationAnzahl,
+	}, nil
+}
+
+// abschlussBestand: sturzVorhanden marks a Wiederanlauf whose logged Kassensturz fixes istCents.
+type abschlussBestand struct {
+	sollCents      int
+	istCents       int
+	sturzVorhanden bool
+}
+
+func (b abschlussBestand) differenzCents() int { return b.sollCents - b.istCents }
+
+// ermittleAbschlussBestand: in a Wiederanlauf an earlier attempt's Kassensturz counts, with its
+// Ist-Bestand. Bookings since then abort, or the old Ist-Bestand would book them as Differenz: a later
+// event in this stream (Geldtransit) or a changed Soll-Bestand (Tisch and Direktverkauf sub-streams)
+// reveals them.
+func (c Command) ermittleAbschlussBestand(ctx context.Context, zNr int, istBestandCents int) (abschlussBestand, error) {
+	log := logging.FromContext(ctx)
+
+	kassenbestand, err := c.KassenjournalRepo.GetKassenbestand(ctx, zNr)
+	if err != nil {
+		log.Error("Failed to get Kassenbestand for Kassenabschluss", "error", err, "z_nr", zNr)
+		return abschlussBestand{}, ErrDatabase
+	}
+
+	vorhandenerSturz, buchungenNachSturz, err := c.findeVorhandenenKassensturz(ctx, kasse.KassensitzungSubject(zNr))
+	if err != nil {
+		return abschlussBestand{}, err
+	}
+	if buchungenNachSturz {
+		log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Buchungen nach dem protokollierten Kassensturz", "z_nr", zNr)
+		return abschlussBestand{}, ErrBuchungenNachKassensturz
+	}
+	bestand := abschlussBestand{sollCents: kassenbestand.SollBestandCents, istCents: istBestandCents}
+	if vorhandenerSturz == nil {
+		return bestand, nil
+	}
+
+	// Verglichen wird ohne die abschluss-eigene Differenzbuchung: steht sie schon, entspricht
+	// SollBestandCents dem gezählten Ist-Bestand und verdeckte jede Zwischenbuchung. Der
+	// Kassensturz protokolliert seinen Soll-Bestand ebenfalls ohne Differenz.
+	sollOhneDifferenzCents := kassenbestand.SollBestandOhneDifferenzCents()
+	if sollOhneDifferenzCents != vorhandenerSturz.SollBestandCents {
+		log.Warn("Kassenabschluss-Wiederanlauf abgebrochen: Soll-Bestand seit dem Kassensturz veraendert", "z_nr", zNr, "soll_kassensturz_cents", vorhandenerSturz.SollBestandCents, "soll_ohne_differenz_cents", sollOhneDifferenzCents)
+		return abschlussBestand{}, ErrBuchungenNachKassensturz
+	}
+	log.Info("Kassenabschluss-Wiederanlauf: Kassensturz bereits vorhanden, Schritt 1 wird uebersprungen", "z_nr", zNr)
+	bestand.istCents = vorhandenerSturz.IstBestandCents
+	bestand.sturzVorhanden = true
+	return bestand, nil
+}
+
+// pruefeTischSalden enforces the Tisch-Saldo-Sperre: every tisch session must have saldo_cents = 0.
+func (c Command) pruefeTischSalden(ctx context.Context, zNr int) error {
+	log := logging.FromContext(ctx)
+
+	sessions, err := c.KassenjournalRepo.GetTischSessionsByKassensitzungNr(ctx, zNr)
+	if err != nil {
+		log.Error("Failed to get tisch sessions for Kassenabschluss", "error", err, "z_nr", zNr)
+		return ErrDatabase
+	}
+	for _, s := range sessions {
+		if s.SaldoCents != 0 {
+			log.Warn("Kassenabschluss rejected: Tisch has non-zero saldo", "z_nr", zNr, "tisch_id", s.TischID, "saldo_cents", s.SaldoCents)
+			return ErrTischeSaldoOffen
+		}
+	}
+	return nil
+}
+
+// schreibeTagesabschluss: Kassensturz- und Differenz-Events sind bereits committed (kein
+// In-Memory-Anhängen nötig; die Differenzbuchung ist summen-neutral).
+func (c Command) schreibeTagesabschluss(ctx context.Context, ks *kasse.Kassensitzung, userID int, userName string, expectedVersion int) error {
+	log := logging.FromContext(ctx)
+
 	sitzungEvents, err := c.KassenjournalRepo.ReadKassensitzungEvents(ctx, ks.ZNr)
 	if err != nil {
 		log.Error("Failed to read events for Tagesabschluss", "error", err, "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, ErrDatabase
+		return ErrDatabase
 	}
 	summen, err := kasse.ComputeAbschlussSummen(sitzungEvents)
 	if err != nil {
 		log.Error("Unparsebares Event verhindert Tagesabschluss", "error", err, "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, err
+		return err
 	}
 
-	now := time.Now().UTC()
 	tagesabschlussEvt, err := kasse.NewTagesabschlussErstelltEvent(
-		subject, userID, userName,
+		kasse.KassensitzungSubject(ks.ZNr), userID, userName,
 		ks.ZNr,
-		ks.CreatedAt, now,
+		ks.CreatedAt, time.Now().UTC(),
 		summen.UmsatzCents, summen.StornierungCents,
 		summen.GeldtransitCents,
 	)
 	if err != nil {
 		log.Error("Failed to create tagesabschluss-erstellt event", "error", err, "z_nr", ks.ZNr)
-		return KassenabschlussErgebnis{}, err
+		return err
 	}
-	if err := c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion); err != nil {
-		return KassenabschlussErgebnis{}, err
-	}
+	return c.writeKassensitzungEvent(ctx, tagesabschlussEvt, ks.ZNr, expectedVersion)
+}
 
-	// Best-effort Druck-Outbox cleanup after the committed Tagesabschluss. Its error stays out of the
-	// named return err, or a committed Abschluss would report failure.
-	if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
-		log.Error("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)", "error", cleanupErr, "z_nr", ks.ZNr)
-	} else if verworfen > 0 {
-		log.Info("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen", "z_nr", ks.ZNr, "verworfen", verworfen)
-	}
+// raeumeDruckOutboxAuf runs best effort after the committed Tagesabschluss and returns no error, or a
+// committed Abschluss would report failure.
+func (c Command) raeumeDruckOutboxAuf(ctx context.Context, zNr int) {
+	log := logging.FromContext(ctx)
 
-	log.Info("Kasse abgeschlossen", "z_nr", ks.ZNr, "soll_cents", sollBestandCents, "ist_cents", istBestandCents, "differenz_cents", differenzCents, "ausfall_reste", ergebnis.AusfallResteAnzahl, "ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl)
-	return ergebnis, nil
+	verworfen, err := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx)
+	if err != nil {
+		log.Error("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)", "error", err, "z_nr", zNr)
+		return
+	}
+	if verworfen > 0 {
+		log.Info("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen", "z_nr", zNr, "verworfen", verworfen)
+	}
 }
 
 // findeVorhandenenKassensturz returns the stream's kassensturz-durchgefuehrt event (or nil) and
