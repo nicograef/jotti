@@ -45,7 +45,7 @@ func run() int {
 
 	stateDir, err := resolveStateDir(filepath.Dir(composePath))
 	if err != nil {
-		fmt.Printf("Zustandsverzeichnis konnte nicht angelegt werden: %v\n", err)
+		fmt.Println(err)
 		return 1
 	}
 	envPath := filepath.Join(stateDir, ".env")
@@ -128,7 +128,7 @@ const lastVersionFile = "last-version"
 
 func resolveStateDir(fallback string) (string, error) {
 	dir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), fallback)
-	if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // PROGRAMDATA is the operator's own environment
+	if err := prepareStateDir(dir); err != nil {
 		return "", err
 	}
 	return dir, nil

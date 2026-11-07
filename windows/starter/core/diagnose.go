@@ -58,3 +58,22 @@ func PortBelegtDiagnose(port int, owners []PortOwner) string {
 		"Port %d ist durch %s belegt. Bitte dieses Programm beenden und jotti erneut starten.",
 		port, strings.Join(beschreibungen, ", "))
 }
+
+// DiagnoseZustandsverzeichnisFremd verweigert ein vorgefundenes Zustandsverzeichnis,
+// das weder jotti noch ein Administrator angelegt hat; befund nennt den Grund.
+func DiagnoseZustandsverzeichnisFremd(dir, befund string) string {
+	return fmt.Sprintf("Start verweigert: Der Ordner \"%s\" %s. "+
+		"Ein anderer Benutzer dieses PCs koennte ihn angelegt und darin Zugangsdaten hinterlegt haben.\n"+
+		"  Bitte den Ordner im Explorer loeschen (Administrator-Abfrage bestaetigen) und jotti-start.exe erneut starten. "+
+		"Einen Unterordner backups vorher an einen sicheren Ort kopieren.", dir, befund)
+}
+
+// DiagnoseZustandsverzeichnisRechte meldet, dass die Zugriffsrechte des
+// Zustandsverzeichnisses nicht geprueft oder gesetzt werden konnten.
+func DiagnoseZustandsverzeichnisRechte(dir string, err error) string {
+	return fmt.Sprintf("Start verweigert: Die Zugriffsrechte fuer \"%s\" konnten nicht eingerichtet werden (%v). "+
+		"Ohne sie koennten andere Benutzer dieses PCs die Zugangsdaten und Backups lesen.\n"+
+		"  Bitte jotti-start.exe erneut starten und die Administrator-Abfrage bestaetigen. "+
+		"Bleibt der Fehler, den Ordner im Explorer loeschen (einen Unterordner backups vorher an einen sicheren Ort kopieren) "+
+		"und jotti-start.exe erneut starten.", dir, err)
+}
