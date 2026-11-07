@@ -1,18 +1,23 @@
-import { CheckCircle2, Printer, ShieldCheck, TriangleAlert } from 'lucide-react'
-import type { ReactNode } from 'react'
+import {
+  CheckCircle2,
+  type LucideIcon,
+  Printer,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react'
 import { NavLink } from 'react-router'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 function StatusZelle({
-  icon,
+  icon: Icon,
   titel,
   text,
   fehler,
   behebenHref,
 }: {
-  icon: ReactNode
+  icon: LucideIcon
   titel: string
   text: string
   fehler?: boolean
@@ -26,7 +31,11 @@ function StatusZelle({
       )}
     >
       <span className={cn('shrink-0', fehler && 'text-destructive')}>
-        {icon}
+        {fehler ? (
+          <TriangleAlert className="size-4" />
+        ) : (
+          <Icon className="size-4 text-primary" />
+        )}
       </span>
       <div className="flex min-w-0 flex-1 flex-col">
         <span
@@ -77,39 +86,21 @@ export function UebersichtStatusZeile({
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <StatusZelle
-        icon={
-          kasseFehler ? (
-            <TriangleAlert className="size-4" />
-          ) : (
-            <CheckCircle2 className="size-4 text-primary" />
-          )
-        }
+        icon={CheckCircle2}
         titel={kasseTitel}
         text={kasseText}
         fehler={kasseFehler}
         behebenHref="/admin/kasse"
       />
       <StatusZelle
-        icon={
-          tseFehler ? (
-            <TriangleAlert className="size-4" />
-          ) : (
-            <ShieldCheck className="size-4 text-primary" />
-          )
-        }
+        icon={ShieldCheck}
         titel={tseFehler ? 'TSE benötigt Aufmerksamkeit' : 'TSE signiert'}
         text={tseText}
         fehler={tseFehler}
         behebenHref="/admin/finanzamt"
       />
       <StatusZelle
-        icon={
-          druckFehler ? (
-            <TriangleAlert className="size-4" />
-          ) : (
-            <Printer className="size-4 text-primary" />
-          )
-        }
+        icon={Printer}
         titel={druckTitel}
         text={druckText}
         fehler={druckFehler}
