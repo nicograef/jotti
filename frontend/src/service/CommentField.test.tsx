@@ -49,17 +49,16 @@ describe('KommentarField', () => {
     expect(screen.getByText(HINWEIS)).not.toHaveClass('text-destructive')
   })
 
-  // Das Backend zählt den Kommentar in UTF-8-Bytes (max. 100), nicht in Zeichen.
+  // Das Backend zählt den Kommentar in Codepoints (max. 100); der Cursor zählt UTF-16-Einheiten.
   // Gekürzt wird nur die Einfügung, der bestehende Text und der Cursor bleiben.
   it.each([
-    ['', 0, 'ä'.repeat(60), 'ä'.repeat(50), 50],
-    ['', 0, 'a'.repeat(99) + 'ä', 'a'.repeat(99), 99],
-    ['', 0, 'a'.repeat(97) + '😀', 'a'.repeat(97), 97],
-    ['', 0, 'a'.repeat(96) + '😀', 'a'.repeat(96) + '😀', 98],
+    ['', 0, 'ä'.repeat(101), 'ä'.repeat(100), 100],
+    ['', 0, 'a'.repeat(99) + '😀😀', 'a'.repeat(99) + '😀', 101],
     ['a'.repeat(100), 50, 'x', 'a'.repeat(100), 50],
     ['a'.repeat(98), 49, 'xyz', 'a'.repeat(49) + 'xy' + 'a'.repeat(49), 51],
+    ['ä'.repeat(99), 0, 'öö', 'ö' + 'ä'.repeat(99), 1],
   ])(
-    'kürzt die Einfügung auf 100 Bytes an einer Zeichengrenze (Fall %#)',
+    'kürzt die Einfügung auf 100 Zeichen an einer Zeichengrenze (Fall %#)',
     async (vorhanden, cursor, eingabe, erwartet, cursorDanach) => {
       const user = userEvent.setup()
       const onChange = vi.fn()
