@@ -453,3 +453,82 @@ func assertVarianteOrder(t *testing.T, query string, varianten []produkt.Variant
 		}
 	}
 }
+
+// The link travels through the view (GetProdukt, GetAllProdukte) and the plain row (GetVariante),
+// and a status change written back through UpdateVariante keeps it.
+func TestPfandVerknuepfung_Roundtrip(t *testing.T) {
+	repo, teardown := setup(t)
+	defer teardown(t)
+
+	ctx := context.Background()
+	pfand := newProdukt("Glaspfand", produkt.GetraenkKategorie)
+	pfand.Pfand = true
+	pfandID, _ := repo.CreateProdukt(ctx, pfand)
+	glasID, _ := repo.CreateVariante(ctx, pfandID, newVariante("Glas", 200, produkt.ActiveStatus))
+	bierID, _ := repo.CreateProdukt(ctx, newProdukt("Bier", produkt.GetraenkKategorie))
+	bier := newVariante("0,5 l", 400, produkt.ActiveStatus)
+	bier.PfandVarianteID = &glasID
+	bierVarianteID, err := repo.CreateVariante(ctx, bierID, bier)
+	if err != nil {
+		t.Fatalf("Expected no error creating variante, got %v", err)
+	}
+
+	pruefe := func(t *testing.T, schritt string) {
+		t.Helper()
+		v, err := repo.GetVariante(ctx, bierVarianteID)
+		if err != nil {
+			t.Fatalf("%s: GetVariante: %v", schritt, err)
+		}
+		assertPfandVerweis(t, schritt+" GetVariante", v.PfandVarianteID, glasID)
+
+		p, err := repo.GetProdukt(ctx, bierID)
+		if err != nil {
+			t.Fatalf("%s: GetProdukt: %v", schritt, err)
+		}
+		assertPfandVerweis(t, schritt+" GetProdukt", p.Varianten[0].PfandVarianteID, glasID)
+
+		alle, err := repo.GetAllProdukte(ctx)
+		if err != nil {
+			t.Fatalf("%s: GetAllProdukte: %v", schritt, err)
+		}
+		for _, p := range alle {
+			for _, v := range p.Varianten {
+				switch v.ID {
+				case bierVarianteID:
+					assertPfandVerweis(t, schritt+" GetAllProdukte", v.PfandVarianteID, glasID)
+				case glasID:
+					if v.PfandVarianteID != nil {
+						t.Errorf("%s GetAllProdukte: expected no Pfand on Glas, got %d", schritt, *v.PfandVarianteID)
+					}
+				}
+			}
+		}
+	}
+
+	pruefe(t, "angelegt")
+
+	for _, schritt := range []struct {
+		name   string
+		action func(*produkt.Variante)
+	}{
+		{"deaktiviert", (*produkt.Variante).Deactivate},
+		{"aktiviert", (*produkt.Variante).Activate},
+	} {
+		v, err := repo.GetVariante(ctx, bierVarianteID)
+		if err != nil {
+			t.Fatalf("%s: GetVariante: %v", schritt.name, err)
+		}
+		schritt.action(&v)
+		if err := repo.UpdateVariante(ctx, v); err != nil {
+			t.Fatalf("%s: UpdateVariante: %v", schritt.name, err)
+		}
+		pruefe(t, schritt.name)
+	}
+}
+
+func assertPfandVerweis(t *testing.T, wo string, got *int, want int) {
+	t.Helper()
+	if got == nil || *got != want {
+		t.Errorf("%s: expected PfandVarianteID %d, got %v", wo, want, got)
+	}
+}
