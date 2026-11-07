@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { EuroField } from '@/components/common/FormFields'
+import { EuroField, TextField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,13 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldGroup } from '@/components/ui/field'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
 
@@ -128,25 +122,16 @@ export function GeldtransitDialog({
                 placeholder="z.B. 25,00"
                 className="w-44"
               />
-              <Field
-                data-invalid={!!form.formState.errors.kommentar}
-                className="gap-1"
-              >
-                <FieldLabel htmlFor="bewegung-kommentar">Kommentar</FieldLabel>
-                <Input
-                  id="bewegung-kommentar"
-                  {...form.register('kommentar')}
-                  aria-invalid={!!form.formState.errors.kommentar}
-                  placeholder={
-                    istEinlage
-                      ? 'z.B. Wechselgeld Nachschub'
-                      : 'z.B. Abschöpfung in den Tresor'
-                  }
-                />
-                {form.formState.errors.kommentar && (
-                  <FieldError errors={[form.formState.errors.kommentar]} />
-                )}
-              </Field>
+              <TextField
+                form={form}
+                name="kommentar"
+                label="Kommentar"
+                placeholder={
+                  istEinlage
+                    ? 'z.B. Wechselgeld Nachschub'
+                    : 'z.B. Abschöpfung in den Tresor'
+                }
+              />
             </FieldGroup>
           </form>
         </DialogBody>

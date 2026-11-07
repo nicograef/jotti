@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 import { useTSEKonfiguration, useTSEStatus } from '@/admin/tse/hooks'
 import { istTestUmgebung, TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
-import { EuroField } from '@/components/common/FormFields'
+import { EuroField, TextField } from '@/components/common/FormFields'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,13 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldGroup } from '@/components/ui/field'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 
 import { kasseBackend } from './hooks'
@@ -107,22 +101,13 @@ export function EroeffnenSection({ onSuccess }: { onSuccess: () => void }) {
           }}
         >
           <FieldGroup>
-            <Field
-              data-invalid={!!form.formState.errors.bezeichnung}
-              className="gap-1"
-            >
-              <FieldLabel htmlFor="ks-bezeichnung">Bezeichnung</FieldLabel>
-              <Input
-                id="ks-bezeichnung"
-                {...form.register('bezeichnung')}
-                aria-invalid={!!form.formState.errors.bezeichnung}
-                placeholder="z.B. Sommerfest Tag 1"
-                className="w-72"
-              />
-              {form.formState.errors.bezeichnung && (
-                <FieldError errors={[form.formState.errors.bezeichnung]} />
-              )}
-            </Field>
+            <TextField
+              form={form}
+              name="bezeichnung"
+              label="Bezeichnung"
+              placeholder="z.B. Sommerfest Tag 1"
+              className="w-72"
+            />
             <EuroField
               form={form}
               name="betragCents"

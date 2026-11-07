@@ -368,6 +368,7 @@ interface TextFieldProps<TField extends FieldValues> {
   description?: string
   type?: 'text' | 'password'
   autoComplete?: string
+  className?: string
 }
 
 /** Labelled text field; a null form value shows as an empty input. */
@@ -379,6 +380,7 @@ export function TextField<TField extends FieldValues>({
   description,
   type = 'text',
   autoComplete,
+  className,
 }: TextFieldProps<TField>) {
   const id = `form-${name}`
   return (
@@ -396,6 +398,7 @@ export function TextField<TField extends FieldValues>({
             aria-invalid={fieldState.invalid}
             placeholder={placeholder}
             autoComplete={autoComplete}
+            className={className}
           />
           {description && <FieldDescription>{description}</FieldDescription>}
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
