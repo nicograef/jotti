@@ -26,7 +26,7 @@ export function useAktiveKassensitzung(): AktiveKassensitzungResult {
   const {
     data = null as AktiveKassensitzung | null,
     isPending,
-    isError,
+    isLoadingError,
     refetch,
   } = useQuery({
     queryKey: ['aktive-kassensitzung'],
@@ -37,7 +37,9 @@ export function useAktiveKassensitzung(): AktiveKassensitzungResult {
     abschlussUnterbrochen:
       data?.status === KassensitzungStatus.WIRD_ABGESCHLOSSEN,
     isPending,
-    isError,
+    // Nur ein Erstladefehler: Ein gescheiterter Refetch behält die geladene
+    // Sitzung, sonst verlöre die Seite den gezählten Ist-Bestand samt Rückfrage.
+    isError: isLoadingError,
     refetch,
   }
 }

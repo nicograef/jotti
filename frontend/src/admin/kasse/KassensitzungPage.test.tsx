@@ -310,6 +310,44 @@ describe('KassensitzungPage', () => {
     },
   )
 
+  // Im Funkloch scheitert nach dem Abschluss auch der Status-Refetch; die
+  // geladene Sitzung bleibt stehen, derselbe Button versucht es erneut.
+  it('behält Rückfrage und Ist-Bestand, wenn nach dem Abschluss auch der Status-Refetch scheitert', async () => {
+    const fake = backend()
+      .respond(
+        'admin/get-aktive-kassensitzung',
+        vi
+          .fn()
+          .mockReturnValueOnce(sommerfest)
+          .mockImplementation(() => {
+            throw new BackendError(400, 'test_fehler')
+          }),
+      )
+      .fail('admin/kasse-abschliessen', new TypeError('Failed to fetch'))
+    const user = userEvent.setup()
+    const { queryClient } = renderPage(fake)
+
+    await user.type(
+      await screen.findByLabelText('Gezählter Ist-Bestand'),
+      '342,50',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Kasse endgültig abschließen…' }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Kasse abschließen' }))
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(['aktive-kassensitzung'])?.status).toBe(
+        'error',
+      )
+    })
+    expect(
+      screen.queryByText('Kassendaten konnten nicht geladen werden'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Kasse abschließen?')).toBeInTheDocument()
+    expect(screen.getAllByText('342,50 €').length).toBeGreaterThanOrEqual(2)
+  })
+
   it('öffnet über „Geld entnehmen" den Dialog mit vorbelegter Richtung und bucht', async () => {
     const fake = backend({ kassensitzung: sommerfest })
     const user = userEvent.setup()
