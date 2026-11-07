@@ -77,16 +77,7 @@ func FormatPositionBon(
 ) []byte {
 	var buf bytes.Buffer
 
-	buf.WriteString(Init)
-	buf.WriteString(SetCodepagePC437)
-
-	buf.WriteString(AlignCenter)
-	buf.WriteString(TextDoubleAll)
-	buf.WriteString(BoldOn)
-	writeLine(&buf, fmt.Sprintf("== %s ==", tischName))
-	buf.WriteString(BoldOff)
-	buf.WriteString(TextNormal)
-	buf.WriteString("\n")
+	writeArbeitsbonKopf(&buf, tischName)
 
 	buf.WriteString(TextDoubleHigh)
 	buf.WriteString(BoldOn)
@@ -104,13 +95,7 @@ func FormatPositionBon(
 	}
 
 	buf.WriteString(AlignLeft)
-	buf.WriteString(strings.Repeat("-", lineWidth))
-	buf.WriteByte('\n')
-	writeLine(&buf, fmt.Sprintf("  %s  Bedienung: %s", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24)))
-
-	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
-	buf.WriteString(strings.Repeat("\n", 5))
-	buf.WriteString(CutPaper)
+	writeArbeitsbonFuss(&buf, zeitpunkt, userName)
 
 	return buf.Bytes()
 }
@@ -124,16 +109,7 @@ func FormatSammelBon(
 ) []byte {
 	var buf bytes.Buffer
 
-	buf.WriteString(Init)
-	buf.WriteString(SetCodepagePC437)
-
-	buf.WriteString(AlignCenter)
-	buf.WriteString(TextDoubleAll)
-	buf.WriteString(BoldOn)
-	writeLine(&buf, fmt.Sprintf("== %s ==", tischName))
-	buf.WriteString(BoldOff)
-	buf.WriteString(TextNormal)
-	buf.WriteString("\n")
+	writeArbeitsbonKopf(&buf, tischName)
 
 	buf.WriteString(AlignLeft)
 	buf.WriteString(TextDoubleHigh)
@@ -153,17 +129,34 @@ func FormatSammelBon(
 		buf.WriteString(BoldOff)
 	}
 
-	buf.WriteString(strings.Repeat("-", lineWidth))
-	buf.WriteByte('\n')
-	writeLine(&buf, fmt.Sprintf("  %s  Bedienung: %s",
-		zeitpunkt.In(zeit.Berlin).Format("15:04"),
-		truncate(userName, 24),
-	))
-
-	buf.WriteString(strings.Repeat("\n", 5))
-	buf.WriteString(CutPaper)
+	writeArbeitsbonFuss(&buf, zeitpunkt, userName)
 
 	return buf.Bytes()
+}
+
+// writeArbeitsbonKopf leaves the alignment centered; each Arbeitsbon sets its own for the positions.
+func writeArbeitsbonKopf(buf *bytes.Buffer, tischName string) {
+	buf.WriteString(Init)
+	buf.WriteString(SetCodepagePC437)
+
+	buf.WriteString(AlignCenter)
+	buf.WriteString(TextDoubleAll)
+	buf.WriteString(BoldOn)
+	writeLine(buf, fmt.Sprintf("== %s ==", tischName))
+	buf.WriteString(BoldOff)
+	buf.WriteString(TextNormal)
+	buf.WriteString("\n")
+}
+
+// writeArbeitsbonFuss writes no alignment: the caller has set AlignLeft already.
+func writeArbeitsbonFuss(buf *bytes.Buffer, zeitpunkt time.Time, userName string) {
+	buf.WriteString(strings.Repeat("-", lineWidth))
+	buf.WriteByte('\n')
+	writeLine(buf, fmt.Sprintf("  %s  Bedienung: %s", zeitpunkt.In(zeit.Berlin).Format("15:04"), truncate(userName, 24)))
+
+	// 5 Leerzeilen vor dem Schnitt (Messer sitzt ~3mm über dem Druckkopf)
+	buf.WriteString(strings.Repeat("\n", 5))
+	buf.WriteString(CutPaper)
 }
 
 // FormatDirektverkaufAbholbon carries no prices, like every Arbeitsbon; the
@@ -209,6 +202,28 @@ func FormatTestbon(stationsName string, zeitpunkt time.Time) []byte {
 func FormatKassenbeleg(data KassenbelegData) []byte {
 	var buf bytes.Buffer
 
+	writeBelegKopf(&buf, data)
+	writeBelegPositionen(&buf, data.Positionen)
+	writeBelegSumme(&buf, data)
+	writeSteuermatrix(&buf, data.Steuermatrix)
+	if data.TSE != nil {
+		writeTSEAbschnitt(&buf, *data.TSE)
+	} else {
+		writeTSEVermerk(&buf, data.TSEVermerk)
+	}
+
+	buf.WriteString("\n")
+	buf.WriteString(AlignCenter)
+	buf.WriteString("Vielen Dank!\n")
+
+	buf.WriteString(strings.Repeat("\n", 5))
+	buf.WriteString(CutPaper)
+
+	return buf.Bytes()
+}
+
+// writeBelegKopf writes the title, the Betreiber address and the Beleg identifiers (§ 6 KassenSichV).
+func writeBelegKopf(buf *bytes.Buffer, data KassenbelegData) {
 	buf.WriteString(Init)
 	buf.WriteString(SetCodepagePC437)
 
@@ -231,93 +246,93 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 	buf.WriteString("\n")
 
 	buf.WriteString(AlignLeft)
-	fmt.Fprintf(&buf, "Datum: %s\n", data.Zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04"))
-	fmt.Fprintf(&buf, "Bon-Nr: %s\n", data.Belegnummer)
+	fmt.Fprintf(buf, "Datum: %s\n", data.Zeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04"))
+	fmt.Fprintf(buf, "Bon-Nr: %s\n", data.Belegnummer)
 	if data.StornoZuBelegnummer != "" {
-		fmt.Fprintf(&buf, "Storno zu Bon-Nr: %s\n", data.StornoZuBelegnummer)
+		fmt.Fprintf(buf, "Storno zu Bon-Nr: %s\n", data.StornoZuBelegnummer)
 	}
-	fmt.Fprintf(&buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
+	fmt.Fprintf(buf, "Kassen-ID: %s\n", data.KassenSeriennummer)
 	if data.ErsteBestellungZeitpunkt != nil {
-		fmt.Fprintf(&buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
+		fmt.Fprintf(buf, "Erste Bestellung: %s\n", data.ErsteBestellungZeitpunkt.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
 	}
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
+}
 
-	for _, pos := range data.Positionen {
+func writeBelegPositionen(buf *bytes.Buffer, positionen []kasse.Position) {
+	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		buf.WriteString(wrapCP437(artikel, lineWidth))
 		buf.WriteByte('\n')
 		kennzeichen := steuerKennzeichenAusSatz(steuer.Steuersatz(pos.Steuersatz))
-		fmt.Fprintf(&buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), kennzeichen)
+		fmt.Fprintf(buf, "  %s x %d = %s EUR (%s)\n", formatCents(pos.EinzelpreisCents), pos.Menge, formatCents(pos.EinzelpreisCents*pos.Menge), kennzeichen)
 	}
+}
 
+func writeBelegSumme(buf *bytes.Buffer, data KassenbelegData) {
 	buf.WriteString(strings.Repeat("-", lineWidth))
 	buf.WriteByte('\n')
 	buf.WriteString(BoldOn)
-	fmt.Fprintf(&buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
+	fmt.Fprintf(buf, "GESAMT: %s EUR\n", formatCents(data.GesamtbetragCents))
 	buf.WriteString(BoldOff)
-	writeLine(&buf, fmt.Sprintf("Zahlungsart: %s", data.Zahlungsart))
+	writeLine(buf, fmt.Sprintf("Zahlungsart: %s", data.Zahlungsart))
+}
 
-	if len(data.Steuermatrix) > 0 {
-		buf.WriteByte('\n')
-		buf.WriteString("Steueraufteilung:\n")
-		for _, zeile := range data.Steuermatrix {
-			fmt.Fprintf(
-				&buf,
-				"  %s: Netto %s EUR, Steuer %s EUR, Brutto %s EUR\n",
-				steuerMatrixLabel(zeile.Satz),
-				formatCents(zeile.Netto),
-				formatCents(zeile.Steuer),
-				formatCents(zeile.Brutto),
-			)
-		}
+func writeSteuermatrix(buf *bytes.Buffer, steuermatrix []steuer.Aufteilung) {
+	if len(steuermatrix) == 0 {
+		return
+	}
+	buf.WriteByte('\n')
+	buf.WriteString("Steueraufteilung:\n")
+	for _, zeile := range steuermatrix {
+		fmt.Fprintf(
+			buf,
+			"  %s: Netto %s EUR, Steuer %s EUR, Brutto %s EUR\n",
+			steuerMatrixLabel(zeile.Satz),
+			formatCents(zeile.Netto),
+			formatCents(zeile.Steuer),
+			formatCents(zeile.Brutto),
+		)
+	}
+}
+
+func writeTSEAbschnitt(buf *bytes.Buffer, tse TSEAbschnitt) {
+	buf.WriteByte('\n')
+	buf.WriteString("TSE-Daten:\n")
+	fmt.Fprintf(buf, "  TSE-Transaktion: %d\n", tse.TransaktionNr)
+	fmt.Fprintf(buf, "  Signaturzaehler: %d\n", tse.Signaturzaehler)
+	fmt.Fprintf(buf, "  TSE-Seriennummer: %s\n", tse.TSESeriennummer)
+	fmt.Fprintf(buf, "  TSE-Start: %s\n", tse.ZeitpunktBeginn.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
+	fmt.Fprintf(buf, "  TSE-Ende: %s\n", tse.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
+	buf.WriteString(toCP437("  Signatur: "))
+	buf.WriteString(wrapCP437(tse.Signatur, lineWidth-2))
+	buf.WriteByte('\n')
+	if tse.Nachsigniert {
+		writeLine(buf, fmt.Sprintf("  Nachsigniert am %s", tse.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05")))
+		writeLine(buf, "  (TSE war bei der Erfassung nicht erreichbar)")
 	}
 
-	if data.TSE != nil {
-		buf.WriteByte('\n')
-		buf.WriteString("TSE-Daten:\n")
-		fmt.Fprintf(&buf, "  TSE-Transaktion: %d\n", data.TSE.TransaktionNr)
-		fmt.Fprintf(&buf, "  Signaturzaehler: %d\n", data.TSE.Signaturzaehler)
-		fmt.Fprintf(&buf, "  TSE-Seriennummer: %s\n", data.TSE.TSESeriennummer)
-		fmt.Fprintf(&buf, "  TSE-Start: %s\n", data.TSE.ZeitpunktBeginn.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
-		fmt.Fprintf(&buf, "  TSE-Ende: %s\n", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05"))
-		buf.WriteString(toCP437("  Signatur: "))
-		buf.WriteString(wrapCP437(data.TSE.Signatur, lineWidth-2))
-		buf.WriteByte('\n')
-		if data.TSE.Nachsigniert {
-			writeLine(&buf, fmt.Sprintf("  Nachsigniert am %s", data.TSE.ZeitpunktEnde.In(zeit.Berlin).Format("02.01.2006 15:04:05")))
-			writeLine(&buf, "  (TSE war bei der Erfassung nicht erreichbar)")
-		}
+	appendNativeQRCode(buf, tse.QRCodeData)
+}
 
-		appendNativeQRCode(&buf, data.TSE.QRCodeData)
-	} else {
-		switch data.TSEVermerk {
-		case TSEVermerkVoruebergehend:
-			buf.WriteByte('\n')
-			buf.WriteString("TSE-Hinweis:\n")
-			writeLine(&buf, "  TSE voruebergehend nicht erreichbar.")
-			writeLine(&buf, "  Dieser Vorgang wird automatisch nachsigniert.")
-		case TSEVermerkKeineKonfiguration:
-			buf.WriteByte('\n')
-			buf.WriteString("TSE-Hinweis:\n")
-			writeLine(&buf, "  Fuer diesen Vorgang war keine TSE konfiguriert.")
-		case TSEVermerkSignaturFehlgeschlagen:
-			buf.WriteByte('\n')
-			buf.WriteString("TSE-Hinweis:\n")
-			writeLine(&buf, "  Signatur fehlgeschlagen.")
-			writeLine(&buf, "  Vorgang ohne TSE-Signatur erfasst.")
-		case KeinTSEVermerk:
-		}
+func writeTSEVermerk(buf *bytes.Buffer, vermerk TSEBelegvermerk) {
+	switch vermerk {
+	case TSEVermerkVoruebergehend:
+		buf.WriteByte('\n')
+		buf.WriteString("TSE-Hinweis:\n")
+		writeLine(buf, "  TSE voruebergehend nicht erreichbar.")
+		writeLine(buf, "  Dieser Vorgang wird automatisch nachsigniert.")
+	case TSEVermerkKeineKonfiguration:
+		buf.WriteByte('\n')
+		buf.WriteString("TSE-Hinweis:\n")
+		writeLine(buf, "  Fuer diesen Vorgang war keine TSE konfiguriert.")
+	case TSEVermerkSignaturFehlgeschlagen:
+		buf.WriteByte('\n')
+		buf.WriteString("TSE-Hinweis:\n")
+		writeLine(buf, "  Signatur fehlgeschlagen.")
+		writeLine(buf, "  Vorgang ohne TSE-Signatur erfasst.")
+	case KeinTSEVermerk:
 	}
-
-	buf.WriteString("\n")
-	buf.WriteString(AlignCenter)
-	buf.WriteString("Vielen Dank!\n")
-
-	buf.WriteString(strings.Repeat("\n", 5))
-	buf.WriteString(CutPaper)
-
-	return buf.Bytes()
 }
 
 func appendNativeQRCode(buf *bytes.Buffer, qrCodeData string) {
