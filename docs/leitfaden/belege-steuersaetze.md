@@ -23,9 +23,9 @@ description: 'Belegausgabepflicht beim Vereinsfest und die richtige Zuordnung de
   Warenumschließungen (BMF-Schreiben vom 20.10.2014, BStBl I S. 1372). Legt
   deshalb je Steuersatz ein eigenes Pfand-Produkt an und schaltet dort den
   Schalter „Pfand-Produkt" ein. Seine Varianten erscheinen dann bei der
-  Pfandrückgabe. Damit niemand das Pfand vergisst, verknüpft ihr eine Variante
-  in den Dialogen „Neue Variante anlegen" und „Variante bearbeiten" im Feld
-  „Pfand" mit einer Pfand-Variante. Zur Wahl stehen nur Pfand-Varianten mit dem
-  Steuersatz des Produkts. Jedes Plus auf die Variante legt dann ein Pfand in
-  den Warenkorb. Bringt ein Gast sein eigenes Glas mit, tippt beim Pfand einmal
-  Minus.
+  Pfandrückgabe. Damit niemand das Pfand vergisst, verknüpft ihr eine
+  Variante mit einer Pfand-Variante. Das Feld „Pfand" steht in den
+  Dialogen „Neue Variante anlegen" und „Variante bearbeiten". Zur Wahl stehen nur
+  Pfand-Varianten mit dem Steuersatz des Produkts. Jedes Plus auf die Variante
+  legt dann ein Pfand in den Warenkorb. Bringt ein Gast sein eigenes Glas mit,
+  tippt ihr beim Pfand einmal Minus.
