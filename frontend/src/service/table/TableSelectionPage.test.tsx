@@ -6,7 +6,7 @@ import { BackendError } from '@/lib/Backend'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
-import { testPosition } from '@/test/fixtures'
+import { testUnbezahltePosition } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
 import { TableSelectionPage } from './TableSelectionPage'
@@ -17,7 +17,7 @@ vi.mock('react-router', () => ({
   useNavigate: () => navigate,
 }))
 
-const offenePosition = testPosition({ einzelpreisCents: 500 })
+const offenePosition = testUnbezahltePosition({ einzelpreisCents: 500 })
 
 function tischSession(
   tischId: number,
@@ -29,7 +29,7 @@ function tischSession(
     tischName,
     saldoCents: offen ? 500 : 0,
     unbezahltePositionen: offen ? [offenePosition] : [],
-    fuerMichErledigt: !offen,
+    anzahlEigeneOffen: offen ? 1 : 0,
   }
 }
 

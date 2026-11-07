@@ -12,14 +12,19 @@ export interface Tisch {
   saldoCents: number
 }
 
+// eigene und anzahlEigeneOffen beziehen sich auf die anfragende Servicekraft;
+// was „meine Position" heißt, entscheidet das Backend.
+const UnbezahltePositionSchema = PositionSchema.extend({
+  eigene: z.boolean(),
+})
+export type UnbezahltePosition = z.infer<typeof UnbezahltePositionSchema>
+
 export const TischSessionSchema = z.object({
   tischId: TischIdSchema,
   tischName: z.string(),
   saldoCents: z.number().int(),
-  unbezahltePositionen: z.array(PositionSchema),
-  // True, wenn die anfragende Servicekraft an diesem Tisch keine eigenen
-  // unbezahlten Positionen mehr hat.
-  fuerMichErledigt: z.boolean(),
+  unbezahltePositionen: z.array(UnbezahltePositionSchema),
+  anzahlEigeneOffen: z.number().int(),
 })
 export type TischSession = z.infer<typeof TischSessionSchema>
 

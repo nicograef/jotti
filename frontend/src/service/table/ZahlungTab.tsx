@@ -13,7 +13,6 @@ import { useEintritt } from '@/hooks/use-eintritt'
 import { useErstAufbau } from '@/hooks/use-erst-aufbau'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Vorgang } from '@/hooks/use-vorgang'
-import { AuthSingleton } from '@/lib/Auth'
 import type { Produkt } from '@/lib/produktSchemas'
 import { cn, formatEuro, formatPositionName } from '@/lib/utils'
 
@@ -27,7 +26,7 @@ import { ServiceSplitLayout } from '../ServiceSplitLayout'
 import { Stepper } from '../Stepper'
 import { AlleAuswaehlenButton } from './AlleAuswaehlenButton'
 import type { Position } from './Bestellung'
-import type { Tisch } from './Tisch'
+import type { Tisch, UnbezahltePosition } from './Tisch'
 import { ZahlungAbschluss } from './ZahlungAbschluss'
 import { ZahlungDrawer } from './ZahlungDrawer'
 
@@ -36,7 +35,7 @@ interface ZahlungTabProps {
   // Wie die Kassieren-Auswahl von TablePage gehoben und je Tisch zurückgesetzt.
   pfandVorgang: PfandVorgang
   tisch: Tisch
-  positionen: Position[]
+  positionen: UnbezahltePosition[]
   // Kassieren-Auswahl (Position-ID → Menge, gedeckelt auf die unbezahlte
   // Menge) samt Kommentar, von TablePage gehoben, damit sie den Tab-Wechsel überlebt.
   vorgang: Vorgang<string>
@@ -60,7 +59,7 @@ export function ZahlungTab({
   const meinePositionen: Position[] = []
   const anderePositionen: Position[] = []
   for (const position of positionen) {
-    if (position.bestellerUserId === AuthSingleton.userId) {
+    if (position.eigene) {
       meinePositionen.push(position)
     } else {
       anderePositionen.push(position)

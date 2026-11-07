@@ -247,21 +247,31 @@ var getTischStateSchema = z.Struct(z.Shape{
 	"TischID": tisch.TischIDSchema.Required(),
 })
 
+// unbezahltePosition: Eigene says the requesting Servicekraft ordered it.
+type unbezahltePosition struct {
+	position
+	Eigene bool `json:"eigene"`
+}
+
 type tischState struct {
-	TischID              int        `json:"tischId"`
-	TischName            string     `json:"tischName"`
-	SaldoCents           int        `json:"saldoCents"`
-	UnbezahltePositionen []position `json:"unbezahltePositionen"`
-	FuerMichErledigt     bool       `json:"fuerMichErledigt"`
+	TischID              int                  `json:"tischId"`
+	TischName            string               `json:"tischName"`
+	SaldoCents           int                  `json:"saldoCents"`
+	UnbezahltePositionen []unbezahltePosition `json:"unbezahltePositionen"`
+	AnzahlEigeneOffen    int                  `json:"anzahlEigeneOffen"`
 }
 
 func toTischState(s application.TischStateView) tischState {
+	positionen := make([]unbezahltePosition, 0, len(s.UnbezahltePositionen))
+	for _, p := range s.UnbezahltePositionen {
+		positionen = append(positionen, unbezahltePosition{position: toPosition(p.Position), Eigene: p.Eigene})
+	}
 	return tischState{
 		TischID:              s.TischID,
 		TischName:            s.TischName,
 		SaldoCents:           s.SaldoCents,
-		UnbezahltePositionen: toPositionen(s.UnbezahltePositionen),
-		FuerMichErledigt:     s.FuerMichErledigt,
+		UnbezahltePositionen: positionen,
+		AnzahlEigeneOffen:    s.AnzahlEigeneOffen,
 	}
 }
 

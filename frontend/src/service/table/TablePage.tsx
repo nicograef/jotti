@@ -184,7 +184,7 @@ export function TablePage() {
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <TischStatusBadge anzahlUnbezahlt={anzahlUnbezahlt} />
             <span className="text-sm text-muted-foreground">
-              {state.fuerMichErledigt
+              {state.anzahlEigeneOffen === 0
                 ? 'Für dich erledigt'
                 : 'Für dich noch offen'}
             </span>

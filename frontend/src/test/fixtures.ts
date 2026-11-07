@@ -1,5 +1,6 @@
 import type { Produkt } from '@/lib/produktSchemas'
 import type { Position } from '@/service/table/Bestellung'
+import type { UnbezahltePosition } from '@/service/table/Tisch'
 
 // Ein Produkt mit einer aktiven Variante „Normal" zu 3,50 €.
 export const testProdukt: Produkt = {
@@ -34,4 +35,11 @@ export function testPosition(overrides: Partial<Position> = {}): Position {
     bestellerName: 'Tester',
     ...overrides,
   }
+}
+
+// testPosition aus Sicht der anfragenden Servicekraft; ohne Override ihre eigene.
+export function testUnbezahltePosition(
+  overrides: Partial<UnbezahltePosition> = {},
+): UnbezahltePosition {
+  return { ...testPosition(overrides), eigene: true, ...overrides }
 }

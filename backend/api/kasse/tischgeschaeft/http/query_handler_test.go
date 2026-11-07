@@ -29,7 +29,7 @@ func (m mockQuery) GetTischHistorie(ctx context.Context, tischID int) ([]kasse.H
 func (m mockQuery) GetTischState(ctx context.Context, tischID int, userID int) (application.TischStateView, error) {
 	return application.TischStateView{
 		SaldoCents:           m.balance,
-		UnbezahltePositionen: []kasse.Position{m.position},
+		UnbezahltePositionen: []application.UnbezahltePosition{{Position: m.position, Eigene: true}},
 	}, m.err
 }
 
@@ -42,7 +42,7 @@ func (m mockQuery) GetMeineTischeState(_ context.Context, _ int) ([]application.
 		TischID:              m.tisch.ID,
 		TischName:            m.tisch.Name,
 		SaldoCents:           m.balance,
-		UnbezahltePositionen: []kasse.Position{m.position},
+		UnbezahltePositionen: []application.UnbezahltePosition{{Position: m.position, Eigene: true}},
 	}}, m.err
 }
 

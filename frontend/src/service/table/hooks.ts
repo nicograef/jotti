@@ -33,7 +33,7 @@ const DEFAULT_TISCH_STATE: TischSession = {
   tischName: '',
   saldoCents: 0,
   unbezahltePositionen: [],
-  fuerMichErledigt: true,
+  anzahlEigeneOffen: 0,
 }
 
 export function useTischState(

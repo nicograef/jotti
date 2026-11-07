@@ -9,34 +9,34 @@ func pos(positionID string, bestellerUserID int, bestellerName string) Position 
 	return Position{PositionID: positionID, Menge: 1, BestellerUserID: bestellerUserID, BestellerName: bestellerName}
 }
 
-func TestHatEigeneOffenePositionen(t *testing.T) {
+func TestAnzahlEigeneOffenePositionen(t *testing.T) {
 	tests := []struct {
 		name    string
 		session TischSession
-		want    bool
+		want    int
 	}{
 		{
-			name:    "eigene unbezahlte Position",
-			session: TischSession{UnbezahltePositionen: []Position{pos("p2", 8, "Bert"), pos("p3", 7, "Anna")}},
-			want:    true,
+			name:    "eigene unbezahlte Positionen",
+			session: TischSession{UnbezahltePositionen: []Position{pos("p2", 8, "Bert"), pos("p3", 7, "Anna"), pos("p4", 7, "Anna")}},
+			want:    2,
 		},
 		{
 			name:    "nur fremde unbezahlte Positionen",
 			session: TischSession{UnbezahltePositionen: []Position{pos("p2", 8, "Bert")}},
-			want:    false,
+			want:    0,
 		},
 		{
 			// Schichtübergabe: eine Kollegin hat die eigenen Positionen kassiert.
 			name:    "keine unbezahlten Positionen",
 			session: TischSession{},
-			want:    false,
+			want:    0,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := HatEigeneOffenePositionen(tt.session, 7); got != tt.want {
-				t.Errorf("HatEigeneOffenePositionen = %v, want %v", got, tt.want)
+			if got := AnzahlEigeneOffenePositionen(tt.session, 7); got != tt.want {
+				t.Errorf("AnzahlEigeneOffenePositionen = %d, want %d", got, tt.want)
 			}
 		})
 	}

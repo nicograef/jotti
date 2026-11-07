@@ -1,28 +1,21 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { signIn, signOut } from '@/test/auth'
-import { testPosition } from '@/test/fixtures'
+import { testUnbezahltePosition } from '@/test/fixtures'
 
-import type { Position } from './Bestellung'
 import { MeinTischCard } from './MeinTischCard'
-import type { TischSession } from './Tisch'
+import type { TischSession, UnbezahltePosition } from './Tisch'
 
 vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-beforeEach(() => {
-  signIn({ userId: 1 })
-})
-
 afterEach(() => {
   cleanup()
-  signOut()
 })
 
-function position(positionId: string, bestellerUserId: number): Position {
-  return testPosition({ positionId, bestellerUserId })
+function position(positionId: string, eigene: boolean): UnbezahltePosition {
+  return testUnbezahltePosition({ positionId, eigene })
 }
 
 function tischSession(overrides: Partial<TischSession>): TischSession {
@@ -31,7 +24,7 @@ function tischSession(overrides: Partial<TischSession>): TischSession {
     tischName: 'Stammtisch',
     saldoCents: 0,
     unbezahltePositionen: [],
-    fuerMichErledigt: true,
+    anzahlEigeneOffen: 0,
     ...overrides,
   }
 }
@@ -50,11 +43,11 @@ describe('MeinTischCard', () => {
     const state = tischSession({
       saldoCents: 1050,
       unbezahltePositionen: [
-        position('p1', 1),
-        position('p2', 2),
-        position('p3', 1),
+        position('p1', true),
+        position('p2', false),
+        position('p3', true),
       ],
-      fuerMichErledigt: false,
+      anzahlEigeneOffen: 2,
     })
 
     render(<MeinTischCard state={state} />)
@@ -76,8 +69,8 @@ describe('MeinTischCard', () => {
 
   it('färbt den Status-Punkt amber bei eigenen offenen Positionen', () => {
     const state = tischSession({
-      unbezahltePositionen: [position('p1', 1)],
-      fuerMichErledigt: false,
+      unbezahltePositionen: [position('p1', true)],
+      anzahlEigeneOffen: 1,
     })
 
     const { container } = render(<MeinTischCard state={state} />)
@@ -87,8 +80,8 @@ describe('MeinTischCard', () => {
 
   it('färbt den Status-Punkt neutral bei nur fremden offenen Positionen', () => {
     const state = tischSession({
-      unbezahltePositionen: [position('p1', 2)],
-      fuerMichErledigt: true,
+      unbezahltePositionen: [position('p1', false)],
+      anzahlEigeneOffen: 0,
     })
 
     const { container } = render(<MeinTischCard state={state} />)

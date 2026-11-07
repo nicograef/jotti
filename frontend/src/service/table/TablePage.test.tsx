@@ -7,16 +7,15 @@ import type { Produkt } from '@/lib/produktSchemas'
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
-import { testPosition, testProdukt } from '@/test/fixtures'
+import { testProdukt, testUnbezahltePosition } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
 
-import type { Position } from './Bestellung'
 import { TablePage } from './TablePage'
-import type { TischSession } from './Tisch'
+import type { TischSession, UnbezahltePosition } from './Tisch'
 
 // Position ids are UUIDs; `nr` keeps them apart.
-function position(nr: number): Position {
-  return testPosition({
+function position(nr: number): UnbezahltePosition {
+  return testUnbezahltePosition({
     positionId: `00000000-0000-4000-8000-${String(nr).padStart(12, '0')}`,
   })
 }
@@ -69,7 +68,7 @@ const stammtisch: TischSession = {
   tischName: 'Stammtisch',
   saldoCents: 1250,
   unbezahltePositionen: [],
-  fuerMichErledigt: true,
+  anzahlEigeneOffen: 0,
 }
 
 beforeEach(() => {

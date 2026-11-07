@@ -6,12 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useVorgang } from '@/hooks/use-vorgang'
 import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
-import { testPosition } from '@/test/fixtures'
+import { testUnbezahltePosition } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
 
 import { ServiceDock } from '../ServiceDock'
-import type { Position } from './Bestellung'
-import type { Tisch } from './Tisch'
+import type { Tisch, UnbezahltePosition } from './Tisch'
 import { ZahlungTab } from './ZahlungTab'
 
 // Der Kassieren-Vorgang liegt in TablePage; dieser Harness stellt ihn
@@ -59,10 +58,10 @@ function backend(): FakeBackend {
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 900 }
 
-const position = testPosition({ menge: 2 })
+const position = testUnbezahltePosition({ menge: 2 })
 
-// Position einer anderen Servicekraft (bestellerUserId ≠ 1).
-const fremdePosition: Position = {
+// Position einer anderen Servicekraft.
+const fremdePosition: UnbezahltePosition = {
   positionId: '00000000-0000-4000-8000-000000000002',
   varianteId: 2,
   produktName: 'Pommes',
@@ -73,9 +72,10 @@ const fremdePosition: Position = {
   menge: 1,
   bestellerUserId: 2,
   bestellerName: 'Kollegin',
+  eigene: false,
 }
 
-function renderZahlung(positionen: Position[] = [position]) {
+function renderZahlung(positionen: UnbezahltePosition[] = [position]) {
   renderWithBackend(
     <ServiceDock leiste={null}>
       <ZahlungHarness
@@ -245,8 +245,8 @@ describe('ZahlungTab Restbetrag', () => {
   })
 
   it('beschriftet den Sammel-Button bei mehreren eigenen Positionen im Plural', () => {
-    // Zweite eigene Position (bestellerUserId 1) → Plural „Meine 2 Positionen".
-    const zweite: Position = {
+    // Zweite eigene Position → Plural „Meine 2 Positionen".
+    const zweite: UnbezahltePosition = {
       ...position,
       positionId: '00000000-0000-4000-8000-000000000003',
       produktName: 'Brezel',

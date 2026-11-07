@@ -46,9 +46,9 @@ func TestGetTischState(t *testing.T) {
 	if state.UnbezahltePositionen[0].BestellerName != "Anna" {
 		t.Errorf("expected besteller Anna, got %q", state.UnbezahltePositionen[0].BestellerName)
 	}
-	// Anna hat eigene offene Positionen an diesem Tisch -> nicht erledigt.
-	if state.FuerMichErledigt {
-		t.Errorf("expected FuerMichErledigt false for besteller with open positions")
+	// Anna hat eigene offene Positionen an diesem Tisch.
+	if state.AnzahlEigeneOffen != 1 || !state.UnbezahltePositionen[0].Eigene {
+		t.Errorf("expected Anna's position to count as her own, got %d / %+v", state.AnzahlEigeneOffen, state.UnbezahltePositionen[0])
 	}
 
 	// Eine andere Servicekraft (ohne eigene Positionen) sieht den Tisch als erledigt.
@@ -56,8 +56,8 @@ func TestGetTischState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if !stateAndere.FuerMichErledigt {
-		t.Errorf("expected FuerMichErledigt true for servicekraft without own positions")
+	if stateAndere.AnzahlEigeneOffen != 0 || stateAndere.UnbezahltePositionen[0].Eigene {
+		t.Errorf("expected no own positions for another servicekraft, got %d / %+v", stateAndere.AnzahlEigeneOffen, stateAndere.UnbezahltePositionen[0])
 	}
 }
 

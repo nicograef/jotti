@@ -2,7 +2,6 @@ import { ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
 import { useEintritt } from '@/hooks/use-eintritt'
-import { AuthSingleton } from '@/lib/Auth'
 import { cn, formatEuro } from '@/lib/utils'
 
 import type { TischSession } from './Tisch'
@@ -21,7 +20,8 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
     void navigate(`/service/tische/${state.tischId.toString()}`)
   }
 
-  const { anzahlOffen, anzahlEigeneOffen } = countOffenePositionen(state)
+  const anzahlOffen = state.unbezahltePositionen.length
+  const { anzahlEigeneOffen } = state
   const alleErledigt = anzahlOffen === 0
 
   // Farbsemantik: eigene offene Positionen fordern zur Aktion auf (amber), nur
@@ -73,15 +73,4 @@ export function MeinTischCard({ state, eintrittIndex }: MeinTischCardProps) {
       <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
     </button>
   )
-}
-
-function countOffenePositionen(state: TischSession) {
-  const myUserId = AuthSingleton.userId
-
-  return {
-    anzahlOffen: state.unbezahltePositionen.length,
-    anzahlEigeneOffen: state.unbezahltePositionen.filter(
-      (position) => position.bestellerUserId === myUserId,
-    ).length,
-  }
 }

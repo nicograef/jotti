@@ -10,14 +10,28 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
+// TischStateView is the Tisch as the requesting Servicekraft sees it: Eigene and AnzahlEigeneOffen
+// follow kasse.IstEigenePosition, so the frontend needs no notion of "mine".
 type TischStateView struct {
 	TischID              int
 	TischName            string
 	Subject              string
 	SaldoCents           int
-	UnbezahltePositionen []kasse.Position
-	// FuerMichErledigt: die anfragende Servicekraft hat an diesem Tisch keine eigenen unbezahlten Positionen mehr.
-	FuerMichErledigt bool
+	UnbezahltePositionen []UnbezahltePosition
+	AnzahlEigeneOffen    int
+}
+
+type UnbezahltePosition struct {
+	kasse.Position
+	Eigene bool
+}
+
+func unbezahltePositionenFuer(state kasse.TischSession, userID int) []UnbezahltePosition {
+	var positionen []UnbezahltePosition
+	for _, pos := range state.UnbezahltePositionen {
+		positionen = append(positionen, UnbezahltePosition{Position: pos, Eigene: kasse.IstEigenePosition(pos, userID)})
+	}
+	return positionen
 }
 
 type tischQueryRepo interface {
@@ -81,8 +95,8 @@ func (q Query) GetTischState(ctx context.Context, tischID int, userID int) (Tisc
 		TischName:            gefunden.Name,
 		Subject:              subject,
 		SaldoCents:           state.SaldoCents,
-		UnbezahltePositionen: state.UnbezahltePositionen,
-		FuerMichErledigt:     !kasse.HatEigeneOffenePositionen(state, userID),
+		UnbezahltePositionen: unbezahltePositionenFuer(state, userID),
+		AnzahlEigeneOffen:    kasse.AnzahlEigeneOffenePositionen(state, userID),
 	}, nil
 }
 
@@ -148,8 +162,8 @@ func (q Query) GetMeineTischeState(ctx context.Context, userID int) ([]TischStat
 			TischName:            entry.Name,
 			Subject:              kasse.TischSessionSubject(kassensitzungNr, tischID),
 			SaldoCents:           state.SaldoCents,
-			UnbezahltePositionen: state.UnbezahltePositionen,
-			FuerMichErledigt:     !kasse.HatEigeneOffenePositionen(state, userID),
+			UnbezahltePositionen: unbezahltePositionenFuer(state, userID),
+			AnzahlEigeneOffen:    kasse.AnzahlEigeneOffenePositionen(state, userID),
 		})
 	}
 

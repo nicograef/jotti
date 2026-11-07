@@ -5,13 +5,22 @@ import (
 	"slices"
 )
 
-// HatEigeneOffenePositionen: "offen" bedeutet "noch nicht kassiert" (siehe docs/decisions.md D01);
+// IstEigenePosition ist die eine Definition von „meine Position": die Servicekraft hat sie bestellt.
+func IstEigenePosition(pos Position, userID int) bool {
+	return pos.BestellerUserID == userID
+}
+
+// AnzahlEigeneOffenePositionen: "offen" bedeutet "noch nicht kassiert" (siehe docs/decisions.md D01);
 // der tischweite offene Saldo fließt bewusst nicht ein. Schichtübergabe ist implizit — kassiert
 // eine Kollegin eine eigene Position, verschwindet sie aus der Unbezahlt-Liste.
-func HatEigeneOffenePositionen(session TischSession, userID int) bool {
-	return slices.ContainsFunc(session.UnbezahltePositionen, func(pos Position) bool {
-		return pos.BestellerUserID == userID
-	})
+func AnzahlEigeneOffenePositionen(session TischSession, userID int) int {
+	anzahl := 0
+	for _, pos := range session.UnbezahltePositionen {
+		if IstEigenePosition(pos, userID) {
+			anzahl++
+		}
+	}
+	return anzahl
 }
 
 type OffeneArbeitTisch struct {
