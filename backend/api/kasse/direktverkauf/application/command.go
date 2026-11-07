@@ -6,7 +6,6 @@ import (
 
 	bondruckApp "github.com/nicograef/jotti/backend/api/druck/bondruck/application"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
-	"github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
@@ -174,23 +173,14 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 	return nil
 }
 
-// fromWriteError maps an event-write error: a UNIQUE(subject, version) violation or a deadlock means
-// the stream changed since reading (ErrConflict), a Kassensitzung closed since reading is
-// ErrKasseNichtGeoeffnet.
+// fromWriteError maps an event-write error onto this context's sentinels and logs it.
 func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
-	log := logging.FromContext(ctx)
-	switch {
-	case errors.Is(err, db.ErrAlreadyExists):
-		log.Warn("OCC conflict", logArgs...)
-		return ErrConflict
-	case errors.Is(err, db.ErrConflict):
-		log.Warn("Deadlock on event write", logArgs...)
-		return ErrConflict
-	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
-		log.Warn("Kassensitzung nicht mehr offen", logArgs...)
-		return ErrKasseNichtGeoeffnet
-	default:
-		log.Error("Failed to write events", append([]any{"error", err}, logArgs...)...)
-		return ErrDatabase
+	mapped := kassenjournal_repo.MapWriteError(err, ErrConflict, ErrKasseNichtGeoeffnet)
+	args := append([]any{"error", err}, logArgs...)
+	if errors.Is(mapped, ErrDatabase) {
+		logging.FromContext(ctx).Error("Failed to write events", args...)
+	} else {
+		logging.FromContext(ctx).Warn("Event write rejected", args...)
 	}
+	return mapped
 }
