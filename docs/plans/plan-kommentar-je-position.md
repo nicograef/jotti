@@ -12,7 +12,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 
 **Voraussetzung „Zeichen gegen Bytes".** Fakt: Das Backend zählt seit `e999f531` Zeichen (`backend/internal/zeichen`). Das Frontend zählt seit `755f6b0d` UTF-8-Bytes (`frontend/src/lib/utf8.ts`). Beide Commits landeten am selben Tag und haben sich gekreuzt. Ein Kommentar aus 60 Umlauten ist im Frontend zu lang, im Backend gültig. Phase 1 stellt das Frontend auf Zeichen (Unicode-Codepoints, wie `utf8.RuneCountInString`) um; erst dann zählen beide Seiten dieselbe Einheit.
 
-**Event-Format (D21, Freeze-Ausnahme).**
+**Event-Format (D22, Freeze-Ausnahme).**
 
 | Event                        | Positionsform (Go)                      | JSON je Position                           |
 | ---------------------------- | --------------------------------------- | ------------------------------------------ |
@@ -25,7 +25,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 - Schema: `kasse.PositionsKommentarSchema = z.String().TestFunc(zeichen.Max(100))`, exportiert und damit in `TestSchemaGrenzen` gepinnt. Event-Schema (Schreiben und Lesen) und Request-Schema nutzen dieselbe Variable.
 - Ein Alt-Event liest sich mit leerem Positionskommentar. Nichts wird migriert oder umgedeutet.
 - Rollback-sicher: Ein älteres Backend ignoriert den unbekannten Schlüssel beim Dekodieren und Validieren (zog prüft nur die Shape-Felder).
-- `docs/decisions.md` bekommt **D21** (Wortlaut in Phase 2). Er nennt das Konzept, keinen Pfad.
+- `docs/decisions.md` bekommt **D22** (Wortlaut in Phase 2). Er nennt das Konzept, keinen Pfad.
 
 **Wer liest den Kommentar.**
 
@@ -100,7 +100,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 
 Entschieden von Nico am 7. November: Der AGENTS.md-Freeze-Satz wird wie in Frage 1 umformuliert. Für alle übrigen Fragen unten gilt die jeweilige Empfehlung.
 
-1. **AGENTS.md-Freeze-Satz.** „A change is a new event version (`:vN`), never an edit in place" wird mit D21 falsch; die Umbuchung mit `benutzerKommentar` war schon ein Präzedenzfall. Phase 2 formuliert: „A change is a new event version (`:vN`). The only edit in place is an additive optional field omitted when empty, approved as a line in `docs/decisions.md`." Empfehlung: so übernehmen. Lehnt Nico ab, entfällt der AGENTS.md-Punkt aus Phase 2, D21 bleibt.
+1. **AGENTS.md-Freeze-Satz.** „A change is a new event version (`:vN`), never an edit in place" wird mit D22 falsch; die Umbuchung mit `benutzerKommentar` war schon ein Präzedenzfall. Phase 2 formuliert: „A change is a new event version (`:vN`). The only edit in place is an additive optional field omitted when empty, approved as a line in `docs/decisions.md`." Empfehlung: so übernehmen. Lehnt Nico ab, entfällt der AGENTS.md-Punkt aus Phase 2, D22 bleibt.
 2. **Phase 1 hier oder vorher.** Die Zeichen-Umstellung ist ein eigenständiger Fehler (Frontend strenger als Backend), kein Feature. Empfehlung: als Phase 1 dieses Plans lassen; `fix/q-cross` hat einen festen Befund-Umfang. Will der Lead sie früher auf `main`, landet Phase 1 allein, und die Kriterien bleiben gleich.
 3. **Kreuzung mit `fix/q-cross`.** Die Lane ändert Storno- und Umbuchungs-Handler, ihre Tests und Schemas, und druckt TSE-Start und -Ende auf den Kassenbeleg. Gemeinsame Dateien mit diesem Plan:
    - `backend/api/kasse/tischgeschaeft/http/command_handler.go` und `command_handler_test.go` (`mockCommand`, `TestCommandHandler_Abweisungen`),
@@ -108,7 +108,7 @@ Entschieden von Nico am 7. November: Der AGENTS.md-Freeze-Satz wird wie in Frage
    - `frontend/src/service/direktverkauf/Direktverkauf.ts` (`DirektverkaufStornierenSchema` neben `DirektverkaufTaetigenSchema`),
    - `backend/api/druck/bondruck/application/escpos/formatter.go` und `formatter_test.go` (Kassenbeleg neben Arbeitsbon).
      Die Feature-Spur startet laut Programme erst nach dem Abschluss; der Run-Branch zweigt dann vom gelandeten Stand ab. Läuft `fix/q-cross` noch, rebased die Lane nach dessen Landung. Dieser Plan fasst `DirektverkaufStornieren()`, `StornoDrawer` und die Umbuchung nicht an.
-4. **Geschwister-Features.** Auto-Pfand (Abholbon lässt Pfand-Positionen weg, Warenkorb legt Pfand dazu) und Stationsmodell/Zusatzdrucker ändern `arbeitsbon_policy.go`, `toBestellungData()` und `useVorgang()`. Dieser Plan landet zuerst; beide rebasen darauf. Ein Kommentar an einer Pfand-Position verschwindet mit Auto-Pfand vom Abholbon; das ist hinnehmbar. D21 kann mit einer Entscheidungszeile der Geschwister kollidieren; der Lead vergibt Nummern beim Landen wie bei Migrationen. Dieser Plan braucht keine Migration.
+4. **Geschwister-Features.** Auto-Pfand (Abholbon lässt Pfand-Positionen weg, Warenkorb legt Pfand dazu) und Stationsmodell/Zusatzdrucker ändern `arbeitsbon_policy.go`, `toBestellungData()` und `useVorgang()`. Dieser Plan landet zuerst; beide rebasen darauf. Ein Kommentar an einer Pfand-Position verschwindet mit Auto-Pfand vom Abholbon; das ist hinnehmbar. D22 kann mit einer Entscheidungszeile der Geschwister kollidieren; der Lead vergibt Nummern beim Landen wie bei Migrationen. Dieser Plan braucht keine Migration.
 5. **Projektion speichert das neue Feld.** Fakt: `upsertTischSessionState()` serialisiert `kasse.Position` ohne DTO. Jede Position in `tisch_sessions.unbezahlte_positionen` bekommt so den Schlüssel `"Kommentar": ""`, wie zuvor `Pfand` und `BestellerName`. Die Projektion ist neu aufbaubar und liest den Kommentar nie. Empfehlung: hinnehmen, kein eigenes Projektions-DTO in diesem Plan.
 6. **Abweichungen vom PRD.** Zustand in `useVorgang()` statt im Abschluss (Befund #221). Ein gemeinsames `KommentiertePositionInputSchema` statt zweier Schemas und kein Frontend-Grenztest dafür: Es verdrahtet nur `KommentarSchema`, dessen Grenze `zeichen.test.ts` pinnt; das Feld kappt die Eingabe ohnehin. Die Sätze „Heute zählt Zod Code-Units, zog Bytes" und „Voraussetzung … Zeichen gegen Bytes" im PRD sind veraltet. Empfehlung: Der Lead löscht PRD und Plan beim Landen und schreibt die Changelog-Zeile, wie bei der Pfandrückgabe.
 7. **Druckbild.** Die Formatter-Tests pinnen Bytes, nicht das Druckbild. Empfehlung: Positionskommentar auf Sammel-, Einzel- und Stückbon in die manuelle QA von `plan-release-v1.0.0.md` aufnehmen (echter Epson-Drucker).
@@ -240,12 +240,12 @@ Frontend:
 Doku:
 
 - `docs/decisions.md`, neue Zeile:
-  „- **D21 Positionskommentar als additives Feld der Erfassungs-Events.** Die Positionen von `bestellung-aufgenommen:v1` und `direktverkauf-getaetigt:v2` tragen optional `kommentar`, ohne neue Event-Version. Das ist eine ausdrückliche Ausnahme vom Freeze der Event-Formate. Leer fehlt der Schlüssel, Alt-Events bleiben byte-identisch und lesen sich mit leerem Kommentar. Eine neue Version berührte jedes SQL-Literal beider Events und beide Idempotenz-Indexe, für ein rein operatives Feld. Der Kommentar erreicht weder Zahlung, Stornierung, Korrektur und Umbuchung noch TSE-Daten und DSFinV-K-Export. Jedes weitere Feld in einem bestehenden Event braucht eine eigene Entscheidung."
+  „- **D22 Positionskommentar als additives Feld der Erfassungs-Events.** Die Positionen von `bestellung-aufgenommen:v1` und `direktverkauf-getaetigt:v2` tragen optional `kommentar`, ohne neue Event-Version. Das ist eine ausdrückliche Ausnahme vom Freeze der Event-Formate. Leer fehlt der Schlüssel, Alt-Events bleiben byte-identisch und lesen sich mit leerem Kommentar. Eine neue Version berührte jedes SQL-Literal beider Events und beide Idempotenz-Indexe, für ein rein operatives Feld. Der Kommentar erreicht weder Zahlung, Stornierung, Korrektur und Umbuchung noch TSE-Daten und DSFinV-K-Export. Jedes weitere Feld in einem bestehenden Event braucht eine eigene Entscheidung."
 - `AGENTS.md` „Freeze discipline": Satz wie in Open question 1.
 - `docs/language.md`, Tabelle „Weitere Typen und Felder (Kasse)" (Spalten Begriff, Bedeutung, Code-Mapping), zwei Zeilen nach dem PRD:
   - Positionskommentar: optionaler Freitext der Servicekraft zu einer Position einer Bestellung oder eines Direktverkaufs, gedruckt nur an deren Station; zu vermeiden Positionsnotiz, Notiz, Hinweis, Sonderwunsch. Code-Mapping: Go `Position.Kommentar` · JSON/TS `kommentar` im Positionsobjekt.
   - Bestellkommentar: Kommentar einer Bestellung, gedruckt auf jedem ihrer Arbeitsbons; zu vermeiden Bestellnotiz, Bonkommentar. Code-Mapping: Go `Bestellung.Kommentar` · JSON/TS `kommentar` auf Event-Ebene.
-- `docs/handbuch.md`: In §3.6 trägt die Zeile `bestellung-aufgenommen:v1` „optional `kommentar` je Position (D21)". §4.5 Arbeitsbon-Inhalt: „Positionen (Art + Menge) mit ihrem Positionskommentar, Bestellkommentar am Ende".
+- `docs/handbuch.md`: In §3.6 trägt die Zeile `bestellung-aufgenommen:v1` „optional `kommentar` je Position (D22)". §4.5 Arbeitsbon-Inhalt: „Positionen (Art + Menge) mit ihrem Positionskommentar, Bestellkommentar am Ende".
 
 Demo: Die Servicekraft bestellt Zwiebelkuchen mit „ohne Kümmel" und ein Bier ohne Kommentar. Der Essenbon zeigt den Kommentar unter dem Zwiebelkuchen, der Getränkebon keinen. Das Detail der Bestellung in der Historie zeigt „ohne Kümmel" unter der Position.
 
@@ -262,7 +262,7 @@ Demo: Die Servicekraft bestellt Zwiebelkuchen mit „ohne Kümmel" und ein Bier 
 - [ ] Der Hook verwirft Kommentare bei Menge null und mit der Auswahl: `cd frontend && out="$(pnpm exec vitest run src/hooks/use-vorgang.test.ts --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -cE '✓ .*(verwirft den Positionskommentar einer Variante, deren Menge auf null fällt|leert die Positionskommentare mit der Auswahl)')" -eq 2`
 - [ ] Der Bestellabschluss sendet den Kommentar nur an seiner Position und zieht nach Änderung einen neuen Schlüssel: `cd frontend && out="$(pnpm exec vitest run src/service/table/BestellungAbschluss.test.tsx --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -cE '✓ .*(sendet den Positionskommentar nur an seiner Position|erneuert den bestellungId, wenn sich ein Positionskommentar nach einem Fehlversuch ändert)')" -eq 2`
 - [ ] Die Historie zeigt den Kommentar unter seiner Position: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/table/TischHistorie.test.tsx -t 'zeigt den Positionskommentar unter seiner Position im Detail' --reporter=verbose | grep -- '✓ .*zeigt den Positionskommentar unter seiner Position im Detail'`
-- [ ] D21 steht, Handbuch und Glossar nennen den Positionskommentar, AGENTS.md nennt die Ausnahme: `grep -q '^- \*\*D21 Positionskommentar' docs/decisions.md && grep -q '^| Positionskommentar' docs/language.md && grep -q 'Positionskommentar' docs/handbuch.md && grep -q 'additive optional field' AGENTS.md`
+- [ ] D22 steht, Handbuch und Glossar nennen den Positionskommentar, AGENTS.md nennt die Ausnahme: `grep -q '^- \*\*D22 Positionskommentar' docs/decisions.md && grep -q '^| Positionskommentar' docs/language.md && grep -q 'Positionskommentar' docs/handbuch.md && grep -q 'additive optional field' AGENTS.md`
 - [ ] Gate: `make check check-repo check-format`
 - [ ] Lint: `make lint`
 - [ ] Integration: `TEST_PG_CONTAINER=jotti-pg-kommentar TEST_PG_PORT=5447 make check-integration`
@@ -324,7 +324,7 @@ Frontend:
 
 Doku:
 
-- `docs/handbuch.md`: In §3.6 trägt die Zeile `direktverkauf-getaetigt:v2` „optional `kommentar` je Position (D21)". Im Direktverkauf-Routing von §4.5 steht: „Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon."
+- `docs/handbuch.md`: In §3.6 trägt die Zeile `direktverkauf-getaetigt:v2` „optional `kommentar` je Position (D22)". Im Direktverkauf-Routing von §4.5 steht: „Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon."
 - `docs/backlog.md`: Punkt „Kommentar je Position (#145)" löschen.
 
 Demo: Im Direktverkauf bekommt „2 × Bratwurst" den Kommentar „1 davon ohne Senf". Mit Abholbon `pro_stueck` tragen beide Bratwurst-Bons den Text, der Bier-Bon nicht. Die Direktverkauf-Historie zeigt ihn unter der Position. Der Kassenbeleg des Verkaufs zeigt ihn nicht.
