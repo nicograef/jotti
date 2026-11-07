@@ -134,7 +134,7 @@ func TestMapBarverkaufGoldenRows(t *testing.T) {
 		"vat.csv": {
 			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
 			{testSerial, erstellung, "3", "2", "7,00", "Ermäßigter Steuersatz"},
-			{testSerial, erstellung, "3", "3", "10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+			{testSerial, erstellung, "3", "3", "7,80", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
 			{testSerial, erstellung, "3", "4", "5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
 			{testSerial, erstellung, "3", "5", "0,00", "Nicht Steuerbar"},
 			{testSerial, erstellung, "3", "6", "0,00", "Umsatzsteuerfrei"},
@@ -861,7 +861,7 @@ func TestMapKombiSteuerSplit(t *testing.T) {
 		"vat.csv": {
 			{testSerial, erstellung, "3", "1", "19,00", "Allgemeiner Steuersatz"},
 			{testSerial, erstellung, "3", "2", "7,00", "Ermäßigter Steuersatz"},
-			{testSerial, erstellung, "3", "3", "10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+			{testSerial, erstellung, "3", "3", "7,80", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
 			{testSerial, erstellung, "3", "4", "5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
 			{testSerial, erstellung, "3", "5", "0,00", "Nicht Steuerbar"},
 			{testSerial, erstellung, "3", "6", "0,00", "Umsatzsteuerfrei"},

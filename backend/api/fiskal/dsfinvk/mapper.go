@@ -680,7 +680,7 @@ func buildVat(s Snapshot, erstellung string) Table {
 	amtlicheSchluessel := [][2]string{
 		{"19,00", "Allgemeiner Steuersatz"},
 		{"7,00", "Ermäßigter Steuersatz"},
-		{"10,70", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
+		{"7,80", "Durchschnittsatz (§ 24 Abs. 1 Nr. 3 UStG)"},
 		{"5,50", "Durchschnittsatz (§ 24 Abs. 1 Nr. 1 UStG)"},
 		{"0,00", "Nicht Steuerbar"},
 		{"0,00", "Umsatzsteuerfrei"},
