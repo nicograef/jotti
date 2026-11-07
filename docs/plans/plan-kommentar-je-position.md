@@ -108,9 +108,9 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
      Die Feature-Spur startet laut Programme erst nach dem Abschluss; der Run-Branch zweigt dann vom gelandeten Stand ab. Läuft `fix/q-cross` noch, rebased die Lane nach dessen Landung. Dieser Plan fasst `DirektverkaufStornieren()`, `StornoDrawer` und die Umbuchung nicht an.
 4. **Geschwister-Features.** Auto-Pfand (Abholbon lässt Pfand-Positionen weg, Warenkorb legt Pfand dazu) und Stationsmodell/Zusatzdrucker ändern `arbeitsbon_policy.go`, `toBestellungData()` und `useVorgang()`. Dieser Plan landet zuerst; beide rebasen darauf. Ein Kommentar an einer Pfand-Position verschwindet mit Auto-Pfand vom Abholbon; das ist hinnehmbar. D21 kann mit einer Entscheidungszeile der Geschwister kollidieren; der Lead vergibt Nummern beim Landen wie bei Migrationen. Dieser Plan braucht keine Migration.
 5. **Projektion speichert das neue Feld.** Fakt: `upsertTischSessionState()` serialisiert `kasse.Position` ohne DTO. Jede Position in `tisch_sessions.unbezahlte_positionen` bekommt so den Schlüssel `"Kommentar": ""`, wie zuvor `Pfand` und `BestellerName`. Die Projektion ist neu aufbaubar und liest den Kommentar nie. Empfehlung: hinnehmen, kein eigenes Projektions-DTO in diesem Plan.
-6. **Abweichungen vom PRD.** Zustand in `useVorgang()` statt im Abschluss (Befund #221). Ein gemeinsames `KommentiertePositionInputSchema` statt zweier Schemas, deshalb ein Grenztest in `service/schemas.test.ts` statt `Bestellung.test.ts` und `Direktverkauf.test.ts`. Die Sätze „Heute zählt Zod Code-Units, zog Bytes" und „Voraussetzung … Zeichen gegen Bytes" im PRD sind veraltet. Empfehlung: Der Lead löscht PRD und Plan beim Landen und schreibt die Changelog-Zeile, wie bei der Pfandrückgabe.
+6. **Abweichungen vom PRD.** Zustand in `useVorgang()` statt im Abschluss (Befund #221). Ein gemeinsames `KommentiertePositionInputSchema` statt zweier Schemas und kein Frontend-Grenztest dafür: Es verdrahtet nur `KommentarSchema`, dessen Grenze `zeichen.test.ts` pinnt; das Feld kappt die Eingabe ohnehin. Die Sätze „Heute zählt Zod Code-Units, zog Bytes" und „Voraussetzung … Zeichen gegen Bytes" im PRD sind veraltet. Empfehlung: Der Lead löscht PRD und Plan beim Landen und schreibt die Changelog-Zeile, wie bei der Pfandrückgabe.
 7. **Druckbild.** Die Formatter-Tests pinnen Bytes, nicht das Druckbild. Empfehlung: Positionskommentar auf Sammel-, Einzel- und Stückbon in die manuelle QA von `plan-release-v1.0.0.md` aufnehmen (echter Epson-Drucker).
-8. **#145.** Der Melder bietet an zu testen. Antwort und Schließen des Issues sind Außenkommunikation und bleiben bei Nico.
+8. **#145.** Der Melder bietet an zu testen. Antwort und Schließen des Issues sind Außenkommunikation und bleiben bei Nico. Empfehlung: Nico bittet ihn nach dem Release um einen Test am Fest und schließt das Issue danach.
 
 ## Phase 1: Kommentare zählen Zeichen im Frontend
 
@@ -122,8 +122,6 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 - `frontend/src/service/schemas.ts — KOMMENTAR_MAX_BYTES`, `KommentarSchema`, `PflichtKommentarSchema`.
 - `frontend/src/service/CommentField.tsx — begrenzeEinfuegung()`, `KommentarField` — kappt Einfügungen auf das Byte-Budget.
 - `frontend/src/admin/kasse/Kassensitzung.ts — BezeichnungSchema`, `KommentarSchema` — 200 als Bytes gezählt; Backend `kasse/kassensitzung_events.go` zählt `zeichen.Max(200)`.
-- `frontend/src/lib/nameSchema.ts — createNameSchema()` — Tisch-, Produkt-, Varianten- und Benutzername; Zod `.max()` zählt UTF-16-Einheiten.
-- `frontend/src/lib/nameSchema.test.ts` — Grenzfälle der Namen.
 - `backend/internal/zeichen/zeichen.go — Min()`, `Max()` — Maßstab: `utf8.RuneCountInString`.
 - `frontend/src/service/CommentField.test.tsx` — `it.each` „kürzt die Einfügung auf 100 Bytes …".
 - `docs/backlog.md` — Punkt „Zeichen gegen Bytes"; der Punkt „Kommentar je Position (#145)" nennt ihn als Voraussetzung.
@@ -134,8 +132,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
 - `schemas.ts`: `KOMMENTAR_MAX_ZEICHEN = 100`; beide Kommentar-Schemas zählen Zeichen. Der Kommentar nennt die eingefrorenen Event-Schemas als Quelle der 100 Zeichen.
 - `CommentField.tsx`: `begrenzeEinfuegung()` rechnet in Zeichen; der Cursor bleibt in UTF-16-Einheiten (`setSelectionRange`). Der Kommentar über `maxLength` nennt Zeichen statt Bytes.
 - `Kassensitzung.ts`: beide Schemas über `maxZeichen()`; der Kommentar „Das Backend zählt … Bytes" wird wahr umformuliert.
-- `nameSchema.ts`: `createNameSchema()` begrenzt über `maxZeichen()` statt `.max()`, nach `trim()`. `nameSchema.test.ts` bekommt den Fall „zählt ein Emoji als ein Zeichen": `'😀'.repeat(100)` gilt bei Obergrenze 100.
-- Die übrigen Zod-`.max()` (Betreiber, Zugangsdaten) zählen weiter UTF-16-Einheiten. Sie sind nur bei Emoji strenger als das Backend und führen nie zu einem 400.
+- Die übrigen Zod-`.max()` (Namen über `createNameSchema()`, Betreiber, Zugangsdaten) zählen weiter UTF-16-Einheiten. Sie sind nur bei Emoji strenger als das Backend und führen nie zu einem 400; Umlaute zählen dort schon heute als ein Zeichen.
 - Neuer Test `frontend/src/lib/zeichen.test.ts`, Fall „zählt Umlaute und Emoji als je ein Zeichen": `maxZeichen(z.string(), 100)` nimmt `'ä'.repeat(100)` an, lehnt `'ä'.repeat(101)` ab; `kuerzeAufZeichen('a😀b', 2)` ergibt `'a😀'`.
 - `CommentField.test.tsx`: Das `it.each` heißt „kürzt die Einfügung auf 100 Zeichen an einer Zeichengrenze (Fall %#)" und hat genau diese fünf Fälle (vorhanden, Cursor, Einfügung, erwartet, Cursor danach):
   - `''`, 0, `'ä'.repeat(101)`, `'ä'.repeat(100)`, 100
@@ -143,7 +140,7 @@ Nico hat das PRD mit seinen Empfehlungen freigegeben: additives Feld als Freeze-
   - `'a'.repeat(100)`, 50, `'x'`, `'a'.repeat(100)`, 50
   - `'a'.repeat(98)`, 49, `'xyz'`, `'a'.repeat(49) + 'xy' + 'a'.repeat(49)`, 51
   - `'ä'.repeat(99)`, 0, `'öö'`, `'ö' + 'ä'.repeat(99)`, 1
-- `docs/backlog.md`: Punkt „Zeichen gegen Bytes" löschen; im Punkt #145 entfällt der Satz zur Voraussetzung.
+- `docs/backlog.md`: Punkt „Zeichen gegen Bytes" löschen; im Punkt #145 entfallen der Satz zur Voraussetzung und „Offen: Freigabe des PRD." (Nico hat es freigegeben).
 
 Demo: Ein Bestellkommentar aus 100 Umlauten lässt sich vollständig eingeben und bestellen.
 
@@ -151,7 +148,6 @@ Demo: Ein Bestellkommentar aus 100 Umlauten lässt sich vollständig eingeben un
 
 - [ ] Zod-Grenze und Kürzung zählen Codepoints (Fall „zählt Umlaute und Emoji als je ein Zeichen" in `frontend/src/lib/zeichen.test.ts`): `set -o pipefail; cd frontend && pnpm exec vitest run src/lib/zeichen.test.ts -t 'zählt Umlaute und Emoji als je ein Zeichen' --reporter=verbose | grep -- '✓ .*zählt Umlaute und Emoji als je ein Zeichen'`
 - [ ] Das Kommentarfeld kappt Einfügungen auf 100 Zeichen (fünf Fälle in `frontend/src/service/CommentField.test.tsx`): `cd frontend && out="$(pnpm exec vitest run src/service/CommentField.test.tsx -t 'kürzt die Einfügung auf 100 Zeichen' --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -c '✓ .*kürzt die Einfügung auf 100 Zeichen')" -eq 5`
-- [ ] Namen zählen Zeichen wie das Backend: `set -o pipefail; cd frontend && pnpm exec vitest run src/lib/nameSchema.test.ts -t 'zählt ein Emoji als ein Zeichen' --reporter=verbose | grep -- '✓ .*zählt ein Emoji als ein Zeichen'`
 - [ ] Keine Byte-Zählung bleibt im Frontend: `test ! -e frontend/src/lib/utf8.ts && ! grep -rnE 'utf8Bytes|maxUtf8Bytes|kuerzeAufUtf8Bytes|KOMMENTAR_MAX_BYTES|UTF-8-Bytes' frontend/src`
 - [ ] Der Backlog-Punkt ist erledigt und entfernt: `! grep -q 'Zeichen gegen Bytes' docs/backlog.md`
 - [ ] Gate: `make check check-repo check-format`
@@ -216,7 +212,7 @@ Backend, API und Druck:
 - `bestellungAufnehmenRequest.Positionen` wird `[]eingabe.KommentiertePositionInput`.
 - `command_handler_test.go`: `mockCommand` merkt sich die Positionen von `BestellungAufnehmen`. Neuer Test `TestBestellungAufnehmenHandler_ReichtPositionskommentarDurch`. `TestCommandHandler_Abweisungen` bekommt den Fall „aufnehmen: Positionskommentar über 100 Zeichen" (101 × `ä`, 400 `validation_error`).
 - `query_handler.go`: DTO `bestellPosition` (bettet `position` ein, plus `Kommentar` mit `json:"kommentar"`). `bestellung.Positionen` nutzt es; `stornierbarePositionen` und `umbuchbarePositionen` bleiben `position`.
-- `query_handler_test.go`: `TestBestellungResponseTraegtPositionskommentar` — `toBestellung()` liefert `"kommentar":"ohne Kümmel"` und `"kommentar":""` je Position; `stornierbarePositionen` tragen keinen Schlüssel `kommentar`.
+- `query_handler_test.go`: `TestBestellungResponseTraegtPositionskommentar` — `toBestellung()` liefert `"kommentar":"ohne Kümmel"` und `"kommentar":""` je Position.
 - `application/command_test.go`: `TestBestellungAufnehmen_SchreibtPositionskommentar` — das geschriebene Event trägt `kommentar` nur an der kommentierten Position.
 - `arbeitsbon_policy.go`: `positionenMitKommentarEventData.Positionen` wird `[]kasse.KommentiertePositionEventData`; `unmarshalPositionenMitKommentar()` nutzt `PositionenMitKommentar()`.
 - `formatter.go`: `FormatSammelBon()` und `FormatPositionBon()` schreiben `pos.Kommentar` nach dem Layout aus „Architectural decisions".
@@ -231,7 +227,6 @@ Frontend:
 - `use-vorgang.ts`: `positionsKommentare`, `setPositionsKommentar()`, Verwerfen bei Menge null, Leeren mit der Auswahl.
 - `use-vorgang.test.ts`: Fall „verwirft den Positionskommentar einer Variante, deren Menge auf null fällt": Variante 1 und 2 hinzufügen, 1 kommentieren, 1 entfernen, 1 wieder hinzufügen; der Kommentar von 1 ist leer. Fall „leert die Positionskommentare mit der Auswahl".
 - `schemas.ts`: `KommentiertePositionInputSchema = PositionInputSchema.extend({ kommentar: KommentarSchema.optional() })`.
-- Neuer Test `frontend/src/service/schemas.test.ts`, Fall „begrenzt den Positionskommentar auf 100 Zeichen": `'ä'.repeat(100)` gültig, `'ä'.repeat(101)` ungültig.
 - `Bestellung.ts`: `BestellungAufnehmenSchema.positionen` nutzt `KommentiertePositionInputSchema`; `BestellungSchema.positionen` nutzt `PositionSchema.extend({ kommentar: z.string() })`. Die Fixtures aus der Context-Liste bekommen je Bestellposition `kommentar: ''`.
 - `drawerUtils.ts`: `toBestellungData(products, mengen, positionsKommentare?)` legt den getrimmten, nicht leeren Kommentar an Eingabe- und Belegzeile. `toReceiptItems()` übernimmt `kommentar`, falls die Position einen trägt.
 - `Receipt.tsx`: `ReceiptPosition.kommentar?`; Anzeige „…" unter der Zeile; optional `kommentarBearbeiten?: (id: string, text: string) => void` mit Schaltfläche „Kommentar" und `PositionsKommentarFeld` je Zeile.
@@ -258,12 +253,11 @@ Demo: Die Servicekraft bestellt Zwiebelkuchen mit „ohne Kümmel" und ein Bier 
 - [ ] Der Konstruktor begrenzt den Positionskommentar auf 100 Zeichen, und die Historie liest ihn je Position (`TestNewBestellungAufgenommenEvent_Positionskommentar`, `TestGetHistorieFromEvents_Positionskommentar`): `cd backend && out="$(go test ./domain/kasse/ -run '^(TestNewBestellungAufgenommenEvent_Positionskommentar|TestGetHistorieFromEvents_Positionskommentar)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '^--- PASS: (TestNewBestellungAufgenommenEvent_Positionskommentar|TestGetHistorieFromEvents_Positionskommentar) ')" -eq 2`
 - [ ] `kasse.PositionsKommentarSchema` ist mit 0 bis 100 Zeichen gepinnt: `cd backend && grep -q '"kasse.PositionsKommentarSchema"' api/schema_grenzen_test.go && go test ./api/ -run '^TestSchemaGrenzen$'`
 - [ ] Der Request reicht den Kommentar durch und lehnt 101 Zeichen ab (`TestBestellungAufnehmenHandler_ReichtPositionskommentarDurch`, Fall „aufnehmen: Positionskommentar über 100 Zeichen"): `cd backend && out="$(go test ./api/kasse/tischgeschaeft/http/ -run '^(TestBestellungAufnehmenHandler_ReichtPositionskommentarDurch|TestCommandHandler_Abweisungen)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '--- PASS: (TestBestellungAufnehmenHandler_ReichtPositionskommentarDurch|TestCommandHandler_Abweisungen/aufnehmen:_Positionskommentar_über_100_Zeichen) ')" -eq 2`
-- [ ] Das Historien-DTO trägt den Kommentar nur an den Bestellpositionen (`TestBestellungResponseTraegtPositionskommentar`): `set -o pipefail; cd backend && go test ./api/kasse/tischgeschaeft/http/ -run '^TestBestellungResponseTraegtPositionskommentar$' -v | grep -- '--- PASS: TestBestellungResponseTraegtPositionskommentar '`
+- [ ] Das Historien-DTO trägt den Kommentar je Bestellposition (`TestBestellungResponseTraegtPositionskommentar`): `set -o pipefail; cd backend && go test ./api/kasse/tischgeschaeft/http/ -run '^TestBestellungResponseTraegtPositionskommentar$' -v | grep -- '--- PASS: TestBestellungResponseTraegtPositionskommentar '`
 - [ ] Der Command schreibt den Kommentar an seine Position (`TestBestellungAufnehmen_SchreibtPositionskommentar`): `set -o pipefail; cd backend && go test ./api/kasse/tischgeschaeft/application/ -run '^TestBestellungAufnehmen_SchreibtPositionskommentar$' -v | grep -- '--- PASS: TestBestellungAufnehmen_SchreibtPositionskommentar '`
 - [ ] Der Arbeitsbon trägt den Kommentar nur an der Station und auf dem Einzelbon seiner Position (Regression #145): `cd backend && out="$(go test ./api/druck/bondruck/application/ -run '^(TestCreateArbeitsbonAuftraege_PositionskommentarNurAnSeinerStation|TestCreateArbeitsbonAuftraege_ProPosition_PositionskommentarNurAufSeinemEinzelbon)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '^--- PASS: TestCreateArbeitsbonAuftraege_(PositionskommentarNurAnSeinerStation|ProPosition_PositionskommentarNurAufSeinemEinzelbon) ')" -eq 2`
 - [ ] Bonlayout: Positionskommentar unter seiner Zeile, Bestellkommentar am Ende: `cd backend && out="$(go test ./api/druck/bondruck/application/escpos/ -run '^(TestFormatSammelBon_PositionskommentarUnterSeinerPosition|TestFormatPositionBon_PositionskommentarVorBestellkommentar)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '^--- PASS: TestFormat(SammelBon_PositionskommentarUnterSeinerPosition|PositionBon_PositionskommentarVorBestellkommentar) ')" -eq 2`
 - [ ] Der Hook verwirft Kommentare bei Menge null und mit der Auswahl: `cd frontend && out="$(pnpm exec vitest run src/hooks/use-vorgang.test.ts --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -cE '✓ .*(verwirft den Positionskommentar einer Variante, deren Menge auf null fällt|leert die Positionskommentare mit der Auswahl)')" -eq 2`
-- [ ] Das Eingabe-Schema begrenzt den Positionskommentar auf 100 Zeichen: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/schemas.test.ts -t 'begrenzt den Positionskommentar auf 100 Zeichen' --reporter=verbose | grep -- '✓ .*begrenzt den Positionskommentar auf 100 Zeichen'`
 - [ ] Der Bestellabschluss sendet den Kommentar nur an seiner Position und zieht nach Änderung einen neuen Schlüssel: `cd frontend && out="$(pnpm exec vitest run src/service/table/BestellungAbschluss.test.tsx --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -cE '✓ .*(sendet den Positionskommentar nur an seiner Position|erneuert den bestellungId, wenn sich ein Positionskommentar nach einem Fehlversuch ändert)')" -eq 2`
 - [ ] Die Historie zeigt den Kommentar unter seiner Position: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/table/TischHistorie.test.tsx -t 'zeigt den Positionskommentar unter seiner Position im Detail' --reporter=verbose | grep -- '✓ .*zeigt den Positionskommentar unter seiner Position im Detail'`
 - [ ] D21 steht, Handbuch und Glossar nennen den Positionskommentar, AGENTS.md nennt die Ausnahme: `grep -q '^- \*\*D21 Positionskommentar' docs/decisions.md && grep -q '^| Positionskommentar' docs/language.md && grep -q 'Positionskommentar' docs/handbuch.md && grep -q 'additive optional field' AGENTS.md`
@@ -285,7 +279,7 @@ Demo: Die Servicekraft bestellt Zwiebelkuchen mit „ohne Kümmel" und ein Bier 
 - `backend/domain/kasse/event_json_contract_test.go — TestEventContract_DirektverkaufGetaetigtV2()`, `positionV2Literal`, `assertPositionV2()` — übergibt `data.Positionen` als `[]PositionV2EventData`.
 - `backend/seed/engine_test.go` — übergibt `DirektverkaufGetaetigtV2Data.Positionen` an `pruefe(…, []kasse.PositionV2EventData)`.
 - `backend/api/fiskal/dsfinvk/belege.go — belegAbleitung.direktverkauf()`, `verkaufsPositionen()`, `pfandJePosition()`; `mapper_test.go` (Fixture mit `PositionV2EventData`).
-- `backend/api/kasse/direktverkauf/http/command_handler.go — direktverkaufTaetigenRequest` und Schema; `command_handler_test.go — TestCommandHandler_Abweisungen()`.
+- `backend/api/kasse/direktverkauf/http/command_handler.go — direktverkaufTaetigenRequest` und Schema; `command_handler_test.go — mockCommand`, `TestCommandHandler_Abweisungen()`.
 - `backend/api/kasse/direktverkauf/application/command_test.go — TestDirektverkaufTaetigen_WritesSingleEvent()` (Vorbild).
 - `backend/api/kasse/vorgang/vorgang.go — Position`, `HistorieEintrag`, `ToHistorieEintrag()`.
 - `backend/api/druck/bondruck/application/arbeitsbon_policy.go — createAbholbonAuftraege()`; `arbeitsbon_policy_test.go — TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck()` (Vorbild).
@@ -311,9 +305,9 @@ Backend:
 - `kommentar_test.go`: `TestNewDirektverkaufGetaetigtEvent_Positionskommentar` über `optionalKommentarTests`.
 - `direktverkauf_test.go`: `TestBuildDirektverkaufHistorieEintrag_Positionskommentar` — v2 mit Kommentar liest ihn; ein v1-Stream liest `""`.
 - `vorgang.go`: DTO `KommentiertePosition` (bettet `Position` ein, plus `Kommentar` mit `json:"kommentar"`). `HistorieEintrag.Positionen` nutzt es; `OffenePositionen` bleibt `Position`.
-- Neuer Test `backend/api/kasse/vorgang/vorgang_test.go — TestToHistorieEintrag_Positionskommentar`: Kommentar und `""` je Position, kein Schlüssel `kommentar` in `offenePositionen`.
+- Neuer Test `backend/api/kasse/vorgang/vorgang_test.go — TestToHistorieEintrag_Positionskommentar`: `"kommentar":"ohne Senf"` und `"kommentar":""` je Position.
 - `direktverkaufTaetigenRequest.Positionen` wird `[]eingabe.KommentiertePositionInput`; `pfand.positionen` bleibt `eingabe.PositionInput`.
-- `direktverkauf/http/command_handler_test.go`: `TestDirektverkaufTaetigenHandler_ReichtPositionskommentarDurch` und der Fall „tätigen: Positionskommentar über 100 Zeichen" in `TestCommandHandler_Abweisungen`.
+- `direktverkauf/http/command_handler_test.go`: `mockCommand` merkt sich die Positionen von `DirektverkaufTaetigen`. `TestDirektverkaufTaetigenHandler_ReichtPositionskommentarDurch` und der Fall „tätigen: Positionskommentar über 100 Zeichen" in `TestCommandHandler_Abweisungen`.
 - `direktverkauf/application/command_test.go`: `TestDirektverkaufTaetigen_SchreibtPositionskommentar` — das v2-Event trägt `kommentar` nur an der kommentierten Position.
 - `arbeitsbon_policy_test.go`: `TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_PositionskommentarAufJedemStueckbon` — 2 × Bratwurst mit „1 davon ohne Senf", 1 × Bier ohne; beide Bratwurst-Stückbons tragen den Text, der Bier-Stückbon nicht.
 
@@ -337,7 +331,7 @@ Demo: Im Direktverkauf bekommt „2 × Bratwurst" den Kommentar „1 davon ohne 
 
 - [ ] Event-Vertrag v2: Alt-Event byte-identisch, mit Kommentar lesbar, v1-Leser unberührt: `set -o pipefail; cd backend && go test ./domain/kasse/ -run '^TestEventContract_' -v | grep -- '--- PASS: TestEventContract_DirektverkaufGetaetigtV2_Positionskommentar '`
 - [ ] Konstruktor und Historie behandeln den Positionskommentar: `cd backend && out="$(go test ./domain/kasse/ -run '^(TestNewDirektverkaufGetaetigtEvent_Positionskommentar|TestBuildDirektverkaufHistorieEintrag_Positionskommentar)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '^--- PASS: (TestNewDirektverkaufGetaetigtEvent_Positionskommentar|TestBuildDirektverkaufHistorieEintrag_Positionskommentar) ')" -eq 2`
-- [ ] Das Vorgangs-DTO trägt den Kommentar nur an `positionen`: `set -o pipefail; cd backend && go test ./api/kasse/vorgang/ -run '^TestToHistorieEintrag_Positionskommentar$' -v | grep -- '--- PASS: TestToHistorieEintrag_Positionskommentar '`
+- [ ] Das Vorgangs-DTO trägt den Kommentar je Position: `set -o pipefail; cd backend && go test ./api/kasse/vorgang/ -run '^TestToHistorieEintrag_Positionskommentar$' -v | grep -- '--- PASS: TestToHistorieEintrag_Positionskommentar '`
 - [ ] Der Request reicht den Kommentar durch und lehnt 101 Zeichen ab: `cd backend && out="$(go test ./api/kasse/direktverkauf/http/ -run '^(TestDirektverkaufTaetigenHandler_ReichtPositionskommentarDurch|TestCommandHandler_Abweisungen)$' -v)" && test "$(printf '%s\n' "$out" | grep -cE -- '--- PASS: (TestDirektverkaufTaetigenHandler_ReichtPositionskommentarDurch|TestCommandHandler_Abweisungen/tätigen:_Positionskommentar_über_100_Zeichen) ')" -eq 2`
 - [ ] Der Command schreibt den Kommentar an seine Position: `set -o pipefail; cd backend && go test ./api/kasse/direktverkauf/application/ -run '^TestDirektverkaufTaetigen_SchreibtPositionskommentar$' -v | grep -- '--- PASS: TestDirektverkaufTaetigen_SchreibtPositionskommentar '`
 - [ ] Jeder Stückbon trägt den Kommentar seiner Position: `set -o pipefail; cd backend && go test ./api/druck/bondruck/application/ -run '^TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_PositionskommentarAufJedemStueckbon$' -v | grep -- '--- PASS: TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_PositionskommentarAufJedemStueckbon '`
