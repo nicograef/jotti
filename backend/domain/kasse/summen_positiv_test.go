@@ -12,6 +12,15 @@ import (
 // GTE on the zero value, only Required() rejects 0. Six fields go through the event constructors
 // taking the sum; the other seven (summed from positions or copied from the event) through their schema.
 
+// ohnePositionsKommentar lifts base-form positions into the commented form with an empty Kommentar.
+func ohnePositionsKommentar(positionen []PositionEventData) []KommentiertePositionEventData {
+	out := make([]KommentiertePositionEventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = KommentiertePositionEventData{PositionEventData: p}
+	}
+	return out
+}
+
 func validEventPositionen() []PositionEventData {
 	return []PositionEventData{{
 		PositionID:       uuid.New().String(),
@@ -102,7 +111,7 @@ func TestGeldsummen_MussPositiv(t *testing.T) {
 			name:  "BestellungAufgenommen.GesamtPreisCents (event)",
 			field: "GesamtPreisCents",
 			run: func(summe int) error {
-				data := BestellungAufgenommenV1Data{BestellungID: uuid.New().String(), Positionen: validEventPositionen(), GesamtPreisCents: summe}
+				data := BestellungAufgenommenV1Data{BestellungID: uuid.New().String(), Positionen: ohnePositionsKommentar(validEventPositionen()), GesamtPreisCents: summe}
 				return validateEventData(bestellungAufgenommenV1DataSchema, &data, "test")
 			},
 		},

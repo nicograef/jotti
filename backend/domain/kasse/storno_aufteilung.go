@@ -80,8 +80,9 @@ func (b *stornoBestand) apply(evt e.Event) bool {
 		if err != nil {
 			return false
 		}
-		b.merke(data.Positionen)
-		b.aendereUnbezahlt(data.Positionen, 1)
+		positionen := PositionenOhneKommentar(data.Positionen)
+		b.merke(positionen)
+		b.aendereUnbezahlt(positionen, 1)
 
 	case EventTypeBestellungUmgebuchtV1:
 		data, err := e.Decode[BestellungUmgebuchtV1Data](evt)

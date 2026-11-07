@@ -237,8 +237,8 @@ func bestellungEvent(t *testing.T) event.Event {
 	data := kasse.BestellungAufgenommenV1Data{
 		BestellungID:     bestellungBonID,
 		GesamtPreisCents: 450,
-		Positionen: []kasse.PositionEventData{
-			{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1},
+		Positionen: []kasse.KommentiertePositionEventData{
+			{PositionEventData: kasse.PositionEventData{PositionID: "p1", VarianteID: 101, ProduktName: "Bier", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 450, Menge: 1}},
 		},
 	}
 

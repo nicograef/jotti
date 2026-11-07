@@ -21,15 +21,15 @@ const (
 )
 
 type BestellungAufgenommenV1Data struct {
-	BestellungID     string              `json:"bestellungId"`
-	Positionen       []PositionEventData `json:"positionen"`
-	GesamtPreisCents int                 `json:"gesamtPreisCents"`
-	Kommentar        string              `json:"kommentar"`
+	BestellungID     string                          `json:"bestellungId"`
+	Positionen       []KommentiertePositionEventData `json:"positionen"`
+	GesamtPreisCents int                             `json:"gesamtPreisCents"`
+	Kommentar        string                          `json:"kommentar"`
 }
 
 var bestellungAufgenommenV1DataSchema = z.Struct(z.Shape{
 	"BestellungID":     z.String().UUID().Required(),
-	"Positionen":       z.Slice(positionSchema).Min(1).Required(),
+	"Positionen":       z.Slice(kommentiertePositionSchema).Min(1).Required(),
 	"GesamtPreisCents": z.Int().GTE(1).Required(),
 	"Kommentar":        z.String().TestFunc(zeichen.Max(100)),
 })
@@ -152,7 +152,7 @@ func NewBestellungAufgenommenEvent(subject string, userID int, userName string, 
 
 	data := BestellungAufgenommenV1Data{
 		BestellungID:     bestellungID,
-		Positionen:       toPositionenEventData(positionen),
+		Positionen:       toKommentiertePositionenEventData(positionen),
 		GesamtPreisCents: gesamtPreisCents,
 		Kommentar:        kommentar,
 	}
@@ -272,7 +272,7 @@ func buildBestellungFromEvent(event e.Event) (Bestellung, error) {
 		UserID:           event.UserID,
 		UserName:         event.UserName,
 		TischID:          tischID,
-		Positionen:       PositionenFromEventData(data.Positionen),
+		Positionen:       PositionenMitKommentar(data.Positionen),
 		GesamtPreisCents: data.GesamtPreisCents,
 		Kommentar:        data.Kommentar,
 		AufgenommenAm:    event.Time,

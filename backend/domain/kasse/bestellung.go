@@ -27,6 +27,9 @@ type Position struct {
 	// bestellung-aufgenommen-Events aus dem Event-Umschlag getagt, nie mitserialisiert.
 	BestellerUserID int
 	BestellerName   string
+	// Kommentar is the Positionskommentar; only bestellung-aufgenommen:v1, direktverkauf-getaetigt:v2
+	// and the request input set it, every other event form reads it as empty.
+	Kommentar string
 }
 
 // Bezeichnung is the canonical position name (product + variant, single space, trimmed) —
@@ -53,6 +56,52 @@ type PositionEventData struct {
 type PositionV2EventData struct {
 	PositionEventData
 	Pfand bool `json:"pfand"`
+}
+
+// KommentiertePositionEventData is the position of bestellung-aufgenommen:v1: the base form plus
+// the optional Positionskommentar, omitted when empty so a position without it keeps the frozen bytes (D22).
+type KommentiertePositionEventData struct {
+	PositionEventData
+	Kommentar string `json:"kommentar,omitempty"`
+}
+
+// KommentiertePositionV2EventData is the position of direktverkauf-getaetigt:v2: the v2 form plus
+// the optional Positionskommentar, omitted when empty (D22).
+type KommentiertePositionV2EventData struct {
+	PositionV2EventData
+	Kommentar string `json:"kommentar,omitempty"`
+}
+
+// PositionsKommentarSchema caps the Positionskommentar; event and request schemas share it.
+var PositionsKommentarSchema = z.String().TestFunc(zeichen.Max(100))
+
+func toKommentiertePositionenEventData(positionen []Position) []KommentiertePositionEventData {
+	basis := toPositionenEventData(positionen)
+	out := make([]KommentiertePositionEventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = KommentiertePositionEventData{PositionEventData: basis[i], Kommentar: p.Kommentar}
+	}
+	return out
+}
+
+// PositionenMitKommentar maps the positions of bestellung-aufgenommen:v1 including their Kommentar.
+func PositionenMitKommentar(positionen []KommentiertePositionEventData) []Position {
+	out := make([]Position, len(positionen))
+	for i, p := range positionen {
+		out[i] = PositionFromEventData(p.PositionEventData)
+		out[i].Kommentar = p.Kommentar
+	}
+	return out
+}
+
+// PositionenOhneKommentar is the base form for readers the Positionskommentar must not reach:
+// projection, Storno split, TSE data and DSFinV-K export.
+func PositionenOhneKommentar(positionen []KommentiertePositionEventData) []PositionEventData {
+	out := make([]PositionEventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = p.PositionEventData
+	}
+	return out
 }
 
 func toPositionenV2EventData(positionen []Position) []PositionV2EventData {
@@ -155,6 +204,8 @@ var positionSchema = z.Struct(z.Shape{
 	"EinzelpreisCents": produkt.PreisCentsSchema,
 	"Menge":            z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })
+
+var kommentiertePositionSchema = positionSchema.Extend(z.Shape{"Kommentar": PositionsKommentarSchema})
 
 // PositionRef is the lightweight request-side reference, enriched to a fat Position in the
 // command layer before it is stored in an event.

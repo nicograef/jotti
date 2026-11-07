@@ -224,7 +224,7 @@ func bezahlteBestellungAmTisch(ctx context.Context, t *testing.T, db *sql.DB, us
 	}
 	bezahlt := make([]kasse.Position, 0, len(bestellungData.Positionen))
 	for _, pos := range bestellungData.Positionen {
-		bezahlt = append(bezahlt, kasse.PositionFromEventData(pos))
+		bezahlt = append(bezahlt, kasse.PositionFromEventData(pos.PositionEventData))
 	}
 
 	zahlung, err := kasse.NewZahlungKassiertEvent(subject, uuid.NewString(), userID, "test", bezahlt, betragCents, "")

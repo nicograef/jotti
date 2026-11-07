@@ -249,7 +249,7 @@ func (a *belegAbleitung) bestellung(ev event.Event) (beleg, error) {
 		gvTyp:            gvTypUmsatz,
 		geldneutral:      true,
 		abrechnungskreis: abrechnungskreis(ev.Subject, a.tischnamen),
-		positionen:       data.Positionen,
+		positionen:       kasse.PositionenOhneKommentar(data.Positionen),
 		bruttoCents:      data.GesamtPreisCents,
 		notiz:            data.Kommentar,
 	}, nil

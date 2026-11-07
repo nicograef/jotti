@@ -24,7 +24,7 @@ func FiskalischeProjektion(evt e.Event) (FiskalischerVorgang, bool, error) {
 		if err != nil {
 			return FiskalischerVorgang{}, false, err
 		}
-		return bestellungVorgang(PositionenFromEventData(data.Positionen), 1)
+		return bestellungVorgang(PositionenFromEventData(PositionenOhneKommentar(data.Positionen)), 1)
 
 	case EventTypeBestellungKorrigiertV1:
 		data, err := parseProjektionsData[BestellungKorrigiertV1Data](evt)

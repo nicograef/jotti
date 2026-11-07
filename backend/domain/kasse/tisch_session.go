@@ -28,7 +28,7 @@ func ApplyEvent(state TischSession, evt e.Event) (TischSession, error) {
 		if err != nil {
 			return state, err
 		}
-		neuePositionen := tagBesteller(PositionenFromEventData(data.Positionen), evt.UserID, evt.UserName)
+		neuePositionen := tagBesteller(PositionenFromEventData(PositionenOhneKommentar(data.Positionen)), evt.UserID, evt.UserName)
 		state.UnbezahltePositionen = accumulatePositionen(state.UnbezahltePositionen, neuePositionen)
 
 		setErsteBestellungLogTime(&state, evt.Time)

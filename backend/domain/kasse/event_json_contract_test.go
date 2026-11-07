@@ -203,8 +203,55 @@ func TestEventContract_BestellungAufgenommenV1(t *testing.T) {
 	if len(data.Positionen) != 1 {
 		t.Fatalf("positionen count: %d", len(data.Positionen))
 	}
-	assertPosition(t, data.Positionen[0])
+	assertPosition(t, data.Positionen[0].PositionEventData)
 	assertJSONKeyPresent(t, data, "kommentar")
+}
+
+// D22: the Positionskommentar is an additive optional key; an event without it keeps the frozen bytes.
+func TestEventContract_BestellungAufgenommenV1_Positionskommentar(t *testing.T) {
+	const altLit = `{
+		"bestellungId":    "11111111-1111-4111-8111-111111111111",
+		"positionen":      [` + positionLiteral + `],
+		"gesamtPreisCents": 700,
+		"kommentar":       ""
+	}`
+	var alt BestellungAufgenommenV1Data
+	unmarshalJSON(t, altLit, &alt)
+	assertField(t, "positionen[0].kommentar", alt.Positionen[0].Kommentar, "")
+	if err := bestellungAufgenommenV1DataSchema.Validate(&alt); err != nil {
+		t.Errorf("alt event without position kommentar rejected by schema: %v", err)
+	}
+
+	const altKompakt = `{"bestellungId":"11111111-1111-4111-8111-111111111111","positionen":[{"positionId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","varianteId":7,"produktName":"Cola","varianteName":"0,5l","kategorie":"getraenk","steuersatz":"regel","einzelpreisCents":350,"menge":2}],"gesamtPreisCents":700,"kommentar":""}`
+	raw, err := json.Marshal(alt)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(raw) != altKompakt {
+		t.Errorf("alt event not byte-identical:\n got %s\nwant %s", raw, altKompakt)
+	}
+
+	const mitLit = `{
+		"bestellungId":    "11111111-1111-4111-8111-111111111111",
+		"positionen":      [{
+			"positionId":       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+			"varianteId":       7,
+			"produktName":      "Cola",
+			"varianteName":     "0,5l",
+			"kategorie":        "getraenk",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 350,
+			"menge":            2,
+			"kommentar":        "ohne Kümmel"
+		}],
+		"gesamtPreisCents": 700,
+		"kommentar":       ""
+	}`
+	var mit BestellungAufgenommenV1Data
+	unmarshalJSON(t, mitLit, &mit)
+	assertPosition(t, mit.Positionen[0].PositionEventData)
+	assertField(t, "positionen[0].kommentar", mit.Positionen[0].Kommentar, "ohne Kümmel")
+	assertJSONKeyPresent(t, mit.Positionen[0], "kommentar")
 }
 
 func TestEventContract_ZahlungKassiertV1(t *testing.T) {

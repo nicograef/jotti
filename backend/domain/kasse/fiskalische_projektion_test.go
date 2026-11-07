@@ -42,7 +42,7 @@ func TestFiskalischeProjektion(t *testing.T) {
 		{
 			name: "bestellung aufgenommen: Bestellung-V1 mit positiven Mengen",
 			event: projektionsEvent(t, EventTypeBestellungAufgenommenV1, tischSubject, BestellungAufgenommenV1Data{
-				BestellungID: "b", Positionen: testPositionen(), GesamtPreisCents: 1000,
+				BestellungID: "b", Positionen: ohnePositionsKommentar(testPositionen()), GesamtPreisCents: 1000,
 			}),
 			pflichtig:       true,
 			wantProcessType: tse.ProcessTypeBestellungV1,
