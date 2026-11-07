@@ -17,7 +17,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 ## Regeln
 
-- Migrationen: nächste freie Nummer `15`, reserviert für `fix/q-backend`; jede weitere vergibt der Lead in Landereihenfolge.
+- Migrationen: `15` (TSE-Stammdaten je TSS) und `16` (Sitzungen gültig ab) gehören `fix/q-backend`; jede weitere vergibt der Lead in Landereihenfolge.
 - Gates: `make check check-repo check-format`, `make lint`; backend zusätzlich `make check-integration` mit `TEST_PG_PORT=5447`; frontend und cross zusätzlich `make test-e2e` mit eigenem `E2E_STACK_PROJECT` und `E2E_STACK_PORT=8091`. Shell-Änderungen: `make check-shell`.
 - Port 5434 gehört `gyva-db-1` (anderes Projekt) und bleibt unberührt.
 - Entfernen mit externen Konsumenten oder persistierten Daten, Docker- oder Reverse-Proxy-Änderungen und neue Abhängigkeiten gehen vorher an Nico.
@@ -26,9 +26,9 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 | Phase | Lane | Status | Note |
 | --- | --- | --- | --- |
-| 1 Review | — | running | |
-| 2 Fix backend | fix/q-backend | waiting | |
-| 2 Fix frontend | fix/q-frontend | waiting | |
+| 1 Review | — | landed | 236 bestätigte Befunde |
+| 2 Fix backend | fix/q-backend | running | |
+| 2 Fix frontend | fix/q-frontend | running | |
 | 2 Fix edges | fix/q-edges | waiting | |
 | 2 Fix cross | fix/q-cross | waiting | |
 | 3 Distill | fix/q-distill | waiting | |
