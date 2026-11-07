@@ -98,3 +98,50 @@ func TestKategorieBonmodi(t *testing.T) {
 		}
 	}
 }
+
+func TestNewZusatzdrucker(t *testing.T) {
+	cases := []struct {
+		name      string
+		zdName    string
+		druckerIP string
+		bonmodus  Bonmodus
+		wantError bool
+		wantName  string
+	}{
+		{"ohne IP pro Position", "Kaffee & Kuchen", "", BonmodusProPosition, false, "Kaffee & Kuchen"},
+		{"mit IP pro Bestellung", "Grill", "192.168.1.70", BonmodusProBestellung, false, "Grill"},
+		{"Name wird getrimmt", "  Grill  ", "", BonmodusProPosition, false, "Grill"},
+		{"leerer Name", "", "", BonmodusProPosition, true, ""},
+		{"Name nur Leerzeichen", "     ", "", BonmodusProPosition, true, ""},
+		{"Name zu kurz", "ab", "", BonmodusProPosition, true, ""},
+		{"Nicht-IPv4", "Grill", "256.1.1.1", BonmodusProPosition, true, ""},
+		{"IPv6 abgelehnt", "Grill", "2001:db8::1", BonmodusProPosition, true, ""},
+		{"pro_stueck abgelehnt", "Grill", "", BonmodusProStueck, true, ""},
+		{"kein_bon abgelehnt", "Grill", "", BonmodusKeinBon, true, ""},
+		{"leerer Bonmodus abgelehnt", "Grill", "", "", true, ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			zd, err := NewZusatzdrucker(tc.zdName, tc.druckerIP, tc.bonmodus)
+			if tc.wantError {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if zd.Name != tc.wantName {
+				t.Errorf("Name = %q, want %q", zd.Name, tc.wantName)
+			}
+			if zd.DruckerIP != tc.druckerIP {
+				t.Errorf("DruckerIP = %q, want %q", zd.DruckerIP, tc.druckerIP)
+			}
+			if zd.Bonmodus != tc.bonmodus {
+				t.Errorf("Bonmodus = %q, want %q", zd.Bonmodus, tc.bonmodus)
+			}
+		})
+	}
+}
