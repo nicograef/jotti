@@ -302,6 +302,34 @@ func (m *KassenjournalRepo) GetPfandrueckgabe(_ context.Context, rueckgabeID str
 	return event.Event{}, false, nil
 }
 
+// ReadPfandrueckgabeEvents mirrors the query: the Kassensitzung's Rückgaben and their cancellations
+// at one table, by ID ascending.
+func (m *KassenjournalRepo) ReadPfandrueckgabeEvents(_ context.Context, kassensitzungNr int, tischID int) ([]event.Event, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	prefix := kasse.KassensitzungSubject(kassensitzungNr) + "/"
+	events := []event.Event{}
+	for _, e := range m.events {
+		if !strings.HasPrefix(e.Subject, prefix) {
+			continue
+		}
+		if e.Type != string(kasse.EventTypePfandZurueckgegebenV1) && e.Type != string(kasse.EventTypePfandrueckgabeStorniertV1) {
+			continue
+		}
+		var data struct {
+			TischID int `json:"tischId"`
+		}
+		if err := json.Unmarshal(e.Data, &data); err == nil && data.TischID == tischID {
+			events = append(events, e)
+		}
+	}
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].ID < events[j].ID
+	})
+	return events, nil
+}
+
 func (m *KassenjournalRepo) GetPfandrueckgabeStornierung(_ context.Context, stornierungID string) (event.Event, bool, error) {
 	if m.err != nil {
 		return event.Event{}, false, m.err

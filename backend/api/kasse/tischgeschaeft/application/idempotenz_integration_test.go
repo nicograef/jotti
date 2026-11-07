@@ -183,6 +183,35 @@ func TestZahlungKassieren_MitPfand_DuplikatRueckgabeId_IdempotenterErfolg(t *tes
 	}
 }
 
+// A retry of a settled payment's zahlungId without its Pfand part is a different cash amount: it is
+// refused with ErrVorgangAbweichend, not answered as booked.
+func TestZahlungKassieren_MitPfandGebucht_WiederholungOhnePfand_Abweichend(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+	pfandProduktID, pfandVarianteID := insertPfandVariante(t, db)
+
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 2}}
+	if err := cmd.BestellungAufnehmen(ctx, userID, "test", uuid.NewString(), tischID, inputs, ""); err != nil {
+		t.Fatalf("Bestellung aufnehmen: %v", err)
+	}
+	session, err := kassenjournal_repo.NewRepository(db).ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+	if err != nil {
+		t.Fatalf("Tisch-Session lesen: %v", err)
+	}
+	refs := []kasse.PositionRef{{PositionID: session.UnbezahltePositionen[0].PositionID, Menge: 2}}
+	pfand := &enrichment.PfandEingabe{
+		RueckgabeID: uuid.NewString(),
+		Positionen:  []enrichment.PositionInput{{ProduktID: pfandProduktID, VarianteID: pfandVarianteID, Menge: 1}},
+	}
+
+	zahlungID := uuid.NewString()
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", zahlungID, tischID, refs, "", pfand); err != nil {
+		t.Fatalf("Zahlung mit Pfand: %v", err)
+	}
+	if err := cmd.ZahlungKassieren(ctx, userID, "test", zahlungID, tischID, refs, "", nil); !errors.Is(err, ErrVorgangAbweichend) {
+		t.Errorf("erwartet ErrVorgangAbweichend, bekam: %v", err)
+	}
+}
+
 // insertPfandVariante legt ein aktives Pfand-Produkt „Pfand" mit der Variante „Glas" zu 200 Cent an.
 func insertPfandVariante(t *testing.T, db *sql.DB) (produktID, varianteID int) {
 	t.Helper()

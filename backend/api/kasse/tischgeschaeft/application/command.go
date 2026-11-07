@@ -29,6 +29,7 @@ type eventRepo interface {
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
 	GetPfandrueckgabe(ctx context.Context, rueckgabeID string) (event.Event, bool, error)
+	ReadPfandrueckgabeEvents(ctx context.Context, kassensitzungNr int, tischID int) ([]event.Event, error)
 }
 
 type kassensitzungenRepo interface {
@@ -358,9 +359,9 @@ func (c Command) ZahlungKassieren(ctx context.Context, userID int, userName stri
 }
 
 // pruefeZahlungsWiederholung answers a payment whose positions are paid or whose write was rejected.
-// A booked zahlungID answers success only if it pays the same quantities; with pfand its Rückgabe
-// must match too. Without one, a parallel attempt of the same rueckgabeId may have booked since the
-// first check; otherwise fallback stands.
+// A booked zahlungID answers success only if it pays the same quantities and its Rückgabe matches
+// pfand: with pfand the same Rückgabe, without pfand none. An unbooked zahlungID with pfand may
+// meet a parallel attempt of the same rueckgabeId booked since the first check; else fallback stands.
 func (c Command) pruefeZahlungsWiederholung(ctx context.Context, subject string, zahlungID string, tischID int, positionen []kasse.PositionRef, pfand *enrichment.PfandEingabe, fallback error) error {
 	log := logging.FromContext(ctx)
 
@@ -383,6 +384,15 @@ func (c Command) pruefeZahlungsWiederholung(ctx context.Context, subject string,
 	if pfand != nil {
 		return c.pruefeGebuchteRueckgabe(ctx, tischID, positionen, pfand, ErrVorgangAbweichend)
 	}
+	verrechnet, err := c.zahlungVerrechnet(ctx, zahlung, tischID)
+	if err != nil {
+		log.Error("Failed to look up the pfandrueckgabe of a zahlung", "error", err, "zahlung_id", zahlungID)
+		return ErrDatabase
+	}
+	if verrechnet {
+		log.Warn("Zahlung mit Pfandrückgabe bereits gebucht", "zahlung_id", zahlungID, "tisch_id", tischID)
+		return ErrVorgangAbweichend
+	}
 	gleich, err := kasse.GleicheZahlung(zahlung, positionen)
 	if err != nil {
 		log.Error("Failed to compare booked zahlung", "error", err, "zahlung_id", zahlungID)
@@ -394,6 +404,20 @@ func (c Command) pruefeZahlungsWiederholung(ctx context.Context, subject string,
 	}
 	log.Info("Idempotente Zahlung: zahlungId bereits vorhanden", "zahlung_id", zahlungID)
 	return nil
+}
+
+// zahlungVerrechnet reports whether a Rückgabe was written with the stored Zahlung.
+func (c Command) zahlungVerrechnet(ctx context.Context, zahlung event.Event, tischID int) (bool, error) {
+	zNr, err := kasse.ParseZNrFromSubject(zahlung.Subject)
+	if err != nil {
+		return false, err
+	}
+	rueckgaben, err := c.EventRepo.ReadPfandrueckgabeEvents(ctx, zNr, tischID)
+	if err != nil {
+		return false, err
+	}
+	_, found := kasse.VerrechnungsPartner(zahlung, rueckgaben, kasse.EventTypePfandZurueckgegebenV1)
+	return found, nil
 }
 
 // mitPfandKennzeichen: the Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
