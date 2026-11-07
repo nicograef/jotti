@@ -28,12 +28,14 @@ const (
 	RichtungRunter Richtung = "runter"
 )
 
+// Pfand marks the Varianten the Pfandrückgabe offers; Zahlung and Direktverkauf freeze it per
+// position, so a later change never touches a booked Vorgang (D20).
 type Produkt struct {
 	ID         int
 	Name       string
 	Kategorie  Kategorie
 	Steuersatz steuer.Steuersatz
-	Pfand      bool // steuert nur, welche Varianten die Pfandrückgabe anbietet
+	Pfand      bool
 	Status     Status
 	Varianten  []Variante
 	CreatedAt  time.Time
