@@ -9,6 +9,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/helper"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 type command interface {
@@ -45,7 +46,7 @@ type geldtransitBuchenRequest struct {
 var geldtransitBuchenSchema = z.Struct(z.Shape{
 	"GeldtransitID": z.String().UUID().Required(),
 	"Richtung": z.String().OneOf(
-		[]string{"einlage", "entnahme"},
+		[]string{kasse.GeldtransitRichtungEinlage, kasse.GeldtransitRichtungEntnahme},
 		z.Message("Ungültige Richtung"),
 	).Required(),
 	"BetragCents": z.Int().GTE(1, z.Message("Betrag muss mindestens 1 Cent sein")).Required(),
