@@ -77,7 +77,7 @@ export function KommentarField({
         value={value}
         onChange={(e) => {
           setTouched(true)
-          // maxLength zählt UTF-16-Einheiten, das Backend Codepoints: Emoji sprengen sonst das Limit.
+          // maxLength zählt UTF-16-Einheiten und kappte Emoji schon bei 50; das Backend zählt Codepoints.
           const vorher = value ?? letzterWert.current
           let neu = e.target.value
           if (zeichenAnzahl(neu) > KOMMENTAR_MAX_ZEICHEN) {
