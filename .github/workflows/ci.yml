@@ -135,21 +135,15 @@ jobs:
       - name: Check go.mod tidiness
         run: go mod tidy -diff
 
-      - name: Check format
-        run: |
-          if [ -n "$(go tool goimports -l .)" ]; then
-            echo "Code is not properly formatted:"
-            go tool goimports -l .
-            exit 1
-          fi
+      - name: Vet and check format
+        working-directory: .
+        run: make lint-backend
 
       # sqlc reads the queries and database/migrations, so database/** changes
       # run this job too.
       - name: Check generated sqlc code
-        run: go tool sqlc diff
-
-      - name: Vet
-        run: go vet ./...
+        working-directory: .
+        run: make check-sqlc
 
       - name: Build
         run: go build -v ./...
@@ -627,21 +621,8 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: e2e/pnpm-lock.yaml
 
-      - name: Install dependencies
-        working-directory: ./e2e
-        run: pnpm install --frozen-lockfile
-
-      - name: Check format
-        working-directory: ./e2e
-        run: pnpm format:check
-
-      - name: Typecheck
-        working-directory: ./e2e
-        run: pnpm typecheck
-
-      - name: Lint
-        working-directory: ./e2e
-        run: pnpm lint
+      - name: Install dependencies, check format, types and lint
+        run: make check-e2e
 
       - name: Install Playwright Chromium
         working-directory: ./e2e
