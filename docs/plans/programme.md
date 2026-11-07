@@ -35,7 +35,7 @@ Der Qualitäts-Durchgang über das ganze Repo (Waves 1 bis 5, Basis `eb16138a`) 
 | 3 Distill | fix/q-distill | landed | b908ad0d, 42 FLAGs im Commit d5fd6dd0 |
 | 4 Distill verify | fix/q-verify | landed | b0f6993c: 728 Behauptungen, 53 korrigiert, 69 UNREACHED |
 | 5 Abschluss | — | landed | Dependabot 08811709, 19d2c26c und c4b5db24 (`@hookform/resolvers` 7), Folgebefunde a8eeede3 |
-| F1 #145 Kommentar je Position | plan/kommentar-je-position | running | Basis a390d4db; Phase 1 getickt, Phase 2 läuft |
-| F2 Auto-Pfand je Variante | plan/auto-pfand-je-variante | waiting | Migration 18 |
+| F1 #145 Kommentar je Position | plan/kommentar-je-position | landed | fca378c1, D22 |
+| F2 Auto-Pfand je Variante | plan/auto-pfand-je-variante | running | Migration 18 |
 | F3 Zusatzdrucker | plan/zusatzdrucker | waiting | Migration 19 |
 | F4 Windows-Einzeldatei Stufe 1 | plan/windows-einzeldatei | waiting | Phasen 1 bis 6 |
