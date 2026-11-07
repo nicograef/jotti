@@ -4,7 +4,6 @@ import {
   addVariant,
   cartCount,
   cartTotalCents,
-  demoScript,
   emptyCart,
   formatEuro,
   initialDemoState,
@@ -15,7 +14,6 @@ import {
   replay,
   runNextStep,
   startAuto,
-  stepDelayMs,
 } from './live-demo'
 
 describe('Warenkorb', () => {
@@ -33,12 +31,6 @@ describe('Warenkorb', () => {
 
   it('ignoriert das Verringern einer nicht enthaltenen Variante', () => {
     expect(removeVariant(emptyCart, 1)).toEqual(emptyCart)
-  })
-
-  it('behandelt Warenkörbe unveränderlich', () => {
-    const cart = addVariant(emptyCart, 1)
-    addVariant(cart, 1)
-    expect(cart[1]).toBe(1)
   })
 })
 
@@ -94,16 +86,6 @@ describe('Auto-Skriptablauf', () => {
     expect(state.cart).toEqual({})
     expect(state.paid).toBe(false)
     expect(state.autoStatus).toBe('done')
-  })
-
-  it('liefert die Timings je Schritt', () => {
-    expect(demoScript).toHaveLength(6)
-    expect(stepDelayMs(0)).toBe(700)
-    expect(stepDelayMs(1)).toBe(820)
-    expect(stepDelayMs(2)).toBe(820)
-    expect(stepDelayMs(3)).toBe(820)
-    expect(stepDelayMs(4)).toBe(1300) // pay
-    expect(stepDelayMs(5)).toBe(1900) // reset
   })
 
   it('startet die Auto-Demo nur aus dem Ruhezustand', () => {

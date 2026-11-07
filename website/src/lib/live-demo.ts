@@ -42,7 +42,7 @@ const priceByVariantId = new Map<number, number>(
   ),
 )
 
-export function variantPriceCents(id: number): number {
+function variantPriceCents(id: number): number {
   return priceByVariantId.get(id) ?? 0
 }
 
@@ -85,7 +85,7 @@ export type DemoStep =
   { action: 'add'; variantId: number } | { action: 'pay' } | { action: 'reset' }
 
 // Endsumme vor dem Kassieren: 350 + 400 + 400 + 300 = 1450 Cent = 14,50 €.
-export const demoScript: readonly DemoStep[] = [
+const demoScript: readonly DemoStep[] = [
   { action: 'add', variantId: 4 },
   { action: 'add', variantId: 1 },
   { action: 'add', variantId: 1 },
