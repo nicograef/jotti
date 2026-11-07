@@ -7,15 +7,8 @@ export type Nennwert = (typeof NENNWERTE_CENTS)[number]
 export function summeAusStueckzahlen(
   stueckzahlen: Partial<Record<Nennwert, number>>,
 ): number {
-  return NENNWERTE_CENTS.reduce((summe, nennwert) => {
-    const anzahl = stueckzahlen[nennwert]
-    if (
-      typeof anzahl !== 'number' ||
-      !Number.isInteger(anzahl) ||
-      anzahl <= 0
-    ) {
-      return summe
-    }
-    return summe + nennwert * anzahl
-  }, 0)
+  return NENNWERTE_CENTS.reduce(
+    (summe, nennwert) => summe + nennwert * (stueckzahlen[nennwert] ?? 0),
+    0,
+  )
 }

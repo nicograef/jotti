@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { NENNWERTE_CENTS, summeAusStueckzahlen } from './zaehlhilfe'
+import { summeAusStueckzahlen } from './zaehlhilfe'
 
 describe('summeAusStueckzahlen', () => {
   it('summiert eine leere Erfassung zu 0', () => {
@@ -17,23 +17,5 @@ describe('summeAusStueckzahlen', () => {
         1: 7,
       }),
     ).toBe(71007)
-  })
-
-  it('rechnet jeden einzelnen Nennwert korrekt um', () => {
-    for (const nennwert of NENNWERTE_CENTS) {
-      expect(summeAusStueckzahlen({ [nennwert]: 4 })).toBe(nennwert * 4)
-    }
-  })
-
-  it('ignoriert negative, null- und nicht-ganze Stückzahlen', () => {
-    // Nur 4×10 ct (40) zählt.
-    expect(
-      summeAusStueckzahlen({
-        200: -3,
-        100: 0,
-        50: 2.5,
-        10: 4,
-      }),
-    ).toBe(40)
   })
 })

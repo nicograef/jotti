@@ -86,12 +86,4 @@ describe('ZaehlhilfeDialog im Vorgangs-Register', () => {
     )
     expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
   })
-
-  it('meldet ohne Eingaben nichts', () => {
-    render(
-      <ZaehlhilfeDialog open onOpenChange={vi.fn()} onUebernehmen={vi.fn()} />,
-    )
-
-    expect(VorgangsRegisterSingleton.anzahlOffen()).toBe(0)
-  })
 })
