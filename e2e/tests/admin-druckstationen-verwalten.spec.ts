@@ -32,6 +32,12 @@ test.describe('Admin verwaltet Druckstationen', () => {
     await expect(
       page.getByText(/Drucker-IP für .Essen. gespeichert\./),
     ).toBeVisible()
+
+    // Nach dem Neuladen kommt der Wert vom Backend, nicht aus dem Eingabefeld.
+    await page.reload()
+    await expect(
+      page.getByRole('heading', { name: 'Bondrucker' }),
+    ).toBeVisible()
     await expect(ipInput).toHaveValue('192.168.8.99')
   })
 })
