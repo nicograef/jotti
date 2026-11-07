@@ -55,6 +55,7 @@ jobs:
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
               - '.golangci.yml'
+              - 'Makefile'
             frontend:
               - 'frontend/**'
             database:
@@ -110,6 +111,7 @@ jobs:
               - '.node-version'
               - 'scripts/e2e-stack.sh'
               - 'scripts/lib.sh'
+              - 'Makefile'
             ci:
               - '.github/workflows/ci.yml'
 
