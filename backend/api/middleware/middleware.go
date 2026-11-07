@@ -209,7 +209,7 @@ type UserGetter interface {
 
 // NewJwtMiddleware validates the JWT and checks status, password change and role against a fresh database record,
 // answering 401 or 403. Deactivation, a password reset and role changes thus take effect on the next request.
-func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
+func NewJwtMiddleware(jwtSecret string, allowedRoles []user.Role, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := logging.FromContext(r.Context())
@@ -258,7 +258,7 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 
-			if !slices.Contains(allowedRoles, string(u.Role)) {
+			if !slices.Contains(allowedRoles, u.Role) {
 				logger.Warn("Insufficient permissions", "role", string(u.Role))
 				helper.SendForbidden(w, "insufficient_permissions", fmt.Sprintf("role %s is not allowed for this endpoint", u.Role))
 				return

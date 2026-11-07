@@ -252,7 +252,7 @@ func TestJwtMiddleware_ValidToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(user.AdminRole))(handler)
+	middleware := NewJwtMiddleware(secret, []user.Role{user.AdminRole}, activeUser(user.AdminRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -271,7 +271,7 @@ func TestJwtMiddleware_NoToken(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
+	middleware := NewJwtMiddleware("test-secret", []user.Role{user.AdminRole}, activeUser(user.AdminRole))(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	rec := httptest.NewRecorder()
 
@@ -306,7 +306,7 @@ func TestJwtMiddleware_InvalidToken(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Error("handler must not be called")
 			})
-			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
+			middleware := NewJwtMiddleware("test-secret", []user.Role{user.AdminRole}, activeUser(user.AdminRole))(handler)
 			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
 			req.Header.Set("Authorization", "Bearer "+tc.token(t))
 			rec := httptest.NewRecorder()
@@ -355,7 +355,7 @@ func TestJwtMiddleware_InvalidBearerFormat(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			middleware := NewJwtMiddleware("test-secret", []string{"admin"}, activeUser(user.AdminRole))(handler)
+			middleware := NewJwtMiddleware("test-secret", []user.Role{user.AdminRole}, activeUser(user.AdminRole))(handler)
 			req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 			req.Header.Set("Authorization", tc.value)
 			rec := httptest.NewRecorder()
@@ -395,7 +395,7 @@ func TestJwtMiddleware_RollenwechselWirktSofort(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			})
-			middleware := NewJwtMiddleware(secret, []string{"admin"}, activeUser(tc.dbRole))(handler)
+			middleware := NewJwtMiddleware(secret, []user.Role{user.AdminRole}, activeUser(tc.dbRole))(handler)
 			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
 			req.Header.Set("Authorization", "Bearer "+token)
 			rec := httptest.NewRecorder()
@@ -431,7 +431,7 @@ func TestJwtMiddleware_SetsStoredUserNameInContext(t *testing.T) {
 	})
 
 	renamedUser := stubUsers{user: user.User{ID: 1, Username: "neuername", Role: user.AdminRole, Status: user.ActiveStatus}}
-	middleware := NewJwtMiddleware(secret, []string{"admin"}, renamedUser)(handler)
+	middleware := NewJwtMiddleware(secret, []user.Role{user.AdminRole}, renamedUser)(handler)
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rec := httptest.NewRecorder()
@@ -468,7 +468,7 @@ func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				t.Error("handler must not be called")
 			})
-			middleware := NewJwtMiddleware(secret, []string{"admin"}, tc.users)(handler)
+			middleware := NewJwtMiddleware(secret, []user.Role{user.AdminRole}, tc.users)(handler)
 			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
 			req.Header.Set("Authorization", "Bearer "+token)
 			rec := httptest.NewRecorder()
@@ -512,7 +512,7 @@ func TestJwtMiddleware_PasswortwechselBeendetSitzungen(t *testing.T) {
 			req.Header.Set("Authorization", "Bearer "+token)
 			rec := httptest.NewRecorder()
 
-			NewJwtMiddleware(secret, []string{"admin"}, users)(handler).ServeHTTP(rec, req)
+			NewJwtMiddleware(secret, []user.Role{user.AdminRole}, users)(handler).ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantCode {
 				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)

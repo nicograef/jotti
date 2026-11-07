@@ -100,7 +100,7 @@ func TestBerechtigungsMatrix(t *testing.T) {
 		_, paths := area.build(testConfig(), api.Deps{})
 		allowed := make(map[user.Role]bool, len(area.AllowedRoles))
 		for _, r := range area.AllowedRoles {
-			allowed[user.Role(r)] = true
+			allowed[r] = true
 		}
 
 		for _, p := range paths {

@@ -8,6 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/api/middleware"
 	testapi "github.com/nicograef/jotti/backend/api/test"
 	"github.com/nicograef/jotti/backend/config"
+	"github.com/nicograef/jotti/backend/domain/user"
 )
 
 // Area declares a route area's access rules; SetupRoutes and the permission matrix (matrix_integration_test.go) read the same table.
@@ -16,7 +17,7 @@ type Area struct {
 	// Prefix ist das URL-Präfix (z. B. "/admin"); beim Mounten per StripPrefix entfernt.
 	Prefix string
 	// AllowedRoles ist leer nur bei RequiresAuth == false (auth, relay).
-	AllowedRoles []string
+	AllowedRoles []user.Role
 	// RequiresAuth false ⇒ bewusst ohne JWT (auth/relay); die Prüfung liegt dann
 	// im Handler (Relay-Token) bzw. entfällt (Login).
 	RequiresAuth bool
@@ -27,9 +28,9 @@ type Area struct {
 }
 
 var (
-	rolesAdmin          = []string{"admin"}
-	rolesService        = []string{"admin", "serviceleitung", "service"}
-	rolesServiceleitung = []string{"admin", "serviceleitung"}
+	rolesAdmin          = []user.Role{user.AdminRole}
+	rolesService        = []user.Role{user.AdminRole, user.ServiceleitungRole, user.ServiceRole}
+	rolesServiceleitung = []user.Role{user.AdminRole, user.ServiceleitungRole}
 )
 
 func Areas() []Area {
