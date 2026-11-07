@@ -32,10 +32,13 @@ export function erlaubtBonmodus(
   return true
 }
 
+// Leer heißt: kein Drucker an dieser Station.
+const DruckerIpSchema = z.ipv4('Ungültige IPv4-Adresse').or(z.literal(''))
+
 export const DruckstationConfigSchema = z
   .object({
     kategorie: KategorieSchema,
-    druckerIp: z.ipv4('Ungültige IPv4-Adresse').or(z.literal('')),
+    druckerIp: DruckerIpSchema,
     // leer nur für den Kassenbeleg, der keinen Bonmodus trägt
     bonmodus: BonmodusSchema.or(z.literal('')),
   })
@@ -80,10 +83,8 @@ export type FehlgeschlagenerDruckauftrag = z.infer<
 >
 
 export function validateDruckerIp(druckerIp: string): string | null {
-  if (druckerIp === '') {
-    return null
-  }
-  return z.ipv4().safeParse(druckerIp).success ? null : 'Ungültige IPv4-Adresse'
+  const { error } = DruckerIpSchema.safeParse(druckerIp)
+  return error ? (error.issues[0]?.message ?? null) : null
 }
 
 // Referenz-Formate aus dem Backend (arbeitsbon_policy.go,
