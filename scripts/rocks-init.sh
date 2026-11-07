@@ -36,19 +36,11 @@ if ! grep -qE '^VPS_PUBLIC_IP=.+' .env; then
   fatal "VPS_PUBLIC_IP missing or empty in .env (public IPv4 of this server, needed by resolver + acme-dns). See docs/jotti-rocks-infra.md."
 fi
 
-# A DNS lookup tool is required for the resolution preflight below; without one,
-# that check would misreport a missing tool as a DNS failure.
-if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
-  fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
-fi
+require_dns_tool
 
 info "Prerequisites OK."
 
-resolves() {
-  host "$1" &>/dev/null || dig +short "$1" 2>/dev/null | grep -q .
-}
-
-if ! resolves "$DOMAIN"; then
+if [[ -z "$(resolve_a "$DOMAIN")" ]]; then
   fatal "DNS resolution failed for $DOMAIN. Ensure the domain points to this server before continuing."
 fi
 info "DNS resolution for $DOMAIN: OK"
@@ -57,7 +49,7 @@ info "DNS resolution for $DOMAIN: OK"
 # on a fresh install it resolves only once the stack is up and the NS
 # delegation is set.
 for name in "$DOMAIN_WWW" "$DOMAIN_DEMO" "$DOMAIN_AUTH"; do
-  if resolves "$name"; then
+  if [[ -n "$(resolve_a "$name")" ]]; then
     info "DNS resolution for $name: OK"
   else
     warn "DNS resolution for $name failed. Caddy retries its certificate until it resolves."
@@ -83,33 +75,25 @@ status_of() {
     --retry 5 --retry-delay 5 --retry-all-errors "$1" 2>/dev/null || echo "000"
 }
 
-HTTPS_STATUS="$(status_of "https://$DOMAIN")"
-if [[ "$HTTPS_STATUS" == "200" ]]; then
-  info "Landing page HTTPS check: OK"
-else
-  warn "Landing page HTTPS check returned HTTP $HTTPS_STATUS (expected 200)."
-fi
+# expect_status LABEL URL WANT [HINT] — warns unless URL answers HTTP WANT; HINT
+# replaces the "(expected WANT)" suffix.
+expect_status() {
+  local label="$1" url="$2" want="$3" hint="${4:-}" status
+  status="$(status_of "$url")"
+  if [[ "$status" == "$want" ]]; then
+    info "$label: OK"
+  elif [[ -n "$hint" ]]; then
+    warn "$label returned HTTP $status — $hint"
+  else
+    warn "$label returned HTTP $status (expected $want)."
+  fi
+}
 
-DEMO_STATUS="$(status_of "https://$DOMAIN_DEMO")"
-if [[ "$DEMO_STATUS" == "200" ]]; then
-  info "Demo app HTTPS check: OK"
-else
-  warn "Demo app HTTPS check returned HTTP $DEMO_STATUS (expected 200)."
-fi
-
-AUTH_STATUS="$(status_of "https://$DOMAIN_AUTH/health")"
-if [[ "$AUTH_STATUS" == "200" ]]; then
-  info "acme-dns API HTTPS check: OK"
-else
-  warn "acme-dns API HTTPS check returned HTTP $AUTH_STATUS — expected until the delegation for $DOMAIN_AUTH is active (see docs/jotti-rocks-infra.md)."
-fi
-
-HTTP_STATUS="$(status_of "http://$DOMAIN")"
-if [[ "$HTTP_STATUS" == "308" ]]; then
-  info "HTTP→HTTPS redirect: OK"
-else
-  warn "HTTP→HTTPS redirect returned HTTP $HTTP_STATUS (expected 308)."
-fi
+expect_status "Landing page HTTPS check" "https://$DOMAIN" 200
+expect_status "Demo app HTTPS check" "https://$DOMAIN_DEMO" 200
+expect_status "acme-dns API HTTPS check" "https://$DOMAIN_AUTH/health" 200 \
+  "expected until the delegation for $DOMAIN_AUTH is active (see docs/jotti-rocks-infra.md)."
+expect_status "HTTP→HTTPS redirect" "http://$DOMAIN" 308
 
 echo ""
 echo "=========================================="

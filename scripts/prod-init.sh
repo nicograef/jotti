@@ -49,9 +49,7 @@ info "Checking prerequisites..."
 
 require_docker_stack "$COMPOSE_FILE"
 
-if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
-  fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
-fi
+require_dns_tool
 
 DOMAIN="$(read_env JOTTI_DOMAIN)"
 EMAIL="$(read_env LETSENCRYPT_EMAIL)"
@@ -72,14 +70,6 @@ validate_secret POSTGRES_PASSWORD
 info "Prerequisites OK (domain: $DOMAIN, email: $EMAIL, version: $VERSION)."
 
 info "Checking DNS resolution for $DOMAIN..."
-
-resolve_a() {
-  if command -v dig &>/dev/null; then
-    dig +short A "$1" 2>/dev/null | tail -n1
-  else
-    host -t A "$1" 2>/dev/null | awk '/has address/ { print $NF; exit }'
-  fi
-}
 
 DOMAIN_IP="$(resolve_a "$DOMAIN")"
 if [[ -z "$DOMAIN_IP" ]]; then

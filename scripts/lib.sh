@@ -77,6 +77,23 @@ require_docker_stack() {
   fi
 }
 
+# require_dns_tool — fatals unless host or dig is installed; without one the DNS
+# preflight would misreport a missing tool as a DNS failure.
+require_dns_tool() {
+  if ! command -v host &>/dev/null && ! command -v dig &>/dev/null; then
+    fatal "Neither 'host' nor 'dig' found. Install one (e.g. dnsutils / bind-tools) for the DNS preflight."
+  fi
+}
+
+# resolve_a NAME — prints the last A record of NAME, or nothing.
+resolve_a() {
+  if command -v dig &>/dev/null; then
+    dig +short A "$1" 2>/dev/null | tail -n1
+  else
+    host -t A "$1" 2>/dev/null | awk '/has address/ { print $NF; exit }'
+  fi
+}
+
 # require_rocks_stack — fatals unless this host runs the jotti.rocks stack: .env
 # sets VPS_PUBLIC_IP and the container jotti-acme-dns exists. A self-hosted
 # server shares project name and volume jotti_postgres-data with the rocks stack,
