@@ -393,6 +393,35 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T)
 	}
 }
 
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_PositionskommentarAufJedemStueckbon(t *testing.T) {
+	wurst := position("Bratwurst", "mit Brot", "essen", 2)
+	wurst.Kommentar = "1 davon ohne Senf"
+	evt := makeDirektverkaufEvent(t, 25, []kasse.Position{wurst, position("Bier", "0,5l", "getraenk", 1)}, "")
+	stationen := map[string]druckstation.Druckstation{
+		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+
+	if len(auftraege) != 3 {
+		t.Fatalf("expected 3 stückbons, got %d", len(auftraege))
+	}
+	wurstBons := 0
+	for _, auftrag := range auftraege {
+		payload := decodePayload(t, auftrag)
+		bratwurst := strings.Contains(payload, "Bratwurst")
+		if bratwurst {
+			wurstBons++
+		}
+		if strings.Contains(payload, "1 davon ohne Senf") != bratwurst {
+			t.Errorf("Positionskommentar on the wrong stückbon (Bratwurst %v): %q", bratwurst, payload)
+		}
+	}
+	if wurstBons != 2 {
+		t.Errorf("expected 2 Bratwurst stückbons, got %d", wurstBons)
+	}
+}
+
 // Ohne konfigurierte Druckstationen entstehen für einen Direktverkauf keine Aufträge.
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	evt := makeDirektverkaufEvent(t, 23, []kasse.Position{position("Pommes", "gross", "essen", 1)}, "")
