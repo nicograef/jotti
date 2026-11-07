@@ -329,7 +329,7 @@ Der Pfandbeleg ist ein Kassenbeleg mit negativen Positionen, negativer Steuermat
 **Direktverkauf-Routing (Ableitungsregel):** Der Bondruck für `direktverkauf-getaetigt` wird aus den konfigurierten Druckstationen abgeleitet:
 
 - Trägt die Abholbon-Station den Bonmodus `kein_bon`, entsteht kein Auftrag, auch nicht an den Produktstationen. Ihre IP spielt dann keine Rolle.
-- Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit. Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon.
+- Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit. Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon. Pfand-Positionen erscheinen auf keinem Abholbon; ein reiner Pfand-Verkauf erzeugt keinen Auftrag.
 - Sonst entstehen Arbeitsbons an die Produktstationen.
 - Ohne konfigurierte Stationen entsteht kein Auftrag.
 
