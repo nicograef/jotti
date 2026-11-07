@@ -57,6 +57,7 @@ type Command struct {
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
+		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
 		return nil, ErrDatabase
 	}
 	if ks == nil {

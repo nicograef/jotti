@@ -63,6 +63,7 @@ type Command struct {
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
+		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
 		return nil, ErrDatabase
 	}
 	if ks == nil {
@@ -96,6 +97,7 @@ func (c Command) writeKassensitzungEvent(ctx context.Context, e event.Event, kas
 			log.Warn("Kassensitzung nicht mehr offen", "subject", subject)
 			return ErrKasseNichtGeoeffnet
 		}
+		log.Error("Failed to write Kassensitzung event", "error", err, "subject", subject, "version", e.Version)
 		return ErrDatabase
 	}
 
@@ -160,7 +162,12 @@ func (c Command) KassensitzungEroeffnen(ctx context.Context, userID int, userNam
 		return evt, nil
 	})
 	if err != nil {
-		if errors.Is(err, ErrDatabase) || errors.Is(err, db.ErrDatabase) {
+		// idx_kassensitzungen_eine_aktiv fängt eine parallele Eröffnung, die die Prüfung oben überholt hat.
+		if errors.Is(err, db.ErrAlreadyExists) {
+			log.Warn("Kassensitzung already active (concurrent open)", "error", err)
+			return 0, ErrKasseAlreadyOpen
+		}
+		if errors.Is(err, ErrDatabase) {
 			log.Error("Failed to open Kassensitzung", "error", err)
 			return 0, ErrDatabase
 		}

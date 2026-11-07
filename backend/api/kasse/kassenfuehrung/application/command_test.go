@@ -147,6 +147,18 @@ func TestKassensitzungEroeffnen_AlreadyOpen(t *testing.T) {
 	}
 }
 
+// A concurrent open that passed the active-session check hits idx_kassensitzungen_eine_aktiv.
+func TestKassensitzungEroeffnen_ParalleleEroeffnung(t *testing.T) {
+	ctx := context.Background()
+	cmd := newTestCommand(nil)
+	cmd.KassenjournalRepo = repotest.NewKassenjournalRepo(nil, db.ErrAlreadyExists)
+
+	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
+	if !errors.Is(err, ErrKasseAlreadyOpen) {
+		t.Errorf("expected ErrKasseAlreadyOpen, got %v", err)
+	}
+}
+
 func TestGeldtransitBuchen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(testOpenKS)

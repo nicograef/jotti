@@ -8,6 +8,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
+	"github.com/nicograef/jotti/backend/internal/logging"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
@@ -52,6 +53,7 @@ type Command struct {
 func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.Kassensitzung, error) {
 	ks, err := c.KassensitzungenRepo.GetAktiveKassensitzung(ctx)
 	if err != nil {
+		logging.FromContext(ctx).Error("Failed to load aktive Kassensitzung", "error", err)
 		return nil, ErrDatabase
 	}
 	if ks == nil {
