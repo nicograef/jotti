@@ -263,10 +263,10 @@ Demo: Die Servicekraft bestellt Zwiebelkuchen mit „ohne Kümmel" und ein Bier 
 - [x] Der Bestellabschluss sendet den Kommentar nur an seiner Position und zieht nach Änderung einen neuen Schlüssel: `cd frontend && out="$(pnpm exec vitest run src/service/table/BestellungAbschluss.test.tsx --reporter=verbose)" && test "$(printf '%s\n' "$out" | grep -cE '✓ .*(sendet den Positionskommentar nur an seiner Position|erneuert den bestellungId, wenn sich ein Positionskommentar nach einem Fehlversuch ändert)')" -eq 2`
 - [x] Die Historie zeigt den Kommentar unter seiner Position: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/table/TischHistorie.test.tsx -t 'zeigt den Positionskommentar unter seiner Position im Detail' --reporter=verbose | grep -- '✓ .*zeigt den Positionskommentar unter seiner Position im Detail'`
 - [x] D22 steht, Handbuch und Glossar nennen den Positionskommentar, AGENTS.md nennt die Ausnahme: `grep -q '^- \*\*D22 Positionskommentar' docs/decisions.md && grep -q '^| Positionskommentar' docs/language.md && grep -q 'Positionskommentar' docs/handbuch.md && grep -q 'additive optional field' AGENTS.md`
-- [ ] Gate: `make check check-repo check-format`
-- [ ] Lint: `make lint`
-- [ ] Integration: `TEST_PG_CONTAINER=jotti-pg-kommentar TEST_PG_PORT=5447 make check-integration`
-- [ ] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
+- [x] Gate: `make check check-repo check-format`
+- [x] Lint: `make lint`
+- [x] Integration: `TEST_PG_CONTAINER=jotti-pg-kommentar TEST_PG_PORT=5447 make check-integration`
+- [x] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
 
 ## Phase 3: Positionskommentar im Direktverkauf
 
@@ -340,7 +340,7 @@ Demo: Im Direktverkauf bekommt „2 × Bratwurst" den Kommentar „1 davon ohne 
 - [x] Der Direktverkauf-Abschluss sendet den Kommentar nur an seiner Position: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufAbschluss.test.tsx -t 'sendet den Positionskommentar nur an seiner Position' --reporter=verbose | grep -- '✓ .*sendet den Positionskommentar nur an seiner Position'`
 - [x] Die Direktverkauf-Historie zeigt den Kommentar unter seiner Position: `set -o pipefail; cd frontend && pnpm exec vitest run src/service/VorgangHistorie.test.tsx -t 'zeigt den Positionskommentar unter seiner Position im Detail' --reporter=verbose | grep -- '✓ .*zeigt den Positionskommentar unter seiner Position im Detail'`
 - [x] Handbuch nennt den Kommentar am v2-Event und am Abholbon; der Backlog-Punkt #145 ist weg: `grep -q 'direktverkauf-getaetigt:v2.*kommentar' docs/handbuch.md && grep -q 'Stückbon' docs/handbuch.md && ! grep -q '#145' docs/backlog.md`
-- [ ] Gate: `make check check-repo check-format`
-- [ ] Lint: `make lint`
-- [ ] Integration: `TEST_PG_CONTAINER=jotti-pg-kommentar TEST_PG_PORT=5447 make check-integration`
-- [ ] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
+- [x] Gate: `make check check-repo check-format`
+- [x] Lint: `make lint`
+- [x] Integration: `TEST_PG_CONTAINER=jotti-pg-kommentar TEST_PG_PORT=5447 make check-integration`
+- [x] E2E: `E2E_STACK_PROJECT=jotti-e2e-kommentar E2E_STACK_PORT=8091 make test-e2e`
