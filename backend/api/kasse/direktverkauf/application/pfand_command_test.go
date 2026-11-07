@@ -24,6 +24,7 @@ func newPfandCommand(eventRepo eventRepo) Command {
 		EventRepo:           eventRepo,
 		ProduktRepo:         produkte,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 }
 

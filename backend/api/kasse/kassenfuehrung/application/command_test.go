@@ -82,6 +82,7 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 		KassensitzungenRepo: sitzungMock,
 		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 }
 
@@ -177,6 +178,7 @@ func TestKasseAbschliessen_OhneDifferenz(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -207,6 +209,7 @@ func TestKasseAbschliessen_MitDifferenz(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500) // Ist = 495 EUR, Differenz = 500
@@ -357,6 +360,7 @@ func TestKasseAbschliessen_TagesabschlussMitEchtenSummen(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -402,6 +406,7 @@ func TestKasseAbschliessen_TischSaldoSperre(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
@@ -439,6 +444,7 @@ func TestKasseAbschliessen_SetztBarriere(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
@@ -460,6 +466,7 @@ func TestKasseAbschliessen_FehlerSetztStatusZurueck(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err == nil {
@@ -483,6 +490,7 @@ func TestKasseAbschliessen_KonfliktSetztStatusNichtZurueck(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
@@ -502,6 +510,7 @@ func TestKasseAbschliessen_DeadlockMapsToKonflikt(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: sitzungMock,
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); !errors.Is(err, ErrConflict) {
@@ -520,6 +529,7 @@ func TestKasseAbschliessen_WiederanlaufImZwischenstatus(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(imAbschluss, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000); err != nil {
@@ -566,6 +576,7 @@ func TestKasseAbschliessen_WiederanlaufSchreibtKeinenZweitenKassensturz(t *testi
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); err != nil {
@@ -640,6 +651,7 @@ func TestKasseAbschliessen_WiederanlaufMitZwischenbuchungBrichtAb(t *testing.T) 
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 49500); !errors.Is(err, ErrBuchungenNachKassensturz) {
@@ -711,6 +723,7 @@ func TestKassensitzungEroeffnen_MitTSE_KeineWarnung(t *testing.T) {
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(nil, nil),
 		BetreiberRepo:       settingsMock{vereinsname: "TestVerein"},
 		TSERepo:             tseGateMock{tse: tseKonfiguration},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
@@ -742,6 +755,7 @@ func TestKasseAbschliessen_KorruptesEventBrichtAbschlussAb(t *testing.T) {
 		KassenjournalRepo:   journalMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
 		TSERepo:             tseGateMock{},
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)

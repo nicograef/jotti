@@ -131,6 +131,7 @@ func newCommand(eventRepo eventRepo, ks *kasse.Kassensitzung) Command {
 		EventRepo:           eventRepo,
 		ProduktRepo:         newProductMock(),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(ks, nil),
+		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 }
 
@@ -245,6 +246,7 @@ func TestDirektverkaufTaetigen_InactiveVariante(t *testing.T) {
 		EventRepo:           spy,
 		ProduktRepo:         productMock,
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 
 	inputs := []enrichment.PositionInput{
@@ -266,6 +268,7 @@ func TestDirektverkaufTaetigen_ProduktNotFound(t *testing.T) {
 		EventRepo:           spy,
 		ProduktRepo:         repotest.NewProduktRepo([]produkt.Produkt{}, nil),
 		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+		DruckstationRepo:    &mockDruckstationRepo{},
 	}
 
 	err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", testInputs, "", nil)

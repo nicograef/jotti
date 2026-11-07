@@ -24,6 +24,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
+	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/kassensitzungen_repo"
@@ -204,6 +205,7 @@ func setupLiveUmgebung(t *testing.T, credentials tse.Credentials) *liveTestUmgeb
 		KassensitzungenRepo: ksRepo,
 		BetreiberRepo:       betreiber_repo.NewRepository(db),
 		TSERepo:             tse_repo.NewRepository(db),
+		DruckauftragRepo:    druckauftrag_repo.NewRepository(db),
 	}
 	return u
 }

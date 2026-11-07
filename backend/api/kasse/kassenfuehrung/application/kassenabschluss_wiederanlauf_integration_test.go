@@ -57,6 +57,7 @@ func TestKasseAbschliessen_RetryNachTeilfehler_KeinZweiterKassensturz(t *testing
 		KassenjournalRepo:   failing,
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		TSERepo:             tse_repo.NewRepository(db),
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
@@ -122,6 +123,7 @@ func TestKasseAbschliessen_RetryNachZwischenbuchung_BrichtAb(t *testing.T) {
 		KassenjournalRepo:   failing,
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		TSERepo:             tse_repo.NewRepository(db),
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
@@ -248,6 +250,7 @@ func TestKasseAbschliessen_RetryNachTischzahlung_BrichtAb(t *testing.T) {
 		KassenjournalRepo:   failing,
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		TSERepo:             tse_repo.NewRepository(db),
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	// Soll-Bestand ist 0 (keine Buchungen); Ist-Bestand 500 erzwingt eine
@@ -284,6 +287,7 @@ func TestKasseAbschliessen_RetryNachDifferenzbuchung_LaeuftDurch(t *testing.T) {
 		KassenjournalRepo:   failing,
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
 		TSERepo:             tse_repo.NewRepository(db),
+		DruckauftragRepo:    &fakeDruckauftraege{},
 	}
 
 	if _, err := cmd.KasseAbschliessen(ctx, userID, "test", 500); err == nil {

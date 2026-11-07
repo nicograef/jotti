@@ -82,8 +82,8 @@ func setupDVIntegration(t *testing.T) (ctx context.Context, cmd Command, db *sql
 		EventRepo:           kassenjournal_repo.NewRepository(db),
 		ProduktRepo:         produkt_repo.NewRepository(db),
 		KassensitzungenRepo: kassensitzungen_repo.NewRepository(db),
-		// DruckstationRepo: nil — nil-bewacht, keine Druckaufträge im Test
-		TischRepo: tisch_repo.NewRepository(db),
+		DruckstationRepo:    &mockDruckstationRepo{},
+		TischRepo:           tisch_repo.NewRepository(db),
 	}
 	return
 }

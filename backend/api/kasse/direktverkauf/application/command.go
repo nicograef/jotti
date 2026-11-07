@@ -97,7 +97,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	// Frischer Stream (client-UUID): das Event ist immer version = 1.
 	evt.Version = 1
 
-	druckstationen, err := c.konfigurierteDruckstationen(ctx)
+	druckstationen, err := c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {
 		log.Error("Failed to load druckstationen for direktverkauf", "error", err)
 		return ErrDatabase
@@ -143,14 +143,6 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 
 	log.Info("Direktverkauf getaetigt", "verkauf_id", verkaufID, "mit_pfand", pfand != nil)
 	return nil
-}
-
-// konfigurierteDruckstationen returns nil when no DruckstationRepo is wired (tests); without stations no print jobs are derived.
-func (c Command) konfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error) {
-	if c.DruckstationRepo == nil {
-		return nil, nil
-	}
-	return c.DruckstationRepo.GetKonfigurierteDruckstationen(ctx)
 }
 
 // DirektverkaufStornieren appends an immutable cancellation event to the verkauf's own stream. The

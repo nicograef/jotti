@@ -391,13 +391,11 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 	}
 
 	// Best-effort Druck-Outbox cleanup after the committed Tagesabschluss. Its error stays out of the
-	// named return err, or a committed Abschluss would report failure; the cleaner is optional.
-	if c.DruckauftragRepo != nil {
-		if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
-			log.Error("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)", "error", cleanupErr, "z_nr", ks.ZNr)
-		} else if verworfen > 0 {
-			log.Info("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen", "z_nr", ks.ZNr, "verworfen", verworfen)
-		}
+	// named return err, or a committed Abschluss would report failure.
+	if verworfen, cleanupErr := c.DruckauftragRepo.DiscardAlleFehlgeschlagenen(ctx); cleanupErr != nil {
+		log.Error("Failed to discard fehlgeschlagene Druckauftraege beim Tagesabschluss (Abschluss bleibt gueltig)", "error", cleanupErr, "z_nr", ks.ZNr)
+	} else if verworfen > 0 {
+		log.Info("Fehlgeschlagene Druckauftraege beim Tagesabschluss verworfen", "z_nr", ks.ZNr, "verworfen", verworfen)
 	}
 
 	log.Info("Kasse abgeschlossen", "z_nr", ks.ZNr, "soll_cents", sollBestandCents, "ist_cents", istBestandCents, "differenz_cents", differenzCents, "ausfall_reste", ergebnis.AusfallResteAnzahl, "ohne_konfiguration", ergebnis.OhneKonfigurationAnzahl)
