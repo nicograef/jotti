@@ -7,9 +7,18 @@ import (
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
+type kassenjournalQueryRepo interface {
+	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
+	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
+}
+
+type kassensitzungQueryRepo interface {
+	GetAktiveKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
+}
+
 type Query struct {
-	KassenjournalRepo   kassenjournalRepo
-	KassensitzungenRepo kassensitzungenRepo
+	KassenjournalRepo   kassenjournalQueryRepo
+	KassensitzungenRepo kassensitzungQueryRepo
 }
 
 // GetAktiveKassensitzung returns the Kassensitzung in status 'offen' or 'wird_abgeschlossen', nil if

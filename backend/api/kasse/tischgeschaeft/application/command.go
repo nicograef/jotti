@@ -20,14 +20,11 @@ import (
 
 type tischRepo interface {
 	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
-	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error)
-	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]tisch.AktiverTischMitFavorit, error)
 }
 
 type eventRepo interface {
 	WriteEventsAtomic(ctx context.Context, kassensitzungNr int, events []kassenjournal_repo.NeuesEvent) error
 	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
-	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)
@@ -44,10 +41,6 @@ type produktRepo interface {
 	GetPfandVarianten(ctx context.Context, ids []int) (map[int]bool, error)
 }
 
-type favoritRepo interface {
-	GetByUser(ctx context.Context, userID int) ([]int, error)
-}
-
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
 }
@@ -56,7 +49,6 @@ type Command struct {
 	TischRepo           tischRepo
 	EventRepo           eventRepo
 	ProduktRepo         produktRepo
-	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
 	DruckstationRepo    druckstationRepo
 }

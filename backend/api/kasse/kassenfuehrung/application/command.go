@@ -21,7 +21,6 @@ type kassenjournalRepo interface {
 	GetMaxVersion(ctx context.Context, subject string) (int, error)
 	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
 	GetKassenbestand(ctx context.Context, kassensitzungNr int) (kasse.Kassenbestand, error)
-	GetGeldtransitListe(ctx context.Context, kassensitzungNr int) ([]kasse.Geldtransit, error)
 	GetTischSessionsByKassensitzungNr(ctx context.Context, kassensitzungNr int) ([]kasse.TischSession, error)
 	ReadKassensitzungEvents(ctx context.Context, kassensitzungNr int) ([]event.Event, error)
 	EventExistsByTypeAndVorgangsID(ctx context.Context, eventType, vorgangsID, jsonKey string) (bool, error)

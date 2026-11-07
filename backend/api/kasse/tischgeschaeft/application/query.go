@@ -3,9 +3,11 @@ package application
 import (
 	"context"
 
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	t "github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
+	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
 type TischStateView struct {
@@ -18,9 +20,25 @@ type TischStateView struct {
 	FuerMichErledigt bool
 }
 
+type tischQueryRepo interface {
+	GetTisch(ctx context.Context, id int) (t.Tisch, error)
+	GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]t.AktiverTisch, error)
+	GetAktiveTischeMitFavoriten(ctx context.Context, userID int, kassensitzungNr int) ([]t.AktiverTischMitFavorit, error)
+}
+
+type eventQueryRepo interface {
+	ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error)
+	ReadFavoritenTischStates(ctx context.Context, tischIDs []int, kassensitzungNr int) (map[int]kassenjournal_repo.TischNameUndSession, error)
+	ReadEventsBySubject(ctx context.Context, subject string) ([]event.Event, error)
+}
+
+type favoritRepo interface {
+	GetByUser(ctx context.Context, userID int) ([]int, error)
+}
+
 type Query struct {
-	TischRepo           tischRepo
-	EventRepo           eventRepo
+	TischRepo           tischQueryRepo
+	EventRepo           eventQueryRepo
 	FavoritRepo         favoritRepo
 	KassensitzungenRepo kassensitzungenRepo
 }

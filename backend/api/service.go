@@ -27,7 +27,6 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 		TischRepo:           deps.TischRepo,
 		EventRepo:           deps.KassenjournalRepo,
 		ProduktRepo:         deps.ProduktRepo,
-		FavoritRepo:         deps.FavoritRepo,
 		KassensitzungenRepo: deps.KassensitzungenRepo,
 		DruckstationRepo:    deps.DruckstationRepo,
 	}}
