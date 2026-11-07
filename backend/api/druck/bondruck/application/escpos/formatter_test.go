@@ -345,60 +345,47 @@ func TestFormatKassenbeleg_WithoutTSE_DoesNotContainTSEBlock(t *testing.T) {
 	}
 }
 
-func TestFormatKassenbeleg_WithTSEAusfallvermerk_ContainsAusfallhinweis(t *testing.T) {
-	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:        "SV Musterstadt",
-		Strasse:            "Musterstrasse 1",
-		Plz:                "12345",
-		Ort:                "Musterstadt",
-		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
-		Belegnummer:        "42",
-		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
-		Steuermatrix: []steuer.Aufteilung{
-			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
-		},
-		TSEVermerk:        escpos.TSEVermerkVoruebergehend,
-		GesamtbetragCents: 700,
-		Zahlungsart:       "bar",
-	})
-	got := string(payload)
+func TestFormatKassenbeleg_TSEVermerk(t *testing.T) {
+	tests := []struct {
+		name        string
+		vermerk     escpos.TSEBelegvermerk
+		wantText    []string
+		wantOhneTxt string
+	}{
+		{name: "voruebergehend", vermerk: escpos.TSEVermerkVoruebergehend, wantText: []string{"TSE-Hinweis:", "wird automatisch nachsigniert"}},
+		{name: "keine Konfiguration", vermerk: escpos.TSEVermerkKeineKonfiguration, wantText: []string{"TSE-Hinweis:", "keine TSE konfiguriert"}, wantOhneTxt: "nachsigniert"},
+		{name: "Signatur fehlgeschlagen", vermerk: escpos.TSEVermerkSignaturFehlgeschlagen, wantText: []string{"TSE-Hinweis:", "Signatur fehlgeschlagen.", "Vorgang ohne TSE-Signatur erfasst."}, wantOhneTxt: "nachsigniert"},
+	}
 
-	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Errorf("Kassenbeleg mit TSE-Ausfall muss Hinweis enthalten; got:\n%q", got)
-	}
-	if !strings.Contains(got, "wird automatisch nachsigniert") {
-		t.Errorf("Kassenbeleg mit TSE-Ausfall muss Nachsignierhinweis enthalten; got:\n%q", got)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
+				Vereinsname:        "SV Musterstadt",
+				Strasse:            "Musterstrasse 1",
+				Plz:                "12345",
+				Ort:                "Musterstadt",
+				KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
+				Belegnummer:        "42",
+				Zeitpunkt:          testTime,
+				Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
+				Steuermatrix: []steuer.Aufteilung{
+					{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
+				},
+				TSEVermerk:        tt.vermerk,
+				GesamtbetragCents: 700,
+				Zahlungsart:       "bar",
+			})
+			got := string(payload)
 
-func TestFormatKassenbeleg_WithKeineKonfiguration_ContainsHinweis(t *testing.T) {
-	payload := escpos.FormatKassenbeleg(escpos.KassenbelegData{
-		Vereinsname:        "SV Musterstadt",
-		Strasse:            "Musterstrasse 1",
-		Plz:                "12345",
-		Ort:                "Musterstadt",
-		KassenSeriennummer: "2e00c5d4-7adb-4f63-84d6-a34235f2b0f4",
-		Belegnummer:        "43",
-		Zeitpunkt:          testTime,
-		Positionen:         []kasse.Position{{PositionID: "pos-1", VarianteID: 1, ProduktName: "Cola", VarianteName: "0,5l", Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 700, Menge: 1}},
-		Steuermatrix: []steuer.Aufteilung{
-			{Satz: steuer.RegelSteuersatz, Brutto: 700, Netto: 588, Steuer: 112},
-		},
-		TSEVermerk:        escpos.TSEVermerkKeineKonfiguration,
-		GesamtbetragCents: 700,
-		Zahlungsart:       "bar",
-	})
-	got := string(payload)
-
-	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Errorf("Kassenbeleg ohne TSE-Konfiguration muss Hinweis enthalten; got:\n%q", got)
-	}
-	if !strings.Contains(got, "keine TSE konfiguriert") {
-		t.Errorf("Kassenbeleg ohne TSE-Konfiguration muss den Konfigurationshinweis enthalten; got:\n%q", got)
-	}
-	if strings.Contains(got, "nachsigniert") {
-		t.Errorf("Kassenbeleg ohne TSE-Konfiguration darf keinen Nachsignierhinweis enthalten; got:\n%q", got)
+			for _, want := range tt.wantText {
+				if !strings.Contains(got, want) {
+					t.Errorf("Kassenbeleg muss %q enthalten; got:\n%q", want, got)
+				}
+			}
+			if tt.wantOhneTxt != "" && strings.Contains(got, tt.wantOhneTxt) {
+				t.Errorf("Kassenbeleg darf %q nicht enthalten; got:\n%q", tt.wantOhneTxt, got)
+			}
+		})
 	}
 }
 

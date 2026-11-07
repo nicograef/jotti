@@ -29,6 +29,12 @@ type SignaturstatusErgebnis struct {
 	AusfallGrund string
 }
 
+// OhneKonfiguration reports an Ausfall because no TSE was configured; such a Vorgang is never re-signed.
+func (e SignaturstatusErgebnis) OhneKonfiguration() bool {
+	return e.Status == SignaturstatusAusfall &&
+		(e.AusfallGrund == StatusTSENichtKonfiguriert || e.AusfallGrund == StoerungGrundKeineKonfiguration)
+}
+
 // DetermineSignaturstatus is the only implementation of Ausfall; retries below the maximum and closed periods never count.
 // See docs/handbuch.md §3.13 (Störungsprotokoll und Signaturstatus).
 func DetermineSignaturstatus(auftrag SignaturauftragStand, aktiveStoerung *Stoerung) SignaturstatusErgebnis {

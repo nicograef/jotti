@@ -130,7 +130,7 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 		return abschnitt, escpos.KeinTSEVermerk, false, nil
 	case tse.SignaturstatusAusfall:
 		logging.FromContext(ctx).Warn("Kassenbeleg ohne TSE-Signatur: dokumentierter Ausfall", "event_id", eventID, "ausfall_grund", ergebnis.AusfallGrund)
-		return nil, vermerkFuerAusfall(ergebnis.AusfallGrund), false, nil
+		return nil, vermerkFuerAusfall(ergebnis), false, nil
 	case tse.SignaturstatusAusstehend:
 		fallthrough
 	default:
@@ -138,14 +138,17 @@ func (c Command) tseAbschnittFuerBeleg(ctx context.Context, eventID int) (abschn
 	}
 }
 
-// vermerkFuerAusfall: fehlende TSE-Konfiguration wird nicht nachsigniert und
-// trägt „keine TSE konfiguriert"; jeder andere Ausfall (vorübergehende
-// Nichterreichbarkeit) wird nachsigniert.
-func vermerkFuerAusfall(ausfallGrund string) escpos.TSEBelegvermerk {
-	if ausfallGrund == tse.StatusTSENichtKonfiguriert || ausfallGrund == tse.StoerungGrundKeineKonfiguration {
+// vermerkFuerAusfall: only an Ausfall during a Störungszeitraum is re-signed once the TSE is back.
+// Without a configured TSE, and after a final fehlgeschlagen, the Vorgang stays unsigned.
+func vermerkFuerAusfall(ergebnis tse.SignaturstatusErgebnis) escpos.TSEBelegvermerk {
+	switch {
+	case ergebnis.OhneKonfiguration():
 		return escpos.TSEVermerkKeineKonfiguration
+	case ergebnis.AusfallGrund == tse.StatusFehlgeschlagen:
+		return escpos.TSEVermerkSignaturFehlgeschlagen
+	default:
+		return escpos.TSEVermerkVoruebergehend
 	}
-	return escpos.TSEVermerkVoruebergehend
 }
 
 func negierePositionen(positionen []kasse.Position) []kasse.Position {

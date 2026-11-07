@@ -59,7 +59,7 @@ func (c Command) checkSignaturGate(ctx context.Context, kassensitzungNr int) (si
 		case tse.SignaturstatusAusstehend:
 			gate.ausstehendAnzahl++
 		case tse.SignaturstatusAusfall:
-			if ergebnis.AusfallGrund == tse.StatusTSENichtKonfiguriert || ergebnis.AusfallGrund == tse.StoerungGrundKeineKonfiguration {
+			if ergebnis.OhneKonfiguration() {
 				gate.ohneKonfigurationAnzahl++
 			} else {
 				gate.ausfallResteAnzahl++

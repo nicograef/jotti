@@ -115,3 +115,25 @@ func TestDetermineSignaturstatus(t *testing.T) {
 		})
 	}
 }
+
+func TestSignaturstatusErgebnis_OhneKonfiguration(t *testing.T) {
+	tests := []struct {
+		name     string
+		ergebnis SignaturstatusErgebnis
+		want     bool
+	}{
+		{name: "Auftrag tse_nicht_konfiguriert", ergebnis: SignaturstatusErgebnis{Status: SignaturstatusAusfall, AusfallGrund: StatusTSENichtKonfiguriert}, want: true},
+		{name: "Zeitraum ohne Konfiguration", ergebnis: SignaturstatusErgebnis{Status: SignaturstatusAusfall, AusfallGrund: StoerungGrundKeineKonfiguration}, want: true},
+		{name: "fehlgeschlagen", ergebnis: SignaturstatusErgebnis{Status: SignaturstatusAusfall, AusfallGrund: StatusFehlgeschlagen}, want: false},
+		{name: "Rueckstand", ergebnis: SignaturstatusErgebnis{Status: SignaturstatusAusfall, AusfallGrund: StoerungGrundRueckstand}, want: false},
+		{name: "kein Ausfall", ergebnis: SignaturstatusErgebnis{Status: SignaturstatusAusstehend, AusfallGrund: StatusTSENichtKonfiguriert}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ergebnis.OhneKonfiguration(); got != tt.want {
+				t.Errorf("OhneKonfiguration() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

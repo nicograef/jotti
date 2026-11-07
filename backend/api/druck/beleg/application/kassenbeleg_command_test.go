@@ -659,8 +659,12 @@ func TestKassenbelegDrucken_AusfallEndstatus_BelegMitAusfallvermerk(t *testing.T
 	if strings.Contains(got, "TSE-Daten:") {
 		t.Errorf("expected no TSE block on ausfall beleg, got:\n%q", got)
 	}
-	if !strings.Contains(got, "TSE-Hinweis:") {
-		t.Errorf("expected Ausfallvermerk on beleg, got:\n%q", got)
+	if !strings.Contains(got, "Signatur fehlgeschlagen.") {
+		t.Errorf("expected Fehlgeschlagen-Vermerk on beleg, got:\n%q", got)
+	}
+	// fehlgeschlagen ist endgültig: der Beleg darf keine Nachsignierung versprechen.
+	if strings.Contains(got, "automatisch nachsigniert") {
+		t.Errorf("expected no Nachsignier-Versprechen on fehlgeschlagen beleg, got:\n%q", got)
 	}
 }
 

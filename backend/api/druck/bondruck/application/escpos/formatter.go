@@ -49,6 +49,9 @@ const (
 	// TSEVermerkKeineKonfiguration: für den Vorgang war keine TSE konfiguriert;
 	// er wird nicht nachsigniert.
 	TSEVermerkKeineKonfiguration
+	// TSEVermerkSignaturFehlgeschlagen: die Signatur ist endgültig fehlgeschlagen;
+	// der Vorgang wird nicht automatisch nachsigniert.
+	TSEVermerkSignaturFehlgeschlagen
 )
 
 type TSEAbschnitt struct {
@@ -298,6 +301,11 @@ func FormatKassenbeleg(data KassenbelegData) []byte {
 			buf.WriteByte('\n')
 			buf.WriteString("TSE-Hinweis:\n")
 			writeLine(&buf, "  Fuer diesen Vorgang war keine TSE konfiguriert.")
+		case TSEVermerkSignaturFehlgeschlagen:
+			buf.WriteByte('\n')
+			buf.WriteString("TSE-Hinweis:\n")
+			writeLine(&buf, "  Signatur fehlgeschlagen.")
+			writeLine(&buf, "  Vorgang ohne TSE-Signatur erfasst.")
 		case KeinTSEVermerk:
 		}
 	}
