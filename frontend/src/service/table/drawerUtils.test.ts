@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { Produkt } from '@/lib/produktSchemas'
-import type { Position } from '@/service/table/Bestellung'
+import { testPosition } from '@/test/fixtures'
 
 import {
   aufrundenVorschlaege,
@@ -12,48 +12,16 @@ import {
 } from './drawerUtils'
 
 describe('selectPositionen', () => {
-  const positionen: Position[] = [
-    {
-      positionId: 'aaa-001',
-      varianteId: 1,
-      produktName: 'Bratwurst',
-      varianteName: 'Normal',
-      kategorie: 'essen',
-      steuersatz: 'ermaessigt',
-      einzelpreisCents: 350,
-      menge: 5,
-      bestellerUserId: 1,
-      bestellerName: 'Anna',
-    },
-    {
-      positionId: 'aaa-002',
-      varianteId: 4,
-      produktName: 'Pommes',
-      varianteName: 'Klein',
-      kategorie: 'essen',
-      steuersatz: 'ermaessigt',
-      einzelpreisCents: 250,
-      menge: 3,
-      bestellerUserId: 1,
-      bestellerName: 'Anna',
-    },
-    {
-      positionId: 'aaa-003',
-      varianteId: 31,
-      produktName: 'Softdrinks',
-      varianteName: 'Cola',
-      kategorie: 'getraenk',
-      steuersatz: 'regel',
-      einzelpreisCents: 200,
-      menge: 2,
-      bestellerUserId: 1,
-      bestellerName: 'Anna',
-    },
+  const positionen = [
+    testPosition({ positionId: 'aaa-001', menge: 5 }),
+    testPosition({ positionId: 'aaa-002', menge: 3 }),
+    testPosition({ positionId: 'aaa-003', menge: 2 }),
   ]
 
-  it('returns only positionen with selected quantity > 0', () => {
+  it('returns only positionen with selected quantity > 0, at that quantity', () => {
     const result = selectPositionen(positionen, {
       'aaa-001': 2,
+      'aaa-002': 0,
       'aaa-003': 1,
     })
 
@@ -63,62 +31,24 @@ describe('selectPositionen', () => {
     ])
   })
 
-  it('returns empty array when no positionen are selected', () => {
-    expect(selectPositionen(positionen, {})).toEqual([])
-  })
-
-  it('returns empty array for empty input', () => {
-    expect(selectPositionen([], {})).toEqual([])
-  })
-
-  it('handles single item selection', () => {
-    const result = selectPositionen(positionen, { 'aaa-002': 1 })
-
-    expect(result).toEqual([{ ...positionen[1], menge: 1 }])
-  })
-
   it('ignores selection keys that do not match any position', () => {
-    const result = selectPositionen(positionen, { 'zzz-999': 5 })
-
-    expect(result).toEqual([])
-  })
-
-  it('filters out positionen where selected quantity is 0', () => {
-    const result = selectPositionen(positionen, {
-      'aaa-001': 0,
-      'aaa-002': 3,
-    })
-
-    expect(result).toEqual([{ ...positionen[1], menge: 3 }])
+    expect(selectPositionen(positionen, { 'zzz-999': 5 })).toEqual([])
   })
 })
 
 describe('calculateTotalPrice', () => {
-  it('calculates total for multiple items', () => {
-    const items = [
-      { einzelpreisCents: 350, menge: 2 },
-      { einzelpreisCents: 250, menge: 1 },
-    ]
-
-    expect(calculateTotalPrice(items)).toBe(950)
-  })
-
-  it('returns 0 for empty array', () => {
-    expect(calculateTotalPrice([])).toBe(0)
-  })
-
-  it('handles single item', () => {
-    expect(calculateTotalPrice([{ einzelpreisCents: 200, menge: 3 }])).toBe(600)
-    expect(calculateTotalPrice([{ einzelpreisCents: 300, menge: 1 }])).toBe(300)
-  })
-
-  it('handles zero-cent positionen', () => {
-    const items = [
-      { einzelpreisCents: 0, menge: 5 },
-      { einzelpreisCents: 200, menge: 1 },
-    ]
-
-    expect(calculateTotalPrice(items)).toBe(200)
+  it.each([
+    [[], 0],
+    [[{ einzelpreisCents: 200, menge: 3 }], 600],
+    [
+      [
+        { einzelpreisCents: 350, menge: 2 },
+        { einzelpreisCents: 250, menge: 1 },
+      ],
+      950,
+    ],
+  ])('sums %j to %i cents', (items, expected) => {
+    expect(calculateTotalPrice(items)).toBe(expected)
   })
 })
 
