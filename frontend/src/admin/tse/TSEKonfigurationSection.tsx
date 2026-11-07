@@ -4,6 +4,17 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { TextField } from '@/components/common/FormFields'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -172,14 +183,36 @@ function TSEKonfigurationForm({
         >
           {testing ? 'Teste Verbindung…' : 'Verbindung testen'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void handleClear()}
-          disabled={saving || clearing || testing}
-        >
-          {clearing ? 'Leeren…' : 'Alle Felder leeren'}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || clearing || testing}
+            >
+              {clearing ? 'Leeren…' : 'Alle Felder leeren'}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>TSE-Konfiguration leeren?</AlertDialogTitle>
+              <AlertDialogDescription>
+                API-Key, API-Secret, TSS-ID und Client-ID werden gelöscht. Ohne
+                TSE werden Vorgänge nicht nach § 146a AO signiert.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive-solid"
+                disabled={clearing}
+                onClick={() => void handleClear()}
+              >
+                Leeren
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {verbindungStatus ? (
