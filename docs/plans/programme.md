@@ -27,7 +27,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 
 - Nicos Arbeitsrechner fährt alles: Waves 2 bis 5 und danach die Feature-Spur. Eine andere Session beansprucht eine Wave nur, indem sie deren Status-Zeile auf `running` setzt und das pusht.
 - Meldet `fix/q-backend` für #52 eine nötige Frontend-Änderung, gehört sie zu `fix/q-cross`.
-- Nach dem Abschluss wendet die Session die Dependabot-PRs an. Den Resolver auf jotti.rocks deployt Nico, sobald `fix/q-edges` gelandet ist. Den Windows-Starter (#174, Verzeichnisrechte) testet Nico vor dem Release auf einem echten Windows-PC.
+- Nach dem Abschluss wendet die Session die Dependabot-PRs an. Den Windows-Starter (#174, Verzeichnisrechte) testet Nico vor dem Release auf einem echten Windows-PC.
 
 ## Feature-Spur
 
