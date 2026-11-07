@@ -5,7 +5,7 @@ import { DateStringSchema } from '@/lib/utils'
 import {
   GebuchtePositionSchema,
   KommentarSchema,
-  PositionInputSchema,
+  KommentiertePositionInputSchema,
   TischIdSchema,
 } from '../schemas'
 
@@ -20,7 +20,7 @@ export type Position = z.infer<typeof PositionSchema>
 export const BestellungAufnehmenSchema = z.object({
   bestellungId: z.uuid(),
   tischId: TischIdSchema,
-  positionen: PositionInputSchema.array().min(1),
+  positionen: KommentiertePositionInputSchema.array().min(1),
   kommentar: KommentarSchema,
 })
 export type BestellungAufnehmen = z.infer<typeof BestellungAufnehmenSchema>
@@ -32,7 +32,7 @@ export const BestellungSchema = z.object({
   // Eingefrorener Name der bestellenden Servicekraft.
   userName: z.string().min(1),
   tischId: z.number().int().min(1),
-  positionen: PositionSchema.array().min(1),
+  positionen: PositionSchema.extend({ kommentar: z.string() }).array().min(1),
   gesamtPreisCents: z.number().int().min(0),
   kommentar: KommentarSchema,
   aufgenommenAm: DateStringSchema,

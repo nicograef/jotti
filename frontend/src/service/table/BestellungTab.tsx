@@ -31,7 +31,11 @@ export function BestellungTab({
 }: BestellungTabProps) {
   const isMobile = useIsMobile()
   const { mengen, add, remove, reset } = vorgang.steuerung
-  const { receiptItems, inputItems } = toBestellungData(products, mengen)
+  const { receiptItems, inputItems } = toBestellungData(
+    products,
+    mengen,
+    vorgang.positionsKommentare,
+  )
   const totalCents = calculateTotalPrice(receiptItems)
 
   if (productsLoading) {

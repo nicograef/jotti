@@ -50,7 +50,7 @@ function bestellung(overrides: Partial<Bestellung> = {}): Bestellung {
     userId: 1,
     userName: 'Tester',
     tischId: 1,
-    positionen: [position()],
+    positionen: [{ ...position(), kommentar: '' }],
     gesamtPreisCents: 350,
     kommentar: '',
     aufgenommenAm: '2026-06-18T12:00:00Z',

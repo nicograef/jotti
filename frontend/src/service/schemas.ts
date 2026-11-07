@@ -32,6 +32,15 @@ export const PositionInputSchema = z.object({
 })
 export type PositionInput = z.infer<typeof PositionInputSchema>
 
+// Bestellte oder verkaufte Variante mit optionalem Positionskommentar; fehlt er,
+// bleibt der Request gleich dem ohne Kommentar.
+export const KommentiertePositionInputSchema = PositionInputSchema.extend({
+  kommentar: KommentarSchema.optional(),
+})
+export type KommentiertePositionInput = z.infer<
+  typeof KommentiertePositionInputSchema
+>
+
 // Die im selben Abschluss verrechnete Pfandrückgabe von Zahlung und Verkauf.
 export const PfandVerrechnungSchema = z.object({
   rueckgabeId: z.uuid(),

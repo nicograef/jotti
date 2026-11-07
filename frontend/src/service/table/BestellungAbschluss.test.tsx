@@ -4,12 +4,15 @@ import type { ComponentProps } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useVorgang } from '@/hooks/use-vorgang'
+import type { Produkt } from '@/lib/produktSchemas'
 import { FakeBackend } from '@/test/FakeBackend'
+import { testProdukt } from '@/test/fixtures'
 import { renderWithBackend } from '@/test/render'
 
 import type { ReceiptPosition } from '../Receipt'
 import type { BestellungAufnehmen } from './Bestellung'
 import { BestellungAbschluss } from './BestellungAbschluss'
+import { BestellungTab } from './BestellungTab'
 import type { Tisch } from './Tisch'
 
 vi.mock('sonner', () => ({
@@ -134,5 +137,102 @@ describe('BestellungAbschluss (Spalte)', () => {
     })
     expect(bestellungen()[1].bestellungId).toBe(ersterKey)
     expect(bestellungen()[1].kommentar).toBe('Ohne Zwiebeln')
+  })
+})
+
+// Dieselbe Kategorie wie testProdukt: die Produktliste zeigt eine Kategorie zur Zeit.
+const pommes: Produkt = {
+  ...testProdukt,
+  id: 2,
+  name: 'Pommes',
+  varianten: [{ id: 2, name: 'Groß', preisCents: 400, status: 'active' }],
+}
+
+// Die Positionskommentare laufen vom Abschluss über den Vorgang zurück in die
+// Positionen, die der Tab baut; der Harness nimmt deshalb den ganzen Tab.
+function TabHarness() {
+  return (
+    <BestellungTab
+      tisch={tisch}
+      products={[testProdukt, pommes]}
+      productsLoading={false}
+      vorgang={useVorgang<number>()}
+      onErfolg={vi.fn()}
+    />
+  )
+}
+
+async function waehleBratwurstUndPommes(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  const [bratwurst, pommesHinzufuegen] = screen.getAllByRole('button', {
+    name: 'Variante hinzufügen',
+  })
+  await user.click(bratwurst)
+  await user.click(pommesHinzufuegen)
+}
+
+describe('BestellungAbschluss (Positionskommentar)', () => {
+  it('sendet den Positionskommentar nur an seiner Position', async () => {
+    const user = userEvent.setup()
+    const fake = new FakeBackend().respond('service/bestellung-aufnehmen', {})
+    renderWithBackend(<TabHarness />, fake)
+
+    await waehleBratwurstUndPommes(user)
+    await user.click(screen.getAllByRole('button', { name: 'Kommentar' })[0])
+    await user.type(
+      screen.getByPlaceholderText('Kommentar zur Position'),
+      ' ohne Senf ',
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' }),
+    )
+
+    await waitFor(() => {
+      expect(fake.bodies('service/bestellung-aufnehmen')).toHaveLength(1)
+    })
+    const [body] = fake.bodies(
+      'service/bestellung-aufnehmen',
+    ) as BestellungAufnehmen[]
+    expect(body.positionen).toStrictEqual([
+      { produktId: 1, varianteId: 1, menge: 1, kommentar: 'ohne Senf' },
+      { produktId: 2, varianteId: 2, menge: 1 },
+    ])
+  })
+
+  // Ein geänderter Positionskommentar ändert die Bestellung: der Retry darf sie
+  // nicht als Duplikat der verlorenen verlieren.
+  it('erneuert den bestellungId, wenn sich ein Positionskommentar nach einem Fehlversuch ändert', async () => {
+    const user = userEvent.setup()
+    const fake = new FakeBackend().respond(
+      'service/bestellung-aufnehmen',
+      vi.fn().mockRejectedValueOnce(new Error('kaputt')).mockReturnValue({}),
+    )
+    renderWithBackend(<TabHarness />, fake)
+    const bestellungen = () =>
+      fake.bodies('service/bestellung-aufnehmen') as BestellungAufnehmen[]
+    const aufnehmen = () =>
+      screen.getByRole('button', { name: 'Bestellung aufnehmen' })
+
+    await waehleBratwurstUndPommes(user)
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungen()).toHaveLength(1)
+    })
+
+    await user.click(screen.getAllByRole('button', { name: 'Kommentar' })[1])
+    await user.type(
+      screen.getByPlaceholderText('Kommentar zur Position'),
+      'ohne Ketchup',
+    )
+    await user.click(aufnehmen())
+    await waitFor(() => {
+      expect(bestellungen()).toHaveLength(2)
+    })
+
+    expect(bestellungen()[1].bestellungId).not.toBe(
+      bestellungen()[0].bestellungId,
+    )
+    expect(bestellungen()[1].positionen[1].kommentar).toBe('ohne Ketchup')
   })
 })

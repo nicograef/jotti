@@ -5,7 +5,7 @@ import type { Vorgang } from '@/hooks/use-vorgang'
 
 import { DockActionButton } from '../DockActionButton'
 import type { ReceiptPosition } from '../Receipt'
-import type { PositionInput } from '../schemas'
+import type { KommentiertePositionInput } from '../schemas'
 import { BestellungAbschluss } from './BestellungAbschluss'
 import type { Tisch } from './Tisch'
 
@@ -13,7 +13,7 @@ interface BestellungDrawerProps {
   tisch: Tisch
   // Von BestellungTab einmal abgeleitet, wie für die Spalte.
   receiptItems: ReceiptPosition[]
-  positionen: PositionInput[]
+  positionen: KommentiertePositionInput[]
   totalCents: number
   anzahl: number
   vorgang: Vorgang<number>

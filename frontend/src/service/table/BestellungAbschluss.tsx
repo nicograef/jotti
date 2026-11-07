@@ -11,14 +11,14 @@ import { KommentarField } from '../CommentField'
 import { GesamtZeile } from '../GesamtZeile'
 import type { ReceiptPosition } from '../Receipt'
 import { Receipt } from '../Receipt'
-import type { PositionInput } from '../schemas'
+import type { KommentiertePositionInput } from '../schemas'
 import { tischBackend } from './hooks'
 import type { Tisch } from './Tisch'
 
 interface BestellungAbschlussProps {
   tisch: Tisch
   receiptItems: ReceiptPosition[]
-  positionen: PositionInput[]
+  positionen: KommentiertePositionInput[]
   totalCents: number
   // Liefert Kommentar und bestellungId; beide überstehen das Aushängen des Abschlusses.
   vorgang: Vorgang<number>
@@ -27,7 +27,7 @@ interface BestellungAbschlussProps {
 }
 
 export function BestellungAbschluss(props: BestellungAbschlussProps) {
-  const { kommentar, setKommentar } = props.vorgang
+  const { kommentar, setKommentar, setPositionsKommentar } = props.vorgang
   const noPositionenSelected = props.positionen.length === 0
 
   const { loading, run } = useActionSubmit({
@@ -36,8 +36,9 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
-    // Der Kommentar gehört nicht zum Schlüssel: wer ihn nach einer verlorenen
-    // Antwort ändert, wiederholt dieselbe Bestellung.
+    // Der Bestellkommentar gehört nicht zum Schlüssel: wer ihn nach einer
+    // verlorenen Antwort ändert, wiederholt dieselbe Bestellung. Die
+    // Positionskommentare stehen in den Positionen und gehören dazu.
     const bestellungId = props.vorgang.schluesselFuer({
       positionen: props.positionen,
     })
@@ -64,7 +65,12 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
           <AbschlussLeer>Produkte auswählen, um zu bestellen.</AbschlussLeer>
         ) : (
           <>
-            <Receipt positionen={props.receiptItems} />
+            <Receipt
+              positionen={props.receiptItems}
+              kommentarBearbeiten={(id, text) => {
+                setPositionsKommentar(Number(id), text)
+              }}
+            />
             <div className="px-4">
               <KommentarField value={kommentar} onChange={setKommentar} />
             </div>

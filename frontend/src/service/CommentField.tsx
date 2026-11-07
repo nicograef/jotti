@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 
 import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { kuerzeAufZeichen, zeichenAnzahl } from '@/lib/zeichen'
 
@@ -47,6 +48,25 @@ function begrenzeEinfuegung(
   }
 }
 
+// Kappt eine Änderung auf KOMMENTAR_MAX_ZEICHEN und liefert den neuen Text.
+// maxLength zählt UTF-16-Einheiten und kappte Emoji schon bei 50; das Backend zählt Codepoints.
+function kappeAenderung(
+  feld: HTMLInputElement | HTMLTextAreaElement,
+  vorher: string,
+): string {
+  const neu = feld.value
+  if (zeichenAnzahl(neu) <= KOMMENTAR_MAX_ZEICHEN) return neu
+  const begrenzt = begrenzeEinfuegung(
+    vorher,
+    neu,
+    feld.selectionEnd ?? neu.length,
+    KOMMENTAR_MAX_ZEICHEN,
+  )
+  feld.value = begrenzt.text
+  feld.setSelectionRange(begrenzt.cursor, begrenzt.cursor)
+  return begrenzt.text
+}
+
 interface KommentarFieldProps {
   onChange: (value: string) => void
   // Kontrolliert das Feld, wenn gesetzt: die dauerhaft sichtbare Abschluss-Spalte
@@ -77,20 +97,8 @@ export function KommentarField({
         value={value}
         onChange={(e) => {
           setTouched(true)
-          // maxLength zählt UTF-16-Einheiten und kappte Emoji schon bei 50; das Backend zählt Codepoints.
           const vorher = value ?? letzterWert.current
-          let neu = e.target.value
-          if (zeichenAnzahl(neu) > KOMMENTAR_MAX_ZEICHEN) {
-            const begrenzt = begrenzeEinfuegung(
-              vorher,
-              neu,
-              e.target.selectionEnd,
-              KOMMENTAR_MAX_ZEICHEN,
-            )
-            neu = begrenzt.text
-            e.target.value = neu
-            e.target.setSelectionRange(begrenzt.cursor, begrenzt.cursor)
-          }
+          const neu = kappeAenderung(e.target, vorher)
           letzterWert.current = neu
           if (neu !== vorher) {
             onChange(neu)
@@ -125,5 +133,37 @@ export function Kommentar({ value }: { value: string }) {
         spellCheck={false}
       />
     </Field>
+  )
+}
+
+// Einzeiliges Feld für den Kommentar einer Position, mit der Kappung des
+// KommentarField. Unkontrolliert: der Abschluss speichert den Rohtext, die
+// Belegzeile trägt ihn getrimmt.
+export function PositionsKommentarFeld({
+  defaultValue,
+  onChange,
+  autoFocus = false,
+}: {
+  defaultValue: string
+  onChange: (value: string) => void
+  autoFocus?: boolean
+}) {
+  const letzterWert = useRef(defaultValue)
+
+  return (
+    <Input
+      placeholder="Kommentar zur Position"
+      aria-label="Kommentar zur Position"
+      defaultValue={defaultValue}
+      autoFocus={autoFocus}
+      onChange={(e) => {
+        const neu = kappeAenderung(e.target, letzterWert.current)
+        if (neu !== letzterWert.current) {
+          letzterWert.current = neu
+          onChange(neu)
+        }
+      }}
+      spellCheck={false}
+    />
   )
 }

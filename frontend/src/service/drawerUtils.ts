@@ -3,7 +3,7 @@ import { formatPositionName } from '@/lib/utils'
 
 import type { AuswahlPosition } from './PositionAuswahlListe'
 import type { ReceiptPosition } from './Receipt'
-import type { PositionInput, PositionRef } from './schemas'
+import type { KommentiertePositionInput, PositionRef } from './schemas'
 
 // Minimale Positionsform, die toAuswahlPositionen benötigt (Position und
 // GebuchtePosition erfüllen sie beide).
@@ -99,20 +99,30 @@ export function aufrundenVorschlaege(gesamtCents: number): number[] {
   return [einEuro, fuenfEuro]
 }
 
+// Ein Positionskommentar landet getrimmt an Eingabe- und Belegzeile seiner
+// Variante; ein leerer fehlt, damit der Request dem ohne Kommentar gleicht.
 export function toBestellungData(
   products: Produkt[],
   ausgewaehlteMengen: Record<number, number>,
-): { receiptItems: ReceiptPosition[]; inputItems: PositionInput[] } {
+  positionsKommentare: Partial<Record<number, string>> = {},
+): {
+  receiptItems: ReceiptPosition[]
+  inputItems: KommentiertePositionInput[]
+} {
   const items = products.flatMap((p) =>
     p.varianten
       .filter((v) => (ausgewaehlteMengen[v.id] || 0) > 0)
-      .map((v) => ({
-        produktId: p.id,
-        varianteId: v.id,
-        name: formatPositionName(p.name, v.name),
-        einzelpreisCents: v.preisCents,
-        menge: ausgewaehlteMengen[v.id],
-      })),
+      .map((v) => {
+        const kommentar = positionsKommentare[v.id]?.trim() ?? ''
+        return {
+          produktId: p.id,
+          varianteId: v.id,
+          name: formatPositionName(p.name, v.name),
+          einzelpreisCents: v.preisCents,
+          menge: ausgewaehlteMengen[v.id],
+          ...(kommentar === '' ? {} : { kommentar }),
+        }
+      }),
   )
 
   return {
@@ -121,11 +131,13 @@ export function toBestellungData(
       name: i.name,
       einzelpreisCents: i.einzelpreisCents,
       menge: i.menge,
+      ...(i.kommentar === undefined ? {} : { kommentar: i.kommentar }),
     })),
     inputItems: items.map((i) => ({
       produktId: i.produktId,
       varianteId: i.varianteId,
       menge: i.menge,
+      ...(i.kommentar === undefined ? {} : { kommentar: i.kommentar }),
     })),
   }
 }
@@ -137,6 +149,7 @@ export function toReceiptItems(
     varianteName: string
     einzelpreisCents: number
     menge: number
+    kommentar?: string
   }[],
 ): ReceiptPosition[] {
   return positionen.map((p) => ({
@@ -144,6 +157,7 @@ export function toReceiptItems(
     name: formatPositionName(p.produktName, p.varianteName),
     einzelpreisCents: p.einzelpreisCents,
     menge: p.menge,
+    ...(p.kommentar ? { kommentar: p.kommentar } : {}),
   }))
 }
 

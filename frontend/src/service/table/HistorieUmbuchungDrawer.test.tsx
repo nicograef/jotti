@@ -54,7 +54,7 @@ const quelle: Bestellung = {
   userId: 1,
   userName: 'Nico',
   tischId: 1,
-  positionen: [position],
+  positionen: [{ ...position, kommentar: '' }],
   gesamtPreisCents: 700,
   kommentar: '',
   aufgenommenAm: '2026-06-18T12:00:00Z',
