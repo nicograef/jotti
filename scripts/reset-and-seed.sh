@@ -50,6 +50,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 require_docker_stack "$COMPOSE_FILE"
+require_rocks_stack
 
 if [[ "$ASSUME_YES" != "true" ]]; then
   echo ""

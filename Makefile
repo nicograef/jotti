@@ -8,7 +8,7 @@
        build-starter-windows build-relay-windows starter-syso release-windows \
        sqlc \
        prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore prod-backup-verify prod-harden prod-release \
-       rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup \
+       rocks-init rocks-up rocks-down rocks-logs rocks-reset-and-seed rocks-backup \
        local-up local-down local-logs \
        db-shell seed rebuild-projections \
        clean \
@@ -234,11 +234,6 @@ rocks-down: ## jotti.rocks Stack stoppen
 rocks-logs: ## jotti.rocks Stack Logs folgen
 	docker compose -f docker-compose.rocks.yml logs -f
 
-rocks-reset-db: ## jotti.rocks-DB zurücksetzen (Zertifikate bleiben erhalten) — nur Demo/Staging
-	docker compose -f docker-compose.rocks.yml down
-	docker volume rm jotti_postgres-data
-	docker compose -f docker-compose.rocks.yml up -d --build
-
 rocks-reset-and-seed: ## jotti.rocks-DB resetten + Seed einspielen (Zertifikate bleiben erhalten) — nur Demo/Staging
 	./scripts/reset-and-seed.sh --yes
 
@@ -430,7 +425,7 @@ CLASS_developer := init hooks up up-attached down restart logs status \
 	website-dev website-build website-test website-check website-screenshots help
 CLASS_production := prod-init prod-up prod-update prod-down prod-logs prod-backup prod-restore \
 	prod-backup-verify prod-harden prod-release \
-	rocks-init rocks-up rocks-down rocks-logs rocks-reset-db rocks-reset-and-seed rocks-backup
+	rocks-init rocks-up rocks-down rocks-logs rocks-reset-and-seed rocks-backup
 
 # Column the help text wraps at.
 HELP_WIDTH ?= 96

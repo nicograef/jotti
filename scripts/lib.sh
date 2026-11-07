@@ -77,6 +77,19 @@ require_docker_stack() {
   fi
 }
 
+# require_rocks_stack — fatals unless this host runs the jotti.rocks stack: .env
+# sets VPS_PUBLIC_IP and the container jotti-acme-dns exists. A self-hosted
+# server shares project name and volume jotti_postgres-data with the rocks stack,
+# so a rocks reset there would delete the production cash journal.
+require_rocks_stack() {
+  if ! grep -qE '^VPS_PUBLIC_IP=.+' .env 2>/dev/null; then
+    fatal "VPS_PUBLIC_IP missing or empty in .env: this is not the jotti.rocks server. See docs/jotti-rocks-infra.md."
+  fi
+  if ! docker inspect jotti-acme-dns &>/dev/null; then
+    fatal "Container jotti-acme-dns not found: this is not the jotti.rocks server."
+  fi
+}
+
 # wait_for_healthy CONTAINER — polls the Docker healthcheck for up to 60 s;
 # returns 1 if the container is not healthy by then.
 wait_for_healthy() {
