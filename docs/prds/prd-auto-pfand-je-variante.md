@@ -10,7 +10,7 @@ Die Servicekraft tippt es heute zu jedem Getränk und jeder Speise von Hand dazu
 - Vergisst die Servicekraft das Pfand, fehlt es im Verkauf.
 - Die Pfandrückgabe zahlt das Glas später trotzdem aus.
 - Je vergessenem Pfand fehlt der Kasse damit der Pfandbetrag.
-- Kein Verein hat diesen Wunsch bisher gemeldet; der Gläserpfand-Wunsch aus dem Feld betraf Rückgabe und Verrechnung.
+- Kein Verein hat diesen Wunsch gemeldet; der Gläserpfand-Wunsch aus dem Feld betraf Rückgabe und Verrechnung.
 
 ## Solution
 
@@ -31,7 +31,7 @@ Tippt die Servicekraft diese Variante, legt der Warenkorb je Stück ein Pfand da
 1. Als Servicekraft möchte ich, dass ein Getränk sein Glaspfand selbst mitbringt, damit ich es unter Zeitdruck nicht vergesse.
 2. Als Servicekraft möchte ich das automatisch hinzugefügte Pfand sehen, bevor ich absende, damit ich dem Gast den Betrag nennen kann.
 3. Als Servicekraft möchte ich das Pfand für einen Gast mit eigenem Glas zurücknehmen, damit er nichts doppelt zahlt.
-4. Als Servicekraft möchte ich beim Zurücknehmen eines Getränks auch sein Pfand verlieren, damit kein verwaistes Pfand bleibt.
+4. Als Servicekraft möchte ich, dass beim Zurücknehmen eines Getränks sein Pfand mitgeht, damit kein verwaistes Pfand bleibt.
 5. Als Servicekraft möchte ich Pfand weiter von Hand tippen, damit unverknüpfte Produkte und Sonderfälle gehen.
 6. Als Servicekraft möchte ich ohne Verknüpfung genauso bestellen wie heute, damit sich für Vereine ohne Pfand nichts ändert.
 7. Als Servicekraft im Direktverkauf möchte ich dasselbe Verhalten, damit Theke und Tisch gleich funktionieren.
@@ -50,7 +50,7 @@ Tippt die Servicekraft diese Variante, legt der Warenkorb je Stück ein Pfand da
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
 | A: Verknüpfung in den Stammdaten, der Warenkorb legt das Pfand sichtbar dazu | klein: eine Spalte, Variantendialog, Kopplung von Plus und Minus im Warenkorb                  | gering: Events, Bestell-API, Zahlung und Export bleiben unverändert                              | Feature entfernbar, die Spalte bleibt dann wirkungslos |
 | B: Verknüpfung in den Stammdaten, das Backend hängt das Pfand beim Buchen an | mittel: Anreicherung von Bestellung und Direktverkauf, dazu ein Abwahlfeld für das eigene Glas | mittel: gebuchte Bestellung weicht von der Vorschau ab; die Servicekraft sieht das Pfand zu spät | wie A, aber die Bestell-API ändert ihre Bedeutung      |
-| C: Pfandbetrag als Aufschlag am Preis der Variante, ohne eigene Position     | groß: neue Versionen der Verkaufs-Events, eigene Pfand-Zeilen im Export, Pfandrückgabe umbauen | hoch: bricht das Pfand-Kennzeichen je Position und die Pfandrückgabe als eigenen Vorgang         | jede neue Event-Version bleibt für immer lesepflichtig |
+| C: Pfandbetrag als Aufschlag am Preis der Variante, ohne eigene Position     | groß: neue Versionen der Verkaufs-Events, eigene Pfand-Zeilen im Export                        | hoch: bricht das Pfand-Kennzeichen je Position; die Rückgabe braucht ein nie verkauftes Pfand    | jede neue Event-Version bleibt für immer lesepflichtig |
 
 Gewählt ist A.
 
@@ -58,7 +58,7 @@ Gewählt ist A.
 - Das Pfand ist eine gewöhnliche Position; jeder nachgelagerte Vorgang behandelt es wie heute das getippte Pfand.
 - Die Servicekraft sieht und korrigiert das Pfand vor dem Absenden, auch beim eigenen Glas.
 - B versteckt das Pfand bis nach dem Buchen und braucht für das eigene Glas trotzdem ein neues Eingabefeld.
-- C widerspricht D19 und D20 und kostet ein Vielfaches.
+- C widerspricht D20 und kostet ein Vielfaches.
 
 Die Verknüpfung hängt an der Variante, nicht am Produkt.
 
@@ -91,7 +91,7 @@ Die Verknüpfung hängt an der Variante, nicht am Produkt.
 - Das sind: Variante anlegen oder ändern mit Verweis sowie Produkt ändern.
 - Beim Produkt prüft es jede Verknüpfung, die von seinen Varianten ausgeht oder auf sie zeigt.
 - So scheitert ein Steuersatzwechsel, der eine bestehende Verknüpfung bräche.
-- Ebenso scheitert das Abschalten des Pfand-Kennzeichens, solange Varianten auf das Produkt zeigen.
+- Ebenso scheitert das Abschalten des Pfand-Kennzeichens, solange nicht gelöschte Varianten auf das Produkt zeigen.
 - Ebenso scheitert das Einschalten, solange Varianten des Produkts selbst ein Pfand verknüpfen.
 - Der Katalog eines Vereins umfasst Dutzende Varianten; die Prüfung liest ihn deshalb vollständig.
 - Eine Verletzung beantwortet das Backend mit 400 und einem eigenen Fehlercode je Regel.
@@ -101,7 +101,7 @@ Die Verknüpfung hängt an der Variante, nicht am Produkt.
 
 - Löscht der Admin eine Pfand-Variante, entfernt dieselbe Transaktion alle Verweise auf sie.
 - Löscht er ein Pfand-Produkt, entfernt dieselbe Transaktion alle Verweise auf dessen Varianten.
-- Der Lösch-Dialog nennt dann zusätzlich: „Verknüpfte Varianten verlieren ihr Pfand."
+- Zeigen Varianten auf das Gelöschte, nennt der Lösch-Dialog zusätzlich: „Verknüpfte Varianten verlieren ihr Pfand."
 - Eine Verweigerung des Löschens schiede aus: Der Admin müsste jede verknüpfte Variante einzeln öffnen.
 - Deaktiviert der Admin eine Pfand-Variante, bleibt jeder Verweis erhalten.
 - Nach dem Reaktivieren wirkt die Verknüpfung wieder ohne neue Einrichtung.
@@ -127,7 +127,6 @@ Die Verknüpfung hängt an der Variante, nicht am Produkt.
 - Plus und Minus am Pfand selbst ändern nur das Pfand.
 - Damit bleiben das Tippen von Hand und das Abziehen für ein eigenes Glas erhalten.
 - Mehrere Varianten mit demselben Pfand summieren sich in dessen einer Warenkorbzeile.
-- Fehlt das Ziel in der geladenen Produktliste, legt Plus kein Pfand dazu.
 - Die Zeile einer verknüpften Variante zeigt unter dem Preis den Pfandbetrag, etwa „+ 2,00 € Pfand".
 - Abschluss und Vorschau zeigen das Pfand als eigene Position, wie heute das getippte.
 - Tisch-Bestellung und Direktverkauf nutzen dieselbe Kopplung.
@@ -155,6 +154,7 @@ Die Verknüpfung hängt an der Variante, nicht am Produkt.
 - Die Umbuchung verschiebt Pfand-Positionen wie jede Position.
 - Die Zahlungsauswahl wählt das Pfand nicht mit; „Alle auswählen" deckt den häufigsten Fall ab.
 - Der Arbeitsbon am Tisch druckt die Pfand-Position an der Station ihrer Kategorie, wie heute.
+- Wer keinen Pfand-Arbeitsbon will, legt das Pfand-Produkt in eine Kategorie ohne Druckstation.
 - Kein Event-Format, keine Event-Version, keine Projektion und kein Replay ändert sich.
 - Die Produktstatistik zählt die Pfand-Variante wie heute.
 
@@ -165,10 +165,10 @@ Getestet wird nur äußeres Verhalten an öffentlichen Schnittstellen; erwartete
 - Domäne: die Regel-Funktion als Tabelle. Fälle: gültig, Ziel ohne Pfand-Kennzeichen, Ziel gelöscht, Quelle ist Pfand-Produkt, Satz 19 % gegen 7 %, Kombi gegen Kombi gültig. Vorbild ist `variante_test.go`.
 - Repository gegen Postgres: Löschen einer Pfand-Variante und eines Pfand-Produkts entfernt die Verweise. Vorbild ist `delete_integration_test.go`.
 - Repository gegen Postgres: Der Service-Lesepfad liefert keinen Verweis auf eine inaktive Pfand-Variante, der Admin-Lesepfad schon.
-- Anwendung gegen Postgres: Steuersatzwechsel und Pfand-Kennzeichen aus scheitern bei bestehender Verknüpfung mit ihrem Fehlercode.
-- Fehlercodes: die neuen Codes im bestehenden Vertragstest der Fehlerabbildung.
+- Anwendung: Steuersatzwechsel und Pfand-Kennzeichen aus scheitern bei bestehender Verknüpfung mit ihrem Fehlercode. Vorbild ist `command_test.go`.
+- Fehlercodes: keine eigenen; der bestehende Vertragstest der Fehlerabbildung erzwingt einen Code je neuem Fehler.
 - Migration: keine eigenen; Frischinstallation und Upgrade-Pfad decken die bestehenden Integrations- und CI-Läufe ab.
-- Frontend: die Kopplungsfunktion als Tabelle. Fälle: Plus, Minus, Boden bei null, zwei Varianten mit einem Pfand, Pfand von Hand, Ziel fehlt. Vorbild ist `use-mengen.test.ts`.
+- Frontend: die Kopplungsfunktion als Tabelle. Fälle: Plus, Minus, Boden bei null, zwei Varianten mit einem Pfand, Pfand von Hand. Vorbild ist `use-mengen.test.ts`.
 - Bestellabschluss: Plus auf eine verknüpfte Variante sendet Variante und Pfand im Request. Vorbild ist `BestellungTab.test.tsx`.
 - Direktverkauf: derselbe Fall in `DirektverkaufTab.test.tsx`.
 - Admin: Das Pfand-Feld fehlt ohne passende Pfand-Variante und bietet nur den gleichen Steuersatz an. Vorbild ist `Products.test.tsx`.
@@ -206,5 +206,5 @@ Die Wahl von Ansatz A gehört nach der Freigabe als Zeile in `docs/decisions.md`
 Offene Entscheidungen für den Owner:
 
 1. Bauen ohne Feldnachfrage: Kein Verein hat Auto-Pfand gemeldet. Empfohlen ist die Freigabe. Ohne Verknüpfung ändert sich nichts. Vereine mit Pfand sparen je Getränk einen Tipp, und kein Pfand geht mehr vergessen. Rückfall: warten, bis ein Verein danach fragt.
-2. Abholbon im Direktverkauf: Im Bonmodus „pro Stück" druckt jedes Pfand einen eigenen Abholbon, mit Auto-Pfand bei jedem Getränk. Empfohlen: Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release. Der Direktverkauf trägt das Pfand-Kennzeichen je Position bereits im Event. Rückfall: Abholbon unverändert lassen.
+2. Abholbon im Direktverkauf: Pfand druckt heute eigene Abholbons, „pro Position" einen je Verkauf, „pro Stück" einen je Glas. Mit Auto-Pfand trifft das jeden Getränkeverkauf. Empfohlen: Der Abholbon lässt Pfand-Positionen in jedem Bonmodus weg, im selben Release. Der Direktverkauf trägt das Pfand-Kennzeichen je Position bereits im Event. Rückfall: Abholbon unverändert lassen.
 3. Kombi-Produkte: Die Regel „gleicher Steuersatz" erlaubt einem Kombi-Produkt nur ein Kombi-Pfand. Das BMF-Schreiben vom 20.10.2014 regelt Pfand zu einem 70/30-pauschalierten Menü nicht. Empfohlen: die Regel ohne Sonderfall lassen und keinen Kombi-Rat im Leitfaden geben. Rückfall: Kombi-Produkte von der Verknüpfung ausschließen.
