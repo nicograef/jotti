@@ -41,7 +41,7 @@ function makeBetreiber(overrides: Partial<Betreiber> = {}): Betreiber {
 
 const kassenidentitaet: Kassenidentitaet = {
   seriennummer: 'a3f8c2e1-7b94-4d06-9e2a-51c8f0b7d3a9',
-  angelegtAm: '2026-07-01',
+  angelegtAm: '2026-07-01T10:00:00Z',
 }
 
 const liveTse: TSEStatus = { umgebung: 'LIVE', istKonfiguriert: true }
@@ -169,6 +169,9 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
       screen.getByText('Seriennummer des elektronischen Aufzeichnungssystems'),
     ).toBeInTheDocument()
     expect(screen.getByText(kassenidentitaet.seriennummer)).toBeInTheDocument()
+    expect(
+      screen.getByText('Inbetriebnahme (für ELSTER): 01.07.2026'),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Als erledigt markieren' }),
     ).toBeInTheDocument()

@@ -258,6 +258,14 @@ export function EinrichtungSection() {
                         )}
                       </Button>
                     </div>
+                    {/* Lokale Zeit: der Tag des ersten Starts beim Verein, nicht in UTC. */}
+                    <span className="text-xs text-muted-foreground">
+                      Inbetriebnahme (für ELSTER):{' '}
+                      {new Date(kassenidentitaet.angelegtAm).toLocaleDateString(
+                        'de-DE',
+                        { day: '2-digit', month: '2-digit', year: 'numeric' },
+                      )}
+                    </span>
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-3">

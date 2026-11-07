@@ -22,8 +22,8 @@ So geht ihr vor:
 2. Das Formular „Mitteilung über elektronische Aufzeichnungssysteme" ausfüllen.
 3. Absenden und die Bestätigung aufbewahren.
 
-Kassen-Seriennummer und die Betreiberdaten stehen im jotti-Admin-Bereich. Als
-Inbetriebnahmedatum gilt der Tag, an dem ihr jotti das erste Mal gestartet habt.
+Kassen-Seriennummer, Inbetriebnahmedatum und Betreiberdaten stehen im
+jotti-Admin-Bereich unter „Finanzamt & TSE".
 
 Die Zertifizierungs-ID und die Seriennummer der TSE entnehmt ihr eurem fiskaly-HUB
 (bei eurer TSS).
