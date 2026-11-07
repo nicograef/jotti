@@ -215,3 +215,76 @@ func TestDeactivateAlleVarianten(t *testing.T) {
 		}
 	}
 }
+
+// schreibZaehler counts the Varianten writes, so a rejected Pfand-Verknüpfung can prove it wrote nothing.
+type schreibZaehler struct {
+	*repotest.ProduktRepo
+	schreibvorgaenge int
+}
+
+func (s *schreibZaehler) CreateVariante(ctx context.Context, produktID int, v produkt.Variante) (int, error) {
+	s.schreibvorgaenge++
+	return s.ProduktRepo.CreateVariante(ctx, produktID, v)
+}
+
+func (s *schreibZaehler) UpdateVariante(ctx context.Context, v produkt.Variante) error {
+	s.schreibvorgaenge++
+	return s.ProduktRepo.UpdateVariante(ctx, v)
+}
+
+func TestVariantePfandVerknuepfung(t *testing.T) {
+	bierVariante := produkt.Variante{ID: 10, Name: "0,5 l", PreisCents: 400, Status: produkt.ActiveStatus}
+	glas := produkt.Variante{ID: 20, Name: "Glas", PreisCents: 200, Status: produkt.ActiveStatus}
+	teller := produkt.Variante{ID: 30, Name: "Teller", PreisCents: 300, Status: produkt.ActiveStatus}
+	bier := produkt.Produkt{ID: 1, Name: "Bier", Steuersatz: steuer.RegelSteuersatz, Status: produkt.ActiveStatus, Varianten: []produkt.Variante{bierVariante}}
+	glasPfand := produkt.Produkt{ID: 2, Name: "Glaspfand", Steuersatz: steuer.RegelSteuersatz, Pfand: true, Status: produkt.ActiveStatus, Varianten: []produkt.Variante{glas}}
+	tellerPfand := produkt.Produkt{ID: 3, Name: "Tellerpfand", Steuersatz: steuer.ErmaessigtSteuersatz, Pfand: true, Status: produkt.ActiveStatus, Varianten: []produkt.Variante{teller}}
+
+	ptr := func(id int) *int { return &id }
+	cases := []struct {
+		name    string
+		aendern bool
+		pfand   int
+		wantErr error
+	}{
+		{"anlegen mit gültigem Pfand", false, glas.ID, nil},
+		{"anlegen mit Steuersatzbruch", false, teller.ID, ErrPfandSteuersatzAbweichend},
+		{"ändern mit gültigem Pfand", true, glas.ID, nil},
+		{"ändern mit Steuersatzbruch", true, teller.ID, ErrPfandSteuersatzAbweichend},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			repo := &schreibZaehler{ProduktRepo: repotest.NewProduktRepo([]produkt.Produkt{bier, glasPfand, tellerPfand}, nil)}
+			for _, p := range []produkt.Produkt{bier, glasPfand, tellerPfand} {
+				repo.AddVariante(p.ID, p.Varianten[0])
+			}
+			cmd := Command{ProduktRepo: repo}
+
+			varianteID := bierVariante.ID
+			var err error
+			if tc.aendern {
+				err = cmd.UpdateVariante(ctx, varianteID, "0,5 l", 400, ptr(tc.pfand))
+			} else {
+				varianteID, err = cmd.CreateVariante(ctx, bier.ID, "0,3 l", 300, ptr(tc.pfand))
+			}
+
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("expected %v, got %v", tc.wantErr, err)
+			}
+			if tc.wantErr != nil {
+				if repo.schreibvorgaenge != 0 {
+					t.Errorf("expected no write, got %d", repo.schreibvorgaenge)
+				}
+				return
+			}
+			gespeichert, err := repo.GetVariante(ctx, varianteID)
+			if err != nil {
+				t.Fatalf("failed to get variante %d: %v", varianteID, err)
+			}
+			if gespeichert.PfandVarianteID == nil || *gespeichert.PfandVarianteID != tc.pfand {
+				t.Errorf("expected PfandVarianteID %d, got %v", tc.pfand, gespeichert.PfandVarianteID)
+			}
+		})
+	}
+}
