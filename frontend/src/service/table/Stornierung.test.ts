@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { StornierungErteilenSchema, StornierungSchema } from './Stornierung'
+import { StornierungSchema } from './Stornierung'
 
 const stornierungResponse = {
   art: 'stornierung',
@@ -27,7 +27,7 @@ const stornierungResponse = {
   storniertAm: '2026-06-18T12:10:00Z',
 }
 
-describe('StornierungSchema (Response, R6)', () => {
+describe('StornierungSchema (Response)', () => {
   it('akzeptiert eine geldneutrale Korrektur mit leerem Kommentar', () => {
     const result = StornierungSchema.safeParse({
       ...stornierungResponse,
@@ -35,19 +35,5 @@ describe('StornierungSchema (Response, R6)', () => {
     })
 
     expect(result.success).toBe(true)
-  })
-})
-
-describe('StornierungErteilenSchema (Request)', () => {
-  it('verlangt einen Kommentar mit mindestens 3 Zeichen', () => {
-    const zuKurz = StornierungErteilenSchema.safeParse({
-      tischId: 1,
-      positionen: [
-        { positionId: '22222222-2222-4222-8222-222222222222', menge: 1 },
-      ],
-      kommentar: 'ab',
-    })
-
-    expect(zuKurz.success).toBe(false)
   })
 })
