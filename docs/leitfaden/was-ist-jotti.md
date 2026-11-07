@@ -14,9 +14,9 @@ Nutzungsvereinbarung mit dem Autor ab (siehe [Lizenzmodell](../lizenzmodell.md))
 Danach müsst ihr als Verein drei Dinge selbst erledigen:
 
 1. Bei [fiskaly](https://www.fiskaly.com/de/signde) ein Konto für die TSE anlegen und die Schlüssel in jotti eintragen (TSE = manipulationssicheres Signaturmodul für Kassensysteme).
-2. Eure Kasse beim Finanzamt anmelden (online über ELSTER). Dafür braucht ihr die Seriennummer, die jotti euch im Admin-Bereich anzeigt.
+2. Eure Kasse beim Finanzamt anmelden (online über ELSTER, siehe [Kasse beim Finanzamt anmelden](finanzamt-anmelden.md)).
 3. Alle Kassendaten 10 Jahre aufbewahren (regelmäßige Backups).
 
 **Was kostet uns das?** jotti selbst ist für euch kostenlos. Laufende Kosten
-entstehen nur für die TSE von fiskaly und ggf. für einen Server (ca. 6 € pro Monat).
-Den aktuellen TSE-Preis erfragt ihr bei fiskaly.
+entstehen nur für die TSE von fiskaly und ggf. für einen Server (siehe
+[Häufige Fragen](haeufige-fragen.md)).

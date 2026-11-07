@@ -33,14 +33,12 @@ test.describe('Servicekraft bestellt und kassiert', () => {
     await bestellePosition(page, 'Bratwurst', 'Normal')
     await bestellePosition(page, 'Bratwurst', 'XXL')
 
-    // Saldo im Tisch-Header (tischSaldo, siehe TablePage): so prüft die
-    // Assertion den tatsächlichen Restsaldo statt eines beliebigen
-    // gleichlautenden Betrags irgendwo auf der Seite.
-
     // Nur die Bratwurst Normal (3,50 €) kassieren — die Bratwurst XXL bleibt
     // unbezahlt, der Tisch zeigt den Restsaldo.
     await kassierePosition(page, NORMAL)
 
+    // tischSaldo prüft den Restsaldo im Tisch-Header, keinen gleichlautenden
+    // Betrag anderswo auf der Seite.
     await expect(tischSaldo(page)).toHaveText('5,00 €')
 
     // Jetzt auch die Bratwurst XXL kassieren — der Tisch gleicht sich aus.

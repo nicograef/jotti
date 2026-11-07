@@ -26,7 +26,7 @@ import (
 )
 
 type Deps struct {
-	// Version geht als KASSE_SW_VERSION in den DSFinV-K-Export; per ldflags gesetzt ("dev" in der Entwicklung).
+	// Version geht als KASSE_SW_VERSION in den DSFinV-K-Export.
 	Version             string
 	UserRepo            user_repo.Repository
 	ProduktRepo         produkt_repo.Repository

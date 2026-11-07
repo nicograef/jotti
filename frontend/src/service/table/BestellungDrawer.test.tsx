@@ -104,9 +104,7 @@ describe('BestellungDrawer', () => {
     )
     const dialog = await screen.findByRole('dialog')
 
-    // Das optionale Kommentarfeld ist das erste Feld im Drawer. Beim Öffnen darf
-    // KEIN Eingabefeld den Fokus erhalten — sonst öffnet sich auf dem Handy
-    // ungefragt die Tastatur (zentrale onOpenAutoFocus-Unterdrückung im Drawer).
+    // Das optionale Kommentarfeld ist das erste Feld im Drawer.
     const kommentar = screen.getByPlaceholderText(/Kommentar/)
     expect(kommentar).not.toHaveFocus()
     const active = document.activeElement

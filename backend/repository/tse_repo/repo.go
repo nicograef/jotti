@@ -13,7 +13,7 @@ import (
 )
 
 // MaxSignaturVersuche is the number of order-specific failures (tse.AuftragsFehler) that make a Signaturauftrag fehlgeschlagen.
-// They are near-deterministic, so the 5 s/15 s backoff ends a poison order before tse.RueckstandSchwelle opens a Rückstand;
+// They are near-deterministic, so the backoff ends a poison order before tse.RueckstandSchwelle opens a Rückstand;
 // TSE-wide failures never count here (docs/handbuch.md §3.13).
 const MaxSignaturVersuche = 3
 

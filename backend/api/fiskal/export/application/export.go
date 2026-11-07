@@ -46,8 +46,7 @@ type tseRepo interface {
 }
 
 type tischRepo interface {
-	// GetAlleTischNamen must include deleted tables: the export names the
-	// Abrechnungskreise of past sessions, and a table may be deleted after the Tagesabschluss.
+	// GetAlleTischNamen must include deleted tables.
 	GetAlleTischNamen(ctx context.Context) (map[int]string, error)
 }
 
@@ -57,8 +56,7 @@ type Export struct {
 	BetreiberRepo       betreiberRepo
 	TSERepo             tseRepo
 	TischRepo           tischRepo
-	// Version is the jotti build version set via ldflags, exported as KASSE_SW_VERSION
-	// in cashregister.csv.
+	// Version is the jotti build version, exported as KASSE_SW_VERSION in cashregister.csv.
 	Version string
 }
 

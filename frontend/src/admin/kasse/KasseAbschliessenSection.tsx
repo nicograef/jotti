@@ -303,9 +303,8 @@ export function KasseAbschliessenSection({
     control: form.control,
     name: 'istBestandCents',
   })
-  // Anzeige-Differenz als Ist − Soll: negativ = Fehlbetrag, positiv =
-  // Überschuss. Das gebuchte Event trägt Soll − Ist (siehe
-  // kassensitzung_events.go); nur das Anzeige-Vorzeichen ist gedreht.
+  // Anzeige-Differenz als Ist − Soll: negativ = Fehlbetrag, positiv = Überschuss.
+  // Das gebuchte Event trägt Soll − Ist (`abschlussBestand.differenzCents`); nur das Anzeige-Vorzeichen ist gedreht.
   const liveDifferenzCents =
     sollBestandCents === null ? null : gezaehltCents - sollBestandCents
 

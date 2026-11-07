@@ -7,12 +7,9 @@ description: 'Experten-Weg: jotti auf einem eigenen VPS mit Domain und HTTPS bet
 > Grundkenntnisse mit Linux und Kommandozeile voraus. Wer alle Helfer beim Fest vor
 > Ort im selben WLAN hat, bleibt beim [Standardweg](installation.md).
 
-Wer jotti auch außerhalb des lokalen WLANs erreichen will, betreibt es auf einem
-eigenen kleinen Server, einem VPS. Das gilt für den Betrieb über das Internet, an
-mehreren Standorten oder ohne einen Rechner vor Ort.
-
-Dann erreichen alle Helfer jotti über eine Internet-Adresse (Domain) mit
-Verschlüsselung (HTTPS).
+Ein eigener kleiner Server (VPS) trägt den Betrieb über das Internet, an mehreren
+Standorten oder ohne Rechner vor Ort. Alle Helfer erreichen jotti dann über eine
+Domain mit HTTPS.
 
 jotti ist genügsam. Schon ein kleiner VPS (2 vCPU, 2 GB RAM, 20 GB SSD, Linux)
 reicht für ein durchschnittliches Vereinsfest.
@@ -97,8 +94,4 @@ auf HTTPS um.
 
 `make prod-init` gibt beim ersten Start einen einmaligen, 6-stelligen
 Anmelde-Code aus. Damit meldet ihr euch an wie unter
-[Installation und Start](installation.md#erster-login) beschrieben:
-
-- Benutzername `admin`
-- „Neues Passwort festlegen"
-- Code eingeben und ein eigenes Passwort setzen
+[Installation und Start](installation.md#erster-login) beschrieben.

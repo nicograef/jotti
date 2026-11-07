@@ -9,17 +9,13 @@ import {
 } from '../support/servicekraft'
 import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
-// Viewport-Regression für den Raster-Basisspalten-Sweep. Die Listen
-// der Servicekraft-Screens nutzen Grids, deren Spalten erst am Breakpoint (lg/
-// 2xl) greifen; ohne Basis-Track (`grid-cols-1`) sizen die impliziten Grid-Tracks
-// am Handy auf max-content und lange, nicht umbrechende Inhalte (Titel mit
-// `truncate`, lange Positions-Zusammenfassungen) sprengen die Seitenbreite. Mit
-// der Basis `grid-cols-1` (= `minmax(0,1fr)`) bleibt der Track auf die
-// Containerbreite gedeckelt und die Inhalte kürzen sich statt überzulaufen. Der
-// Test misst pro Screen den horizontalen Seiten-Überlauf am 390px-Viewport.
+// Viewport-Regression der Servicekraft-Listen. Ihre Grids setzen Spalten erst am
+// Breakpoint (lg/2xl). Ohne Basis-Track `grid-cols-1` sizen die impliziten Tracks
+// am Handy auf max-content, und lange, nicht umbrechende Inhalte sprengen die
+// Seitenbreite. `grid-cols-1` (= `minmax(0,1fr)`) deckelt den Track auf die
+// Containerbreite. Der Test misst je Screen den horizontalen Überlauf bei 390 px.
 
-// Schmaler Hochkant-Viewport (390px Breite) — enger als der Pixel-7-Default und
-// die im Audit dokumentierte Referenzbreite für den Überlauf-Check.
+// Schmaler Hochkant-Viewport (390 px), enger als der Pixel-7-Default.
 test.use({ viewport: { width: 390, height: 844 } })
 
 test.describe('Kein horizontaler Überlauf der Servicekraft-Screens bei 390px', () => {

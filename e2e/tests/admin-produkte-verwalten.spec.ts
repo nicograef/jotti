@@ -54,7 +54,6 @@ test.describe('Admin verwaltet Produkte und Varianten', () => {
       page.getByRole('heading', { name: 'Produkte & Preise' }),
     ).toBeVisible()
 
-    // Neues Produkt anlegen.
     await page.getByRole('button', { name: 'Neues Produkt' }).click()
     const newProductDialog = page.getByRole('dialog')
     await newProductDialog.getByLabel('Name').fill('Eistee')

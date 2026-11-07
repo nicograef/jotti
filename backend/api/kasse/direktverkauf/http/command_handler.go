@@ -25,7 +25,6 @@ type CommandHandler struct {
 	Command command
 }
 
-// kasseFehler opens every Kasse handler's table: a stale write or a closed Kasse is a 409.
 var kasseFehler = []helper.ErrorCode{
 	{Err: application.ErrConflict, Code: "conflict", Status: http.StatusConflict},
 	{Err: application.ErrKasseWirdAbgeschlossen, Code: "kasse_wird_abgeschlossen", Status: http.StatusConflict},

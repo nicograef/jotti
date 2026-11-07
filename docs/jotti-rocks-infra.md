@@ -167,16 +167,8 @@ Das Backup läuft manuell vom Laptop aus, zum Beispiel auf eine externe Platte:
 make rocks-backup DEST=/media/<platte>/jotti-rocks
 ```
 
-Das Skript `scripts/rocks-backup.sh` zieht per SSH ein `sqlite3 .backup` der Datenbank.
-Es prüft die Kopie auf dem VPS mit `PRAGMA integrity_check`. Danach kopiert es die Datei
-als `acme-dns-<Zeitstempel>.db` per rsync ins Zielverzeichnis.
-
 Auf dem VPS muss `rsync` installiert sein. Der SSH-Benutzer braucht die Gruppe `docker`,
-kein Root-Login. Die Datenbank liest ein Wegwerf-Container (`alpine`) über einen
-schreibgeschützten Mount des Volumes.
-
-Host, SSH-Optionen und Volume sind über `ROCKS_SSH_HOST`, `ROCKS_SSH_OPTS` und
-`ROCKS_ACMEDNS_VOLUME` einstellbar (`./scripts/rocks-backup.sh` ohne Argument zeigt sie).
+kein Root-Login. Zieldatei und Umgebungsvariablen nennt `./scripts/rocks-backup.sh` ohne Argument.
 
 Wiederherstellungsprobe nach jedem Backup: die Zahl der Registrierungen in der Kopie muss
 der auf dem VPS entsprechen.

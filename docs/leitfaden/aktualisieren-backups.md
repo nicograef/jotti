@@ -40,10 +40,7 @@ wegen der gesetzlichen 10-Jahre-Aufbewahrung.
   `BACKUP_DIR` (Standard `./backups`) und behält die neuesten `BACKUP_KEEP` Stück.
 - **Wiederherstellen:** `make prod-restore` fragt eine Bestätigung ab und spielt das
   neueste Backup zurück. Das überschreibt die aktuelle Datenbank. Einen bestimmten
-  Dump stellt ihr per Argument wieder her: `./scripts/prod-restore.sh <datei>`. Die
-  Bestätigung nennt Dump und Compose-Datei; standardmäßig `docker-compose.prod.yml`,
-  über `COMPOSE_FILE` auf einen anderen Stack umstellbar (gilt ebenso für
-  `make prod-backup`).
+  Dump stellt ihr per Argument wieder her: `./scripts/prod-restore.sh <datei>`.
 - **Prüfen (gelegentlich):** `make prod-backup-verify` spielt das neueste Backup
   in einen Wegwerf-Postgres ein und meldet die Zahl der Kassenjournal-Einträge.
   Ein leeres Kassenjournal gilt als Fehler. So wisst ihr, dass

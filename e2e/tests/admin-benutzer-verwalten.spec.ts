@@ -20,7 +20,6 @@ test.describe('Admin verwaltet Helfer', () => {
       page.getByRole('heading', { name: 'Helfer & Zugänge' }),
     ).toBeVisible()
 
-    // Neuen Helfer anlegen.
     await page.getByRole('button', { name: 'Neuer Helfer' }).click()
     const newDialog = page.getByRole('dialog')
     await newDialog.getByLabel('Name', { exact: true }).fill('Petra Neumann')
@@ -41,8 +40,6 @@ test.describe('Admin verwaltet Helfer', () => {
     const code = await createdDialog
       .getByTestId('onetime-password')
       .textContent()
-    // Das Einmalpasswort ist ein sechsstelliger Zifferncode (siehe
-    // ADMIN-EINMALPASSWORT-Format); die Assertion prüft genau dieses Format.
     expect(
       code?.trim(),
       'Einmalpasswort muss sechsstelliger Zifferncode sein',

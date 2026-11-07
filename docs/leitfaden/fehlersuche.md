@@ -100,8 +100,11 @@ ganz normal weiter. Alle in der Ausfallzeit gebuchten Vorgänge signiert es
 automatisch nach, sobald die Verbindung zur TSE zurück ist.
 
 Die Störung wird dabei automatisch dokumentiert; nachsignierte Belege tragen den
-Vermerk „Nachsigniert am …". Ihr müsst nichts weiter tun, nur die
-Internetverbindung wiederherstellen (Router prüfen, ggf. neu starten).
+Vermerk „Nachsigniert am …".
+
+Kurze Ausfälle heilen von selbst. Meldet „Finanzamt & TSE" unter „Läuft alles?"
+weiter wartende oder fehlgeschlagene Vorgänge, behebt die Ursache unverzüglich.
+Prüft Internet und Router (ggf. neu starten), eine Störung bei fiskaly und die TSE-Zugangsdaten.
 
 ## Nach einem Update startet jotti nicht mehr
 
@@ -112,10 +115,11 @@ alten Version.
 jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung ab.
 Eure Daten sind dabei nicht verloren. Es gibt zwei datenerhaltende Wege zurück:
 
-1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern. Am Ende
-   weist es darauf hin, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
-   schadet nicht. Danach einmal neu anmelden.
+1. **`jotti-repair.cmd`** doppelklicken und die Rückfrage `Fortfahren? (j/N)` mit
+   `j` beantworten. Es gleicht das Datenbank-Passwort an den aktuellen
+   Installations-Schlüssel an, ohne eure Daten zu verändern. Danach
+   `jotti-start.exe` doppelklicken und einmal neu anmelden. Mehrfaches Ausführen
+   schadet nicht.
 2. Habt ihr noch die **`.env` aus der alten Installation**, kopiert ihr sie nach
    `C:\ProgramData\jotti\.env` und startet `jotti-start.exe` erneut. Dann verwendet
    jotti wieder den ursprünglichen Schlüssel.

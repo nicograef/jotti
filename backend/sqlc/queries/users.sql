@@ -7,9 +7,6 @@ SELECT id, name, username, role, status, password_hash, onetime_password_hash, o
 FROM users WHERE username = $1 AND status != 'deleted';
 
 -- name: GetUserByUsernameForUpdate :one
--- Wie GetUserByUsername, aber mit Zeilensperre (FOR UPDATE): serialisiert
--- konkurrierende Set-Password-Versuche für denselben Benutzer, damit der
--- Fehlversuchszähler nicht unterzählt.
 SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE username = $1 AND status != 'deleted' FOR UPDATE;
 

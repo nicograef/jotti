@@ -117,8 +117,6 @@ func Erstellungszeitpunkt(events []event.Event, fallback time.Time) time.Time {
 	return fallback
 }
 
-// --- Helpers ---
-
 // truncateRunes cuts wert to maxLength runes, as the official field lengths count
 // characters; only stored values that skipped write validation (TEXT columns) exceed
 // them. Steuernummer and USt-IdNr. are never cut: a truncated number is a wrong one.

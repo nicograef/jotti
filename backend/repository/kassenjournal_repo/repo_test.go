@@ -59,7 +59,6 @@ func insertEventRaw(db *sql.DB, e event.Event, kassensitzungNr int) (int, error)
 	return id, err
 }
 
-// newTestEvent creates a test event with the given parameters and version.
 func newTestEvent(userID int, eventType, subject string, version int, data any) event.Event {
 	e, _ := event.New(userID, "nico", eventType, subject, data)
 	e.Version = version
@@ -802,7 +801,7 @@ func TestWriteEventsAtomic_UmbuchungOCCConflictRollsBackBothSides(t *testing.T) 
 	}
 
 	// Zahlung für Quelltisch (Version 2), damit die Stornierung im Umbuchungs-Write
-	// nicht an gesamt_zahlungen_cents >= 0 scheitert (CHECK-Constraint v0.14.0).
+	// nicht am CHECK gesamt_zahlungen_cents >= 0 scheitert.
 	quellZahlung := newTestEvent(userID, "zahlung-kassiert:v1", quellSubject, 2, validZahlungData(quellPositionID, 2, 700))
 	if _, err := repo.WriteEvent(context.Background(), quellZahlung, kasse.StreamTypeTischSession, ksNr); err != nil {
 		t.Fatalf("Failed to write source zahlung: %v", err)
@@ -900,7 +899,6 @@ func TestGetMaxVersion(t *testing.T) {
 	subject1 := kasse.TischSessionSubject(ksNr, 1)
 	subject2 := kasse.TischSessionSubject(ksNr, 2)
 
-	// No events yet
 	version, err := repo.GetMaxVersion(context.Background(), subject1)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -909,7 +907,6 @@ func TestGetMaxVersion(t *testing.T) {
 		t.Errorf("Expected version 0 for empty subject, got %d", version)
 	}
 
-	// Add events
 	e1 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 1, map[string]any{"order": 1})
 	e2 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject1, 2, map[string]any{"order": 2})
 	e3 := newTestEvent(userID, "bestellung-aufgenommen:v1", subject2, 1, map[string]any{"order": 3})
@@ -918,7 +915,6 @@ func TestGetMaxVersion(t *testing.T) {
 	_, _ = insertEventRaw(repo.db, e2, ksNr)
 	_, _ = insertEventRaw(repo.db, e3, ksNr)
 
-	// Should return max version for subject1
 	version, err = repo.GetMaxVersion(context.Background(), subject1)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -927,7 +923,6 @@ func TestGetMaxVersion(t *testing.T) {
 		t.Errorf("Expected version 2, got %d", version)
 	}
 
-	// Should return max version for subject2
 	version, err = repo.GetMaxVersion(context.Background(), subject2)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -1307,8 +1302,7 @@ func validGeldtransitData(geldtransitID, richtung string, betragCents int, komme
 	}
 }
 
-// Invariant: Anfangsbestand + Bareinnahmen + Einlagen − Entnahmen = Soll-Bestand.
-// The journal covers every component, Warenrücknahme and Direktverkauf included.
+// Pins the kasse.Kassenbestand invariant, Warenrücknahme and Direktverkauf included.
 func TestGetKassenbestand_KomponentenErgebenSollBestand(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -1467,8 +1461,6 @@ func TestGetReportingStats_IncludesDirektverkaufMetrics(t *testing.T) {
 		t.Errorf("Expected direktverkauf_umsatz_cents 500, got %d", stats.DirektverkaufUmsatzCents)
 	}
 }
-
-// --- Projection integration tests ---
 
 func TestWriteEvent_WithTischSessionProjection(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
@@ -1631,8 +1623,6 @@ func TestWriteEvent_InvalidData_Rollback(t *testing.T) {
 	}
 }
 
-// --- Kassensitzung integration tests ---
-
 func TestWriteEvent_KassensitzungEroeffnet(t *testing.T) {
 	userID, ksNr, repo, teardown := setup(t)
 	defer teardown(t)
@@ -1701,8 +1691,6 @@ func TestWriteEvent_TagesabschlussErstellt(t *testing.T) {
 	}
 }
 
-// --- Projection rebuild integration tests ---
-
 func TestRebuildAllProjections_EmptyDB(t *testing.T) {
 	_, _, repo, teardown := setup(t)
 	defer teardown(t)
@@ -1764,7 +1752,6 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 		t.Errorf("Expected SaldoCents 0 after delete, got %d", emptyState.SaldoCents)
 	}
 
-	// Rebuild
 	count, err := repo.RebuildAllProjections(context.Background())
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -1773,13 +1760,11 @@ func TestRebuildAllProjections_RebuildsFromEvents(t *testing.T) {
 		t.Errorf("Expected 1 rebuilt subject, got %d", count)
 	}
 
-	// Read rebuilt state
 	rebuiltState, err := repo.ReadTischSession(context.Background(), subject)
 	if err != nil {
 		t.Fatalf("Expected no error reading rebuilt state, got %v", err)
 	}
 
-	// Verify it matches the expected state
 	if rebuiltState.SaldoCents != expectedState.SaldoCents {
 		t.Errorf("Expected SaldoCents %d, got %d", expectedState.SaldoCents, rebuiltState.SaldoCents)
 	}
@@ -1830,7 +1815,6 @@ func TestRebuildAllProjections_MultipleSubjects(t *testing.T) {
 
 	// No projections exist (raw insert bypasses them)
 
-	// Rebuild
 	count, err := repo.RebuildAllProjections(context.Background())
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)

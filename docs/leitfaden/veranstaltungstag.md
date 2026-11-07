@@ -39,6 +39,10 @@ Kassensturz am Abend geht auf.
 > nur zur Info an und bucht es nicht. Landet es trotzdem in der Kassenlade, geht
 > der Kassensturz am Abend nicht auf.
 
+> 💡 **Kassenbeleg nach jedem Verkauf.** Ohne bewilligte Befreiung tippt die Servicekraft
+> nach jedem Kassieren und Direktverkauf auf „Kassenbeleg drucken". Den Beleg bietet
+> sie dem Gast an (siehe [Belege und Steuersätze](belege-steuersaetze.md)).
+
 ## Nach dem Fest: Kasse abschließen
 
 Zählt am Ende das gesamte Bargeld in der Kasse und öffnet unter „Kassentag" den

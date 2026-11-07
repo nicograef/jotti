@@ -310,7 +310,7 @@ type TSESignaturauftragFehlversuchParams struct {
 }
 
 // TSESignaturauftragFehlversuch verbucht einen auftragsspezifischen
-// Fehlversuch mit Sekunden-Backoff (5 * 3^versuche: 5, 15, 45 s). Beim
+// Fehlversuch mit Sekunden-Backoff (5 * 3^versuche: 5 s, 15 s). Beim
 // max_versuche-ten Fehlversuch wechselt der Auftrag auf fehlgeschlagen und
 // wird nicht mehr automatisch versucht — die Kurve endet bewusst unter der
 // Rückstands-Schwelle, TSE-weite Fehler zählen nie auf den Auftrag.

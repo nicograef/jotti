@@ -90,7 +90,6 @@ func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
 	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
 	productMock.AddVariante(testProduct.ID, testVariant)
 	eventMock := repotest.NewKassenjournalRepo(nil, nil)
-	// no open KS set
 	command := Command{
 		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{testActiveTisch}, nil),
 		EventRepo:           eventMock,
@@ -178,8 +177,6 @@ func TestBestellungAufnehmen_Conflict(t *testing.T) {
 		t.Errorf("expected ErrConflict, got %v", err)
 	}
 }
-
-// --- Invariant Tests ---
 
 func TestBestellungAufnehmen_InactiveTisch(t *testing.T) {
 	ctx := context.Background()

@@ -4,8 +4,9 @@ description: 'Belegausgabepflicht beim Vereinsfest und die richtige Zuordnung de
 ---
 
 - **Belegausgabe:** Ohne bewilligte Befreiung gilt die Belegausgabepflicht
-  (§ 146a Abs. 2 Satz 1 AO). jotti muss für jeden Verkauf einen Beleg erstellen,
-  und ihr müsst ihn dem Gast anbieten. Für Vereinsfeste könnt ihr beim Finanzamt
+  (§ 146a Abs. 2 Satz 1 AO). jotti druckt den Kassenbeleg nicht von selbst. Tippt
+  deshalb nach jedem Kassieren und jedem Direktverkauf auf „Kassenbeleg drucken"
+  und bietet dem Gast den Beleg an. Für Vereinsfeste könnt ihr beim Finanzamt
   eine Befreiung von der Aushändigung beantragen. Grundlage ist der „Verkauf an
   eine Vielzahl nicht bekannter Personen" (§ 146a Abs. 2 Satz 2 AO). Sie gilt nicht automatisch: Das Finanzamt entscheidet im Einzelfall
   und setzt eine sachliche Härte voraus. Erst mit bewilligter Befreiung reicht es,

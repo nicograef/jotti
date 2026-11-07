@@ -6,8 +6,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 )
 
-// AbrechnungServicekraft is a Servicekraft's table-service cash settlement:
-// AbzugebenCents = KassiertCents − RuecknahmenCents − PfandCents, and it may turn negative. See docs/handbuch.md §7.2.
+// AbrechnungServicekraft is a Servicekraft's table-service cash settlement; AbzugebenCents: docs/handbuch.md §7.2.
 type AbrechnungServicekraft struct {
 	UserID              int
 	UserName            string // eingefrorener Username

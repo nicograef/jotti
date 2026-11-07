@@ -70,8 +70,7 @@ WHERE ks.status = 'abgeschlossen'
 ORDER BY ks.datum DESC, ks.created_at DESC;
 
 -- name: GetKassenbestand :one
--- Kassenbestand (Soll) samt Aufschlüsselung. Der Soll-Bestand ist die Summe aus
--- Anfangsbestand, Zahlungen, Warenrücknahmen, Pfandrückgaben, Geldtransits und Differenz-Buchungen.
+-- Kassenbestand (Soll) samt Aufschlüsselung.
 -- Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 -- geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 -- Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
@@ -83,8 +82,6 @@ ORDER BY ks.datum DESC, ks.created_at DESC;
 --                      − Pfandrückgaben + deren Stornierungen
 --   - einlagen       = geldtransit-gebucht:v1 mit richtung='einlage'
 --   - entnahmen      = geldtransit-gebucht:v1 mit richtung='entnahme'
--- Invariante (vor Kassensturz, also ohne Differenzbuchung):
---   anfangsbestand + bareinnahmen + einlagen − entnahmen = soll_bestand_cents.
 SELECT
     (
         COALESCE(SUM(kj_extract_eroeffnung_cents(type, data)), 0)::int

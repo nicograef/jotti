@@ -71,9 +71,7 @@ func (m UserRepo) UpdateUser(ctx context.Context, t user.User) error {
 	return m.err
 }
 
-// SetPasswordTx spiegelt den transaktionalen Repo-Pfad in-memory: Benutzer laden,
-// apply ausführen, Ergebnis persistieren. Der Fachfehler aus apply wird nach der
-// (simulierten) Persistenz zurückgegeben.
+// SetPasswordTx spiegelt user_repo.Repository.SetPasswordTx in-memory.
 func (m UserRepo) SetPasswordTx(ctx context.Context, username string, apply func(*user.User) error) error {
 	if m.err != nil {
 		return m.err

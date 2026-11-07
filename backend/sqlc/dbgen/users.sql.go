@@ -195,9 +195,6 @@ type GetUserByUsernameForUpdateRow struct {
 	SitzungenGueltigAb      sql.NullTime
 }
 
-// Wie GetUserByUsername, aber mit Zeilensperre (FOR UPDATE): serialisiert
-// konkurrierende Set-Password-Versuche für denselben Benutzer, damit der
-// Fehlversuchszähler nicht unterzählt.
 func (q *Queries) GetUserByUsernameForUpdate(ctx context.Context, username string) (GetUserByUsernameForUpdateRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByUsernameForUpdate, username)
 	var i GetUserByUsernameForUpdateRow

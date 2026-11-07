@@ -37,7 +37,7 @@ function BerichtsMeta({
     )
   }
   if (metadaten.kassensturzDifferenzCents !== null) {
-    // Das Event trägt Soll − Ist (siehe kassensitzung_events.go); angezeigt
+    // Das Event trägt Soll − Ist (`abschlussBestand.differenzCents`); angezeigt
     // wird die Kassenperspektive Ist − Soll: negativ = Fehlbetrag.
     teile.push(
       `Kassensturz-Differenz ${formatEuroMitVorzeichen(-metadaten.kassensturzDifferenzCents)}`,

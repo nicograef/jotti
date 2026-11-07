@@ -9,7 +9,8 @@ description: 'Alle einmaligen und laufenden Pflichten für den jotti-Betrieb auf
       [Lizenzmodell](../lizenzmodell.md))
 - [ ] fiskaly-Konto registriert, API-Key und API-Secret erstellt und sicher notiert
       (siehe [TSE einrichten](tse-einrichten.md))
-- [ ] TSE in TEST einmal komplett durchgespielt
+- [ ] TSE in TEST auf einer Übungsinstallation (anderer Rechner) komplett
+      durchgespielt; der Kassenrechner enthält keine Übungsverkäufe
 - [ ] LIVE-TSS (die TSE im fiskaly-Konto) über den Assistenten eingerichtet
 - [ ] Admin-PUK und Admin-PIN sicher und dauerhaft verwahrt
 - [ ] Abschluss-Verbindungstest steht auf „Verbindung bestätigt"
@@ -17,7 +18,7 @@ description: 'Alle einmaligen und laufenden Pflichten für den jotti-Betrieb auf
       gepflegt
 - [ ] Produkte mit korrekten Steuersätzen angelegt
 - [ ] Tische angelegt
-- [ ] Benutzerkonten für die Helfer angelegt (Rollen service/serviceleitung)
+- [ ] Benutzerkonten für die Helfer angelegt (Rollen „Service" und „Serviceleitung")
 - [ ] Kasse innerhalb eines Monats nach Inbetriebnahme über ELSTER beim Finanzamt
       angemeldet (§ 146a Abs. 4 AO; siehe
       [Kasse beim Finanzamt anmelden](finanzamt-anmelden.md))
@@ -35,6 +36,8 @@ description: 'Alle einmaligen und laufenden Pflichten für den jotti-Betrieb auf
       getrennten Orten abgelegt
 - [ ] Daten werden 10 Jahre archiviert
 - [ ] Bei Stilllegung der Kasse: Abmeldung beim Finanzamt innerhalb eines Monats
+- [ ] Vor Stilllegung der TSS oder Ende des fiskaly-Vertrags: TSE-Export (TAR-Datei)
+      erstellt und archiviert (siehe [Datenaufbewahrung](datenaufbewahrung.md))
 
 **Zusätzlich beim Server-Betrieb (Experten-Weg):**
 

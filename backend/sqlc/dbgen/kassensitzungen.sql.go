@@ -244,8 +244,7 @@ type GetKassenbestandRow struct {
 	EntnahmenCents      int
 }
 
-// Kassenbestand (Soll) samt Aufschlüsselung. Der Soll-Bestand ist die Summe aus
-// Anfangsbestand, Zahlungen, Warenrücknahmen, Pfandrückgaben, Geldtransits und Differenz-Buchungen.
+// Kassenbestand (Soll) samt Aufschlüsselung.
 // Die kassenwirksame Warenrücknahme (stornierung-erteilt) gibt Bargeld zurück und mindert den Bestand;
 // geldneutrale Vorgänge (bestellung-korrigiert, bestellung-umgebucht) berühren den Kassenbestand nicht.
 // Die Differenz ist als Soll − Ist gebucht; ihre Bargeldwirkung ist Ist − Soll und wird deshalb
@@ -257,10 +256,6 @@ type GetKassenbestandRow struct {
 //     − Pfandrückgaben + deren Stornierungen
 //   - einlagen       = geldtransit-gebucht:v1 mit richtung='einlage'
 //   - entnahmen      = geldtransit-gebucht:v1 mit richtung='entnahme'
-//
-// Invariante (vor Kassensturz, also ohne Differenzbuchung):
-//
-//	anfangsbestand + bareinnahmen + einlagen − entnahmen = soll_bestand_cents.
 func (q *Queries) GetKassenbestand(ctx context.Context, kassensitzungNr int) (GetKassenbestandRow, error) {
 	row := q.db.QueryRowContext(ctx, getKassenbestand, kassensitzungNr)
 	var i GetKassenbestandRow

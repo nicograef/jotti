@@ -12,7 +12,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/tse"
 )
 
-// tseSetupWriteTimeout replaces the server's 10 s write deadline and budgets only the response write.
+// tseSetupWriteTimeout replaces the server's write deadline (docs/handbuch.md §6.2) and budgets only the response write.
 // The handlers reset it after the lifecycle, so the one-time PUK and admin PIN still reach the client.
 const tseSetupWriteTimeout = 2 * time.Minute
 

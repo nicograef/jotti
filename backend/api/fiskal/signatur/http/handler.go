@@ -28,7 +28,6 @@ type signaturQueueResponse struct {
 	SignierdauerP95Sekunden  float64 `json:"signierdauerP95Sekunden"`
 }
 
-// POST /admin/get-tse-signatur-queue
 func (h *QueryHandler) GetTSESignaturQueueHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		zustand, err := h.Query.GetTSESignaturQueueZustand(r.Context())
@@ -61,7 +60,6 @@ type getStoerungenResponse struct {
 	Stoerungen []stoerungDTO `json:"stoerungen"`
 }
 
-// POST /admin/get-tse-stoerungen
 func (h *QueryHandler) GetTSEStoerungenHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		stoerungen, err := h.Query.GetTSEStoerungen(r.Context())

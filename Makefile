@@ -120,7 +120,7 @@ fmt: fmt-backend fmt-frontend fmt-repo ## Backend, Frontend und Repo-Prettier fo
 
 # Build
 
-# Version-String fuer die Windows-Exes (per ldflags einkompiliert). Der
+# Version-String für die Windows-Exes (per ldflags einkompiliert). Der
 # Release-Workflow ruft die Targets mit VERSION=<tag> auf.
 VERSION ?= dev
 

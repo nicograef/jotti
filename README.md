@@ -50,8 +50,8 @@ Optionale Umgebungsvariablen:
 Bei nicht erreichbarem Drucker:
 
 - Pro Zyklus genau ein kurzer Zustellversuch (TCP-Timeout 2 s); den Fehlversuch meldet das Relay ans Backend.
-- Nach sechs gemeldeten Fehlversuchen markiert das Backend den Auftrag als `fehlgeschlagen` (im Admin unter »Bondrucker« sichtbar, dort erneut einreihbar oder verwerfbar).
-- Offene Aufträge stellt das Relay mit steigendem Abstand erneut zu: 5 s, 15 s, 30 s, 60 s, 180 s.
+- Wartezeiten und Fehlversuchs-Grenze setzt das Backend ([Handbuch §4.5](docs/handbuch.md#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
+- Fehlgeschlagene Aufträge stehen im Admin unter »Bondrucker«, dort erneut einreihbar oder verwerfbar.
 
 Schnelltest gegen den laufenden Stack:
 
@@ -62,34 +62,26 @@ curl -X POST http://localhost/api/relay/poll -H "Content-Type: application/json"
 
 ## Erster Login (Admin-Zugang)
 
-Beim ersten Start legt das Backend automatisch den Benutzer `admin` an und gibt ein einmaliges, sechsstelliges Anmelde-Passwort in seinem Log aus. Damit meldet ihr euch einmalig an und legt danach ein eigenes Passwort fest (»Neues Passwort festlegen«).
+Beim ersten Start legt das Backend den Benutzer `admin` an und gibt einen sechsstelligen Einmal-Code aus. Der Windows-Starter zeigt den Code im Konsolenfenster, `make prod-init` am Ende seiner Ausgabe. Sonst steht er im Backend-Log:
 
-Wo der Code steht, hängt vom Setup ab:
+```bash
+# Dev-Stack (make up)
+docker compose logs backend-dev | grep ADMIN-EINMALPASSWORT
+# Self-Hosting (make prod-init / make prod-up)
+docker compose -f docker-compose.prod.yml logs backend | grep ADMIN-EINMALPASSWORT
+```
 
-- **Windows-Release:** Der Starter zeigt den Code direkt im Konsolenfenster.
-- **Server per `make prod-init`:** Der Code wird am Ende der Ausgabe angezeigt.
-- **Manuelles `docker compose` (Entwicklung/Self-Hosting):** aus dem Backend-Log lesen:
-
-  ```bash
-  # Dev-Stack (make up)
-  docker compose logs backend-dev | grep ADMIN-EINMALPASSWORT
-  # Self-Hosting (make prod-init / make prod-up)
-  docker compose -f docker-compose.prod.yml logs backend | grep ADMIN-EINMALPASSWORT
-  ```
-
-Ausführliche Anleitung je nach Setup: [docs/leitfaden/installation.md](docs/leitfaden/installation.md) (Windows) und [docs/leitfaden/self-hosting.md](docs/leitfaden/self-hosting.md) (Server/VPS).
+Ablauf mit dem Code: [docs/leitfaden/installation.md](docs/leitfaden/installation.md#erster-login).
 
 ## Architektur
 
-Kasse-Operationen (Bestellungen, Zahlungen, Stornierungen, Umbuchungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert, Stammdaten nutzen klassisches CRUD. Alle API-Endpunkte sind `POST`; einzige Ausnahme ist `GET /health`, das für Container-Orchestrierung probebar bleibt.
+Kasse-Operationen (Bestellungen, Zahlungen, Stornierungen, Umbuchungen, Kassensitzungen) werden via **Event Sourcing** im Kassenjournal (append-only) persistiert, Stammdaten nutzen klassisches CRUD.
 
 Bounded Contexts, Aggregate, Invarianten und Design-Entscheidungen: [docs/handbuch.md](docs/handbuch.md).
 
 ## Für wen ist jotti?
 
-Eingetragene Vereine (e.V.) und andere Organisationen ohne Gewinnerzielungsabsicht mit ehrenamtlichen Teams (5–30 Helfer:innen), die temporäre Veranstaltungen im Bargeld-Betrieb abrechnen.
-
-Was jotti bewusst nicht ist und wofür es nicht taugt: [docs/produktbeschreibung.md](docs/produktbeschreibung.md).
+Zielgruppe, Einsatz und was jotti bewusst nicht ist: [docs/produktbeschreibung.md](docs/produktbeschreibung.md).
 
 > **Compliance-Hinweis:** Eine geprüfte Konformität wird nicht zugesichert. TSE-Pflicht, TSE-Anbieter und Betreiberpflichten: [docs/compliance.md](docs/compliance.md) und der [Leitfaden für Vereine](docs/leitfaden/was-ist-jotti.md).
 

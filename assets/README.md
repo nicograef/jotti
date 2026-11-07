@@ -24,9 +24,6 @@ Danach werden die benötigten Größen in die Kopien übernommen.
 | `jotti-logo-icon-light.png`             | Quadratisches App-Icon, abgerundet, Hintergrund Slate-50  | PWA-Startbildschirm-Icon (Light) im Manifest, Apple Touch Icon in App und Website       |
 | `jotti-symbol.png`                      | Freigestelltes J, transparenter Hintergrund               | Website (`website/src/assets/`, importiert von `Landing.astro` und `LiveDemo.tsx`)      |
 
-Die Master hier und die Kopien unter `website/` tragen den Spektral-Verlauf, die Kopien in
-`frontend/public/icons/` das grüne `J`. Die Vier-Stellen-Regel für Spektral im App-Frontend
-([D06](../docs/decisions.md)) deckt Wortmarke, Glows, Skeletons und Hairlines ab.
-
-Die Icon-Assets deckt sie nicht ab. Wer die Master ungeprüft in alle Kopien schiebt, tauscht
-das App-Favicon aus.
+Die Master hier und die Kopien unter `website/` tragen den Spektral-Verlauf, `frontend/public/icons/`
+das grüne `J`. Die Vier-Stellen-Regel ([D06](../docs/decisions.md)) deckt die Icon-Assets nicht ab.
+Wer die Master ungeprüft in alle Kopien schiebt, tauscht das App-Favicon aus.

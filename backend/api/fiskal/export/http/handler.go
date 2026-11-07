@@ -14,9 +14,8 @@ import (
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
-// exportWriteTimeout replaces the server's global 10-second write deadline
-// (backend/app/app.go) here: the DSFinV-K ZIP may take longer to send and must
-// not be cut silently, as it holds records subject to retention.
+// exportWriteTimeout replaces the server's write deadline (docs/handbuch.md §6.2): the DSFinV-K ZIP
+// may take longer to send and must not be cut silently, as it holds records subject to retention.
 const exportWriteTimeout = 5 * time.Minute
 
 type service interface {

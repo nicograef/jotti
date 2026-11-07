@@ -119,8 +119,7 @@ describe('ReportingResults', () => {
       }),
     ).toBeInTheDocument()
     expect(screen.getByText(/von nico/)).toBeInTheDocument()
-    // Das Event trägt Soll − Ist (-150 = Überschuss); der Bericht zeigt die
-    // Kassenperspektive Ist − Soll.
+    // Event Soll − Ist = -150 (Überschuss); der Bericht zeigt Ist − Soll.
     expect(
       screen.getByText(/Kassensturz-Differenz \+1,50 €/),
     ).toBeInTheDocument()

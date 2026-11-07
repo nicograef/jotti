@@ -1,6 +1,6 @@
 name: Release
 
-# Produktweite SemVer-Tags (v0.X.Y) auf main sind der einzige Publish-Mechanismus:
+# Produktweite SemVer-Tags (vX.Y.Z) auf main sind der einzige Publish-Mechanismus:
 # Tag-Push baut, smoke-testet, pusht die Images nach GHCR und veröffentlicht das
 # Windows-ZIP; Dispatch ist ein Dry-Run (Version dev-<shortsha>) ohne Publish.
 # Kein Test-Rerun: die CI war auf dem getaggten Commit bereits grün; geprüft wird

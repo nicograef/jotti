@@ -195,7 +195,7 @@ func pruefeTabelleDeklaration(t *xmlTable) (indexTabelle, []Befund) {
 }
 
 // pruefeTabelleFormat checks a table declaration against the official index.xml
-// (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/02_index.xml); see docs/compliance.md §6.2.
+// (docs/rechtsquellen/technik-spezifikationen/DSFinV-K-2.4/02_index.xml/index.xml); see docs/compliance.md §6.2.
 func pruefeTabelleFormat(tab indexTabelle) []Befund {
 	var befunde []Befund
 	add := func(regel, meldung string) {

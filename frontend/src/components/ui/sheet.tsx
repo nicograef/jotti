@@ -60,8 +60,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
-        // No autofocus on an input on open, so phones don't raise the keyboard unasked. Focus moves to the container
-        // instead (tabIndex -1 via Radix FocusScope), keeping focus trap, Escape and focus return intact.
+        // Same autofocus suppression as DialogContent in dialog.tsx.
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           if (event.currentTarget instanceof HTMLElement) {

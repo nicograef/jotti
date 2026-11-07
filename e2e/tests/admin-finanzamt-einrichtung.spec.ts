@@ -5,12 +5,10 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 import { erwarteKeinenHorizontalenUeberlauf } from '../support/viewport'
 
-// Layout-Regression für die Finanzamt-Einrichtung. Die drei
-// Einrichtungsschritte lagen in einem lg:grid-cols-3, das im max-w-4xl-
-// Container zwischen 1024 und 1440px zu schmal wurde: die Aktion „Als erledigt
-// markieren" und die ELSTER-Seriennummer wurden abgeschnitten. Jetzt greifen
-// die drei Spalten erst ab xl (~1280px) und stapeln darunter vertikal, die
-// WarnKarte hat min-w-0 und die Seriennummer ein eigenes, umbrechendes Feld.
+// Layout-Regression der Finanzamt-Einrichtung. Zwischen 1024 und 1440 px darf
+// nichts abgeschnitten werden: weder „Als erledigt markieren" noch die
+// ELSTER-Seriennummer. Die drei Einrichtungsschritte stehen erst ab xl
+// nebeneinander, darunter gestapelt. Die Seriennummer bricht in ihrem Feld um.
 //
 // Der Seed lässt Schritt 3 (ELSTER-Kassenmeldung) offen: elsterGemeldetAm ist
 // null, die Kassenidentität existiert. Die WarnKarte mit Aktion und

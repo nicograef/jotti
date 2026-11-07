@@ -11,8 +11,7 @@ var ErrDatabase = db.ErrDatabase
 
 var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 
-// ErrKasseWirdAbgeschlossen: the Kassensitzung is in the transient status
-// 'wird_abgeschlossen' — the Kassenabschluss barrier is active.
+// ErrKasseWirdAbgeschlossen: barrier status, see kasse.KassensitzungWirdAbgeschlossen.
 var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 
 var ErrZahlungNichtGefunden = errors.New("zahlung nicht gefunden")

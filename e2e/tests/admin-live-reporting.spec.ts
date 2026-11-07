@@ -21,7 +21,6 @@ test.describe('Admin sieht das Live-Dashboard', () => {
       liveSection.getByRole('heading', { name: 'Übersicht' }),
     ).toBeVisible()
 
-    // Single-Scroll: keine Tabs mehr.
     await expect(liveSection.getByRole('tab')).toHaveCount(0)
 
     // Kennzahlen der laufenden Sitzung sind sichtbar (Seed hat Bestellungen,

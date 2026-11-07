@@ -9,11 +9,8 @@ Ohne Internet kann auch die grüne Adresse ausfallen. Die Handys arbeiten dann
 über die [Fallback-Adresse](fehlersuche.md#fallback-adresse) weiter.
 
 **Was, wenn das Internet oder die TSE ausfällt?** Weiterverkaufen ist erlaubt.
-jotti bucht ganz normal weiter. Sobald die Verbindung zurück ist, signiert jotti
-die Vorgänge automatisch nach und dokumentiert die Störung dabei automatisch.
-
-Nachsignierte Belege tragen den Vermerk „Nachsigniert am …". Ihr müsst nichts
-weiter tun.
+jotti bucht normal weiter und signiert die Vorgänge nach, sobald die Verbindung
+zurück ist. Die Ursache behebt ihr selbst, siehe [Fehlersuche](fehlersuche.md#internet-oder-tse-fällt-aus).
 
 **Was, wenn die grüne Adresse nicht lädt?** Mit der Fallback-Adresse weiterarbeiten
 und die [Fehlersuche](fehlersuche.md) durchgehen. Der Verkauf muss nie warten.
@@ -62,25 +59,27 @@ Die TSE signiert die Vorgänge der Reihe nach, rund 0,3 Sekunden je Vorgang. Bei
 Andrang wartet ein Kassenbeleg deshalb einige Sekunden. Bestellen und Kassieren
 laufen ohne Pause weiter.
 
-**Was passiert mit Trinkgeld?** jotti zeigt das Trinkgeld beim Kassieren nur zur
-Info an, gebucht wird es nicht.
-
-Es gehört deshalb nicht in die Kassenlade, sonst geht der Kassensturz am Abend
-nicht auf. Trinkgeld direkt an die Servicekraft ist in der Regel steuerfrei.
+**Was passiert mit Trinkgeld?** jotti bucht es nicht; es gehört nicht in die
+Kassenlade (siehe [Der Veranstaltungstag](veranstaltungstag.md)). Trinkgeld direkt
+an die Servicekraft ist in der Regel steuerfrei.
 
 **Wie erfassen wir den Verzehr unserer Helfer?** Über einen eigenen Tisch pro
-Helfer. Bestellungen laufen normal darüber. Am Abend kassiert oder storniert
-ihr diese Tische wie jeden anderen.
+Helfer. Bestellungen laufen normal darüber, am Abend kassiert ihr diese Tische.
+
+Storniert sie nicht: Eine Stornierung erklärt ausgegebene Ware zur Fehlbuchung.
+Storniert nur echte Fehlbuchungen. Bekommen Helfer Essen und Getränke gratis,
+klärt die Erfassung mit eurem Steuerberater.
 
 **Gibt es eine Demo oder ein Testsystem?** Auf der Startseite von jotti.rocks
 könnt ihr eine Demo durchklicken. Zum echten Ausprobieren installiert ihr jotti
-zuhause auf einem Windows-Rechner.
+zuhause auf einem anderen Rechner als dem späteren Kassenrechner.
 
 Die TSE richtet ihr dafür in der kostenlosen TEST-Umgebung von fiskaly ein (siehe
 nächste Frage).
 
-**Können wir die TSE erst testen?** Ja. Richtet sie zuerst in der kostenlosen
-TEST-Umgebung von fiskaly ein und wechselt erst für den Echtbetrieb auf LIVE.
+**Können wir die TSE erst testen?** Ja, in der kostenlosen TEST-Umgebung von
+fiskaly auf dieser Übungsinstallation. Warum der Kassenrechner keine Übungsverkäufe
+enthalten darf, steht unter [TSE einrichten](tse-einrichten.md).
 
 **Brauchen wir einen Bondrucker?** Ja. Auch eine bewilligte Befreiung von der
 Aushändigung (siehe [Belege und Steuersätze](belege-steuersaetze.md)) erspart nur
@@ -92,10 +91,7 @@ Einen Bon per E-Mail gibt es nicht; das ist bewusst kein Ziel von jotti
 
 **Wo stehen die Anmeldedaten für den ersten Login?** In der Startkonsole, dem
 Fenster von `jotti-start.exe`. Dort steht ein 6-stelliger Code für den Benutzer
-`admin` (siehe [Erster Login](installation.md#erster-login)).
-
-Mit dem Code wählt ihr „Neues Passwort festlegen" und vergebt ein eigenes
-Passwort. Ist das Fenster schon zu, startet jotti neu; dann erscheint ein neuer Code.
+`admin`; wie ihr ihn einlöst, steht unter [Erster Login](installation.md#erster-login).
 
 **Wo bekommen wir Zugangsdaten, Freigabecode oder Lizenzschlüssel?** Nirgends,
 jotti braucht nichts davon. Die Nutzungsvereinbarung schließt ihr mit einer

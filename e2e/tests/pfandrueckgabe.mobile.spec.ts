@@ -50,7 +50,7 @@ test.describe('Servicekraft verkauft mit Pfand und nimmt das Glas zurück', () =
       .click()
     await expect(page.getByText('Verkauf abgeschlossen.')).toBeVisible()
 
-    // Ohne Auswahl öffnet der Dock-Button nur noch die Pfandrückgabe.
+    // Ohne Auswahl öffnet der Dock-Button nur die Pfandrückgabe.
     await page.getByRole('button', { name: /Pfand zurück/ }).click()
     const pfandDrawer = page.getByRole('dialog')
     await zeileMit(pfandDrawer, 'Glas', 'Variante hinzufügen')

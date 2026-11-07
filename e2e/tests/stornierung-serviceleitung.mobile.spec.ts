@@ -42,8 +42,6 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     await expect(page.getByText('2,50 €').first()).toBeVisible()
 
     // --- Geldneutrale Korrektur: Storno der unbezahlten Pommes-Bestellung ---
-    // Historien-Zeilen tragen keine Inline-Aktionen mehr: die Zeile (per Betrag
-    // eindeutig) öffnet den Detail-Drawer, dort liegt „Stornieren…".
     await page.getByRole('tab', { name: 'Historie' }).click()
     let detail = await oeffneHistorienDetail(page, /Bestellung.*\+2,50/)
     await detail.getByRole('button', { name: /Stornieren…/ }).click()
@@ -59,8 +57,8 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
       .fill('Falsch bestellt, storniert')
     await drawer.getByRole('button', { name: 'Stornierung erteilen' }).click()
 
-    // Die Stornierung bestätigt über den Erfolgs-Pop (statt kommentarlosem
-    // Schließen); der Refetch des Tisch-States folgt beim Schließen des Pops.
+    // Die Stornierung bestätigt über den Erfolgs-Pop; der Refetch des
+    // Tisch-States folgt beim Schließen des Pops.
     await expect(page.getByText('Stornierung gebucht.')).toBeVisible()
 
     // Die geldneutrale Korrektur gleicht den Saldo aus — der Tisch ist wieder

@@ -293,7 +293,7 @@ func (s *fakeSignierer) nachsigniereFenster(fensterIdx int) {
 }
 
 // dauerhaftGescheitert builds a job the TSE rejects job-specifically during catch-up.
-// It fails for good on the third attempt after 5 s and 15 s backoff.
+// It fails for good on the third attempt.
 func (s *fakeSignierer) dauerhaftGescheitert(p offeneNachsignierung, fensterEnde time.Time) signaturauftragZeile {
 	fehler := signierungAbgelehntFehler
 	return signaturauftragZeile{

@@ -10,7 +10,7 @@ import (
 
 var ErrKasseNichtGeoeffnet = errors.New("kasse nicht geoeffnet")
 
-// ErrKasseWirdAbgeschlossen signals the transient status 'wird_abgeschlossen' — the Kassenabschluss barrier is active.
+// ErrKasseWirdAbgeschlossen: barrier status, see kasse.KassensitzungWirdAbgeschlossen.
 var ErrKasseWirdAbgeschlossen = errors.New("kasse wird gerade abgeschlossen")
 
 var ErrTischNotFound = errors.New("tisch not found")

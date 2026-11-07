@@ -31,8 +31,7 @@ func (r Repository) GetAlleTische(ctx context.Context) ([]tisch.Tisch, error) {
 	return tische, nil
 }
 
-// GetAlleTischNamen includes deleted Tische: the DSFinV-K export of past Kassensitzungen
-// resolves their names, where GetAlleTische would hide them.
+// GetAlleTischNamen maps every Tisch ID to its name, deleted Tische included.
 func (r Repository) GetAlleTischNamen(ctx context.Context) (map[int]string, error) {
 	rows, err := r.q.GetAlleTischNamen(ctx)
 	if err != nil {

@@ -13,10 +13,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] `GetEigeneUebersicht` im Barrierestatus: liest weiter `GetOffeneKassensitzungNr`; die eigene
       Übersicht der Servicekraft zeigt Nullen, solange die Kassensitzung `wird_abgeschlossen` ist.
       Auf `GetAktiveKassensitzung` umstellen oder die Nullen hinnehmen.
-- [ ] Zeichen gegen Bytes an Kommentar- und Tischnamen-Feldern: Zod zählt Code-Units, die
-      zog-Schemas im Backend Bytes. Ein Umlaut-Kommentar mit 100 Zeichen passiert daher das
-      Frontend und bekommt 400. Betreiber-Felder zählen Zeichen. Frontend zählt Bytes
-      (`TextEncoder`) oder die UI nennt die Einheit.
 - [ ] Login-Formular: `frontend/src/lib/AuthBackend.ts` prüft den Login mit dem vollen
       `PasswordSchema` (min 6/max 72). Das verrät die Passwort-Policy; der Login-Endpunkt prüft
       nur trim + min 1. Eigenes Login-Schema (trim + min 1).
@@ -29,30 +25,11 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 - [ ] Rabatt und Gutschrift: Ein Verein fragt danach. Eine Gutschrift für ein reklamiertes Getränk deckt
       die Stornierung ab. Ein Rabatt bräuchte eine negative Positionszeile vom Typ „Rabatt" je Steuersatz
       (DSFinV-K Tz. 4.2.4) und Folgeversionen der Zahlungs-Events. Offen: nur bei weiterer Nachfrage.
-- [ ] Auto-Pfand je Variante: Pfand tippt die Servicekraft als eigene Position.
-      `docs/prds/prd-auto-pfand-je-variante.md` beschreibt den Weg: Eine Variante verknüpft eine
-      Pfand-Variante gleichen Steuersatzes, und der Warenkorb legt das Pfand sichtbar dazu. Offen: Freigabe
-      des PRD und seiner Owner-Entscheidungen.
 - [ ] Offene Tische automatisch unter „Meine Tische": Ein Verein wünscht sich Tische mit eigenen
       offenen Bestellungen ohne Stern auf dem Dashboard.
 - [ ] Letzter Admin ausgesperrt: Ein Verein hat das Passwort seines einzigen Admins vergessen. Andere
       Konten setzt ein Admin per Einmalpasswort zurück; für den letzten Admin gibt es keinen Weg.
       Wiederherstellung über die Startkonsole bauen oder einen Weg dokumentieren.
-- [ ] Installation ohne Docker: Docker Desktop und Netzwerk-Know-how sind die größte Hürde der
-      Vereine. `docs/prds/prd-windows-einzeldatei.md` beschreibt jotti als eine Windows-Datei ohne
-      Docker Desktop, mit Kosten und Stufen. Entschieden: eingebettetes Postgres statt SQLite, das
-      eingefrorene Schema bleibt. Offen: Freigabe der Abhängigkeiten und der übrigen PRD-Entscheidungen.
-- [ ] Kommentar je Position (#145): Der Bestellkommentar druckt an jede Station. Entschieden: Er
-      bleibt der Normalfall, dazu kommt ein optionaler Kommentar je Position.
-      `docs/prds/prd-kommentar-je-position.md` beschreibt den Weg; Voraussetzung ist der Eintrag
-      „Zeichen gegen Bytes". Offen: Freigabe des PRD.
-- [ ] Stationsmodell (#146): Der Piepton ist entfernt, und der Direktverkauf kennt den Bonmodus
-      „Kein Bon". Druckstationen hängen weiter an Produktkategorien. Offen: ob das Modell aus
-      `docs/prds/prd-stationsmodell.md` gebaut wird.
-- [ ] Probelauf auf dem späteren Kassenrechner: Das Kassenjournal ist append-only, Kassensitzungs-
-      und Z-Nummern zählen fortlaufend (K-16). Eine Probe-Kassensitzung auf dem Rechner, der danach
-      live kassiert, bleibt vermutlich im Export. Für Windows gibt es keinen dokumentierten Weg zum
-      sauberen Neubeginn. Prüfen, dann Leitfaden-Hinweis oder Reset vor dem ersten Echtbetrieb.
 
 ## Folgekandidaten
 

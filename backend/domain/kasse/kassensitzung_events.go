@@ -84,7 +84,7 @@ var geldtransitGebuchtV1DataSchema = z.Struct(z.Shape{
 type KassensturzDurchgefuehrtV1Data struct {
 	SollBestandCents int `json:"sollBestandCents"`
 	IstBestandCents  int `json:"istBestandCents"`
-	DifferenzCents   int `json:"differenzCents"`
+	DifferenzCents   int `json:"differenzCents"` // Soll − Ist: positiv = Fehlbetrag; die UI zeigt Ist − Soll.
 	DurchgefuehrtVon int `json:"durchgefuehrtVon"`
 }
 

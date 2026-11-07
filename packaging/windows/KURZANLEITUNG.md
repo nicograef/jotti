@@ -87,9 +87,7 @@ gedruckt.
 - **Fenster schließt sich zu schnell:** Es bleibt bis zum Enter-Druck offen;
   steht oben eine Fehlermeldung, diese zuerst lesen.
 - **„volume ‚jotti-local_jotti-config' … not created by Docker Compose":** Eine
-  **harmlose** Warnung — jotti läuft normal weiter. Sie erscheint, wenn dieses
-  Volume ohne die Compose-Kennzeichnung angelegt wurde; nachträglich lässt sie
-  sich nicht setzen. Sie verschwindet, sobald das Volume einmal neu angelegt wird.
+  **harmlose** Warnung — jotti läuft normal weiter. Ihr müsst nichts tun.
 
 ## Beenden
 
@@ -142,12 +140,13 @@ Download-Link, so aktualisiert ihr jotti in drei Schritten:
    Ordner sein wie vorher; ein frischer Ordner ist völlig in Ordnung.
 3. **`jotti-start.exe`** im neuen Ordner doppelklicken (UAC mit „Ja" bestätigen).
 
+Für den Bondruck danach das alte Fenster von `jotti-relay.exe` schließen und die
+`jotti-relay.exe` aus dem neuen Ordner starten. Zwei Relays gleichzeitig drucken
+jeden Bon doppelt.
+
 **Eure Daten bleiben erhalten:** Bestellungen, Benutzer, Produkte, der
 Installations-Schlüssel und das grüne Zertifikat liegen geschützt außerhalb des
 Programmordners (in Docker-Volumes).
-
-Egal wohin ihr entpackt — der Schlüssel folgt den Daten, jotti findet beides
-beim Start wieder.
 
 Den alten Ordner erst löschen, wenn das nächste Fest gelaufen ist. Bis dahin
 liegt darin die `jotti-start.exe` des vorherigen Release — der Rückweg, falls
@@ -170,13 +169,13 @@ aktuellen Installations-Schlüssel. Das passiert meist nach einem Update von
 einer **sehr alten** Version.
 
 jotti startet dann gar nicht mehr; der Starter bricht mit einer Fehlermeldung
-ab. **Eure Daten sind dabei nicht verloren** — nur das Schloss passt nicht zum
-Schlüssel. Zwei datenerhaltende Wege zurück:
+ab. **Eure Daten sind dabei nicht verloren.** Zwei datenerhaltende Wege zurück:
 
-1. **`jotti-repair.cmd`** doppelklicken. Es gleicht das Datenbank-Passwort an den
-   aktuellen Installations-Schlüssel an, ohne eure Daten zu verändern. Am Ende
-   weist es darauf hin, `jotti-start.exe` zu doppelklicken. Mehrfaches Ausführen
-   schadet nicht. Danach einmal **neu anmelden**.
+1. **`jotti-repair.cmd`** doppelklicken und die Rückfrage `Fortfahren? (j/N)` mit
+   `j` beantworten. Es gleicht das Datenbank-Passwort an den aktuellen
+   Installations-Schlüssel an, ohne eure Daten zu verändern. Danach
+   `jotti-start.exe` doppelklicken und einmal **neu anmelden**. Mehrfaches
+   Ausführen schadet nicht.
 2. Habt ihr noch die **`.env` aus der alten Installation** (liegt ggf. im
    Programmordner neben `jotti-start.exe`): kopiert sie nach
    **`C:\ProgramData\jotti\.env`** und startet `jotti-start.exe` erneut. Dann

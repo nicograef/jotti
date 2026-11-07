@@ -57,7 +57,7 @@ oder der fiskaly-Support.
 TSE-Seriennummer gespeichert. Im DSFinV-K-Export bliebe dadurch das Pflichtfeld
 `TSE_SERIAL` leer (die Exportprüfung meldet das als Verstoß).
 
-Nach dem Update auf v0.15.0 lauft ihr vor dem ersten DSFinV-K-Export einmal den
+Nach dem Update lauft ihr vor dem ersten DSFinV-K-Export einmal den
 TSE-Assistenten erneut durch („TSE übernehmen", siehe oben). Dabei zieht jotti
 die Seriennummer nach; es entsteht keine zweite TSS.
 

@@ -12,7 +12,6 @@ import {
 // Umbuchung einer offenen Bestellung von einem Tisch auf einen anderen. Beide
 // Tische ("Tisch 3" und „Tisch 10") sind im Demo-Drehbuch des laufenden Tages
 // unbenutzt. Umbuchen ist geldneutral und für jede Servicekraft erlaubt.
-// *.mobile.spec.ts läuft nur im mobile-service-Projekt (Handy-Viewport).
 
 const QUELL_TISCH = 'Tisch 3'
 const ZIEL_TISCH = 'Tisch 10'
@@ -30,8 +29,6 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
 
     await expect(page.getByText('2,00 €').first()).toBeVisible()
 
-    // Historien-Zeilen tragen keine Inline-Aktionen mehr: die Bestellzeile öffnet
-    // den Detail-Drawer, dort liegt „Umbuchen".
     await page.getByRole('tab', { name: 'Historie' }).click()
     const detail = await oeffneHistorienDetail(page, /Bestellung/)
     await detail.getByRole('button', { name: /Umbuchen/ }).click()
@@ -67,8 +64,8 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await drawer.getByRole('combobox').selectOption({ label: ZIEL_TISCH })
     await expect(ausfuehren).toBeEnabled()
     await ausfuehren.click()
-    // Die Umbuchung bestätigt über den Erfolgs-Pop mit dem Ziel-Tischnamen
-    // (statt eines Toasts); der Refetch folgt beim Schließen des Pops.
+    // Die Umbuchung bestätigt über den Erfolgs-Pop mit dem Ziel-Tischnamen;
+    // der Refetch folgt beim Schließen des Pops.
     await expect(page.getByText(`Auf ${ZIEL_TISCH} umgebucht.`)).toBeVisible()
 
     // Der Quelltisch ist danach ausgeglichen …

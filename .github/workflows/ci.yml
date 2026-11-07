@@ -501,9 +501,7 @@ jobs:
           POSTGRES_DBNAME: jotti
           JWT_SECRET: test-secret
           RELAY_AUTH_TOKEN: test-relay-token
-        # -p 1 serializes package test binaries: all integration tests share the single
-        # Postgres service, so running packages in parallel pollutes each other's data
-        # (e.g. user cleanup races kassenjournal inserts). Matches scripts/test-integration.sh.
+        # -p 1: see scripts/test-integration.sh.
         run: go test -tags=integration -count=1 -v -race -p 1 ./...
 
   # Upgrade-path harness: a database migrated and filled with the previous

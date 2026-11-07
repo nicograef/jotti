@@ -13,14 +13,14 @@ Der ermäßigte Satz gilt für alle Abgaben von Speisen im Rahmen einer Restaura
 
 - Warme und kalte Speisen (kein Unterschied)
 - Zubereitete Gerichte, belegte Brötchen, Brezeln, abgepackte Lebensmittel (Erdnüsse, Chips)
-- Luxusprodukte (Kaviar, Hummer, Austern) — als reine Lieferung zum Mitnehmen dagegen 19 % (Anlage 2 Nr. 3 und 28)
+- Luxusprodukte (Kaviar, Hummer, Austern)
 - Alle zugehörigen Serviceleistungen (Servieren, Geschirr bereitstellen, Abspülen)
 
-**Geltungsbereich:** Restaurants, Cafés, Imbisse, Foodtrucks, Kantinen, Event-Caterer, Lieferdienste — vor Ort verzehrt wie mitgenommen. Nur die Anlage-2-Ausnahmen (Kaviar, Langusten, Hummer, Austern, Schnecken) tragen beim Mitnehmen 19 %.
+**Geltungsbereich:** Restaurants, Cafés, Imbisse, Foodtrucks, Kantinen, Event-Caterer, Lieferdienste — vor Ort verzehrt wie mitgenommen. Nur die Anlage-2-Ausnahmen tragen beim Mitnehmen 19 % (→ Abschnitt 2).
 
 ### 1.2 Regelsteuersatz (19 %): Getränke
 
-Der Regelsteuersatz gilt für die Abgabe von Getränken, ebenfalls unabhängig von der Verzehrsituation:
+Der Regelsteuersatz gilt für die Abgabe von Getränken vor Ort, denn § 12 Abs. 2 Nr. 15 UStG nimmt Getränke aus. Als reine Lieferung zum Mitnehmen gilt er ebenso, außer für die in Anlage 2 begünstigten Getränke (→ Abschnitt 2):
 
 - Alkoholische Getränke (Bier, Wein, Spirituosen)
 - Alkoholfreie Getränke: Softdrinks, Säfte, Mineralwasser
@@ -28,19 +28,19 @@ Der Regelsteuersatz gilt für die Abgabe von Getränken, ebenfalls unabhängig v
 
 ## 2. Ausnahmen und Abgrenzungen
 
-| Produkt / Sachverhalt                                                                                         | Steuersatz          | Begründung                                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Speisen vor Ort (Restaurations- oder Verpflegungsdienstleistung)                                              | 7 %                 | § 12 Abs. 2 Nr. 15 UStG                                                                                                                                                                      |
-| Speisen zum Mitnehmen ohne unterstützende Dienstleistungen (reine Lieferung, Abschn. 3.6 Abs. 2 Satz 2 UStAE) | 7 %, Ausnahmen 19 % | § 12 Abs. 2 Nr. 1 i. V. m. Anlage 2 UStG; nicht begünstigt: Kaviar, Langusten, Hummer, Austern, Schnecken (Anlage 2 Nr. 3 und 28)                                                            |
-| Standard-Getränke (Kaffee, Softdrinks, Alkohol)                                                               | 19 %                | Regelsteuersatz                                                                                                                                                                              |
-| Leitungswasser                                                                                                | 7 %                 | Gilt als Lieferung von Trinkwasser (nicht als Getränk im gastronomischen Sinn)                                                                                                               |
-| Reine Kuhmilch                                                                                                | 7 %                 | Grundnahrungsmittel (Anlage 2 zum UStG)                                                                                                                                                      |
-| Milchmixgetränke (z. B. Cappuccino, Latte Macchiato)                                                          | 7 % / 19 %          | 7 % nur bei ≥ 75 % Kuhmilch-Anteil; sonst 19 %                                                                                                                                               |
-| Vegane Milchalternativen (Hafer, Soja etc.)                                                                   | 19 %                | Gelten rechtlich nicht als Milch, nie begünstigt                                                                                                                                             |
-| Smoothies (püriertes Obst)                                                                                    | 7 %                 | Gelten als Speise (feste Nahrung püriert)                                                                                                                                                    |
-| Fruchtsäfte                                                                                                   | 19 %                | Gelten als Getränk                                                                                                                                                                           |
-| Verkauf von Speisen und Getränken durch einen Verein                                                          | 7 % / 19 %          | Steuerpflichtiger wirtschaftlicher Geschäftsbetrieb (§§ 14, 64 AO), kein Zweckbetrieb; bei Sportvereinen nimmt § 67a Abs. 1 Satz 2 AO den Verkauf von Speisen und Getränken ausdrücklich aus |
-| Verein als Kleinunternehmer (§ 19 UStG)                                                                       | 0 % / befreit       | Vereine mit geringen Umsätzen können von der USt-Pflicht befreit sein                                                                                                                        |
+| Produkt / Sachverhalt                                                                                         | Steuersatz                               | Begründung                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Speisen vor Ort (Restaurations- oder Verpflegungsdienstleistung)                                              | 7 %                                      | § 12 Abs. 2 Nr. 15 UStG                                                                                                                                                                      |
+| Speisen zum Mitnehmen ohne unterstützende Dienstleistungen (reine Lieferung, Abschn. 3.6 Abs. 2 Satz 2 UStAE) | 7 %, Ausnahmen 19 %                      | § 12 Abs. 2 Nr. 1 i. V. m. Anlage 2 UStG; nicht begünstigt: Kaviar, Langusten, Hummer, Austern, Schnecken (Anlage 2 Nr. 3 und 28)                                                            |
+| Standard-Getränke (Kaffee, Softdrinks, Alkohol)                                                               | 19 %                                     | Regelsteuersatz                                                                                                                                                                              |
+| Leitungswasser                                                                                                | vor Ort 19 %, reine Lieferung 7 %        | Vor Ort Getränk (§ 12 Abs. 2 Nr. 15 UStG nimmt Getränke aus); als Lieferung Anlage 2 Nr. 34 UStG (kein Trinkwasser in Fertigpackungen)                                                       |
+| Reine Kuhmilch                                                                                                | vor Ort 19 %, reine Lieferung 7 %        | Vor Ort Getränk (§ 12 Abs. 2 Nr. 15 UStG); als Lieferung Anlage 2 Nr. 4 UStG                                                                                                                 |
+| Milchmixgetränke (z. B. Cappuccino, Latte Macchiato)                                                          | vor Ort 19 %, reine Lieferung 7 % / 19 % | Vor Ort Getränk (§ 12 Abs. 2 Nr. 15 UStG); als Lieferung 7 % nur bei ≥ 75 % Anteil an Milch oder Milcherzeugnissen (Anlage 2 Nr. 35 UStG)                                                    |
+| Vegane Milchalternativen (Hafer, Soja etc.)                                                                   | 19 %                                     | Gelten rechtlich nicht als Milch, nie begünstigt                                                                                                                                             |
+| Smoothies (püriertes Obst)                                                                                    | unklar                                   | Einordnung als Speise oder Getränk ungeklärt; mit dem Steuerberater klären                                                                                                                   |
+| Fruchtsäfte                                                                                                   | 19 %                                     | Gelten als Getränk                                                                                                                                                                           |
+| Verkauf von Speisen und Getränken durch einen Verein                                                          | 7 % / 19 %                               | Steuerpflichtiger wirtschaftlicher Geschäftsbetrieb (§§ 14, 64 AO), kein Zweckbetrieb; bei Sportvereinen nimmt § 67a Abs. 1 Satz 2 AO den Verkauf von Speisen und Getränken ausdrücklich aus |
+| Verein als Kleinunternehmer (§ 19 UStG)                                                                       | 0 % / befreit                            | Vereine mit geringen Umsätzen können von der USt-Pflicht befreit sein                                                                                                                        |
 
 ## 3. Kombinationsangebote, Menüs und Buffets
 
@@ -74,7 +74,7 @@ Formel: Netto = Brutto / (1 + Satz); USt = Brutto − Netto.
 
 ## 4. Belegausweis und Pflichtangaben
 
-Die Pflichtangaben des Kassenbelegs regelt § 6 Satz 1 KassenSichV; bis 250 € brutto ist der Beleg zugleich Kleinbetragsrechnung (§ 33 UStDV). Rechnet ein Beleg über Leistungen zu verschiedenen Steuersätzen ab, sind die Summen je Steuersatz anzugeben (Abschn. 14.6 Abs. 1 Satz 2 UStAE). jotti weist deshalb pro Position ein Steuerkennzeichen aus (z. B. `A` für 19 %, `B` für 7 %). Der Belegfuß trägt eine Steuermatrix: Netto, Steuerbetrag und Brutto je Steuersatz. Eine unaufgeteilte Gesamtsumme ohne Steueraufschlüsselung gibt es nicht. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md#52-pflichtangaben-auf-dem-beleg).
+Die Pflichtangaben des Kassenbelegs regelt § 6 Satz 1 KassenSichV; bis 250 € brutto ist der Beleg zugleich Kleinbetragsrechnung (§ 33 UStDV). Rechnet ein Beleg über Leistungen zu verschiedenen Steuersätzen ab, sind die Summen je Steuersatz anzugeben (Abschn. 14.6 Abs. 1 Satz 2 UStAE). jotti erfüllt das mit Steuerkennzeichen je Position und einer Steuermatrix im Belegfuß. Die vollständigen Belegangaben (inkl. TSE-Pflichtfelder) und die technische Belegstruktur: → [compliance.md §5.2](compliance.md#52-pflichtangaben-auf-dem-beleg).
 
 ## 5. Pfand
 

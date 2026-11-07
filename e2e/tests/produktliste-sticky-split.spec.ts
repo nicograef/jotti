@@ -5,25 +5,16 @@ import { resetAndSeed } from '../support/seed'
 import { oeffneTisch } from '../support/servicekraft'
 import { erwarteBuendigeKategorieleisteImSplit } from '../support/viewport'
 
-// Regressionstest für die Sticky-Kategorieleiste im Zweispalten-Service-Layout
-// (ab lg, 1024px). Der Fehler trat ausschließlich ≥ lg auf: Die klebende
-// Kategorieleiste hing 56px zu tief in die linke Auswahl-Spalte (top-14 statt
-// bündig), sodass Produktzeilen dahinter verschwanden, und ihr Vollbreiten-
-// Ausbruch (negative Außenränder ohne kompensierende Ancestor-Padding im Split)
-// erzeugte einen horizontalen Scrollbalken der Spalte. Unter lg (390px) deckt
-// bereits tischservice-viewport-ueberlauf.mobile.spec.ts das (unveränderte)
-// Verhalten ab; dieser Spec ergänzt ausschließlich die ≥ lg-Perspektive. Beide
-// Bildschirme, die sich die ProductList teilen (Tisch-„Bestellen" und
-// Direktverkauf), werden geprüft — ein Fix korrigiert beide.
+// Regression der Sticky-Kategorieleiste im Zweispalten-Service-Layout (ab lg).
+// Die Leiste klebt bündig an der Oberkante der Auswahl-Spalte, nicht 56 px tiefer
+// (top-14). Ihr Vollbreiten-Ausbruch erzeugt keinen horizontalen Scrollbalken der
+// Spalte. Unter lg deckt tischservice-viewport-ueberlauf.mobile.spec.ts den
+// Überlauf ab. Geprüft werden beide Bildschirme mit ProductList: Tisch-„Bestellen"
+// und Direktverkauf.
 
-// Zwei Breakpoint-Regime ≥ lg, in denen der Ausbruch vor dem Fix
-// unterschiedlich groß war und die der lg-Fix beide abdecken muss:
-//   - 1024px (lg, nicht xl): Ausbruch war md:-mx-8 = 32px, plus 56px-Totzone.
-//   - 1280px (xl):           Ausbruch war xl:-mx-12 = 48px, plus 56px-Totzone.
-// Beide Breiten zu prüfen macht den Guard trennscharf: Ein fälschlich an xl
-// gebundener Fix (oder ein Auseinanderdriften der lg-Grenze von der
-// useIsMobile-Schwelle 1024px) bliebe bei 1024px nicht unbemerkt, und das Band
-// 1024–1279 ist nicht länger ungedeckt.
+// Zwei Regime ≥ lg: 1024 px (lg, nicht xl) und 1280 px (xl). Eine an xl gebundene
+// Regel oder eine von der useIsMobile-Schwelle (1024 px) abweichende lg-Grenze
+// fällt so bei 1024 px auf.
 const LG_BREITEN = [1024, 1280] as const
 
 test.describe('Sticky-Kategorieleiste im Split-Layout ab lg', () => {

@@ -46,7 +46,7 @@ jotti.rocks {
 	# 'wasm-unsafe-eval' lets Pagefind (the docs search) run its WebAssembly index.
 	header Content-Security-Policy "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 
-	# Former landing-page URLs, now in the docs Leitfaden.
+	# Redirects retired landing-page URLs into the docs Leitfaden.
 	redir /leitfaden-fuer-vereine https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
 	redir /leitfaden-fuer-vereine/ https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent
 	redir /jotti-selbst-betreiben https://jotti.rocks/docs/leitfaden/was-ist-jotti/ permanent

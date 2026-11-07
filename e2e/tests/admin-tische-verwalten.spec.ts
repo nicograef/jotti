@@ -15,7 +15,6 @@ test.describe('Admin verwaltet Tische', () => {
     await page.goto('/admin/tische')
     await expect(page.getByRole('heading', { name: 'Tische' })).toBeVisible()
 
-    // Neuen Tisch anlegen.
     await page.getByRole('button', { name: 'Neuer Tisch' }).click()
     const newDialog = page.getByRole('dialog')
     await newDialog.getByLabel('Name').fill('Tisch 99')

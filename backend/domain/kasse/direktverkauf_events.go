@@ -86,9 +86,8 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 	return e.New(userID, userName, string(EventTypeDirektverkaufGetaetigtV2), subject, data)
 }
 
-// NewDirektverkaufStorniertEvent: gesamtStornierungCents is computed by the caller from
-// the not-yet-cancelled positions.
-// NewDirektverkaufStorniertEvent takes stornierungID from the client: it is the idempotency key.
+// NewDirektverkaufStorniertEvent: the caller computes gesamtStornierungCents from the not-yet-cancelled
+// positions; stornierungID comes from the client as the idempotency key.
 func NewDirektverkaufStorniertEvent(subject string, stornierungID string, verkaufID string, userID int, userName string, positionen []Position, gesamtStornierungCents int, kommentar string) (e.Event, error) {
 	data := DirektverkaufStorniertV1Data{
 		StornierungID:          stornierungID,

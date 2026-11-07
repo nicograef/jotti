@@ -310,8 +310,8 @@ func poll(client *http.Client, config RelayConfig) ([]DruckAuftrag, error) {
 }
 
 // meldeErgebnis meldet Erfolge und Fehlversuche eines Zyklus in einem Request. Die
-// Fehlversuchs-Logik liegt im Backend (zählt hoch, markiert nach sechs Versuchen als
-// fehlgeschlagen — druckauftrag_repo.MaxDruckversuche).
+// Fehlversuchs-Logik liegt im Backend (zählt hoch, markiert nach
+// druckauftrag_repo.MaxDruckversuche Versuchen als fehlgeschlagen).
 func meldeErgebnis(client *http.Client, ergebnis zyklusErgebnis, config RelayConfig) error {
 	gedruckteIDs := ergebnis.gedruckteIDs
 	if gedruckteIDs == nil {

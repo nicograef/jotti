@@ -296,8 +296,6 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 	}
 }
 
-// Variante tests
-
 func TestGetVariante(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)

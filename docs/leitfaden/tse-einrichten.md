@@ -5,9 +5,13 @@ description: 'Die Cloud-TSE von fiskaly Schritt für Schritt anbinden: Konto und
 
 Die TSE (Technische Sicherheitseinrichtung) signiert jeden Kassenvorgang fälschungssicher. Das Gesetz schreibt sie zwingend vor. jotti nutzt die Cloud-TSE von fiskaly: Ihr bucht sie als Online-Dienst und gebt jotti die Zugangsschlüssel. Den Rest erledigt ein Assistent in jotti Schritt für Schritt.
 
-> 💡 **Übt zuerst in TEST.** fiskaly bietet eine kostenlose Test-Umgebung. Richtet
-> die TSE dort einmal komplett ein, bevor ihr auf LIVE umstellt. So lauft ihr den
-> ganzen Ablauf einmal durch, ohne Kosten und ohne Risiko.
+> 💡 **Übt zuerst in TEST, auf einem anderen Rechner.** fiskaly bietet eine
+> kostenlose Test-Umgebung. Installiert jotti zum Üben auf einem anderen Rechner
+> als dem Kassenrechner und spielt dort Einrichtung und Verkauf einmal durch.
+>
+> Jeder Übungsverkauf bleibt für immer im Kassenjournal seiner Installation und
+> erscheint in jedem Export. Auf dem Kassenrechner, der auf LIVE geht, liegt
+> deshalb keine Übungs-Kassensitzung.
 
 ## Schritt 1: fiskaly-Konto und API-Key
 
@@ -51,7 +55,7 @@ So verwahrt ihr richtig:
 
 ## Von TEST zu LIVE wechseln (inkl. Kosten)
 
-Habt ihr in TEST geübt, richtet ihr für den Echtbetrieb eine LIVE-TSS ein:
+Für den Echtbetrieb richtet ihr auf dem Kassenrechner eine LIVE-TSS ein:
 
 1. Im fiskaly-HUB einen API-Key für die LIVE-Umgebung erstellen. TEST- und
    LIVE-Schlüssel sind getrennt.

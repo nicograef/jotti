@@ -390,7 +390,6 @@ func (c Command) resolvePfandStornobeleg(ctx context.Context, ks *kasse.Kassensi
 	}, nil
 }
 
-// resolveTischStornobeleg löst den Tisch-Storno-Beleg (Warenrücknahme) auf.
 func (c Command) resolveTischStornobeleg(ctx context.Context, ks *kasse.Kassensitzung, tischID int, stornierungID string) (BelegQuelle, error) {
 	log := logging.FromContext(ctx)
 

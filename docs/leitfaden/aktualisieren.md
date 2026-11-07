@@ -25,18 +25,11 @@ falls das Update Ärger macht (siehe [Der Weg zurück](#der-weg-zurück-wenn-das
 
 > ⛔ **Während eines Updates keine TSE-Einrichtung starten.** Die Einrichtung legt
 > bei fiskaly eine TSE an: in LIVE eine kostenpflichtige, in TEST eine kostenlose.
-> Sie zeigt Admin-PUK und Admin-PIN genau einmal an, am Ende des Ablaufs. Wird
-> jotti mittendrin beendet — und genau das tut `jotti-stop.cmd` —, bricht sie ab.
+> `jotti-stop.cmd` bricht sie mittendrin ab.
 >
-> Meistens ist das kein Beinbruch. Startet ihr den Assistenten danach erneut,
-> erkennt jotti den tatsächlichen Zustand bei fiskaly. Dann macht jotti dort
-> weiter, wo es aufgehört hat. Eine zweite TSE entsteht dabei nicht.
->
-> Nur ein schmales Zeitfenster ist eine Sackgasse: zwischen dem Setzen der
-> Admin-PIN und der Anzeige des Ergebnisses. Bricht die Einrichtung genau dort ab,
-> fragt die Wiederaufnahme nach einer Admin-PIN, die euch nie angezeigt wurde. Dann
-> hilft in TEST „Stattdessen neue TSE anlegen", in LIVE der fiskaly-Support (siehe
-> [TSE-Sonderfälle](tse-sonderfaelle.md)).
+> Meist setzt der Assistent danach dort fort, wo er stand. In einem schmalen
+> Zeitfenster fragt er aber nach einer Admin-PIN, die euch nie angezeigt wurde
+> (siehe [TSE-Sonderfälle](tse-sonderfaelle.md)).
 >
 > Richtet die TSE also vor dem Update ein oder danach, nie währenddessen. Läuft
 > der Assistent gerade, wartet mit dem Update, bis „Verbindung bestätigt" steht.
@@ -59,24 +52,18 @@ des laufenden Betriebs sein, haltet euch an diese Reihenfolge.
 5. **Kurz warten, dann den [Rauchtest](#rauchtest-fünf-abläufe-vor-dem-weitermachen)
    machen.** Die Bedienoberfläche am Rechner lädt sich von selbst neu, sobald jotti
    wieder läuft. Rechnet mit einer halben Minute (siehe nächster Abschnitt).
-6. **Erst danach dem Team Bescheid geben**, dass es weitergeht. Ein Neuladen müsst
-   ihr nicht ansagen — die Handys laden sich genauso von selbst neu. Einzige
-   Ausnahme ist das erste Update von einer Version **vor** 0.17.3. Dabei muss jedes
-   Gerät noch ein letztes Mal von Hand neu geladen werden (siehe Kasten im
-   nächsten Abschnitt).
+6. **Erst danach dem Team Bescheid geben**, dass es weitergeht. Die Handys laden
+   sich von selbst neu; nur beim Update von einer Version vor 0.17.3 nicht (siehe
+   nächster Abschnitt).
 
 ## Danach: die Geräte laden sich von selbst neu
 
 Handys und Rechner behalten die alte Bedienoberfläche im Speicher, bis die Seite
 einmal neu geladen wird. **jotti erledigt das automatisch.**
 
-Jedes geöffnete jotti fragt im Hintergrund alle halbe Minute nach, welche Version
-auf dem Rechner läuft. Zusätzlich fragt es immer dann, wenn ein weggelegtes Handy
-wieder hervorgeholt wird.
-
-Weicht die Version ab, lädt sich die Seite selbst neu. Das gilt im Browser am
-Handy, am Rechner und ebenso in der als App auf dem Startbildschirm installierten
-jotti.
+Jedes geöffnete jotti fragt alle halbe Minute nach der Version auf dem Rechner,
+ebenso beim Hervorholen eines weggelegten Handys. Weicht sie ab, lädt sich die
+Seite selbst neu, im Browser wie in der als App installierten jotti.
 
 **Ihr müsst das Neuladen also nicht ansagen**, und niemand muss eine App wegwischen.
 
@@ -131,23 +118,17 @@ Dann genügt ein Antippen von **„Jetzt neu laden"**. Das kommt selten vor; ans
 müsst ihr dafür nichts. Kommt das Band danach noch einmal, wartet einen Moment und
 tippt erneut.
 
-## Das Print-Relay darf weiterlaufen
+## Das Print-Relay beim Update
 
 Das Print-Relay ist das Fenster, das die Bons an die Drucker schickt
-(`jotti-relay.exe`). In 0.17.1 und allen neueren Versionen ist es funktional
-dasselbe, ebenso die Verständigung zwischen jotti und dem Relay.
+(`jotti-relay.exe`). `jotti-stop.cmd` beendet es nicht, und jedes Release-ZIP
+bringt eine eigene `jotti-relay.exe` mit.
 
-Läuft bei euch 0.17.1 oder neuer, gilt: **Das laufende Relay darf einfach
-weiterlaufen** — ihr müsst es weder beenden noch ersetzen.
+Schließt beim Update erst das alte Relay-Fenster. Startet dann die
+`jotti-relay.exe` aus dem neuen Ordner.
 
-Im Release-ZIP liegt trotzdem eine `jotti-relay.exe`; sie ist funktional
-identisch mit der laufenden. Ob ihr sie tauscht oder nicht, macht keinen
-Unterschied.
-
-> ⚠️ **Beim nächsten Update nicht raten.** Ändert sich das Relay, muss das alte
-> Fenster **erst geschlossen** und dann die neue `jotti-relay.exe` gestartet
-> werden. Laufen zwei Relays gleichzeitig, druckt jedes jeden Bon — also alles
-> doppelt.
+> ⚠️ **Nie zwei Relays gleichzeitig.** Laufen zwei Relays, druckt jedes jeden Bon
+> — also alles doppelt.
 
 ## Rauchtest: fünf Abläufe vor dem Weitermachen
 
@@ -232,12 +213,6 @@ Der Rückweg ist das automatische Backup von vor dem Update:
 
 ## Wenn nach dem Update niemand mehr hineinkommt
 
-Sehr selten passt nach einem Update das in der Datenbank gespeicherte Passwort
-nicht mehr zum Installations-Schlüssel. jotti startet dann gar nicht mehr; der
-Starter bricht mit einer Fehlermeldung ab. Eure Daten sind dabei nicht verloren.
-
-**`jotti-repair.cmd`** doppelklicken gleicht beides datenerhaltend wieder an;
-danach `jotti-start.exe` doppelklicken und einmal neu anmelden. Mehrfaches
-Ausführen schadet nicht.
-
-Mehr dazu unter [Fehlersuche](fehlersuche.md#nach-einem-update-startet-jotti-nicht-mehr).
+Bricht der Starter nach dem Update mit einer Fehlermeldung ab, sind eure Daten
+nicht verloren. Den Weg zurück beschreibt
+[Nach einem Update startet jotti nicht mehr](fehlersuche.md#nach-einem-update-startet-jotti-nicht-mehr).

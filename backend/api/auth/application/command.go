@@ -79,9 +79,6 @@ func (c Command) GenerateJWTToken(ctx context.Context, username, password string
 func (c Command) SetNewPassword(ctx context.Context, username, newPassword, onetimePassword string) error {
 	log := logging.FromContext(ctx)
 
-	// SetPasswordTx sperrt die User-Zeile (FOR UPDATE) und persistiert das Ergebnis
-	// im selben Commit; sonst könnten nebenläufige Versuche den Fehlversuchszähler
-	// unterzählen.
 	err := c.UserRepo.SetPasswordTx(ctx, username, func(u *user.User) error {
 		return u.SetPassword(onetimePassword, newPassword)
 	})

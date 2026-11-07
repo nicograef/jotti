@@ -37,7 +37,6 @@ func (r Repository) GetAlleDruckstationen(ctx context.Context) ([]druckstation.D
 
 // GetKonfigurierteDruckstationen gibt Stationen mit konfiguriertem Drucker zurück,
 // dazu den Abholbon mit Bonmodus kein_bon auch ohne IP: Er schaltet den Direktverkauf stumm.
-// Wird von der Arbeitsbon-Policy (Table-Command) genutzt, um Druckaufträge je Kategorie zu erzeugen.
 func (r Repository) GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error) {
 	rows, err := r.q.GetKonfigurierteDruckstationen(ctx)
 	if err != nil {

@@ -251,8 +251,8 @@ func TestSetPasswordTx_ConcurrentFailuresCountedExactly(t *testing.T) {
 }
 
 // CountUsers zählt ALLE Zeilen inklusive soft-gelöschter: setup seeded 1 Benutzer,
-// ein zweiter erhöht auf 2, und ein Soft-Delete lässt die Zahl bei 2 (Benutzernamen
-// werden nie recycelt, der Bootstrap muss die Vollzählung sehen).
+// ein zweiter erhöht auf 2, und ein Soft-Delete lässt die Zahl bei 2 (der Bootstrap
+// muss die Vollzählung sehen).
 func TestCountUsers(t *testing.T) {
 	seeded, repo, teardown := setup(t)
 	defer teardown(t)

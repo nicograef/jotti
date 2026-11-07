@@ -27,19 +27,10 @@ Geräte-Fit: ein größerer Bildschirm an der Theke (Tablet oder Laptop). Der
 Direktverkauf nutzt dort ein Zwei-Spalten-Layout: links die Produkte, rechts der
 laufende Bon.
 
-Der Direktverkauf ist personalbedient: eine Helfer:in bedient das Gerät an der
-Theke. jotti ist kein Selbstbedienungs-Kiosk, an dem Gäste selbst tippen und
-zahlen.
+## Beides gleichzeitig
 
-## Entscheidungshilfe
-
-Bringen eure Helfer die Bestellung an den Tisch und kassieren erst später? Dann
-Tischservice. Kommen die Gäste an die Theke und nehmen gleich mit? Dann
-Direktverkauf.
-
-Beides gleichzeitig geht auch. Betreibt ein Tablet an der Getränketheke im
-Direktverkauf, während die Servicekräfte parallel am Handy die Tische bedienen.
-Jedes Gerät merkt sich seinen eigenen Modus.
+Betreibt etwa ein Tablet an der Getränketheke im Direktverkauf, während die
+Servicekräfte parallel am Handy die Tische bedienen.
 
 ## Modus wechseln
 

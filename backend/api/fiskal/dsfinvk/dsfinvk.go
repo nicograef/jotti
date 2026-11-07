@@ -30,8 +30,7 @@ type Snapshot struct {
 	AktuelleTSE tse.Stammdaten
 	// TSEJeSeriennummer holds the master data of every TSS set up on this Kasse, keyed by serial.
 	TSEJeSeriennummer map[string]tse.Stammdaten
-	// SoftwareVersion is the jotti build version (KASSE_SW_VERSION), set via ldflags
-	// ("dev" in development).
+	// SoftwareVersion is the jotti build version (KASSE_SW_VERSION).
 	SoftwareVersion string
 	// Tischnamen maps table IDs to names (source of ABRECHNUNGSKREIS), deleted tables
 	// included; for a missing table the mapper synthesises "Tisch N".

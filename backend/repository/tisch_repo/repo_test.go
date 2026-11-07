@@ -163,8 +163,6 @@ func TestGetAlleTischeDB(t *testing.T) {
 	}
 }
 
-// The DSFinV-K export names Abrechnungskreise of past Kassensitzungen; without deleted Tische
-// it falls back to "Tisch <ID>".
 func TestGetAlleTischNamenDB_EnthaeltGeloeschteTische(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
@@ -300,7 +298,7 @@ func cleanSaldo(t *testing.T, db *sql.DB) {
 
 // writeBestellung writes a bestellung-aufgenommen:v1 event for the given tisch via
 // the real WriteEvent path so the tisch_sessions projection (and its saldo_cents)
-// is built exactly as in production — a Journal aufgebaut aus Events.
+// is built exactly as in production.
 func writeBestellung(t *testing.T, kjRepo kassenjournal_repo.Repository, userID, zNr, tischID, gesamtCents int) {
 	t.Helper()
 	subject := kasse.TischSessionSubject(zNr, tischID)

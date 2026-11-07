@@ -41,9 +41,7 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
       .click()
     await expect(page.getByText('Verkauf abgeschlossen.')).toBeVisible()
 
-    // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag. Die
-    // Zeile trägt keine Inline-Aktionen mehr: sie (per Betrag eindeutig) öffnet
-    // den Detail-Drawer, dort liegt „Stornieren…".
+    // In der Historie erscheint der frische Verkauf mit dem Gesamtbetrag.
     await page.getByRole('tab', { name: 'Historie' }).click()
     const detail = await oeffneHistorienDetail(page, /Verkauf.*8,00/)
     await detail.getByRole('button', { name: /Stornieren…/ }).click()
@@ -60,8 +58,8 @@ test.describe('Servicekraft tätigt einen Direktverkauf und storniert ihn', () =
       .fill('Kind doch nicht mit')
     await drawer.getByRole('button', { name: 'Stornierung erteilen' }).click()
 
-    // Der Storno bestätigt über den Erfolgs-Pop (statt kommentarlosem
-    // Schließen); der Refetch der Historie folgt beim Schließen des Pops.
+    // Der Storno bestätigt über den Erfolgs-Pop; der Refetch der Historie folgt
+    // beim Schließen des Pops.
     await expect(page.getByText('Stornierung gebucht.')).toBeVisible()
 
     // Der Verkauf zeigt nun den stornierten Anteil neben dem Gesamtbetrag.

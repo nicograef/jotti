@@ -265,7 +265,7 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		return KassenabschlussErgebnis{}, err
 	}
 
-	// 1. Kassensturz (entfällt im Wiederanlauf: bereits im Journal)
+	// Im Wiederanlauf steht der Kassensturz bereits im Journal.
 	if !bestand.sturzVorhanden {
 		kassensturzEvt, err := kasse.NewKassensturzDurchgefuehrtEvent(subject, userID, userName, bestand.sollCents, bestand.istCents, bestand.differenzCents())
 		if err != nil {
@@ -278,7 +278,6 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		expectedVersion++
 	}
 
-	// 2. Differenzbuchung nur bei Differenz ungleich Null
 	if bestand.differenzCents() != 0 {
 		diffEvt, err := kasse.NewDifferenzSollIstGebuchtEvent(subject, userID, userName, bestand.differenzCents())
 		if err != nil {
@@ -291,7 +290,6 @@ func (c Command) KasseAbschliessen(ctx context.Context, userID int, userName str
 		expectedVersion++
 	}
 
-	// 3. Tagesabschluss
 	if err := c.schreibeTagesabschluss(ctx, ks, userID, userName, expectedVersion); err != nil {
 		return KassenabschlussErgebnis{}, err
 	}

@@ -4,7 +4,7 @@ description: 'Standardweg: einen Windows-Computer im Vereinsheim per Doppelklick
 ---
 
 Für fast alle Vereinsfeste ist das der richtige Weg: Ein vorhandener
-Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine Servermiete; nur die gesetzlich vorgeschriebene TSE kostet laufend (siehe [Was ist jotti?](was-ist-jotti.md)).
+Windows-Computer im Vereinsheim wird zum Kassenrechner. Die Servicekräfte bedienen jotti auf ihren eigenen Handys im selben WLAN. Kein Server, keine Domain, keine Servermiete; nur die gesetzlich vorgeschriebene TSE kostet laufend (siehe [Häufige Fragen](haeufige-fragen.md)).
 
 ## Voraussetzungen
 
@@ -23,11 +23,9 @@ Für Windows gibt es einen Doppelklick-Starter, ganz ohne Kommandozeile. Er erze
    - SmartScreen mit „Weitere Informationen" → „Trotzdem ausführen" und UAC mit „Ja" bestätigen.
 3. Wenn alles läuft, die Status-Seite `http://localhost:8484` am Kassenrechner im Browser öffnen. Dort stehen die Zugangsadresse und ein QR-Code.
 
-Den vollständigen Windows-Ablauf (SmartScreen, UAC, Beenden) beschreibt auch die `KURZANLEITUNG.md` im ZIP. Für gedruckte Bons folgt weiter unten der Abschnitt „Bondruck einrichten".
+Den vollständigen Windows-Ablauf (SmartScreen, UAC, Beenden) beschreibt auch die `KURZANLEITUNG.md` im ZIP.
 
-> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Blockiert euer Router den Namen (DNS-Rebind-Schutz), tragt ihr dafür einmalig eine Ausnahme am Router ein ([Anleitung je Router](fehlersuche.md#router-hinweise)). Bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter. Welche Adresse gerade gilt, zeigt samt QR-Code die Status-Seite `http://localhost:8484` am Kassenrechner.
->
-> Greift die grüne Adresse nicht, springt ein Fallback `https://<LAN-IP>` mit selbstsigniertem Zertifikat ein (einmalige Browserwarnung pro Gerät, siehe [Fehlersuche](fehlersuche.md)).
+> 🔒 **Grünes Schloss als Normalfall.** Für den lokalen Betrieb holt jotti automatisch ein echtes Zertifikat über die Adresse `…lokal.jotti.rocks` (grünes Schloss, keine Warnung). Es wird beim ersten Start ausgestellt und selbst erneuert. Blockiert euer Router den Namen (DNS-Rebind-Schutz), tragt ihr dafür einmalig eine Ausnahme am Router ein ([Anleitung je Router](fehlersuche.md#router-hinweise)). Bis dahin arbeitet ihr über die Fallback-Adresse ganz normal weiter.
 
 ## Erster Login
 

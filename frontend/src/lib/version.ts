@@ -1,8 +1,7 @@
 // This client's version, set at build time (see src/version.d.ts).
 export const CLIENT_VERSION = __CLIENT_VERSION__
 
-// A real release tag, matching the Makefile `prod-up` check on JOTTI_VERSION so the repo defines it once.
-// Pre-releases like `v1.2.3-rc1` count.
+// A real release tag; pre-releases like `v1.2.3-rc1` count.
 const RELEASE_MUSTER = /^v[0-9]+\.[0-9]+\.[0-9]+([.+-].*)?$/
 
 /**

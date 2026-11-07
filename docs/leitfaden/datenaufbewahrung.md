@@ -24,6 +24,13 @@ sichert ihr ihn nach jedem Veranstaltungstag:
 4. An zwei getrennte Orte kopieren, etwa auf einen USB-Stick und zusätzlich in einen
    Cloud-Speicher. Ein einzelner Speicherort genügt nicht.
 
+Maßgeblich ist der Export, den ihr direkt nach dem Veranstaltungstag archiviert.
+Ein späterer Export nimmt die dann aktuellen Betreiberdaten, Tischnamen und die
+jotti-Version.
+
+Ändert ihr Betreiberdaten oder Tischnamen, exportiert und archiviert vorher alle
+abgeschlossenen Kassensitzungen.
+
 **Datenbank-Backup als Sicherheitsnetz.** Es enthält das vollständige Kassenjournal
 im Rohformat samt TSE-Signaturen und Stammdaten.
 
@@ -33,12 +40,9 @@ Update schief, stellt `jotti-restore.cmd` (Doppelklick) das letzte zurück.
 Diese Backups liegen auf demselben Rechner und gehen mit ihm verloren. Euer vom
 Rechner unabhängiges Archiv ist deshalb der DSFinV-K-Export oben.
 
-Wer zusätzlich die Rohdaten außer Haus sichern will, braucht dafür nicht zwingend
-einen Server. Auf dem Windows-Rechner spiegelt jotti die automatischen
-Pre-Update-Backups in den Ordner `C:\ProgramData\jotti\backups`.
-
-Diesen Ordner könnt ihr komplett auf einen USB-Stick oder in eine Cloud kopieren.
-Die `KURZANLEITUNG.md` im ZIP zeigt die Befehle für ein weiteres Backup auf Wunsch.
+Für eine Kopie der Rohdaten außer Haus kopiert ihr den Ordner `C:\ProgramData\jotti\backups`
+([Aktualisieren](aktualisieren.md#warum-eure-daten-erhalten-bleiben)) auf einen USB-Stick
+oder in eine Cloud. Ein weiteres Backup auf Wunsch zeigt die `KURZANLEITUNG.md` im ZIP.
 
 Wer die Rohdaten laufend automatisch außer Haus sichern will, betreibt jotti auf
 einem Server (siehe [Backups](aktualisieren-backups.md#backups) im Experten-Weg).
@@ -46,3 +50,11 @@ einem Server (siehe [Backups](aktualisieren-backups.md#backups) im Experten-Weg)
 Ebenfalls aufbewahren: die Z-Bons (Tagesabschlüsse, im DSFinV-K-Export enthalten)
 und die Zählprotokolle vom Kassensturz. Sorgt dafür, dass nur berechtigte Personen
 Zugriff auf Rechner und Daten haben.
+
+**TSE-Export vor Stilllegung oder Vertragsende.** jotti speichert die Signaturen,
+aber nicht die vollständigen Protokolle der TSE. Auch diese müsst ihr 10 Jahre
+aufbewahren (§ 146a Abs. 1 Satz 4 AO).
+
+Lasst euch deshalb vor der Stilllegung der TSS und vor dem Ende des
+fiskaly-Vertrags den TSE-Export (TAR-Datei) bei fiskaly erstellen. Legt ihn wie
+den DSFinV-K-Export an zwei getrennten Orten ab.
