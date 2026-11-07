@@ -45,6 +45,7 @@ var lengthCases = []lengthCase{
 	{schema: "betreiber.StrasseSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.StrasseSchema)},
 	{schema: "betreiber.UstIDSchema", shortest: 0, longest: 15, filler: 'ä', accepts: acceptsString(betreiber.UstIDSchema)},
 	{schema: "betreiber.VereinsnameSchema", shortest: 1, longest: 60, filler: 'ä', accepts: acceptsString(betreiber.VereinsnameSchema)},
+	{schema: "kasse.PositionsKommentarSchema", shortest: 0, longest: 100, filler: 'ä', accepts: acceptsString(kasse.PositionsKommentarSchema)},
 	{schema: "produkt.NameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(produkt.NameSchema)},
 	{schema: "tisch.TischNameSchema", shortest: 3, longest: 100, filler: 'ä', accepts: acceptsString(tisch.TischNameSchema)},
 	{schema: "user.NameSchema", shortest: 3, longest: 50, filler: 'ä', accepts: acceptsString(user.NameSchema)},
