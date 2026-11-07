@@ -29,7 +29,7 @@ function BestellungAbschlussHarness(
 
 const tisch: Tisch = { id: 1, name: 'Stammtisch', saldoCents: 0 }
 const receiptItems: ReceiptPosition[] = [
-  { name: 'Bratwurst Normal', einzelpreisCents: 350, menge: 2 },
+  { id: '1', name: 'Bratwurst Normal', einzelpreisCents: 350, menge: 2 },
 ]
 const positionen = [{ produktId: 1, varianteId: 1, menge: 2 }]
 

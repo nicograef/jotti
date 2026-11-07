@@ -129,6 +129,7 @@ export function toBestellungData(
 
   return {
     receiptItems: items.map((i) => ({
+      id: String(i.varianteId),
       name: i.name,
       einzelpreisCents: i.einzelpreisCents,
       menge: i.menge,
@@ -143,6 +144,7 @@ export function toBestellungData(
 
 export function toReceiptItems(
   positionen: {
+    positionId: string
     produktName: string
     varianteName: string
     einzelpreisCents: number
@@ -150,6 +152,7 @@ export function toReceiptItems(
   }[],
 ): ReceiptPosition[] {
   return positionen.map((p) => ({
+    id: p.positionId,
     name: formatPositionName(p.produktName, p.varianteName),
     einzelpreisCents: p.einzelpreisCents,
     menge: p.menge,

@@ -154,7 +154,7 @@ describe('toBestellungData', () => {
     const { receiptItems } = toBestellungData([pommes], { 7: 2 })
 
     expect(receiptItems).toEqual([
-      { name: 'Pommes mit Ketchup', einzelpreisCents: 300, menge: 2 },
+      { id: '7', name: 'Pommes mit Ketchup', einzelpreisCents: 300, menge: 2 },
     ])
   })
 

@@ -1,6 +1,9 @@
 import { formatEuro } from '@/lib/utils'
 
 export interface ReceiptPosition {
+  // Eindeutig je Zeile: zwei Runden derselben Variante ergeben zwei Positionen
+  // mit gleichem Namen und Preis.
+  id: string
   name: string
   einzelpreisCents: number
   menge: number
@@ -19,7 +22,7 @@ export function Receipt({
         {positionen.map((position) => {
           return (
             <div
-              key={`${position.name}-${position.einzelpreisCents.toString()}`}
+              key={position.id}
               className="flex justify-between border-b pb-2 last:border-0"
             >
               <div>
