@@ -207,8 +207,8 @@ type UserGetter interface {
 	GetUser(ctx context.Context, id int) (user.User, error)
 }
 
-// NewJwtMiddleware validates the JWT and checks status and role against a fresh database record, answering 401 or 403.
-// Deactivation and role changes thus take effect on the next request instead of at token expiry.
+// NewJwtMiddleware validates the JWT and checks status, password change and role against a fresh database record,
+// answering 401 or 403. Deactivation, a password reset and role changes thus take effect on the next request.
 func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter) func(http.Handler) http.HandlerFunc {
 	return func(h http.Handler) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -228,13 +228,14 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 				return
 			}
 			token = token[len(bearerPrefix):]
-			userID, _, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
+			claims, err := jwt.ParseAndValidateJWTToken(token, jwtSecret)
 			if err != nil {
 				logger.Error("Invalid JWT token", "error", err)
 				helper.SendUnauthorized(w, "invalid_jwt")
 				return
 			}
 
+			userID := claims.UserID
 			u, err := users.GetUser(r.Context(), userID)
 			if err != nil {
 				if errors.Is(err, db.ErrNotFound) {
@@ -249,6 +250,11 @@ func NewJwtMiddleware(jwtSecret string, allowedRoles []string, users UserGetter)
 			if u.Status != user.ActiveStatus {
 				logger.Warn("User is not active", "user_id", userID, "status", string(u.Status))
 				helper.SendUnauthorized(w, "user_inactive")
+				return
+			}
+			if !u.SitzungGueltig(claims.IssuedAt) {
+				logger.Warn("Token issued before the last password change", "user_id", userID)
+				helper.SendUnauthorized(w, "session_revoked")
 				return
 			}
 

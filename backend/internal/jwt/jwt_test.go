@@ -38,16 +38,16 @@ func TestParseAndValidateJWTToken(t *testing.T) {
 		t.Fatalf("Failed to generate JWT token: %v", err)
 	}
 
-	userID, userRole, err := ParseAndValidateJWTToken(token, "test_secret")
+	claims, err := ParseAndValidateJWTToken(token, "test_secret")
 	if err != nil {
 		t.Fatalf("Failed to parse and validate JWT token: %v", err)
 	}
 
-	if userID != 2 {
-		t.Errorf("Expected UserID '%d', got '%d'", 2, userID)
+	if claims.UserID != 2 {
+		t.Errorf("Expected UserID '%d', got '%d'", 2, claims.UserID)
 	}
-	if userRole != "service" {
-		t.Errorf("Expected Role '%s', got '%s'", "service", userRole)
+	if claims.Role != "service" {
+		t.Errorf("Expected Role '%s', got '%s'", "service", claims.Role)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub missing", func(t *testing.T) {
 		c := baseClaims()
 		delete(c, "sub")
-		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for missing sub, got nil")
 		}
@@ -80,7 +80,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub wrong type", func(t *testing.T) {
 		c := baseClaims()
 		c["sub"] = "not-a-number"
-		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for string sub, got nil")
 		}
@@ -89,7 +89,7 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("sub negative", func(t *testing.T) {
 		c := baseClaims()
 		c["sub"] = float64(-1)
-		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for negative sub, got nil")
 		}
@@ -98,16 +98,25 @@ func TestParseAndValidateJWTToken_MalformedClaims(t *testing.T) {
 	t.Run("role missing", func(t *testing.T) {
 		c := baseClaims()
 		delete(c, "role")
-		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for missing role, got nil")
+		}
+	})
+
+	t.Run("iat missing", func(t *testing.T) {
+		c := baseClaims()
+		delete(c, "iat")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		if err == nil {
+			t.Error("expected error for missing iat, got nil")
 		}
 	})
 
 	t.Run("role wrong type", func(t *testing.T) {
 		c := baseClaims()
 		c["role"] = float64(42)
-		_, _, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
+		_, err := ParseAndValidateJWTToken(makeTokenWithClaims(c), "test_secret")
 		if err == nil {
 			t.Error("expected error for numeric role, got nil")
 		}

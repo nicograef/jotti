@@ -482,6 +482,48 @@ func TestJwtMiddleware_UserStatusCheck(t *testing.T) {
 	}
 }
 
+// A password reset or change ends every earlier session; a token from the same second stays
+// valid because iat counts whole seconds.
+func TestJwtMiddleware_PasswortwechselBeendetSitzungen(t *testing.T) {
+	secret := "test-secret"
+	token, err := jwt.GenerateJWTTokenForUser(1, "admin", secret)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+	claims, err := jwt.ParseAndValidateJWTToken(token, secret)
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
+
+	cases := []struct {
+		name         string
+		gueltigAb    time.Time
+		wantCode     int
+		wantResponse string
+	}{
+		{"token before the change", claims.IssuedAt.Add(time.Second), http.StatusUnauthorized, "session_revoked"},
+		{"token in the same second", claims.IssuedAt, http.StatusOK, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			users := stubUsers{user: user.User{ID: 1, Role: user.AdminRole, Status: user.ActiveStatus, SitzungenGueltigAb: tc.gueltigAb}}
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+			req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+			req.Header.Set("Authorization", "Bearer "+token)
+			rec := httptest.NewRecorder()
+
+			NewJwtMiddleware(secret, []string{"admin"}, users)(handler).ServeHTTP(rec, req)
+
+			if rec.Code != tc.wantCode {
+				t.Errorf("expected status %d, got %d", tc.wantCode, rec.Code)
+			}
+			if !strings.Contains(rec.Body.String(), tc.wantResponse) {
+				t.Errorf("expected body to contain %q, got %q", tc.wantResponse, rec.Body.String())
+			}
+		})
+	}
+}
+
 // controllerFaehigerWriter kann, was der echte net/http-ResponseWriter kann und
 // httptest.ResponseRecorder nicht: Schreib- und Lesefristen setzen. Flush bringt
 // der eingebettete Recorder selbst mit (er setzt Flushed).

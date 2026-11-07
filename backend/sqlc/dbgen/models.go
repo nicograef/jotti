@@ -537,4 +537,6 @@ type User struct {
 	CreatedAt time.Time
 	// Last modification timestamp (UTC)
 	UpdatedAt time.Time
+	// Frühester gültiger Ausstellungszeitpunkt (iat) eines Tokens, auf volle Sekunden gekürzt wie iat; gesetzt bei Passwort-Reset und Passwortwechsel. NULL = keine Einschränkung.
+	SitzungenGueltigAb sql.NullTime
 }

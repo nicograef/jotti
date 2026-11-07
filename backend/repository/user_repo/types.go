@@ -28,6 +28,7 @@ func userRowToDomain(row dbgen.GetUserRow) user.User {
 		PasswordHash:            row.PasswordHash.String,
 		OnetimePasswordHash:     row.OnetimePasswordHash.String,
 		OnetimePasswordAttempts: int(row.OnetimePasswordAttempts),
+		SitzungenGueltigAb:      row.SitzungenGueltigAb.Time,
 		CreatedAt:               row.CreatedAt,
 		UpdatedAt:               row.UpdatedAt,
 	}

@@ -1,16 +1,16 @@
 -- name: GetUser :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE id = $1 AND status != 'deleted';
 
 -- name: GetUserByUsername :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE username = $1 AND status != 'deleted';
 
 -- name: GetUserByUsernameForUpdate :one
 -- Wie GetUserByUsername, aber mit Zeilensperre (FOR UPDATE): serialisiert
 -- konkurrierende Set-Password-Versuche für denselben Benutzer, damit der
 -- Fehlversuchszähler nicht unterzählt.
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE username = $1 AND status != 'deleted' FOR UPDATE;
 
 -- name: GetAllUsers :many
@@ -22,8 +22,8 @@ INSERT INTO users (name, username, role, status, password_hash, onetime_password
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;
 
 -- name: UpdateUser :execresult
-UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8
-WHERE id = $9;
+UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8, sitzungen_gueltig_ab = $9
+WHERE id = $10;
 
 -- name: CountUsers :one
 SELECT count(*) FROM users;

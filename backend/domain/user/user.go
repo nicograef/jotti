@@ -38,8 +38,11 @@ type User struct {
 	// OnetimePasswordAttempts: nach MaxOnetimePasswordAttempts Fehlversuchen wird das
 	// Einmalpasswort ungültig (Brute-Force-Schutz), der Admin muss ein neues erzeugen.
 	OnetimePasswordAttempts int
-	CreatedAt               time.Time
-	UpdatedAt               time.Time
+	// SitzungenGueltigAb is the earliest issue time of a valid token, in whole seconds like the
+	// JWT iat; zero means no session was ever ended.
+	SitzungenGueltigAb time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 const MaxOnetimePasswordAttempts = 5
@@ -168,8 +171,20 @@ func (u *User) ResetPassword() (string, error) {
 	u.OnetimePasswordAttempts = 0
 	u.PasswordHash = ""
 	u.UpdatedAt = time.Now().UTC()
+	u.beendeSitzungen()
 
 	return onetimePassword, nil
+}
+
+// beendeSitzungen invalidates every token issued before now. A token issued in the same second stays
+// valid, as iat has no finer precision.
+func (u *User) beendeSitzungen() {
+	u.SitzungenGueltigAb = u.UpdatedAt.Truncate(time.Second)
+}
+
+// SitzungGueltig reports whether a token issued at issuedAt survived the last password change.
+func (u User) SitzungGueltig(issuedAt time.Time) bool {
+	return !issuedAt.Before(u.SitzungenGueltigAb)
 }
 
 // SetPassword setzt das Passwort gegen Vorlage des Einmalpassworts. Der Aufrufer
@@ -207,6 +222,7 @@ func (u *User) SetPassword(onetimePassword, newPassword string) error {
 	u.OnetimePasswordHash = ""
 	u.OnetimePasswordAttempts = 0
 	u.UpdatedAt = time.Now().UTC()
+	u.beendeSitzungen()
 
 	return nil
 }

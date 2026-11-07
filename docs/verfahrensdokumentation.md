@@ -106,7 +106,7 @@ Format- und Felddetails: [compliance.md §6](compliance.md#6-dsfinv-k-export-sch
 
 ## 6. Rollen- und Zugriffskonzept
 
-**Authentifizierung:** Jeder Benutzer meldet sich mit Benutzername und Passwort an und erhält ein zeitlich begrenztes Token (JWT, 12 Stunden gültig). Passwörter werden ausschließlich als Argon2id-Hash gespeichert, niemals im Klartext. Die Rechteprüfung erfolgt serverseitig: Das Token weist den Benutzer aus, Rolle und Status werden bei jedem Request gegen die Benutzerdatenbank geprüft. Rollenänderungen und Deaktivierungen wirken damit sofort, nicht erst beim Ablauf des Tokens.
+**Authentifizierung:** Jeder Benutzer meldet sich mit Benutzername und Passwort an und erhält ein zeitlich begrenztes Token (JWT, 12 Stunden gültig). Passwörter werden ausschließlich als Argon2id-Hash gespeichert, niemals im Klartext. Die Rechteprüfung erfolgt serverseitig: Das Token weist den Benutzer aus, Rolle und Status werden bei jedem Request gegen die Benutzerdatenbank geprüft. Rollenänderungen und Deaktivierungen wirken damit sofort, nicht erst beim Ablauf des Tokens. Ein Passwort-Reset oder Passwortwechsel beendet alle zuvor ausgestellten Tokens des Benutzers.
 
 **Drei Rollen mit abgestuften Rechten:**
 

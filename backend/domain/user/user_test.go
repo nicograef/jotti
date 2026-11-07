@@ -157,3 +157,37 @@ func TestSetPassword_ErfolgSetztZaehlerZurueck(t *testing.T) {
 		t.Errorf("expected attempts reset to 0 after success, got %d", u.OnetimePasswordAttempts)
 	}
 }
+
+// A reset and a successful password change end the sessions issued before them; a failed attempt does not.
+func TestPasswortwechsel_BeendetFruehereSitzungen(t *testing.T) {
+	u, onetimePassword, err := NewUser("Test User", "testuser", ServiceRole)
+	if err != nil {
+		t.Fatalf("NewUser: %v", err)
+	}
+	vorher := time.Now().Add(-time.Minute).Truncate(time.Second)
+
+	if err := u.SetPassword("falsch99", "newSecurePass123"); !errors.Is(err, ErrInvalidPassword) {
+		t.Fatalf("expected ErrInvalidPassword, got %v", err)
+	}
+	if !u.SitzungGueltig(vorher) {
+		t.Error("a failed attempt must not end sessions")
+	}
+
+	if err := u.SetPassword(onetimePassword, "newSecurePass123"); err != nil {
+		t.Fatalf("SetPassword: %v", err)
+	}
+	if u.SitzungGueltig(vorher) {
+		t.Error("expected SetPassword to end earlier sessions")
+	}
+	if !u.SitzungGueltig(u.SitzungenGueltigAb) {
+		t.Error("expected a token from the same second to stay valid")
+	}
+
+	u.SitzungenGueltigAb = time.Time{}
+	if _, err := u.ResetPassword(); err != nil {
+		t.Fatalf("ResetPassword: %v", err)
+	}
+	if u.SitzungGueltig(vorher) {
+		t.Error("expected ResetPassword to end earlier sessions")
+	}
+}

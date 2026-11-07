@@ -27,7 +27,14 @@ func GenerateJWTTokenForUser(userID int, userRole string, secret string) (string
 	return stringToken, nil
 }
 
-func ParseAndValidateJWTToken(tokenString, secret string) (int, string, error) {
+// Claims are the validated claims jotti reads from a token.
+type Claims struct {
+	UserID   int
+	Role     string
+	IssuedAt time.Time
+}
+
+func ParseAndValidateJWTToken(tokenString, secret string) (Claims, error) {
 	claims := jwt.MapClaims{}
 	keyFunc := func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
@@ -35,18 +42,23 @@ func ParseAndValidateJWTToken(tokenString, secret string) (int, string, error) {
 
 	_, err := jwt.ParseWithClaims(tokenString, claims, keyFunc, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired(), jwt.WithIssuer(issuer))
 	if err != nil {
-		return 0, "", err
+		return Claims{}, err
 	}
 
 	userIDFloat, ok := claims["sub"].(float64)
 	if !ok || userIDFloat < 0 {
-		return 0, "", errors.New("invalid sub claim")
-	}
-	userID := int(userIDFloat)
-	userRole, ok := claims["role"].(string)
-	if !ok {
-		return 0, "", errors.New("invalid role claim")
+		return Claims{}, errors.New("invalid sub claim")
 	}
 
-	return userID, userRole, nil
+	userRole, ok := claims["role"].(string)
+	if !ok {
+		return Claims{}, errors.New("invalid role claim")
+	}
+
+	issuedAt, err := claims.GetIssuedAt()
+	if err != nil || issuedAt == nil {
+		return Claims{}, errors.New("invalid iat claim")
+	}
+
+	return Claims{UserID: int(userIDFloat), Role: userRole, IssuedAt: issuedAt.Time}, nil
 }

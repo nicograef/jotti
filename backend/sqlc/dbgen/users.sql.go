@@ -101,7 +101,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]GetAllUsersRow, error) {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE id = $1 AND status != 'deleted'
 `
 
@@ -116,6 +116,7 @@ type GetUserRow struct {
 	OnetimePasswordAttempts int
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	SitzungenGueltigAb      sql.NullTime
 }
 
 func (q *Queries) GetUser(ctx context.Context, id int) (GetUserRow, error) {
@@ -132,12 +133,13 @@ func (q *Queries) GetUser(ctx context.Context, id int) (GetUserRow, error) {
 		&i.OnetimePasswordAttempts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SitzungenGueltigAb,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE username = $1 AND status != 'deleted'
 `
 
@@ -152,6 +154,7 @@ type GetUserByUsernameRow struct {
 	OnetimePasswordAttempts int
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	SitzungenGueltigAb      sql.NullTime
 }
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
@@ -168,12 +171,13 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 		&i.OnetimePasswordAttempts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SitzungenGueltigAb,
 	)
 	return i, err
 }
 
 const getUserByUsernameForUpdate = `-- name: GetUserByUsernameForUpdate :one
-SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at
+SELECT id, name, username, role, status, password_hash, onetime_password_hash, onetime_password_attempts, created_at, updated_at, sitzungen_gueltig_ab
 FROM users WHERE username = $1 AND status != 'deleted' FOR UPDATE
 `
 
@@ -188,6 +192,7 @@ type GetUserByUsernameForUpdateRow struct {
 	OnetimePasswordAttempts int
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	SitzungenGueltigAb      sql.NullTime
 }
 
 // Wie GetUserByUsername, aber mit Zeilensperre (FOR UPDATE): serialisiert
@@ -207,13 +212,14 @@ func (q *Queries) GetUserByUsernameForUpdate(ctx context.Context, username strin
 		&i.OnetimePasswordAttempts,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SitzungenGueltigAb,
 	)
 	return i, err
 }
 
 const updateUser = `-- name: UpdateUser :execresult
-UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8
-WHERE id = $9
+UPDATE users SET name = $1, username = $2, role = $3, status = $4, password_hash = $5, onetime_password_hash = $6, onetime_password_attempts = $7, updated_at = $8, sitzungen_gueltig_ab = $9
+WHERE id = $10
 `
 
 type UpdateUserParams struct {
@@ -225,6 +231,7 @@ type UpdateUserParams struct {
 	OnetimePasswordHash     sql.NullString
 	OnetimePasswordAttempts int
 	UpdatedAt               time.Time
+	SitzungenGueltigAb      sql.NullTime
 	ID                      int
 }
 
@@ -238,6 +245,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (sql.Res
 		arg.OnetimePasswordHash,
 		arg.OnetimePasswordAttempts,
 		arg.UpdatedAt,
+		arg.SitzungenGueltigAb,
 		arg.ID,
 	)
 }

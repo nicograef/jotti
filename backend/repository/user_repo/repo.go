@@ -90,6 +90,7 @@ func updateUserParams(u user.User) dbgen.UpdateUserParams {
 		OnetimePasswordHash:     sql.NullString{String: u.OnetimePasswordHash, Valid: u.OnetimePasswordHash != ""},
 		OnetimePasswordAttempts: u.OnetimePasswordAttempts,
 		UpdatedAt:               u.UpdatedAt,
+		SitzungenGueltigAb:      sql.NullTime{Time: u.SitzungenGueltigAb, Valid: !u.SitzungenGueltigAb.IsZero()},
 		ID:                      u.ID,
 	}
 }

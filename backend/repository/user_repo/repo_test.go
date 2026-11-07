@@ -149,6 +149,27 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
+// The JWT middleware reads the session cut-off through GetUser; a lost mapping would keep revoked tokens valid.
+func TestUpdateUser_SpeichertSitzungenGueltigAb(t *testing.T) {
+	u, repo, teardown := setup(t)
+	defer teardown(t)
+
+	if _, err := u.ResetPassword(); err != nil {
+		t.Fatalf("ResetPassword: %v", err)
+	}
+	if err := repo.UpdateUser(context.Background(), u); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	gespeichert, err := repo.GetUser(context.Background(), u.ID)
+	if err != nil {
+		t.Fatalf("expected no error retrieving user, got %v", err)
+	}
+	if !gespeichert.SitzungenGueltigAb.Equal(u.SitzungenGueltigAb) {
+		t.Errorf("SitzungenGueltigAb = %v, want %v", gespeichert.SitzungenGueltigAb, u.SitzungenGueltigAb)
+	}
+}
+
 func TestUpdateUserInDB_Error(t *testing.T) {
 	u, repo, teardown := setup(t)
 	defer teardown(t)
