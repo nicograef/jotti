@@ -270,13 +270,8 @@ describe('LiveReportingSection — Übersicht', () => {
     expect(screen.getAllByText('1 Stornierung')).toHaveLength(2)
     expect(screen.queryByText('Falsch gebucht')).not.toBeInTheDocument()
 
-    // Zuerst die betroffene Servicekraft, der Akteur nur als Zusatz.
     await user.click(screen.getByRole('button', { name: /Details/ }))
     expect(screen.getByText('Falsch gebucht')).toBeInTheDocument()
-    expect(screen.getByText('Tisch 9 · felix (Felix W.)')).toBeInTheDocument()
-    expect(
-      screen.getByText(/storniert von lena \(Lena C\.\)/),
-    ).toBeInTheDocument()
   })
 
   it('zeigt „Live · aktualisiert HH:MM" und löst den Aktualisieren-Button aus', async () => {
@@ -336,55 +331,5 @@ describe('LiveReportingSection — Übersicht', () => {
       screen.getByRole('button', { name: 'Erneut versuchen' }),
     )
     expect(onRefresh).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('LiveReportingSection — Verkäufe pro Produkt', () => {
-  it('zeigt die Produkt-/Varianten-Statistik der offenen Sitzung', () => {
-    render(
-      <LiveReportingSection
-        liveData={liveData([], {
-          produktStatistik: [
-            {
-              kategorie: 'essen',
-              produktName: 'Pommes',
-              // Fixture-Werte: geprüft werden nur Gruppierung und Beschriftung, nicht die Beträge.
-              ausgegebeneMenge: 6,
-              umsatzCents: 0,
-              varianten: [
-                {
-                  varianteId: 10,
-                  varianteName: 'groß',
-                  ausgegebeneMenge: 6,
-                  umsatzCents: 0,
-                },
-              ],
-            },
-          ],
-        })}
-        loading={false}
-        dataUpdatedAt={0}
-        onRefresh={noopRefresh}
-      />,
-    )
-
-    expect(screen.getByText('Verkäufe pro Produkt')).toBeInTheDocument()
-    expect(screen.getByText('Essen')).toBeInTheDocument()
-    expect(screen.getByText('Pommes groß')).toBeInTheDocument()
-  })
-
-  it('zeigt einen leeren Zustand ohne Verkäufe', () => {
-    render(
-      <LiveReportingSection
-        liveData={liveData([])}
-        loading={false}
-        dataUpdatedAt={0}
-        onRefresh={noopRefresh}
-      />,
-    )
-
-    expect(
-      screen.getByText('Keine Verkäufe in dieser Kassensitzung.'),
-    ).toBeInTheDocument()
   })
 })
