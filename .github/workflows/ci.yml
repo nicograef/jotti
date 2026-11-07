@@ -81,6 +81,10 @@ jobs:
               - 'Makefile'
             windows:
               - 'windows/**'
+              # the starter's stack contract test reads them
+              - 'docker-compose.local.yml'
+              - 'docker-compose.release.yml'
+              - 'packaging/windows/**'
               - 'backend/go.mod'
               - 'go.work'
               - 'go.work.sum'
