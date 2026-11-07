@@ -6,5 +6,4 @@ export const EntityStatus = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
 } as const
-export type EntityStatus = (typeof EntityStatus)[keyof typeof EntityStatus]
 export const EntityStatusSchema = z.enum(EntityStatus)
