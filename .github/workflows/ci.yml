@@ -264,6 +264,30 @@ jobs:
       - name: Check the module
         run: make check-${{ matrix.module }}
 
+  # The starter's _windows.go code calls Win32 security APIs; only a Windows host runs it.
+  windows-native:
+    needs: changes
+    if: ${{ (needs.changes.outputs.windows == 'true') || (needs.changes.outputs.ci == 'true') }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ./windows/starter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: windows/starter/go.mod
+          cache: false
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -count=1 ./...
+
   frontend-ci:
     needs: changes
     if: ${{ (needs.changes.outputs.frontend == 'true') || (needs.changes.outputs.ci == 'true') }}
