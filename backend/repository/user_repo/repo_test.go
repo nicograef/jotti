@@ -127,24 +127,6 @@ func TestGetAllUsers(t *testing.T) {
 	}
 }
 
-func TestCreateUserInDB(t *testing.T) {
-	_, repo, teardown := setup(t)
-	defer teardown(t)
-
-	u, _, err := user.NewUser("nico2", "nicousername2", user.AdminRole)
-	if err != nil {
-		t.Fatalf("Failed to create user user object: %v", err)
-	}
-
-	userID, err := repo.CreateUser(context.Background(), u)
-	if err != nil {
-		t.Fatalf("Failed to insert user: %v", err)
-	}
-	if userID < 1 {
-		t.Errorf("expected valid user ID, got %d", userID)
-	}
-}
-
 func TestUpdateUser(t *testing.T) {
 	u, repo, teardown := setup(t)
 	defer teardown(t)

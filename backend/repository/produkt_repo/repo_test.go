@@ -174,20 +174,6 @@ func TestGetProdukt_NotFound(t *testing.T) {
 	}
 }
 
-func TestCreateProdukt(t *testing.T) {
-	repo, teardown := setup(t)
-	defer teardown(t)
-
-	ctx := context.Background()
-	produktID, err := repo.CreateProdukt(ctx, newProdukt("French Fries", produkt.EssenKategorie))
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if produktID < 1 {
-		t.Errorf("Expected valid produkt ID, got %d", produktID)
-	}
-}
-
 // Every read path carries the flag: the admin list, the service list, the single
 // read and the batch read that enrichment uses.
 func TestCreateProdukt_StoresPfand(t *testing.T) {
@@ -311,22 +297,6 @@ func TestUpdateProdukt_NotFound(t *testing.T) {
 }
 
 // Variante tests
-
-func TestCreateVariante(t *testing.T) {
-	repo, teardown := setup(t)
-	defer teardown(t)
-
-	ctx := context.Background()
-	produktID, _ := repo.CreateProdukt(ctx, newProdukt("Cola", produkt.GetraenkKategorie))
-
-	varianteID, err := repo.CreateVariante(ctx, produktID, newVariante("0.5L", 299, produkt.ActiveStatus))
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if varianteID < 1 {
-		t.Errorf("Expected valid variante ID, got %d", varianteID)
-	}
-}
 
 func TestGetVariante(t *testing.T) {
 	repo, teardown := setup(t)

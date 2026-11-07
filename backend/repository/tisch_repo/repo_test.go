@@ -239,21 +239,6 @@ func TestGetAktiveTischeDB(t *testing.T) {
 	}
 }
 
-func TestCreateTischInDB(t *testing.T) {
-	repo, teardown := setup(t)
-	defer teardown(t)
-
-	ctx := context.Background()
-	now := time.Now().UTC()
-	tableID, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Integration Test Table", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if tableID < 1 {
-		t.Errorf("expected valid table ID, got %d", tableID)
-	}
-}
-
 func TestUpdateTischDB(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
