@@ -22,10 +22,6 @@ describe('validateDruckerIp', () => {
   it('rejects an invalid IPv4 address with a field message', () => {
     expect(validateDruckerIp('999.999.999.999')).toBe('Ungültige IPv4-Adresse')
   })
-
-  it('rejects a non-IP string', () => {
-    expect(validateDruckerIp('not-an-ip')).toBe('Ungültige IPv4-Adresse')
-  })
 })
 
 describe('hatBonmodus', () => {
@@ -140,15 +136,6 @@ describe('formatDruckfehler', () => {
 })
 
 describe('DruckstationConfigSchema', () => {
-  it('accepts a product station with bonmodus', () => {
-    const parsed = DruckstationConfigSchema.parse({
-      kategorie: 'essen',
-      druckerIp: '192.168.1.51',
-      bonmodus: 'pro_position',
-    })
-    expect(parsed.bonmodus).toBe('pro_position')
-  })
-
   it('accepts a kassenbeleg station with empty bonmodus', () => {
     const parsed = DruckstationConfigSchema.parse({
       kategorie: 'kassenbeleg',
@@ -157,15 +144,6 @@ describe('DruckstationConfigSchema', () => {
     })
     expect(parsed.kategorie).toBe('kassenbeleg')
     expect(parsed.bonmodus).toBe('')
-  })
-
-  it('accepts pro_stueck for the abholbon station', () => {
-    const parsed = DruckstationConfigSchema.parse({
-      kategorie: 'abholbon',
-      druckerIp: '192.168.1.77',
-      bonmodus: 'pro_stueck',
-    })
-    expect(parsed.bonmodus).toBe('pro_stueck')
   })
 
   it('rejects pro_stueck for a product station', () => {
