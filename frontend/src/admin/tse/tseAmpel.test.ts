@@ -9,6 +9,7 @@ function queue(overrides: Partial<TSESignaturQueue> = {}): TSESignaturQueue {
     fehlgeschlageneAuftraege: 0,
     letzterFehler: '',
     rueckstandSekunden: 12,
+    rueckstandKritisch: false,
     signaturenProMinute: 20,
     signierdauerP95Sekunden: 1.2,
     ...overrides,
@@ -44,13 +45,14 @@ describe('tseAmpel', () => {
     expect(ampel.ueberschrift).toBe('TSE braucht Aufmerksamkeit')
   })
 
-  it('meldet einen Fehler bei Rückstand ab der 60-s-Schwelle, nicht darunter', () => {
-    expect(
-      tseAmpel(konfiguriert, false, queue({ rueckstandSekunden: 59 })).fehler,
-    ).toBe(false)
-    expect(
-      tseAmpel(konfiguriert, false, queue({ rueckstandSekunden: 60 })).fehler,
-    ).toBe(true)
+  it('meldet einen Fehler bei einem kritischen Rückstand', () => {
+    const ampel = tseAmpel(
+      konfiguriert,
+      false,
+      queue({ rueckstandSekunden: 60, rueckstandKritisch: true }),
+    )
+    expect(ampel.fehler).toBe(true)
+    expect(ampel.ueberschrift).toBe('TSE braucht Aufmerksamkeit')
   })
 
   it('meldet einen Fehler bei einer TSE in der Test-Umgebung', () => {

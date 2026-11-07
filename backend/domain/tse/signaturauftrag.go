@@ -26,3 +26,8 @@ type SignaturQueueZustand struct {
 	SignaturenProMinute      float64
 	SignierdauerP95Sekunden  float64
 }
+
+// RueckstandKritisch: the oldest open job has waited past NachsigniertSchwelle, so its Beleg will carry the Nachsigniert mark.
+func (z SignaturQueueZustand) RueckstandKritisch() bool {
+	return time.Duration(z.RueckstandSekunden)*time.Second >= NachsigniertSchwelle
+}

@@ -137,3 +137,14 @@ func TestSignaturstatusErgebnis_OhneKonfiguration(t *testing.T) {
 		})
 	}
 }
+
+func TestSignaturQueueZustand_RueckstandKritisch(t *testing.T) {
+	for _, tc := range []struct {
+		sekunden int
+		want     bool
+	}{{0, false}, {59, false}, {60, true}, {125, true}} {
+		if got := (SignaturQueueZustand{RueckstandSekunden: tc.sekunden}).RueckstandKritisch(); got != tc.want {
+			t.Errorf("RueckstandKritisch(%d s) = %v, want %v", tc.sekunden, got, tc.want)
+		}
+	}
+}

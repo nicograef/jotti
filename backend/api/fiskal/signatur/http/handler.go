@@ -23,6 +23,7 @@ type signaturQueueResponse struct {
 	FehlgeschlageneAuftraege int     `json:"fehlgeschlageneAuftraege"`
 	LetzterFehler            string  `json:"letzterFehler"`
 	RueckstandSekunden       int     `json:"rueckstandSekunden"`
+	RueckstandKritisch       bool    `json:"rueckstandKritisch"`
 	SignaturenProMinute      float64 `json:"signaturenProMinute"`
 	SignierdauerP95Sekunden  float64 `json:"signierdauerP95Sekunden"`
 }
@@ -41,6 +42,7 @@ func (h *QueryHandler) GetTSESignaturQueueHandler() http.HandlerFunc {
 			FehlgeschlageneAuftraege: zustand.FehlgeschlageneAuftraege,
 			LetzterFehler:            zustand.LetzterFehler,
 			RueckstandSekunden:       zustand.RueckstandSekunden,
+			RueckstandKritisch:       zustand.RueckstandKritisch(),
 			SignaturenProMinute:      zustand.SignaturenProMinute,
 			SignierdauerP95Sekunden:  zustand.SignierdauerP95Sekunden,
 		})

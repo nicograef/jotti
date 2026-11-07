@@ -52,6 +52,7 @@ function normaleQueue(): TSESignaturQueue {
     fehlgeschlageneAuftraege: 0,
     letzterFehler: '',
     rueckstandSekunden: 12,
+    rueckstandKritisch: false,
     signaturenProMinute: 20,
     signierdauerP95Sekunden: 1.2,
   }
@@ -269,6 +270,7 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
           ...normaleQueue(),
           offeneAuftraege: 0,
           rueckstandSekunden: 0,
+          rueckstandKritisch: false,
           fehlgeschlageneAuftraege: 2,
           letzterFehler: 'TSE nicht erreichbar',
         },
@@ -299,7 +301,13 @@ describe('FinanzamtPage — Signatur-Warteschlange', () => {
 
   it('beruhigt nicht mehr, wenn der Rückstand die Warnschwelle erreicht', async () => {
     await renderPage(
-      backend({ queue: { ...normaleQueue(), rueckstandSekunden: 90 } }),
+      backend({
+        queue: {
+          ...normaleQueue(),
+          rueckstandSekunden: 90,
+          rueckstandKritisch: true,
+        },
+      }),
     )
 
     expect(screen.getByText(/der Rückstand ist zu groß/)).toBeInTheDocument()

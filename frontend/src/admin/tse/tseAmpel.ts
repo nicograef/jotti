@@ -1,8 +1,5 @@
 import type { TSESignaturQueue, TSEStatus } from './TSEBackend'
 
-// Deckt sich mit der Nachsigniert-Schwelle im Backend.
-const RUECKSTAND_WARN_SEKUNDEN = 60
-
 export const TSE_TEST_WARNUNG =
   'Die TSE läuft in der Test-Umgebung: Belege sind steuerlich nicht gültig. Vor dem Kassieren auf LIVE umstellen.'
 
@@ -26,9 +23,7 @@ export function tseAmpel(
   queue: TSESignaturQueue | undefined,
 ): TSEAmpel {
   const nichtKonfiguriert = !tseLoading && !tseStatus?.istKonfiguriert
-  const rueckstand =
-    !nichtKonfiguriert &&
-    (queue?.rueckstandSekunden ?? 0) >= RUECKSTAND_WARN_SEKUNDEN
+  const rueckstand = !nichtKonfiguriert && queue?.rueckstandKritisch === true
   const signaturFehlgeschlagen =
     !nichtKonfiguriert && (queue?.fehlgeschlageneAuftraege ?? 0) > 0
   const testUmgebung = !nichtKonfiguriert && istTestUmgebung(tseStatus)

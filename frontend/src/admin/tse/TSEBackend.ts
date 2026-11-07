@@ -121,13 +121,15 @@ const TSEStatusSchema = z.object({
 })
 export type TSEStatus = z.infer<typeof TSEStatusSchema>
 
-// Backlog: open Aufträge and the oldest one's age; throughput over a sliding 15-minute window (signatures/minute, p95).
+// Backlog: open Aufträge and the oldest one's age; rueckstandKritisch once that age
+// earns its Beleg the Nachsigniert mark. Throughput over a sliding 15-minute window (signatures/minute, p95).
 // fehlgeschlageneAuftraege and letzterFehler cover only the active Kassensitzung, so closing it clears the warning.
 const TSESignaturQueueSchema = z.object({
   offeneAuftraege: z.number().int(),
   fehlgeschlageneAuftraege: z.number().int(),
   letzterFehler: z.string(),
   rueckstandSekunden: z.number().int(),
+  rueckstandKritisch: z.boolean(),
   signaturenProMinute: z.number(),
   signierdauerP95Sekunden: z.number(),
 })

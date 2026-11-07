@@ -21,6 +21,7 @@ const ruhigeQueue: TSESignaturQueue = {
   fehlgeschlageneAuftraege: 0,
   letzterFehler: '',
   rueckstandSekunden: 0,
+  rueckstandKritisch: false,
   signaturenProMinute: 0,
   signierdauerP95Sekunden: 0,
 }

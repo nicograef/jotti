@@ -56,13 +56,14 @@ func TestGetTSESignaturQueueHandler_Success(t *testing.T) {
 		FehlgeschlageneAuftraege int     `json:"fehlgeschlageneAuftraege"`
 		LetzterFehler            string  `json:"letzterFehler"`
 		RueckstandSekunden       int     `json:"rueckstandSekunden"`
+		RueckstandKritisch       bool    `json:"rueckstandKritisch"`
 		SignaturenProMinute      float64 `json:"signaturenProMinute"`
 		SignierdauerP95Sekunden  float64 `json:"signierdauerP95Sekunden"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("failed to decode response: %v", err)
 	}
-	if body.OffeneAuftraege != 4 || body.FehlgeschlageneAuftraege != 1 || body.RueckstandSekunden != 125 {
+	if body.OffeneAuftraege != 4 || body.FehlgeschlageneAuftraege != 1 || body.RueckstandSekunden != 125 || !body.RueckstandKritisch {
 		t.Errorf("unexpected queue counts: %+v", body)
 	}
 	if body.LetzterFehler != "fiskaly api error 400" {
