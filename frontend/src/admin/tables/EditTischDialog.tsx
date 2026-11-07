@@ -80,7 +80,6 @@ export function EditTischDialog(props: EditTischDialogProps) {
         id: props.tisch.id,
         ...data,
       })
-      form.reset()
       props.updated()
       props.close()
     })
@@ -167,13 +166,7 @@ export function EditTischDialog(props: EditTischDialogProps) {
           )}
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <DialogClose asChild>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  form.reset()
-                }}
-                disabled={loading}
-              >
+              <Button variant="outline" disabled={loading}>
                 Abbrechen
               </Button>
             </DialogClose>

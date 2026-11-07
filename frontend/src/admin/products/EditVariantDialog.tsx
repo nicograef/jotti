@@ -138,13 +138,7 @@ export function EditVariantDialog(props: EditVariantDialogProps) {
           </Button>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <DialogClose asChild>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  form.reset()
-                }}
-                disabled={loading}
-              >
+              <Button variant="outline" disabled={loading}>
                 Abbrechen
               </Button>
             </DialogClose>

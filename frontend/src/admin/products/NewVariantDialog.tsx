@@ -61,7 +61,13 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen)
+        if (!isOpen) form.reset()
+      }}
+    >
       <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent className="sm:max-w-100">
         <DialogHeader className="mb-4">
@@ -91,13 +97,7 @@ export function NewVariantDialog(props: NewVariantDialogProps) {
         </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button
-              variant="outline"
-              onClick={() => {
-                form.reset()
-              }}
-              disabled={loading}
-            >
+            <Button variant="outline" disabled={loading}>
               Abbrechen
             </Button>
           </DialogClose>

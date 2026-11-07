@@ -65,7 +65,6 @@ export function EditUserDialog(props: EditUserDialogProps) {
         id: props.user.id,
         ...data,
       })
-      form.reset()
       props.updated()
       props.close()
     })

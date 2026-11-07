@@ -79,7 +79,6 @@ export function EditProductDialog(props: EditProductDialogProps) {
         id: props.product.id,
         ...data,
       })
-      form.reset()
       props.updated()
       props.close()
     })
@@ -112,13 +111,7 @@ export function EditProductDialog(props: EditProductDialogProps) {
         </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button
-              variant="outline"
-              onClick={() => {
-                form.reset()
-              }}
-              disabled={loading}
-            >
+            <Button variant="outline" disabled={loading}>
               Abbrechen
             </Button>
           </DialogClose>

@@ -65,7 +65,13 @@ export function NewUserDialog(props: NewUserDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen)
+        if (!isOpen) form.reset()
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus /> Neuer Helfer
@@ -95,13 +101,7 @@ export function NewUserDialog(props: NewUserDialogProps) {
         </DialogBody>
         <DialogFooter className="mt-4">
           <DialogClose asChild>
-            <Button
-              variant="outline"
-              onClick={() => {
-                form.reset()
-              }}
-              disabled={loading}
-            >
+            <Button variant="outline" disabled={loading}>
               Abbrechen
             </Button>
           </DialogClose>
