@@ -26,7 +26,6 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 ## Übergabe
 
 - Nicos Arbeitsrechner fährt alles: Waves 2 bis 5 und danach die Feature-Spur. Eine andere Session beansprucht eine Wave nur, indem sie deren Status-Zeile auf `running` setzt und das pusht.
-- `programme-befunde.json` hält die offenen, verifizierten Befunde mit ihrer Lane: `cross`, `docs` und `feature-windows`. Nico hat #135 freigegeben (Idempotenzschlüssel für Tisch- und Direktverkauf-Storno und Umbuchung); Migration 14 macht die `stornierungId` bereits eindeutig.
 - Meldet `fix/q-backend` für #52 eine nötige Frontend-Änderung, gehört sie zu `fix/q-cross`.
 - Nach dem Abschluss wendet die Session die Dependabot-PRs an. Den Resolver auf jotti.rocks deployt Nico, sobald `fix/q-edges` gelandet ist. Den Windows-Starter (#174, Verzeichnisrechte) testet Nico vor dem Release auf einem echten Windows-PC.
 
@@ -50,7 +49,7 @@ Nach dem Abschluss, nacheinander, je ein Plan mit implement-plan-Lanes. PRDs und
 | 2 Fix cross | fix/q-cross | landed | 46a1fd0c, Migration 17 |
 | 3 Distill | fix/q-distill | landed | b908ad0d, 42 FLAGs im Commit d5fd6dd0 |
 | 4 Distill verify | fix/q-verify | landed | b0f6993c: 728 Behauptungen, 53 korrigiert, 69 UNREACHED |
-| 5 Abschluss | — | running | |
+| 5 Abschluss | — | landed | Dependabot 08811709, Folgebefunde a8eeede3; `@hookform/resolvers` 7 (Major) wartet auf Nico |
 | F1 #145 Kommentar je Position | feat/kommentar-je-position | waiting | |
 | F2 Auto-Pfand je Variante | feat/auto-pfand | waiting | |
 | F3 Stationsmodell | feat/stationsmodell | waiting | |
