@@ -212,14 +212,16 @@ func (c Command) BestellungUmbuchen(ctx context.Context, userID int, userName st
 	quellSubject := kasse.TischSessionSubject(ks.ZNr, quellTischID)
 	zielSubject := kasse.TischSessionSubject(ks.ZNr, zielTischID)
 
-	if gebucht, err := c.pruefeGebuchteUmbuchung(ctx, quellSubject, umbuchungID, quellTischID, zielTischID, positionen); gebucht || err != nil {
-		return err
-	}
-
+	// The state is read before the check: a commit the check misses then lies after the OCC base,
+	// so the write conflicts and the re-check below answers it.
 	quellState, err := c.EventRepo.ReadTischSession(ctx, quellSubject)
 	if err != nil {
 		log.Error("Failed to read source tisch session", "error", err, "tisch_id", quellTischID)
 		return ErrDatabase
+	}
+
+	if gebucht, err := c.pruefeGebuchteUmbuchung(ctx, quellSubject, umbuchungID, quellTischID, zielTischID, positionen); gebucht || err != nil {
+		return err
 	}
 
 	resolvedPositionen, gesamtCents, ok := kasse.ResolvePositionen(quellState.UnbezahltePositionen, positionen)

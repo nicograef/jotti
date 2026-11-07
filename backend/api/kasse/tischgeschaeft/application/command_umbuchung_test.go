@@ -302,3 +302,69 @@ func TestBestellungUmbuchen_KasseNichtGeoeffnet(t *testing.T) {
 		t.Errorf("expected ErrKasseNichtGeoeffnet, got %v", err)
 	}
 }
+
+// parallelCommitRepo runs vorLesen once, right before the first projection read: a parallel commit
+// that lands after any earlier read of the stream.
+type parallelCommitRepo struct {
+	*repotest.KassenjournalRepo
+	vorLesen func()
+}
+
+func (r *parallelCommitRepo) ReadTischSession(ctx context.Context, subject string) (kasse.TischSession, error) {
+	if r.vorLesen != nil {
+		r.vorLesen()
+		r.vorLesen = nil
+	}
+	return r.KassenjournalRepo.ReadTischSession(ctx, subject)
+}
+
+// A parallel attempt with the same umbuchungId commits just before the projection read. The retry
+// must see it and book nothing, not move the quantity a second time from the remaining stock.
+func TestBestellungUmbuchen_ParallelerVersuch_BuchtEinmal(t *testing.T) {
+	ctx := context.Background()
+	quellTisch := tisch.Tisch{ID: 1, Name: "Tisch Quelle", Status: tisch.ActiveStatus}
+	zielTisch := tisch.Tisch{ID: 2, Name: "Tisch Ziel", Status: tisch.ActiveStatus}
+	quellSubject := kasse.TischSessionSubject(testKassensitzungNr, quellTisch.ID)
+	positionID := uuid.NewString()
+	bier := func(menge, version int) kasse.TischSession {
+		return kasse.TischSession{
+			UnbezahltePositionen: []kasse.Position{{
+				PositionID: positionID, VarianteID: 1, ProduktName: "Bier", VarianteName: "0,5l",
+				Kategorie: "getraenk", Steuersatz: "regel", EinzelpreisCents: 400, Menge: menge,
+			}},
+			LastEventVersion: version,
+		}
+	}
+
+	inner := repotest.NewKassenjournalRepo(nil, nil)
+	inner.SetTischSession(quellSubject, bier(5, 0))
+	repo := &parallelCommitRepo{KassenjournalRepo: inner}
+	command := Command{
+		TischRepo:           repotest.NewTischRepo([]tisch.Tisch{quellTisch, zielTisch}, nil),
+		EventRepo:           repo,
+		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
+	}
+	umbuchungID := uuid.NewString()
+	refs := []kasse.PositionRef{{PositionID: positionID, Menge: 2}}
+
+	repo.vorLesen = func() {
+		parallel := command
+		parallel.EventRepo = inner
+		if err := parallel.BestellungUmbuchen(ctx, 1, "Test User", umbuchungID, quellTisch.ID, zielTisch.ID, refs, ""); err != nil {
+			t.Fatalf("parallel attempt: %v", err)
+		}
+		inner.SetTischSession(quellSubject, bier(3, 1))
+	}
+
+	if err := command.BestellungUmbuchen(ctx, 1, "Test User", umbuchungID, quellTisch.ID, zielTisch.ID, refs, ""); err != nil {
+		t.Fatalf("expected the retry to succeed, got %v", err)
+	}
+
+	quellEvents, err := inner.ReadEventsBySubject(ctx, quellSubject)
+	if err != nil {
+		t.Fatalf("read source events: %v", err)
+	}
+	if len(quellEvents) != 1 {
+		t.Errorf("expected 1 Abgang, got %d", len(quellEvents))
+	}
+}
