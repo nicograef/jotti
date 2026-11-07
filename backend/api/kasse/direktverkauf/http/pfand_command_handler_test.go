@@ -59,6 +59,17 @@ func TestPfandCommandHandler_Abweisungen(t *testing.T) {
 	}
 }
 
+// mockQuery records the tischId of a Pfandrückgabe-Historie call.
+type mockQuery struct {
+	query
+	pfandTischID int
+}
+
+func (m *mockQuery) GetPfandrueckgabeHistorie(_ context.Context, tischID int) ([]kasse.PfandrueckgabeHistorieEintrag, error) {
+	m.pfandTischID = tischID
+	return nil, nil
+}
+
 // tischId 0 is the Direktverkauf and reaches the application as 0; a missing tischId is a
 // validation error. The pointer schema exists because zog counts a required 0 as missing.
 func TestPfandHandler_TischID(t *testing.T) {
