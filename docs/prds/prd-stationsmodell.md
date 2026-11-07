@@ -1,47 +1,50 @@
-# PRD: Ausgabestationen unabhängig von Produktkategorien
+# PRD: Zusätzliche Drucker für einzelne Produkte
 
 ## Problem Statement
 
 Bei einem Fest gibt es oft mehrere Ausgabebereiche, und jeder braucht seinen eigenen Bondrucker. jotti leitet einen Arbeitsbon allein über die Produktkategorie an einen Drucker. Es gibt drei feste Kategorien, also höchstens drei Drucker für Arbeitsbons.
 
-Ein Verein mit drei räumlich getrennten Ausgabebereichen stieß im Echtbetrieb an diese Grenze:
+Ein Verein stieß im Echtbetrieb an diese Grenze. Sein Weinfest hatte 1603 Tischbestellungen, 970 Direktverkäufe und drei räumlich getrennte Ausgabebereiche. Drei Fälle passten nicht in das Kategoriemodell:
 
-- Ein Gericht stand unter „Getränke“, weil es neben dem Getränkedrucker zubereitet wurde.
-- Ein Bereich für Kaffee und Kuchen bekam keinen eigenen Drucker und führte eine Strichliste.
-- Zwei Essensausgaben mit je eigenem Drucker lassen sich nicht abbilden.
+1. Ein Gericht stand unter „Getränke“. Es wurde im Backhaus zubereitet, und dort stand der Getränkedrucker.
+2. Der Bereich für Kaffee und Kuchen bekam keinen eigenen Drucker. Dort führte das Team eine Strichliste.
+3. Zwei Essensausgaben mit je eigenem Drucker lassen sich nicht abbilden.
 
-Die falsche Kategorie kostet an drei Stellen. Die Servicekraft sucht das Gericht unter dem Getränke-Reiter. Die Produktstatistik zählt es als Getränk, und der DSFinV-K-Export meldet die Kategorie als Warengruppe.
+Die falsche Kategorie kostet an drei Stellen. Die Servicekraft sucht das Gericht unter dem Getränke-Reiter. Die Produktstatistik zählt es als Getränk. Der DSFinV-K-Export meldet die Kategorie als Warengruppe.
 
-Zwei weitere Punkte des Berichts baut #146 getrennt: Der Piepton entfällt, und der Abholbon bekommt den Bonmodus „Kein Bon“. Mit ihm druckt der Direktverkauf gar nichts. Dieses PRD behandelt nur die Bindung des Druckers an die Kategorie.
+Die meisten Vereine brauchen keine weiteren Drucker. Ein Drucker je Kategorie samt Abholbon und Kassenbeleg deckt ihr Fest ab. Diese Einrichtung muss genau so einfach bleiben, wie sie ist.
+
+Zwei weitere Punkte des Berichts sind gebaut. Der Piepton ist entfallen. Der Abholbon kennt den Bonmodus „Kein Bon“, mit ihm druckt der Direktverkauf nichts. Dieses PRD behandelt nur die Bindung des Druckers an die Kategorie.
 
 ## Solution
 
-Eine Ausgabestation ist ein eigener Datensatz mit frei wählbarem Namen, Drucker-IP und Bonmodus. Der Admin legt so viele Stationen an, wie das Fest Ausgabebereiche hat.
+Die Seite „Bondrucker“ bleibt, wie sie ist. Jede Kategorie hat ihren Drucker, dazu kommen Abholbon und Kassenbeleg. Wer nichts weiter braucht, sieht keinen Unterschied.
 
-Jede Kategorie zeigt auf eine Station. Ein einzelnes Produkt kann davon abweichen und auf eine andere Station zeigen. Jede Position druckt an genau einer Station: an der ihres Produkts, sonst an der ihrer Kategorie.
+Darunter steht ein eingeklappter Abschnitt „Zusätzliche Drucker“. Dort legt der Admin bei Bedarf einen benannten Drucker an: Name, Drucker-IP und Bonmodus. Dem Drucker ordnet er einzelne Produkte zu.
 
-| Zuordnung                     | Ausgabestation | Drucker        |
-| ----------------------------- | -------------- | -------------- |
-| Kategorie Essen               | Ausgabe        | 192.168.50.100 |
-| Produkt Zwiebelkuchen (Essen) | Backhaus       | 192.168.50.101 |
-| Kategorie Getränke            | Theke          | 192.168.50.102 |
-| Produkt Kaffee (Getränke)     | Kaffeeecke     | druckt nicht   |
+Ein Produkt mit Zuordnung druckt an seinem zusätzlichen Drucker. Jedes andere Produkt druckt wie heute am Drucker seiner Kategorie. Die Kategorie bleibt so fachlich richtig.
 
-Eine Station ohne Drucker-IP druckt nicht. So kann der Admin Stationen vor dem Aufbau anlegen und die IPs erst vor Ort eintragen.
+| Fall aus dem Bericht             | Einrichtung                                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Gericht am Getränkedrucker    | Das Gericht wandert nach „Essen“. Ein zusätzlicher Drucker „Backhaus“ trägt die IP des Druckers dort. Ihm ist das Gericht zugeordnet. |
+| 2. Kaffee und Kuchen mit Drucker | Ein zusätzlicher Drucker „Kaffee & Kuchen“ bekommt die Produkte Kaffee und Kuchen. Ihre Kategorien bleiben Getränke und Essen.        |
+| 3. Zwei Essensausgaben           | Der Essen-Drucker bedient die erste Ausgabe. Ein zusätzlicher Drucker „Ausgabe 2“ bekommt die Gerichte der zweiten.                   |
 
-Nach dem Update druckt jede Installation unverändert weiter. Das Update legt je Kategorie eine gleichnamige Station mit derselben IP und demselben Bonmodus an. Niemand muss etwas einstellen.
+Ein zusätzlicher Drucker ohne IP druckt nicht. Seine Produkte erzeugen dann keinen Arbeitsbon. So kann ein Bereich ohne Drucker bewusst stumm bleiben.
 
-Kassenbeleg und Abholbon bleiben Sonderdrucker mit eigener Einstellung. Am fiskalischen Kassenbeleg ändert sich nichts.
+Tragen ein Kategoriedrucker und ein zusätzlicher Drucker dieselbe IP, kommen ihre Bons getrennt. Im Fall 1 druckt eine Bestellung mit Wein und Gericht zwei Bons im Backhaus. Das gilt heute schon für zwei Kategorien an einem Drucker.
+
+Wird ein zusätzlicher Drucker gelöscht, drucken seine Produkte wieder am Drucker ihrer Kategorie. Nach dem Update ist nichts einzustellen, und nichts ändert sich.
 
 ## User Stories
 
-1. Als Admin möchte ich Ausgabestationen mit eigenem Namen anlegen, damit jeder Ausgabebereich einen eigenen Drucker bekommt.
-2. Als Admin möchte ich je Kategorie eine Standardstation wählen, damit ich nicht jedes Produkt einzeln zuordnen muss.
-3. Als Admin möchte ich ein einzelnes Produkt an eine andere Station leiten, damit seine Kategorie fachlich richtig bleibt.
-4. Als Admin möchte ich je Station sehen, was dort druckt, damit ich den Aufbau vor Ort prüfen kann.
-5. Als Admin möchte ich an jede Station einen Testbon schicken, damit ich Drucker und Netzwerk vor dem Fest prüfe.
-6. Als Admin möchte ich eine Station ohne Drucker-IP anlegen, damit ich Namen und Zuordnung vor dem Aufbau vorbereite.
-7. Als Admin möchte ich eine Station löschen, damit ihre Produkte wieder über ihre Kategorie drucken.
+1. Als Admin eines gewöhnlichen Fests möchte ich die Seite „Bondrucker“ wie gewohnt vorfinden, damit ich nichts Neues lernen muss.
+2. Als Admin möchte ich einen zusätzlichen Drucker mit eigenem Namen anlegen, damit ein weiterer Ausgabebereich seine Bons bekommt.
+3. Als Admin möchte ich einzelne Produkte einem zusätzlichen Drucker zuordnen, damit ihre Kategorie fachlich richtig bleibt.
+4. Als Admin möchte ich am zusätzlichen Drucker sehen, welche Produkte dort drucken, damit ich den Aufbau vor Ort prüfe.
+5. Als Admin möchte ich an jeden zusätzlichen Drucker einen Testbon schicken, damit ich Drucker und Netzwerk vor dem Fest prüfe.
+6. Als Admin möchte ich einen zusätzlichen Drucker ohne IP anlegen, damit ich den Aufbau vor dem Fest vorbereite.
+7. Als Admin möchte ich einen zusätzlichen Drucker löschen, damit seine Produkte wieder am Drucker ihrer Kategorie drucken.
 8. Als Helfer an einer Ausgabe möchte ich nur die Bons meines Bereichs bekommen, damit ich nichts aussortieren muss.
 9. Als Servicekraft möchte ich jedes Gericht unter „Essen“ finden, damit ich unter Stress nicht suchen muss.
 10. Als Vorstand möchte ich eine Produktstatistik mit richtigen Kategorien, damit die Auswertung des Fests stimmt.
@@ -51,138 +54,167 @@ Kassenbeleg und Abholbon bleiben Sonderdrucker mit eigener Einstellung. Am fiska
 
 ### Abwägung
 
-| Variante                            | Umfang                                                                                   | Aufwand | Risiko                                            | Umkehrbarkeit                               |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- | ------- | ------------------------------------------------- | ------------------------------------------- |
-| A: Stationsmodell (Minimalvariante) | Stationen als Datensätze, Standardstation je Kategorie, Ausnahme je Produkt              | mittel  | gering, Events und Kassenbeleg bleiben unberührt  | Ausnahmen per Klick, Schema nur per Backup  |
-| B: Vollmodell                       | wie A, Zuordnung je Variante, Kassenbeleg und Abholbon als Rollen in der Stationstabelle | hoch    | mittel, der fiskalische Kassenbeleg-Pfad zieht um | gering, zwei Druckarten teilen eine Tabelle |
-| C: Druckkategorie am Produkt        | ein Produkt druckt am Drucker einer anderen Kategorie                                    | gering  | gering                                            | Ausnahmen per Klick, eine optionale Spalte  |
-| 0: nicht bauen                      | Piepton-Wegfall und „Kein Bon“ genügen                                                   | keiner  | Kategorie bleibt Steuerungsmittel                 | –                                           |
+| Variante                                | Umfang                                                                                      | Aufwand | Risiko                                                             | Umkehrbarkeit                                                |
+| --------------------------------------- | ------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Z: Zusatzdrucker (gewählt)              | Druckstationen bleiben; optionale benannte Drucker, denen einzelne Produkte zugeordnet sind | gering  | gering, ohne Zusatzdrucker läuft der heutige Druckpfad unverändert | hoch, Zusatzdrucker löschen stellt das heutige Verhalten her |
+| A: Stationsmodell                       | Stationen ersetzen die Kategoriezeilen, jede Kategorie zeigt auf eine Station               | mittel  | mittel, jede Installation druckt über umkopierte Daten             | gering, Schema und Datenübernahme nur per Backup zurück      |
+| C: Produkt wählt einen Kategoriedrucker | Ein Produkt druckt am Drucker einer anderen Kategorie                                       | gering  | gering                                                             | hoch, eine optionale Zuordnung                               |
+| 0: nicht bauen                          | Piepton-Wegfall und „Kein Bon“ genügen                                                      | keiner  | Kategorie bleibt Steuerungsmittel                                  | –                                                            |
 
-Empfehlung, falls gebaut wird: Variante A. Sie löst alle drei Fälle des Berichts mit drei kleinen Tabellen. Variante C löst nur das falsch einsortierte Gericht und bleibt bei drei Druckern. Variante B verlangt eine Zuordnung je Produktvariante, löst aber keinen Fall, den A nicht löst.
+| Fall                             | Z   | A   | C                                         |
+| -------------------------------- | --- | --- | ----------------------------------------- |
+| 1. Gericht am Getränkedrucker    | ja  | ja  | ja                                        |
+| 2. Kaffee und Kuchen mit Drucker | ja  | ja  | nur auf dem Sonstiges-Drucker, falls frei |
+| 3. Zwei Essensausgaben           | ja  | ja  | nur auf dem Sonstiges-Drucker, falls frei |
 
-Die Ausnahme hängt am Produkt, nicht an der Variante. Braucht eine Variante einen anderen Ort, wird sie ein eigenes Produkt. Der Bestell-Bildschirm zeigt ohnehin eine flache Variantenliste (D10), die Servicekraft merkt davon nichts.
+Gewählt ist Variante Z. Sie deckt alle drei Fälle ab und lässt den gewöhnlichen Fall unberührt.
+
+- Variante A deckt dieselben Fälle ab. Sie baut dafür die Einrichtung jedes Vereins um, auch ohne Bedarf. Die Seite bekommt drei Abschnitte, und eine Datenübernahme berührt jede Installation.
+- Variante C bleibt bei drei Druckern für Arbeitsbons. Die Fälle 2 und 3 gehen nur einzeln über den Sonstiges-Drucker. Testbon und Seite nennen dann „Sonstiges“, obwohl dort Kaffee druckt.
+
+Die Zuordnung zeigt nur auf Zusatzdrucker, nie auf einen Kategoriedrucker. Ein einziger Zieltyp hält Schema und Oberfläche klein. Teilt sich ein Bereich den Drucker einer Kategorie, trägt der Zusatzdrucker dieselbe IP.
+
+Die Zuordnung hängt am Produkt, nicht an der Variante. Der meldende Verein hätte 19 Produkte statt 107 Varianten zuordnen müssen. Braucht eine Variante einen anderen Ort, wird sie ein eigenes Produkt. Der Bestell-Bildschirm zeigt ohnehin eine flache Variantenliste (D10).
+
+### Die fünf Zeilen der Druckstationen
+
+Die Tabelle der Druckstationen hat genau fünf Zeilen, eine je fester Station:
+
+| Zeile       | Zweck                                                                                            | In Variante Z |
+| ----------- | ------------------------------------------------------------------------------------------------ | ------------- |
+| Essen       | IP und Bonmodus der Arbeitsbons für Essen, aus Tischbestellungen und Direktverkauf ohne Abholbon | unverändert   |
+| Getränke    | dasselbe für Getränke                                                                            | unverändert   |
+| Sonstiges   | dasselbe für Sonstiges                                                                           | unverändert   |
+| Abholbon    | IP und Bonmodus der Abholbons; „Kein Bon“ schaltet den Direktverkauf stumm                       | unverändert   |
+| Kassenbeleg | IP des fiskalischen Kassenbeleg-Druckers, ohne Bonmodus                                          | unverändert   |
+
+Variante Z braucht alle fünf Zeilen weiter. Sie bleiben der Standard für jedes Produkt ohne Zuordnung. Die Frage nach dem Löschen stellt sich damit nicht.
+
+Erst Variante A machte die drei Kategoriezeilen überflüssig. Ihr Löschen hätte vier Folgen:
+
+- Es wäre eine nicht-additive Migration. Das bräuchte eine ausdrückliche Ausnahme des Owners von der Migrationsregel.
+- Postgres kann einen Enum-Wert nicht entfernen. Der Stationstyp behielte die Werte, ein engerer CHECK müsste sie sperren.
+- Ein Rückweg auf das alte Release ginge nur per Backup-Restore. Das alte Release schreibt die Kategoriezeilen, der engere CHECK lehnte das ab. Alles seit dem Update Erfasste ginge mit dem Restore verloren.
+- Behielte A die Zeilen, stünden tote IPs in der Datenbank. Wer dort nachsieht, hielte sie für wirksam.
 
 ### Modell
 
-- Ausgabestation: Name, Drucker-IP (IPv4 oder leer), Bonmodus (pro Position oder pro Bestellung), Status aktiv oder gelöscht.
-- Der Name ist Pflicht und unter aktiven Stationen eindeutig. Er erscheint auf dem Testbon und in der Verwaltung.
-- Löschen ist ein Soft Delete wie bei allen Stammdaten.
-- Kategorie-Zuordnung: Jede der drei Kategorien zeigt auf genau eine aktive Station. Eine Lücke gibt es nicht.
-- Produkt-Ausnahme: optional, höchstens eine je Produkt.
-- Auflösung: Produkt-Ausnahme vor Kategorie-Zuordnung. Diese Regel lebt an genau einer Stelle im Druck-Modul.
-- Eine Station löschen entfernt ihre Produkt-Ausnahmen in derselben Transaktion. Ist sie Standardstation einer Kategorie, lehnt das Backend das Löschen ab.
+- Zusatzdrucker: Name, Drucker-IP (IPv4 oder leer), Bonmodus „Pro Position“ oder „Pro Bestellung“.
+- Der Name ist Pflicht und eindeutig. Er erscheint auf dem Testbon und in der Verwaltung.
+- Ein neuer Zusatzdrucker startet ohne IP und mit „Pro Position“, wie die Druckstationen im Auslieferungszustand.
+- Zuordnung: Ein Produkt hat höchstens einen Zusatzdrucker. Ein Zusatzdrucker hat beliebig viele Produkte.
+- Ordnet der Admin ein zugeordnetes Produkt einem anderen Zusatzdrucker zu, wandert die Zuordnung dorthin.
+- Auflösung: Zusatzdrucker des Produkts vor Druckstation der Kategorie. Die Regel lebt an genau einer Stelle im Druck-Modul.
+- Löschen ist endgültig und entfernt die Zuordnungen in derselben Transaktion. Kein Event und kein Druckauftrag verweist auf einen Zusatzdrucker. Ein Soft Delete hätte also keine Historie zu bewahren.
+- Die Zuordnung gehört dem Druck-Modul, nicht dem Produkt-Aggregat. Produktdialog und Produkt-Endpunkte bleiben unverändert.
 
 ### Schema
 
-Eine additive Migration mit der nächsten freien Nummer nach Migration 10 aus #146, in einer Transaktion:
+Eine additive Migration mit der nächsten freien Nummer, in einer Transaktion:
 
-- Tabelle `ausgabestationen` mit Name, Drucker-IP, Bonmodus und Status. Bonmodus und Status sind TEXT mit CHECK.
-- Tabelle `kategorie_ausgabestationen`: Kategorie als Primärschlüssel, Fremdschlüssel auf die Station, nie NULL.
-- Tabelle `produkt_ausgabestationen`: Produkt als Primärschlüssel, Fremdschlüssel auf die Station.
-- Eigene Tabelle statt Spalte am Produkt: Das Produkt-Aggregat bleibt frei von Druckbelangen. Die Zuordnung gehört dem Druck-Modul.
-- Datenübernahme: Je Zeile `essen`, `getraenk` und `sonstiges` in `druckstationen` entsteht eine Station mit IP und Bonmodus.
-- Die Stationen heißen wie die Kategorien in der Oberfläche: „Essen“, „Getränke“ und „Sonstiges“. Jede Kategorie zeigt auf ihre Station.
-- Die drei Kategoriezeilen in `druckstationen` bleiben unverändert stehen; der Code liest dort nur noch die Sonderdrucker (offene Entscheidung 2).
-- So bleibt die Migration additiv, wie die Migrationsregeln verlangen. Den CHECK aus Migration 10 mit `'kein_bon'` fasst sie nicht an.
-- Produkt-Ausnahmen übernimmt die Migration keine. Die Kategorie-Zuordnung deckt jede bestehende Installation ab.
+- Eine Tabelle für Zusatzdrucker mit Name, Drucker-IP und Bonmodus. Der Bonmodus ist TEXT mit CHECK.
+- Eine Zuordnungstabelle mit dem Produkt als Primärschlüssel und einem Fremdschlüssel auf den Zusatzdrucker. Löschen kaskadiert auf die Zuordnungen.
+- Die Tabelle der Druckstationen bleibt unberührt, samt ihrem CHECK.
+- Keine Datenübernahme. Beide Tabellen starten leer, jede Installation druckt danach wie vorher.
 
-Kein Event ändert sich, und es entsteht kein Event-Typ. Das Kassenjournal bleibt unberührt. Die Druckkonfiguration ist CRUD wie die heutige Druckstationen-Einstellung.
+Kein Event ändert sich, und es entsteht kein Event-Typ. Das Kassenjournal bleibt unberührt. Die Druckkonfiguration bleibt CRUD wie die heutige Druckstationen-Einstellung.
 
 ### Arbeitsbon-Policy
 
-- Die Policy bleibt eine reine Funktion. Der Aufrufer lädt je Variante der Bestellung die aufgelöste Station und übergibt sie.
-- Die Policy gruppiert Positionen nach Station statt nach Kategorie. Zwei Kategorien an einer Station ergeben im Modus pro Bestellung einen Sammelbon.
-- Eine Position ohne Station mit Drucker-IP erzeugt keinen Druckauftrag.
+- Die Policy bleibt eine reine Funktion. Sie bekommt zusätzlich je Variante der Bestellung den Zusatzdrucker ihres Produkts.
+- Der Aufrufer lädt diese Zuordnung mit einer Abfrage. Die Produkte der Bestellung kennt er schon aus der Anreicherung.
+- Die Policy gruppiert Positionen nach Drucker: Zusatzdrucker, sonst Druckstation der Kategorie. Je Drucker gilt dessen Bonmodus.
+- Eine Position, deren Drucker keine IP hat, erzeugt keinen Druckauftrag.
+- Ohne Zuordnung gruppiert die Policy wie heute nach Kategorie. Die bestehenden Tests pinnen dieses Verhalten.
 - Die Auflösung nutzt die Zuordnung im Moment der Bestellung. Ein Arbeitsbon entsteht genau dann und nie ein zweites Mal.
-- Direktverkauf: Erst greift der Abholbon-Bonmodus „Kein Bon“, dann der Abholbon, sonst druckt jede Position an ihre aufgelöste Station.
-- Testbon: je Ausgabestation, die Druckauftrags-Referenz trägt den Stationsnamen. Der Testbon der Sonderdrucker bleibt gleich.
+- Direktverkauf: Erst greift „Kein Bon“, dann der Abholbon für alle Positionen. Sonst druckt jede Position an ihrem aufgelösten Drucker.
+- Testbon: je Zusatzdrucker mit seinem Namen. Die Referenz des Auftrags trägt den Namen, die Liste fehlgeschlagener Aufträge zeigt ihn.
 - Das Print-Relay ändert sich nicht. Es sieht weiter nur Ziel-IP und Payload.
 
 ### API und Verträge
 
 - Alle Endpunkte sind POST und prüfen mit zog im Backend und Zod im Frontend.
-- Ausgabestationen auflisten, anlegen, ändern und löschen.
-- Die Liste trägt je Station ihre Kategorien und Produkte, fertig vom Backend zusammengestellt.
-- Standardstation einer Kategorie setzen, Produkt-Ausnahme setzen und entfernen.
-- Testbon je Ausgabestation drucken.
-- Der Sonderdrucker-Endpunkt nimmt allein Kassenbeleg und Abholbon an. Die alten Kategoriezeilen sind über die API nicht mehr erreichbar.
-- Die Produktliste liefert je Produkt den Namen seiner wirksamen Station. Das Frontend schlägt keine Station selbst nach.
+- Zusatzdrucker auflisten, anlegen, ändern und löschen.
+- Die Liste trägt je Zusatzdrucker seine Produkte mit Namen, fertig vom Backend zusammengestellt. Gelöschte Produkte fehlen darin.
+- Produkt einem Zusatzdrucker zuordnen und Zuordnung entfernen.
+- Testbon je Zusatzdrucker drucken.
+- Die Endpunkte der Druckstationen bleiben unverändert.
 - Backend und Frontend ändern sich im selben Release, die API trägt keine Version.
 
 ### Admin-UX
 
-Die Seite „Bondrucker“ hat drei Abschnitte:
+Der bestehende Teil der Seite „Bondrucker“ bleibt unverändert. Neu ist allein der Abschnitt „Zusätzliche Drucker“ darunter.
 
-1. Ausgabestationen: je Station eine Karte mit Name, Drucker-IP, Bonmodus, Testbon und Löschen. Darunter steht, was dort druckt, etwa „Kategorie Essen · Zwiebelkuchen“.
-2. Zuordnung: je Kategorie ein Auswahlfeld für die Standardstation. Darunter eine Liste „Ausnahmen“ mit Produkt, Station und Entfernen.
-3. Sonderdrucker: Kassenbeleg und Abholbon wie heute, der Abholbon samt Bonmodus „Kein Bon“.
+- Ohne Zusatzdrucker ist er eine eingeklappte Zeile. Ein Satz erklärt den Zweck: „Für Produkte, die an einem anderen Ort zubereitet werden.“
+- Aufgeklappt zeigt er den Knopf „Drucker hinzufügen“.
+- Mit Zusatzdruckern steht der Abschnitt offen. Je Zusatzdrucker gibt es eine Karte wie bei den Druckstationen: Name, Drucker-IP, Bonmodus, Testbon, Löschen.
+- Unter dem Bonmodus listet die Karte ihre Produkte, je mit Entfernen. „Produkt hinzufügen“ öffnet eine Auswahl aller Produkte.
+- Die Auswahl zeigt bei jedem Produkt seine Kategorie und einen bestehenden Zusatzdrucker.
+- Löschen fragt nach: „Die Produkte drucken danach wieder am Drucker ihrer Kategorie.“
+- Gespeichert wird beim Verlassen eines Felds, wie auf der Seite heute.
 
-Die Ausnahme steht auf der Stationsseite, nicht im Produktdialog. Die ganze Druckeinrichtung geschieht so vor Ort auf einer Seite. Die Produktliste zeigt die wirksame Station nur als Hinweis.
-
-Gespeichert wird beim Verlassen eines Felds, wie auf der Seite heute. Der Knopf „Station hinzufügen“ legt eine Station ohne IP an.
+Die Zuordnung steht auf der Druckerseite, nicht im Produktdialog. Die ganze Druckeinrichtung geschieht so vor Ort auf einer Seite. Der Produktdialog bleibt für jeden Verein gleich.
 
 ## Testing Decisions
 
 Tests prüfen nur äußeres Verhalten. Erweitert werden die bestehenden Testdateien.
 
-- Arbeitsbon-Policy: Tabellentests wie die heutigen je Bonmodus. Fälle: Ausnahme schlägt Kategorie, zwei Kategorien an einer Station, Station ohne IP, Direktverkauf ohne Abholbon.
-- Domäne: Die bestehenden Tabellentests der Druckstation prüfen Name, IP und Bonmodus der Ausgabestation.
-- Repository: Integrationstest gegen echtes Postgres wie im Druckstationen-Repository. Er prüft Auflösung, Löschsperre und das Entfernen der Ausnahmen.
-- Migration: Ein Integrationstest spielt die Migrationsdatei auf eine Datenbank mit konfigurierten Kategoriezeilen. Vorbild ist der Test der Favoriten-Bereinigung.
-- Der Migrationstest prüft: Jede Kategorie druckt danach an dieselbe IP mit demselben Bonmodus. Die alten Kategoriezeilen stehen unverändert. Der CI-Job für den Upgrade-Pfad deckt Boot und Projektionen ab.
-- HTTP: nur die Löschsperre als Fehlercode. Die Feldabbildung deckt der Integrationstest ab.
-- Frontend: die Zod-Prüfung in der Backend-Klasse, wie im bestehenden Druckstationen-Backend-Test.
-- E2E: Die bestehende Spezifikation „Druckstationen verwalten“ legt eine Station an, setzt eine Ausnahme und schickt einen Testbon.
+- Arbeitsbon-Policy: Tabellentests wie die heutigen je Bonmodus. Neue Fälle: Zusatzdrucker schlägt Kategorie, Zusatzdrucker ohne IP, Sammelbon je Drucker, Direktverkauf mit und ohne Abholbon.
+- Ohne Zuordnung bleiben die bestehenden Policy-Tests unverändert grün. Sie belegen, dass der gewöhnliche Fall gleich druckt.
+- Domäne: Die bestehenden Tabellentests der Druckstation bekommen die Prüfung von Name, IP und Bonmodus des Zusatzdruckers.
+- Repository: Integrationstest gegen echtes Postgres wie im Druckstationen-Repository. Er prüft Auflösung je Variante, eindeutigen Namen und das Entfernen der Zuordnungen beim Löschen.
+- HTTP: nur der doppelte Name als Fehlercode. Die Feldabbildung deckt der Integrationstest ab.
+- Frontend: die Zod-Prüfung in der Backend-Klasse, wie im bestehenden Druckstationen-Backend-Test. Der Seitentest prüft den eingeklappten Abschnitt ohne Zusatzdrucker.
+- E2E: Die bestehende Spezifikation „Admin verwaltet Druckstationen“ legt einen Zusatzdrucker an, ordnet ein Produkt zu und schickt einen Testbon.
+- Migration: kein eigener Test. Sie legt nur leere Tabellen an, den Upgrade-Pfad deckt der CI-Job ab.
 - Events: keine, abgedeckt durch den Vertragstest der Event-JSON-Formate.
 - Produktstatistik und DSFinV-K: keine, abgedeckt durch ihre bestehenden Tests. Das Modell berührt beide nicht.
 
 ## Out of Scope
 
 - Zuordnung je Variante. Eine Variante mit eigenem Ort wird ein eigenes Produkt.
-- Piepton je Station. Der Piepton entfällt für alle Stationen.
-- Der Abholbon-Bonmodus „Kein Bon“. Er wird getrennt gebaut (#146).
-- Eine Position an zwei Stationen, etwa als Kopie für die Theke.
+- Zuordnung eines Produkts zum Drucker einer anderen Kategorie. Ein Zusatzdrucker mit derselben IP leistet das.
+- Zusammenfassen der Bons zweier Drucker mit derselben IP.
+- Ersatz der Kategoriedrucker durch frei benannte Stationen (Variante A).
+- Löschen oder Umbau der Zeilen in der Tabelle der Druckstationen.
+- Ein Hinweis auf den Zusatzdrucker in Produktliste oder Produktdialog.
+- Eine Position an zwei Druckern, etwa als Kopie für die Theke.
 - Mehrere Kassenbeleg- oder Abholbon-Drucker.
 - Frei definierbare Kategorien. Es bleiben die drei festen Werte.
 - Umleiten offener Druckaufträge, wenn ein Drucker ausfällt oder seine IP wechselt.
-- Eine Auswertung je Station.
+- Eine Auswertung je Drucker.
 - Kategorien vergangener Kassensitzungen umschreiben. Die Positionen im Kassenjournal bleiben, wie sie sind.
 - Kommentar je Position (#145). Dafür gibt es ein eigenes PRD.
 
 ## Further Notes
 
-**Bauentscheidung.** Den Bedarf meldet ein Verein. Die getrennten Arbeiten aus #146 lösen zwei seiner drei Punkte.
+**Bauentscheidung.** Den Bedarf meldet ein Verein (#146). Die gebauten Punkte aus #146 lösen zwei seiner drei Anliegen.
 
-Für den Bau spricht: K-25 nennt die Konfiguration der Ausgabestationen und die Zuordnung der Kategorien als zwei Aufgaben. Die zweckentfremdete Kategorie verfälscht Produktstatistik und DSFinV-K-Warengruppe.
+- Für den Bau spricht: Die zweckentfremdete Kategorie verfälscht Produktstatistik und DSFinV-K-Warengruppe. Variante Z kostet den gewöhnlichen Verein nichts.
+- Gegen den Bau spricht: Ein dritter Ausgabeort geht heute schon über „Sonstiges“, solange die Kategorie frei ist. Kein zweiter Verein hat ihn gemeldet.
 
-Gegen den Bau spricht: Ein dritter Ausgabeort geht heute schon über „Sonstiges“, solange die Kategorie frei ist. Die Verwaltung bekommt eine Seite mit drei Abschnitten statt einer Liste.
+**Angebot des Vereins.** Der meldende Verein bot in #146 an, die Umsetzung selbst zu schreiben. Sein Vorschlag entspricht Variante A.
 
-**Offene Entscheidungen für den Owner:**
-
-1. Bauen oder nicht. Empfohlen ist Variante A, falls gebaut wird; sonst Variante 0.
-2. Die alten Kategoriezeilen in `druckstationen`: behalten (empfohlen) oder löschen.
-
-Zu Entscheidung 2:
-
-- Behalten hält die Migration additiv. Der Code ignoriert die Zeilen.
-- Löschen samt engerem CHECK wäre eine ausdrückliche Ausnahme des Owners von der additiven Migrationsregel.
-- Für das Löschen spricht nur: Tote Zeilen mit veralteten IPs verwirren beim Blick in die Datenbank.
-- Auch ein engerer CHECK behält `'kein_bon'` am Abholbon.
-
-**Auswirkung auf die Produktstatistik.** Sie gruppiert nach der Kategorie, die jede Position im Kassenjournal trägt. Das Stationsmodell ändert an ihr keinen Code.
+**Auswirkung auf die Produktstatistik.** Sie gruppiert nach der Kategorie, die jede Position im Kassenjournal trägt. Variante Z ändert an ihr keinen Code.
 
 Der Gewinn ist mittelbar: Ein Verein kann jedes Produkt in seine richtige Kategorie legen. Ab der nächsten Bestellung zählt es dort, vergangene Kassensitzungen bleiben unverändert.
 
 Wer ein Produkt während einer laufenden Kassensitzung umsortiert, sieht es in zwei Kategorie-Abschnitten. Das Handbuch sollte raten, Kategorien vor dem Eröffnen der Kassensitzung zu ordnen.
 
-**Folgeänderungen bei Umsetzung.** Der Handbuch-Abschnitt zum Bondruck und die Druckstation-Einträge der Sprachtabelle werden angepasst. Die Anforderung K-25 bleibt wörtlich gültig.
+**Folgeänderungen bei Umsetzung.**
 
-**Vorgeschlagene Einträge für die Sprachtabelle:**
+- Der Handbuch-Abschnitt zum Bondruck nennt die Auflösungsregel und den Zusatzdrucker im Direktverkauf-Routing.
+- Die Anforderung K-25 nennt zusätzlich die Zuordnung einzelner Produkte zu Zusatzdruckern.
+- Die Sprachtabelle bekommt den Eintrag unten. Der Testbon-Eintrag nennt auch den Zusatzdrucker.
+- Der Backlog-Eintrag zu #146 entfällt.
 
-| Begriff          | Definition                                                                                              | Zu vermeiden                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Ausgabestation   | Benannter Ausgabeort mit Bondrucker und Bonmodus, an den Arbeitsbons gehen.                             | Produktstation, Kategorie-Station, Drucker |
-| Standardstation  | Die Ausgabestation, an die eine Kategorie ihre Positionen schickt, wenn das Produkt keine Ausnahme hat. | Kategorie-Drucker, Default-Station         |
-| Produkt-Ausnahme | Zuordnung eines einzelnen Produkts zu einer anderen Ausgabestation als der seiner Kategorie.            | Override, Routing-Regel, Sonderzuordnung   |
-| Sonderdrucker    | Kassenbeleg- und Abholbon-Drucker, die nicht nach Produkten drucken.                                    | Sonderstation, Spezialstation              |
-| Druckstation     | Sammelbegriff der Verwaltungsseite für Ausgabestationen und Sonderdrucker.                              | Station allein im Code                     |
+**Vorgeschlagener Eintrag für die Sprachtabelle.** Er kommt mit der Umsetzung, denn die Sprachtabelle führt nur gebaute Begriffe.
+
+| Begriff       | Bedeutung                                                                                                                                                                               | Zu vermeiden                                                   |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Zusatzdrucker | Optionaler, benannter Bondrucker für die Arbeitsbons einzeln zugeordneter Produkte. Ein Produkt ohne Zuordnung druckt an der Druckstation seiner Kategorie. UI: „Zusätzlicher Drucker“. | Ausgabestation als Datensatz, Station, Extra-Drucker, Override |
+
+**Offene Entscheidungen für den Owner:**
+
+1. Bauen oder nicht. Empfohlen: Variante Z bauen. Sie löst alle drei Fälle und lässt den gewöhnlichen Fall unberührt. Sonst Variante 0.
+2. Wer baut. Empfohlen: dem Verein in #146 Variante Z vorschlagen und sein Angebot annehmen. Die Review bleibt beim Owner.
