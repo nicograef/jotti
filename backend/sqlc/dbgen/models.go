@@ -542,3 +542,23 @@ type User struct {
 	// Frühester gültiger Ausstellungszeitpunkt (iat) eines Tokens, auf volle Sekunden gekürzt wie iat; gesetzt bei Passwort-Reset und Passwortwechsel. NULL = keine Einschränkung.
 	SitzungenGueltigAb sql.NullTime
 }
+
+// Benannter Drucker für einzeln zugeordnete Produkte; Konfiguration wie druckstationen, hart gelöscht.
+type Zusatzdrucker struct {
+	ID int
+	// Anzeigename, steht auch auf dem Testbon (3 bis 100 Zeichen, geprüft im Backend).
+	Name string
+	// IPv4-Adresse des Bondruckers (leer = kein Drucker konfiguriert)
+	DruckerIp string
+	// Bonmodus: pro_position (1 Bon pro Position) oder pro_bestellung (1 Sammelbon).
+	Bonmodus  string
+	UpdatedAt time.Time
+}
+
+// Zuordnung Produkt → Zusatzdrucker; höchstens ein Zusatzdrucker je Produkt.
+type ZusatzdruckerProdukte struct {
+	// Zugeordnetes Produkt; sein Arbeitsbon druckt am Zusatzdrucker statt an der Druckstation seiner Kategorie.
+	ProduktID int
+	// Zusatzdrucker des Produkts; Löschen des Zusatzdruckers entfernt die Zuordnung.
+	ZusatzdruckerID int
+}

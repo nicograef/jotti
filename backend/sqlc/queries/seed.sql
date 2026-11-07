@@ -25,6 +25,8 @@ TRUNCATE TABLE
     betreiber,
     druckauftraege,
     druckstationen,
+    zusatzdrucker,
+    zusatzdrucker_produkte,
     tse_konfiguration,
     tse_stammdaten,
     tse_stammdaten_je_tss,
