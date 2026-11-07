@@ -27,13 +27,13 @@ type TischRepo struct {
 	// offeneSaldi enthält die offenen Saldi (tischID → saldoCents) der offenen
 	// Kassensitzung — für die saldoCents-Projektion und den Schutz-Guard.
 	offeneSaldi map[int]int
-	// favoritenCleanup ist der Anteil an DeleteTischMitFavoriten, den das echte
-	// Repository in derselben Transaktion wie den Statuswechsel ausführt.
+	// favoritenCleanup ist der Anteil an AendereStatus, den das echte Repository
+	// beim Löschen in derselben Transaktion wie den Statuswechsel ausführt.
 	favoritenCleanup func(ctx context.Context, tischID int) error
 	err              error
 }
 
-// SetFavoritenCleanup sets the cleanup DeleteTischMitFavoriten runs; if it fails, the status change
+// SetFavoritenCleanup sets the cleanup AendereStatus runs on delete; if it fails, the status change
 // is skipped, mirroring the real transaction's rollback.
 func (m *TischRepo) SetFavoritenCleanup(cleanup func(ctx context.Context, tischID int) error) {
 	m.favoritenCleanup = cleanup
@@ -52,13 +52,6 @@ func (m *TischRepo) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int
 	result := make(map[int]int, len(m.offeneSaldi))
 	maps.Copy(result, m.offeneSaldi)
 	return result, nil
-}
-
-func (m *TischRepo) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error) {
-	if m.err != nil {
-		return false, m.err
-	}
-	return m.offeneSaldi[tischID] > 0, nil
 }
 
 func (m *TischRepo) GetTisch(ctx context.Context, id int) (tisch.Tisch, error) {
@@ -102,11 +95,16 @@ func (m *TischRepo) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
 	return m.err
 }
 
-func (m *TischRepo) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+// AendereStatus mirrors the real transaction: an open saldo refuses the change under saldoSchutz, and a
+// failing Favoriten cleanup of a deleted Tisch skips it.
+func (m *TischRepo) AendereStatus(ctx context.Context, t tisch.Tisch, saldoSchutz bool) error {
 	if m.err != nil {
 		return m.err
 	}
-	if m.favoritenCleanup != nil {
+	if saldoSchutz && m.offeneSaldi[t.ID] > 0 {
+		return tisch.ErrOffenerSaldo
+	}
+	if t.Status == tisch.DeletedStatus && m.favoritenCleanup != nil {
 		if err := m.favoritenCleanup(ctx, t.ID); err != nil {
 			return err
 		}

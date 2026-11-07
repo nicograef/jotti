@@ -70,6 +70,9 @@ func (c Command) getOffeneKassensitzungOderFehler(ctx context.Context) (*kasse.K
 // fromWriteError maps an event-write error onto this context's sentinels and logs it.
 func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
 	mapped := kassenjournal_repo.MapWriteError(err, ErrConflict, ErrKasseNichtGeoeffnet)
+	if errors.Is(err, kassenjournal_repo.ErrTischNichtAktiv) {
+		mapped = ErrTischNotActive
+	}
 	args := append([]any{"error", err}, logArgs...)
 	if errors.Is(mapped, ErrDatabase) {
 		logging.FromContext(ctx).Error("Failed to write events", args...)

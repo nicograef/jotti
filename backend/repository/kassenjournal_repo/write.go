@@ -10,6 +10,7 @@ import (
 	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/tse_repo"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
@@ -236,6 +237,18 @@ func (r Repository) handleTischSessionEvent(ctx context.Context, qtx *dbgen.Quer
 	newState, err := kasse.ApplyEvent(currentState, e)
 	if err != nil {
 		return fmt.Errorf("apply event to tisch session: %w", err)
+	}
+
+	// New saldo needs an active Tisch. The share lock waits for a concurrent deactivation or deletion,
+	// which checks the saldo under its row lock, so a Tisch never leaves service with an open saldo.
+	if newState.SaldoCents > currentState.SaldoCents {
+		status, err := qtx.GetTischStatusForShare(ctx, tischID)
+		if err != nil {
+			return db.Error(err)
+		}
+		if tisch.Status(status) != tisch.ActiveStatus {
+			return ErrTischNichtAktiv
+		}
 	}
 
 	return upsertTischSessionState(ctx, qtx, e.Subject, tischID, kassensitzungNr, newState)

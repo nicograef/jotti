@@ -63,17 +63,6 @@ func (r Repository) GetTischSaldiOffeneSitzung(ctx context.Context) (map[int]int
 	return result, nil
 }
 
-// TischHatOffenenSaldo meldet, ob der Tisch in der offenen Kassensitzung einen
-// offenen Saldo trägt (Schutz-Guard). Ohne offene Sitzung immer false.
-func (r Repository) TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error) {
-	hat, err := r.q.TischHatOffenenSaldo(ctx, tischID)
-	if err != nil {
-		return false, db.Error(err)
-	}
-
-	return hat, nil
-}
-
 func (r Repository) GetAktiveTische(ctx context.Context, kassensitzungNr int) ([]tisch.AktiverTisch, error) {
 	rows, err := r.q.GetAktiveTische(ctx, kassensitzungNr)
 	if err != nil {
@@ -137,14 +126,29 @@ func (r Repository) UpdateTisch(ctx context.Context, t tisch.Tisch) error {
 	return db.ResultError(result)
 }
 
-// DeleteTischMitFavoriten shares one transaction because Favoriten of a deleted tisch
-// would be invisible and unremovable. The caller applies Delete() first.
-func (r Repository) DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error {
+// AendereStatus persists t's new status under the Tisch row lock. With saldoSchutz it refuses an open
+// saldo with tisch.ErrOffenerSaldo; a booking raising the saldo waits for this lock, so none slips past
+// the check. A deleted Tisch loses its Favoriten in the same transaction: it leaves the Tischauswahl,
+// so they could no longer be removed.
+func (r Repository) AendereStatus(ctx context.Context, t tisch.Tisch, saldoSchutz bool) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
-		if err := qtx.RemoveFavoritenByTisch(ctx, t.ID); err != nil {
+		if _, err := qtx.GetTischStatusForUpdate(ctx, t.ID); err != nil {
 			return db.Error(err)
 		}
-
+		if saldoSchutz {
+			hatSaldo, err := qtx.TischHatOffenenSaldo(ctx, t.ID)
+			if err != nil {
+				return db.Error(err)
+			}
+			if hatSaldo {
+				return tisch.ErrOffenerSaldo
+			}
+		}
+		if t.Status == tisch.DeletedStatus {
+			if err := qtx.RemoveFavoritenByTisch(ctx, t.ID); err != nil {
+				return db.Error(err)
+			}
+		}
 		result, err := qtx.UpdateTisch(ctx, updateTischParams(t))
 		if err != nil {
 			return db.Error(err)

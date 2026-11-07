@@ -115,7 +115,7 @@ func favoritenVonUser(t *testing.T, repo Repository, userID int) []int {
 // Ein gelöschter Tisch verschwindet aus der Tischauswahl; seine Markierungen
 // müssen mit ihm gehen, sonst hängen sie unabwählbar in der Tischübersicht der
 // betroffenen Servicekräfte. Markierungen anderer Tische bleiben unberührt.
-func TestDeleteTischMitFavoritenDB(t *testing.T) {
+func TestAendereStatusDB_LoeschenEntferntFavoriten(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
@@ -128,9 +128,9 @@ func TestDeleteTischMitFavoritenDB(t *testing.T) {
 	markiereFavorit(t, repo, userID, geloeschtID)
 	markiereFavorit(t, repo, userID, bleibtID)
 
-	err := repo.DeleteTischMitFavoriten(ctx, tisch.Tisch{
+	err := repo.AendereStatus(ctx, tisch.Tisch{
 		ID: geloeschtID, Name: "Favorit Loeschen", Status: tisch.DeletedStatus, CreatedAt: now, UpdatedAt: now,
-	})
+	}, true)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -142,41 +142,6 @@ func TestDeleteTischMitFavoritenDB(t *testing.T) {
 	favoriten := favoritenVonUser(t, repo, userID)
 	if len(favoriten) != 1 || favoriten[0] != bleibtID {
 		t.Errorf("expected only tisch %d to stay marked, got %v", bleibtID, favoriten)
-	}
-}
-
-// A failed tische write must roll back the Favoriten removal, or a Servicekraft loses them on a live Tisch.
-// idx_tische_name_active is the only way to fail the second write after the first removed rows.
-func TestDeleteTischMitFavoritenDB_RollbackBeiSchreibfehler(t *testing.T) {
-	repo, teardown := setup(t)
-	defer teardown(t)
-
-	ctx := context.Background()
-	now := time.Now().UTC()
-	tischID, _ := repo.CreateTisch(ctx, tisch.Tisch{Name: "Rollback Quelle", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-	_, _ = repo.CreateTisch(ctx, tisch.Tisch{Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
-
-	userID := setupFavoritenUser(t, repo)
-	markiereFavorit(t, repo, userID, tischID)
-
-	err := repo.DeleteTischMitFavoriten(ctx, tisch.Tisch{
-		ID: tischID, Name: "Rollback Kollision", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now,
-	})
-	if !errors.Is(err, dbpkg.ErrAlreadyExists) {
-		t.Fatalf("expected already-exists error, got %v", err)
-	}
-
-	favoriten := favoritenVonUser(t, repo, userID)
-	if len(favoriten) != 1 || favoriten[0] != tischID {
-		t.Errorf("favoriten must be rolled back with the failed write, got %v", favoriten)
-	}
-
-	unveraendert, err := repo.GetTisch(ctx, tischID)
-	if err != nil {
-		t.Fatalf("expected no error retrieving tisch, got %v", err)
-	}
-	if unveraendert.Name != "Rollback Quelle" {
-		t.Errorf("expected tisch name to stay 'Rollback Quelle', got %q", unveraendert.Name)
 	}
 }
 
@@ -410,47 +375,41 @@ func TestGetTischSaldiOffeneSitzungDB(t *testing.T) {
 	}
 }
 
-func TestTischHatOffenenSaldoDB(t *testing.T) {
+// Deactivating or deleting refuses a Tisch with open saldo in the open Kassensitzung; the saldo of a
+// closed session no longer blocks.
+func TestAendereStatusDB_OffenerSaldo(t *testing.T) {
 	repo, kjRepo, db, userID, zNr, teardown := setupSaldo(t)
 	defer teardown()
 	ctx := context.Background()
 
-	tischMitSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	now := time.Now().UTC()
+	tischMitSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch mit Saldo", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
-	tischOhneSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC()})
+	tischOhneSaldo, err := repo.CreateTisch(ctx, tisch.Tisch{Name: "Tisch ohne Saldo", Status: tisch.ActiveStatus, CreatedAt: now, UpdatedAt: now})
 	if err != nil {
 		t.Fatalf("Failed to create tisch: %v", err)
 	}
-
 	writeBestellung(t, kjRepo, userID, zNr, tischMitSaldo, 800)
 
-	hat, err := repo.TischHatOffenenSaldo(ctx, tischMitSaldo)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	deaktiviert := func(id int, name string) tisch.Tisch {
+		return tisch.Tisch{ID: id, Name: name, Status: tisch.InactiveStatus, CreatedAt: now, UpdatedAt: now}
 	}
-	if !hat {
-		t.Errorf("tisch %d with an open bestellung should report an open saldo", tischMitSaldo)
+	if err := repo.AendereStatus(ctx, deaktiviert(tischMitSaldo, "Tisch mit Saldo"), true); !errors.Is(err, tisch.ErrOffenerSaldo) {
+		t.Fatalf("expected ErrOffenerSaldo for tisch %d, got %v", tischMitSaldo, err)
 	}
-
-	hat, err = repo.TischHatOffenenSaldo(ctx, tischOhneSaldo)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	if status := tischStatus(t, repo, tischMitSaldo); status != string(tisch.ActiveStatus) {
+		t.Errorf("refused change must leave status active, got %q", status)
 	}
-	if hat {
-		t.Errorf("tisch %d without a bestellung must not report an open saldo", tischOhneSaldo)
+	if err := repo.AendereStatus(ctx, deaktiviert(tischOhneSaldo, "Tisch ohne Saldo"), true); err != nil {
+		t.Fatalf("expected tisch %d without saldo to deactivate, got %v", tischOhneSaldo, err)
 	}
 
-	// Nach Abschluss der Sitzung trägt kein Tisch mehr einen offenen Saldo.
 	if _, err := db.Exec("UPDATE kassensitzungen SET status = 'abgeschlossen' WHERE z_nr = $1", zNr); err != nil {
 		t.Fatalf("Failed to close kassensitzung: %v", err)
 	}
-	hat, err = repo.TischHatOffenenSaldo(ctx, tischMitSaldo)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if hat {
-		t.Errorf("closed session must not leak an open saldo for tisch %d", tischMitSaldo)
+	if err := repo.AendereStatus(ctx, deaktiviert(tischMitSaldo, "Tisch mit Saldo"), true); err != nil {
+		t.Errorf("closed session must not block tisch %d, got %v", tischMitSaldo, err)
 	}
 }

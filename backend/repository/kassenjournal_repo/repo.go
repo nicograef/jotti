@@ -16,6 +16,9 @@ import (
 // Kassensitzung; die Application-Schicht mappt das auf HTTP 409.
 var ErrKassensitzungNichtOffen = errors.New("kassensitzung ist nicht offen")
 
+// ErrTischNichtAktiv refuses an event that raises the saldo of a Tisch that is no longer active.
+var ErrTischNichtAktiv = errors.New("tisch ist nicht aktiv")
+
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries

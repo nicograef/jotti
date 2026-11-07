@@ -247,6 +247,32 @@ func (q *Queries) GetTischSaldiOffeneSitzung(ctx context.Context) ([]GetTischSal
 	return items, nil
 }
 
+const getTischStatusForShare = `-- name: GetTischStatusForShare :one
+SELECT status FROM tische WHERE id = $1 FOR SHARE
+`
+
+// A booking that raises the saldo reads the status under this lock; it waits for a concurrent
+// status change and then sees its result.
+func (q *Queries) GetTischStatusForShare(ctx context.Context, id int) (Entitystatus, error) {
+	row := q.db.QueryRowContext(ctx, getTischStatusForShare, id)
+	var status Entitystatus
+	err := row.Scan(&status)
+	return status, err
+}
+
+const getTischStatusForUpdate = `-- name: GetTischStatusForUpdate :one
+SELECT status FROM tische WHERE id = $1 FOR UPDATE
+`
+
+// Row lock of a status change: a booking that raises the saldo waits for it (GetTischStatusForShare),
+// so the saldo check after this lock sees every committed booking.
+func (q *Queries) GetTischStatusForUpdate(ctx context.Context, id int) (Entitystatus, error) {
+	row := q.db.QueryRowContext(ctx, getTischStatusForUpdate, id)
+	var status Entitystatus
+	err := row.Scan(&status)
+	return status, err
+}
+
 const tischHatOffenenSaldo = `-- name: TischHatOffenenSaldo :one
 SELECT EXISTS (
     SELECT 1

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
@@ -11,8 +12,7 @@ type tischRepo interface {
 	GetTisch(ctx context.Context, id int) (tisch.Tisch, error)
 	CreateTisch(ctx context.Context, t tisch.Tisch) (int, error)
 	UpdateTisch(ctx context.Context, t tisch.Tisch) error
-	DeleteTischMitFavoriten(ctx context.Context, t tisch.Tisch) error
-	TischHatOffenenSaldo(ctx context.Context, tischID int) (bool, error)
+	AendereStatus(ctx context.Context, t tisch.Tisch, saldoSchutz bool) error
 }
 
 type favoritRepo interface {
@@ -123,28 +123,13 @@ func (c Command) applyTischStatusChange(ctx context.Context, id int, guardSaldo 
 		return fromRepositoryError(err, log, id)
 	}
 
-	if guardSaldo {
-		hatSaldo, err := c.TischRepo.TischHatOffenenSaldo(ctx, id)
-		if err != nil {
-			log.Error("Failed to check open saldo for status change", "error", err, "tisch_id", id)
-			return ErrDatabase
-		}
-		if hatSaldo {
+	action(&t)
+
+	if err := c.TischRepo.AendereStatus(ctx, t, guardSaldo); err != nil {
+		if errors.Is(err, tisch.ErrOffenerSaldo) {
 			log.Warn("Cannot change status of tisch with open saldo", "tisch_id", id)
 			return ErrTischSaldoOffen
 		}
-	}
-
-	action(&t)
-
-	// A deleted Tisch leaves the Tischauswahl, so its leftover favourites would be unselectable;
-	// status change and cleanup share one transaction. A deactivated Tisch keeps them: it comes back.
-	persist := c.TischRepo.UpdateTisch
-	if t.Status == tisch.DeletedStatus {
-		persist = c.TischRepo.DeleteTischMitFavoriten
-	}
-
-	if err := persist(ctx, t); err != nil {
 		return fromRepositoryError(err, log, id)
 	}
 	log.Info(successMsg, "tisch_id", id)

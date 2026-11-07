@@ -250,6 +250,7 @@ func TestFromWriteError(t *testing.T) {
 		{name: "UNIQUE(subject, version)", err: db.ErrAlreadyExists, want: ErrConflict},
 		{name: "Deadlock", err: db.ErrConflict, want: ErrConflict},
 		{name: "Kassensitzung seit dem Lesen geschlossen", err: kassenjournal_repo.ErrKassensitzungNichtOffen, want: ErrKasseNichtGeoeffnet},
+		{name: "Tisch seit dem Lesen deaktiviert oder gelöscht", err: kassenjournal_repo.ErrTischNichtAktiv, want: ErrTischNotActive},
 		{name: "sonstiger Fehler", err: errors.New("connection reset"), want: ErrDatabase},
 	}
 

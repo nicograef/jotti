@@ -54,3 +54,13 @@ VALUES ($1, $2, $3, $4) RETURNING id;
 
 -- name: UpdateTisch :execresult
 UPDATE tische SET name = $1, status = $2, updated_at = $3 WHERE id = $4;
+
+-- name: GetTischStatusForUpdate :one
+-- Row lock of a status change: a booking that raises the saldo waits for it (GetTischStatusForShare),
+-- so the saldo check after this lock sees every committed booking.
+SELECT status FROM tische WHERE id = $1 FOR UPDATE;
+
+-- name: GetTischStatusForShare :one
+-- A booking that raises the saldo reads the status under this lock; it waits for a concurrent
+-- status change and then sees its result.
+SELECT status FROM tische WHERE id = $1 FOR SHARE;

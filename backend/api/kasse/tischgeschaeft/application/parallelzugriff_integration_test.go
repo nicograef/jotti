@@ -4,10 +4,12 @@ package application
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -198,4 +200,62 @@ func addMengen(t *testing.T, data []byte, ziel map[int]int) {
 	for _, p := range d.Positionen {
 		ziel[p.VarianteID] += p.Menge
 	}
+}
+
+// A deletion that commits while a booking waits on the Tisch row wins: the booking sees the deleted
+// Tisch and fails, so no saldo lands on a Tisch that left service. The raw transaction holds the lock
+// a status change takes.
+func TestParallelzugriff_LoeschenWaehrendBestellung(t *testing.T) {
+	ctx, cmd, db, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
+	if _, err := tx.ExecContext(ctx, "SELECT status FROM tische WHERE id = $1 FOR UPDATE", tischID); err != nil {
+		t.Fatalf("lock tisch: %v", err)
+	}
+
+	ergebnis := make(chan error, 1)
+	go func() {
+		inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+		ergebnis <- cmd.BestellungAufnehmen(ctx, userID, "Anna", uuid.New().String(), tischID, inputs, "")
+	}()
+	wartetAufZeilensperre(t, db)
+
+	if _, err := tx.ExecContext(ctx, "UPDATE tische SET status = 'deleted' WHERE id = $1", tischID); err != nil {
+		t.Fatalf("delete tisch: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	if err := <-ergebnis; !errors.Is(err, ErrTischNotActive) {
+		t.Fatalf("expected ErrTischNotActive, got %v", err)
+	}
+	state, err := cmd.EventRepo.ReadTischSession(ctx, kasse.TischSessionSubject(ksNr, tischID))
+	if err != nil {
+		t.Fatalf("ReadTischSession: %v", err)
+	}
+	if state.SaldoCents != 0 {
+		t.Errorf("deleted tisch carries saldo %d, want 0", state.SaldoCents)
+	}
+}
+
+// wartetAufZeilensperre returns once a session waits for a lock, so the test commits only after the
+// booking reached the Tisch row.
+func wartetAufZeilensperre(t *testing.T, db *sql.DB) {
+	t.Helper()
+	for range 500 {
+		var wartend int
+		if err := db.QueryRow("SELECT count(*) FROM pg_locks WHERE NOT granted").Scan(&wartend); err != nil {
+			t.Fatalf("read pg_locks: %v", err)
+		}
+		if wartend > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("the booking never waited for the Tisch row lock")
 }

@@ -41,6 +41,9 @@ type AktiverTischMitFavorit struct {
 // TischIDSchema bounds a Tisch ID at both ends. The upper bound is the largest
 // value the int4 column holds: a request carrying more can only be wrong, and
 // the schema answers 400 instead of letting it fail inside the driver.
+// ErrOffenerSaldo refuses deactivating or deleting a Tisch whose open saldo would become unreachable.
+var ErrOffenerSaldo = errors.New("tisch has open saldo")
+
 var TischIDSchema = z.Int().
 	GTE(1, z.Message("Ungültige Tisch-ID")).
 	LTE(math.MaxInt32, z.Message("Ungültige Tisch-ID"))
