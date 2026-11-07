@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   formatAlleAuswaehlenLabel,
+  formatAnzahl,
   formatCents,
   formatEuro,
   formatEuroMitVorzeichen,
@@ -22,6 +23,16 @@ describe('formatCents', () => {
     [10, '0,10'],
   ])('formatCents(%i) = %s', (input, expected) => {
     expect(formatCents(input)).toBe(expected)
+  })
+})
+
+describe('formatAnzahl', () => {
+  it.each([
+    [0, '0 Tische'],
+    [1, '1 Tisch'],
+    [2, '2 Tische'],
+  ])('formatAnzahl(%i) = %s', (anzahl, expected) => {
+    expect(formatAnzahl(anzahl, 'Tisch', 'Tische')).toBe(expected)
   })
 })
 

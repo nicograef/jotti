@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { EntityStatus } from '@/lib/entityStatus'
+import { formatAnzahl } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditTischDialog } from './EditTischDialog'
@@ -24,7 +25,7 @@ export function AdminTablesPage() {
   ).length
   const mitSaldoAnzahl = tische.filter((t) => t.saldoCents > 0).length
   const unterzeile = [
-    `${String(tische.length)} ${tische.length === 1 ? 'Tisch' : 'Tische'}`,
+    formatAnzahl(tische.length, 'Tisch', 'Tische'),
     `${String(aktiveAnzahl)} aktiv`,
     mitSaldoAnzahl > 0
       ? `${String(mitSaldoAnzahl)} mit offenem Saldo`

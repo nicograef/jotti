@@ -23,7 +23,12 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { useCountUp } from '@/hooks/use-count-up'
-import { formatDatum, formatEuro, formatUhrzeit } from '@/lib/utils'
+import {
+  formatAnzahl,
+  formatDatum,
+  formatEuro,
+  formatUhrzeit,
+} from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { StatusDot } from '../components/StatusDot'
@@ -149,7 +154,7 @@ export function LiveReportingSection({
         <SummaryCard
           title="Noch offen"
           valueCents={liveData.offeneSaldiCents}
-          sub={`auf ${String(offeneTische.length)} Tischen bestellt, noch nicht bezahlt`}
+          sub={`auf ${formatAnzahl(offeneTische.length, 'Tisch', 'Tischen')} bestellt, noch nicht bezahlt`}
         />
         <SummaryCard
           title="Bestellt gesamt"
@@ -159,12 +164,16 @@ export function LiveReportingSection({
         <SummaryCard
           title="Direktverkauf"
           valueCents={summary.direktverkaufUmsatzCents}
-          sub={`${String(summary.anzahlDirektverkaeufe)} Verkäufe ohne Tisch`}
+          sub={`${formatAnzahl(summary.anzahlDirektverkaeufe, 'Verkauf', 'Verkäufe')} ohne Tisch`}
         />
         <SummaryCard
           title="Storniert"
           valueCents={summary.gesamtStornierungenCents}
-          sub={`${String(summary.anzahlStornierungen)} Stornierungen`}
+          sub={formatAnzahl(
+            summary.anzahlStornierungen,
+            'Stornierung',
+            'Stornierungen',
+          )}
         />
       </div>
 
@@ -173,7 +182,7 @@ export function LiveReportingSection({
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-base font-semibold">Offene Tische</h2>
             <span className="text-sm text-muted-foreground">
-              {offeneTische.length} Tische ·{' '}
+              {formatAnzahl(offeneTische.length, 'Tisch', 'Tische')} ·{' '}
               {formatEuro(liveData.offeneSaldiCents)}
             </span>
           </div>
@@ -214,7 +223,12 @@ export function LiveReportingSection({
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-base font-semibold">Team</h2>
             <span className="text-sm text-muted-foreground">
-              {servicekraefte.length} Servicekräfte aktiv
+              {formatAnzahl(
+                servicekraefte.length,
+                'Servicekraft',
+                'Servicekräfte',
+              )}{' '}
+              aktiv
             </span>
           </div>
           {servicekraefte.length === 0 ? (
@@ -246,8 +260,12 @@ export function LiveReportingSection({
                           <span className="whitespace-nowrap font-medium">
                             {formatEuro(sk.offenCents)}
                           </span>{' '}
-                          auf {sk.offeneTische.length}{' '}
-                          {sk.offeneTische.length === 1 ? 'Tisch' : 'Tischen'}
+                          auf{' '}
+                          {formatAnzahl(
+                            sk.offeneTische.length,
+                            'Tisch',
+                            'Tischen',
+                          )}
                           {tischNamen && ` (${tischNamen})`}
                         </span>
                       )}
@@ -279,8 +297,11 @@ export function LiveReportingSection({
               <div className="min-w-0 flex-1">
                 <p className="text-sm">
                   <strong>
-                    {summary.anzahlStornierungen} Stornierung
-                    {summary.anzahlStornierungen === 1 ? '' : 'en'}
+                    {formatAnzahl(
+                      summary.anzahlStornierungen,
+                      'Stornierung',
+                      'Stornierungen',
+                    )}
                   </strong>{' '}
                   · {formatEuro(summary.gesamtStornierungenCents)}
                 </p>

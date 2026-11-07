@@ -5,6 +5,7 @@ import {
   type Produkt,
   type Steuersatz,
 } from '@/lib/produktSchemas'
+import { formatAnzahl } from '@/lib/utils'
 
 import {
   type DruckstationConfig,
@@ -65,7 +66,7 @@ export function produktUnterzeile(produkte: Produkt[]): string {
     (summe, p) => summe + p.varianten.length,
     0,
   )
-  const produkteText = `${String(anzahlProdukte)} Produkt${anzahlProdukte === 1 ? '' : 'e'}`
-  const variantenText = `${String(anzahlVarianten)} Variante${anzahlVarianten === 1 ? '' : 'n'}`
+  const produkteText = formatAnzahl(anzahlProdukte, 'Produkt', 'Produkte')
+  const variantenText = formatAnzahl(anzahlVarianten, 'Variante', 'Varianten')
   return `${produkteText} · ${variantenText} · Änderungen wirken sofort auf allen Service-Handys`
 }

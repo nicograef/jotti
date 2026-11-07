@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { cn, formatUhrzeit } from '@/lib/utils'
+import { cn, formatAnzahl,formatUhrzeit } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { WarnKarte } from '../components/WarnKarte'
@@ -393,10 +393,7 @@ function AlleVerwerfenDialog({
     actionLabel: 'Druckaufträge verwerfen',
   })
 
-  const verwerfenBeschreibung =
-    anzahl === 1
-      ? '1 fehlgeschlagener Auftrag wird aus der Warteschlange entfernt.'
-      : `${String(anzahl)} fehlgeschlagene Aufträge werden aus der Warteschlange entfernt.`
+  const verwerfenBeschreibung = `${formatAnzahl(anzahl, 'fehlgeschlagener Auftrag wird', 'fehlgeschlagene Aufträge werden')} aus der Warteschlange entfernt.`
 
   return (
     <AlertDialog>
@@ -428,9 +425,7 @@ function AlleVerwerfenDialog({
               void run(async () => {
                 const verworfen = await alleVerwerfen()
                 toast.success(
-                  verworfen === 1
-                    ? '1 Auftrag verworfen.'
-                    : `${String(verworfen)} Aufträge verworfen.`,
+                  `${formatAnzahl(verworfen, 'Auftrag', 'Aufträge')} verworfen.`,
                 )
               })
             }
@@ -460,10 +455,7 @@ function AlarmKarte() {
     : anzahl === 1
       ? ' — die Küche hat ihn nicht!'
       : ' — die Küche hat sie nicht!'
-  const titel =
-    anzahl === 1
-      ? `1 ${singular} konnte nicht gedruckt werden${kuecheHinweis}`
-      : `${String(anzahl)} ${plural} konnten nicht gedruckt werden${kuecheHinweis}`
+  const titel = `${formatAnzahl(anzahl, `${singular} konnte`, `${plural} konnten`)} nicht gedruckt werden${kuecheHinweis}`
 
   return (
     <WarnKarte title={titel} className="mb-6">

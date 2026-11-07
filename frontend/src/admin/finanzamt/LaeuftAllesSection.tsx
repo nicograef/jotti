@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { cn } from '@/lib/utils'
+import { cn, formatAnzahl } from '@/lib/utils'
 
 function formatDauer(sekunden: number): string {
   if (sekunden < 60) return `${String(sekunden)} s`
@@ -89,13 +89,13 @@ function SignaturPanel({
   const saetze: string[] = []
   if (fehlgeschlagen > 0) {
     saetze.push(
-      `${String(fehlgeschlagen)} ${fehlgeschlagen === 1 ? 'Vorgang ist' : 'Vorgänge sind'} fehlgeschlagen.`,
+      `${formatAnzahl(fehlgeschlagen, 'Vorgang ist', 'Vorgänge sind')} fehlgeschlagen.`,
     )
   }
   if (offene === 0) {
     saetze.push('Keine Vorgänge in der Warteschlange.')
   } else {
-    const warten = `${String(offene)} ${offene === 1 ? 'Vorgang wartet' : 'Vorgänge warten'} (ältester ${formatDauer(rueckstandSekunden)})`
+    const warten = `${formatAnzahl(offene, 'Vorgang wartet', 'Vorgänge warten')} (ältester ${formatDauer(rueckstandSekunden)})`
     if (rueckstand) {
       saetze.push(`${warten} — der Rückstand ist zu groß.`)
     } else if (fehlgeschlagen === 0) {
@@ -183,7 +183,7 @@ function StoerungPanel({ stoerungen }: { stoerungen: TSEStoerung[] }) {
   const klartext =
     anzahl === 0
       ? 'Keine dokumentierte Störung — die TSE-Signierung läuft ohne Ausfall.'
-      : `${String(anzahl)} dokumentierte ${anzahl === 1 ? 'Störung' : 'Störungen'}. Wird automatisch für die gesetzliche Ausfalldokumentation geführt.`
+      : `${formatAnzahl(anzahl, 'dokumentierte Störung', 'dokumentierte Störungen')}. Wird automatisch für die gesetzliche Ausfalldokumentation geführt.`
 
   return (
     <div className="flex flex-col gap-1 rounded-lg border p-4">

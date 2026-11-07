@@ -3,7 +3,7 @@ import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSEAmpel } from '@/admin/tse/hooks'
 import { TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
-import { formatEuro, formatUhrzeit } from '@/lib/utils'
+import { formatAnzahl,formatEuro, formatUhrzeit } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'
@@ -33,21 +33,19 @@ export function AdminDashboardPage() {
   const tseText = tseNichtKonfiguriert
     ? 'Nicht konfiguriert'
     : signaturFehlgeschlagen
-      ? `${String(queue?.fehlgeschlageneAuftraege ?? 0)} Vorgänge konnten nicht signiert werden`
+      ? `${formatAnzahl(queue?.fehlgeschlageneAuftraege ?? 0, 'Vorgang konnte', 'Vorgänge konnten')} nicht signiert werden`
       : rueckstand
-        ? `${String(queue?.offeneAuftraege ?? 0)} Vorgänge warten auf Signatur`
+        ? `${formatAnzahl(queue?.offeneAuftraege ?? 0, 'Vorgang wartet', 'Vorgänge warten')} auf Signatur`
         : testUmgebung
           ? TSE_TEST_WARNUNG
-          : `${String(queue?.offeneAuftraege ?? 0)} Vorgänge in Warteschlange (normal)`
+          : `${formatAnzahl(queue?.offeneAuftraege ?? 0, 'Vorgang', 'Vorgänge')} in Warteschlange (normal)`
 
   const druckFehler = druckauftraege.length > 0
   const { singular: druckSingular, plural: druckPlural } = beschreibeFehlBons(
     druckauftraege.map((auftrag) => auftrag.bonArt),
   )
   const druckTitel = druckFehler
-    ? druckauftraege.length === 1
-      ? `1 ${druckSingular} nicht gedruckt`
-      : `${String(druckauftraege.length)} ${druckPlural} nicht gedruckt`
+    ? `${formatAnzahl(druckauftraege.length, druckSingular, druckPlural)} nicht gedruckt`
     : 'Drucker bereit'
   const druckText = druckFehler ? 'Drucker prüfen' : 'Alle Bons gedruckt'
 

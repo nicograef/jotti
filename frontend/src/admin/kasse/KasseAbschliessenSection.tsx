@@ -22,7 +22,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { useOffenerVorgang } from '@/hooks/use-offener-vorgang'
-import { cn, formatEuro, formatEuroMitVorzeichen } from '@/lib/utils'
+import {
+  cn,
+  formatAnzahl,
+  formatEuro,
+  formatEuroMitVorzeichen,
+} from '@/lib/utils'
 
 import { kasseBackend, useKassenbestand } from './hooks'
 import {
@@ -36,16 +41,12 @@ function abschlussErfolgMeldung(ergebnis: KassenabschlussErgebnis): string {
   const hinweise: string[] = []
   if (ergebnis.ausfallResteAnzahl > 0) {
     hinweise.push(
-      ergebnis.ausfallResteAnzahl === 1
-        ? '1 Vorgang wird nach Rückkehr der TSE nachsigniert.'
-        : `${String(ergebnis.ausfallResteAnzahl)} Vorgänge werden nach Rückkehr der TSE nachsigniert.`,
+      `${formatAnzahl(ergebnis.ausfallResteAnzahl, 'Vorgang wird', 'Vorgänge werden')} nach Rückkehr der TSE nachsigniert.`,
     )
   }
   if (ergebnis.ohneKonfigurationAnzahl > 0) {
     hinweise.push(
-      ergebnis.ohneKonfigurationAnzahl === 1
-        ? '1 Vorgang ohne TSE-Signatur (keine TSE konfiguriert).'
-        : `${String(ergebnis.ohneKonfigurationAnzahl)} Vorgänge ohne TSE-Signatur (keine TSE konfiguriert).`,
+      `${formatAnzahl(ergebnis.ohneKonfigurationAnzahl, 'Vorgang', 'Vorgänge')} ohne TSE-Signatur (keine TSE konfiguriert).`,
     )
   }
   return hinweise.length > 0
@@ -68,8 +69,7 @@ function offeneTischeWarnung(
   saldoCents: number,
 ): string | null {
   if (anzahl <= 0) return null
-  const tischWort = anzahl === 1 ? 'Tisch ist' : 'Tische sind'
-  return `${String(anzahl)} ${tischWort} noch offen (${formatEuro(saldoCents)}).`
+  return `${formatAnzahl(anzahl, 'Tisch ist', 'Tische sind')} noch offen (${formatEuro(saldoCents)}).`
 }
 
 type FormData = z.infer<typeof KasseAbschliessenSchema>

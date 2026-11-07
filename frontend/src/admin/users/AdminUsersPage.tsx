@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { useActionSubmit } from '@/hooks/use-action-submit'
 import { AuthSingleton } from '@/lib/Auth'
 import { EntityStatus } from '@/lib/entityStatus'
+import { formatAnzahl } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditUserDialog } from './EditUserDialog'
@@ -46,7 +47,7 @@ export function AdminUsersPage() {
   const aktiveAnzahl = users.filter(
     (u) => u.status === EntityStatus.ACTIVE,
   ).length
-  const unterzeile = `${String(users.length)} ${users.length === 1 ? 'Zugang' : 'Zugänge'} · ${String(aktiveAnzahl)} aktiv`
+  const unterzeile = `${formatAnzahl(users.length, 'Zugang', 'Zugänge')} · ${String(aktiveAnzahl)} aktiv`
 
   return (
     <>

@@ -266,7 +266,8 @@ describe('LiveReportingSection — Übersicht', () => {
       />,
     )
 
-    expect(screen.getByText('1 Stornierung')).toBeInTheDocument()
+    // Nebenkarte und Stornierungs-Kopf, beide im Singular.
+    expect(screen.getAllByText('1 Stornierung')).toHaveLength(2)
     expect(screen.queryByText('Falsch gebucht')).not.toBeInTheDocument()
 
     // Zuerst die betroffene Servicekraft, der Akteur nur als Zusatz.

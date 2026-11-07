@@ -17,6 +17,15 @@ export function formatEuro(cents: number): string {
   return `${formatCents(cents)}\u00A0€`
 }
 
+// "1 Tisch" / "3 Tische". The forms may be whole noun phrases ("Vorgang wartet" / "Vorgänge warten").
+export function formatAnzahl(
+  anzahl: number,
+  singular: string,
+  plural: string,
+): string {
+  return `${String(anzahl)} ${anzahl === 1 ? singular : plural}`
+}
+
 /**
  * `'alle'` — Umbuchung (every position), `'meine'` — Kassieren (only the
  * caller's own). Both with the correct grammatical number and the selection sum.
