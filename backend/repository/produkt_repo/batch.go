@@ -16,7 +16,7 @@ func (r Repository) GetVariantenByIDs(ctx context.Context, ids []int) (map[int]p
 		return make(map[int]produkt.VarianteMitProdukt), nil
 	}
 
-	ids32 := toInt32Slice(ids)
+	ids32 := db.Int4Array(ids)
 
 	const query = `SELECT id, produkt_id, name, preis_cents, status, created_at, updated_at
 		FROM produkt_varianten
@@ -70,7 +70,7 @@ func (r Repository) GetProdukteByIDs(ctx context.Context, ids []int) (map[int]pr
 		return make(map[int]produkt.Produkt), nil
 	}
 
-	ids32 := toInt32Slice(ids)
+	ids32 := db.Int4Array(ids)
 
 	const query = `SELECT id, name, kategorie, steuersatz, pfand, status
 		FROM produkte
@@ -127,7 +127,7 @@ func (r Repository) GetPfandVarianten(ctx context.Context, ids []int) (map[int]b
 		JOIN produkte p ON p.id = v.produkt_id
 		WHERE v.id = ANY($1) AND p.pfand`
 
-	rows, err := r.db.QueryContext(ctx, query, toInt32Slice(ids))
+	rows, err := r.db.QueryContext(ctx, query, db.Int4Array(ids))
 	if err != nil {
 		return nil, db.Error(err)
 	}
@@ -148,14 +148,4 @@ func (r Repository) GetPfandVarianten(ctx context.Context, ids []int) (map[int]b
 	}
 
 	return result, nil
-}
-
-// toInt32Slice converts []int to []int32 for use as a PostgreSQL int4[] array parameter.
-// pgx v5 encodes []int32 as int4[] natively via TryWrapSliceEncodePlan.
-func toInt32Slice(ids []int) []int32 {
-	out := make([]int32, len(ids))
-	for i, id := range ids {
-		out[i] = int32(id)
-	}
-	return out
 }

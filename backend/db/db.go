@@ -118,3 +118,13 @@ func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func
 
 	return err
 }
+
+// Int4Array turns ids into an int4[] parameter for ANY($1): pgx encodes []int32 natively. sqlc's
+// database/sql code would need lib/pq's pq.Array instead, so these queries are written by hand.
+func Int4Array(ids []int) []int32 {
+	out := make([]int32, len(ids))
+	for i, id := range ids {
+		out[i] = int32(id)
+	}
+	return out
+}

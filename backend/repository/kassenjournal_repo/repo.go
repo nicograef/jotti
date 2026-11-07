@@ -300,11 +300,6 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 		return make(map[int]TischNameUndSession), nil
 	}
 
-	ids32 := make([]int32, len(tischIDs))
-	for i, id := range tischIDs {
-		ids32[i] = int32(id)
-	}
-
 	const query = `SELECT t.id, t.name,
 			ts.subject, ts.kassensitzung_nr, ts.saldo_cents,
 			ts.unbezahlte_positionen, ts.gesamt_zahlungen_cents,
@@ -313,7 +308,7 @@ func (r Repository) ReadFavoritenTischStates(ctx context.Context, tischIDs []int
 		LEFT JOIN tisch_sessions ts ON ts.tisch_id = t.id AND ts.kassensitzung_nr = $2
 		WHERE t.id = ANY($1) AND t.status != 'deleted'`
 
-	rows, err := r.db.QueryContext(ctx, query, ids32, kassensitzungNr)
+	rows, err := r.db.QueryContext(ctx, query, db.Int4Array(tischIDs), kassensitzungNr)
 	if err != nil {
 		return nil, db.Error(err)
 	}
