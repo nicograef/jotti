@@ -29,15 +29,16 @@ function formatAlleAuswaehlenLabel(
   return `${auswahl} · ${formatEuro(summeCents)}`
 }
 
-// Wählt alle Positionen voll aus; sind sie es schon, hebt derselbe Tap die
-// Auswahl auf.
+// Wählt die übergebenen Positionen voll aus; sind sie es schon, hebt derselbe
+// Tap ihre Auswahl auf. Die Auswahl anderer Positionen bleibt in beiden
+// Richtungen stehen.
 export function AlleAuswaehlenButton({
   positionen,
   steuerung,
   variante = 'alle',
 }: {
   positionen: { positionId: string; menge: number; einzelpreisCents: number }[]
-  steuerung: Pick<MengenSteuerung<string>, 'mengen' | 'reset' | 'setAll'>
+  steuerung: Pick<MengenSteuerung<string>, 'mengen' | 'setAll'>
   variante?: 'alle' | 'meine'
 }) {
   const alleVollAusgewaehlt = positionen.every(
@@ -50,9 +51,14 @@ export function AlleAuswaehlenButton({
       type="button"
       onClick={() => {
         if (alleVollAusgewaehlt) {
-          steuerung.reset()
+          const ids = new Set(positionen.map((p) => p.positionId))
+          steuerung.setAll(
+            Object.fromEntries(
+              Object.entries(steuerung.mengen).filter(([id]) => !ids.has(id)),
+            ),
+          )
         } else {
-          steuerung.setAll(toMengen(positionen))
+          steuerung.setAll({ ...steuerung.mengen, ...toMengen(positionen) })
         }
       }}
       className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/5 px-4 text-sm font-medium text-primary"

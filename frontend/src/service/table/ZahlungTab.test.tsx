@@ -206,6 +206,32 @@ describe('ZahlungTab „Meine auswählen"', () => {
     expect(screen.getByText('2 unbezahlt · 7,00 €')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
   })
+
+  it('lässt eine Fremd-Auswahl beim Aus- und Abwählen der eigenen stehen', async () => {
+    const user = userEvent.setup()
+    renderZahlung([position, fremdePosition])
+
+    await user.click(screen.getByRole('button', { name: /Von anderen · 1/ }))
+    const fremdeZeile = screen
+      .getByText('von Kollegin')
+      .closest<HTMLElement>('[data-slot="item"]')
+    if (fremdeZeile === null) throw new Error('Fremd-Zeile nicht gefunden')
+    await user.click(
+      within(fremdeZeile).getByRole('button', { name: 'Produkt hinzufügen' }),
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: /^Meine Position auswählen/ }),
+    )
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '9,50',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Auswahl aufheben' }))
+    expect(screen.getByRole('button', { name: /Kassieren/ })).toHaveTextContent(
+      '2,50',
+    )
+  })
 })
 
 describe('ZahlungTab Restbetrag', () => {
