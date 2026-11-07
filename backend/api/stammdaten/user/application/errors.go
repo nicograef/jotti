@@ -13,6 +13,13 @@ var ErrUsernameAlreadyExists = errors.New("username already exists")
 
 var ErrInvalidUserData = errors.New("invalid user data")
 
+// The self-protection errors keep an admin from locking the instance out of its own account.
+var (
+	ErrCannotDemoteSelf     = errors.New("cannot demote own account")
+	ErrCannotDeactivateSelf = errors.New("cannot deactivate own account")
+	ErrCannotDeleteSelf     = errors.New("cannot delete own account")
+)
+
 var ErrDatabase = db.ErrDatabase
 
 // fromRepositoryError maps a repository error on a user; vorgang and logArgs identify the call site.

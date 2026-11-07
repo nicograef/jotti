@@ -35,8 +35,15 @@ func (c Command) CreateUser(ctx context.Context, name, username string, role use
 	return userID, onetimePassword, nil
 }
 
-func (c Command) UpdateUser(ctx context.Context, userID int, name, username string, role user.Role) error {
+// UpdateUser changes a user on behalf of actorID. Admins manage users, so another role on the
+// actor's own account is always a demotion that locks the instance out.
+func (c Command) UpdateUser(ctx context.Context, actorID, userID int, name, username string, role user.Role) error {
 	log := logging.FromContext(ctx)
+
+	if userID == actorID && role != user.AdminRole {
+		log.Warn("Refused to demote own account", "user_id", userID)
+		return ErrCannotDemoteSelf
+	}
 
 	user, err := c.UserRepo.GetUser(ctx, userID)
 	if err != nil {
@@ -62,11 +69,20 @@ func (c Command) ActivateUser(ctx context.Context, userID int) error {
 	return c.applyUserStatusChange(ctx, userID, "User activated successfully", func(u *user.User) { u.Activate() })
 }
 
-func (c Command) DeactivateUser(ctx context.Context, userID int) error {
+// DeactivateUser keeps the actor's own account active, or the last admin locks itself out.
+func (c Command) DeactivateUser(ctx context.Context, actorID, userID int) error {
+	if userID == actorID {
+		logging.FromContext(ctx).Warn("Refused to deactivate own account", "user_id", userID)
+		return ErrCannotDeactivateSelf
+	}
 	return c.applyUserStatusChange(ctx, userID, "User deactivated successfully", func(u *user.User) { u.Deactivate() })
 }
 
-func (c Command) DeleteUser(ctx context.Context, userID int) error {
+func (c Command) DeleteUser(ctx context.Context, actorID, userID int) error {
+	if userID == actorID {
+		logging.FromContext(ctx).Warn("Refused to delete own account", "user_id", userID)
+		return ErrCannotDeleteSelf
+	}
 	return c.applyUserStatusChange(ctx, userID, "User deleted successfully", func(u *user.User) { u.Delete() })
 }
 

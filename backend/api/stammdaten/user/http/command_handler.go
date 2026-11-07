@@ -13,10 +13,10 @@ import (
 
 type command interface {
 	CreateUser(ctx context.Context, name, username string, role user.Role) (int, string, error)
-	UpdateUser(ctx context.Context, id int, name, username string, role user.Role) error
+	UpdateUser(ctx context.Context, actorID, id int, name, username string, role user.Role) error
 	ActivateUser(ctx context.Context, id int) error
-	DeactivateUser(ctx context.Context, id int) error
-	DeleteUser(ctx context.Context, id int) error
+	DeactivateUser(ctx context.Context, actorID, id int) error
+	DeleteUser(ctx context.Context, actorID, id int) error
 	ResetPassword(ctx context.Context, userID int) (string, error)
 }
 
@@ -81,21 +81,15 @@ func (h *CommandHandler) UpdateUserHandler() http.HandlerFunc {
 			return
 		}
 
-		currentUserID, _, ok := middleware.UserFromContext(r.Context())
+		actorID, ok := actor(w, r)
 		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		// Diese Route liegt hinter /admin: Eine andere Rolle am eigenen Konto ist
-		// immer eine Herabstufung, die die Instanz ohne Datenbankzugriff aussperrt.
-		if body.ID == currentUserID && body.Role != user.AdminRole {
-			helper.SendClientError(w, "cannot_demote_self", nil)
 			return
 		}
 
-		err := h.Command.UpdateUser(r.Context(), body.ID, body.Name, body.Username, body.Role)
+		err := h.Command.UpdateUser(r.Context(), actorID, body.ID, body.Name, body.Username, body.Role)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrCannotDemoteSelf, Code: "cannot_demote_self"},
 				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 				{Err: application.ErrUsernameAlreadyExists, Code: "username_already_exists"},
 			})
@@ -164,20 +158,15 @@ func (h *CommandHandler) DeactivateUserHandler() http.HandlerFunc {
 			return
 		}
 
-		currentUserID, _, ok := middleware.UserFromContext(r.Context())
+		actorID, ok := actor(w, r)
 		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		// Der eigene Zugang bleibt aktiv, sonst sperrt sich der letzte Admin dauerhaft aus.
-		if body.ID == currentUserID {
-			helper.SendClientError(w, "cannot_deactivate_self", nil)
 			return
 		}
 
-		err := h.Command.DeactivateUser(r.Context(), body.ID)
+		err := h.Command.DeactivateUser(r.Context(), actorID, body.ID)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrCannotDeactivateSelf, Code: "cannot_deactivate_self"},
 				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
@@ -194,19 +183,15 @@ func (h *CommandHandler) DeleteUserHandler() http.HandlerFunc {
 			return
 		}
 
-		currentUserID, _, ok := middleware.UserFromContext(r.Context())
+		actorID, ok := actor(w, r)
 		if !ok {
-			helper.SendServerError(w)
-			return
-		}
-		if body.ID == currentUserID {
-			helper.SendClientError(w, "cannot_delete_self", nil)
 			return
 		}
 
-		err := h.Command.DeleteUser(r.Context(), body.ID)
+		err := h.Command.DeleteUser(r.Context(), actorID, body.ID)
 		if err != nil {
 			helper.MapError(w, err, []helper.ErrorCode{
+				{Err: application.ErrCannotDeleteSelf, Code: "cannot_delete_self"},
 				{Err: application.ErrUserNotFound, Code: "user_not_found"},
 			})
 			return
@@ -214,4 +199,13 @@ func (h *CommandHandler) DeleteUserHandler() http.HandlerFunc {
 
 		helper.SendEmptyResponse(w)
 	}
+}
+
+// actor is the authenticated admin; the JWT middleware always sets it, so its absence is a server fault.
+func actor(w http.ResponseWriter, r *http.Request) (int, bool) {
+	actorID, _, ok := middleware.UserFromContext(r.Context())
+	if !ok {
+		helper.SendServerError(w)
+	}
+	return actorID, ok
 }
