@@ -216,7 +216,7 @@ func TestDeactivateAlleVarianten(t *testing.T) {
 	}
 }
 
-// schreibZaehler counts the Varianten writes, so a rejected Pfand-Verknüpfung can prove it wrote nothing.
+// schreibZaehler counts the Produkt and Varianten writes, so a rejected Pfand-Verknüpfung can prove it wrote nothing.
 type schreibZaehler struct {
 	*repotest.ProduktRepo
 	schreibvorgaenge int
@@ -230,6 +230,11 @@ func (s *schreibZaehler) CreateVariante(ctx context.Context, produktID int, v pr
 func (s *schreibZaehler) UpdateVariante(ctx context.Context, v produkt.Variante) error {
 	s.schreibvorgaenge++
 	return s.ProduktRepo.UpdateVariante(ctx, v)
+}
+
+func (s *schreibZaehler) UpdateProdukt(ctx context.Context, p produkt.Produkt) error {
+	s.schreibvorgaenge++
+	return s.ProduktRepo.UpdateProdukt(ctx, p)
 }
 
 func TestVariantePfandVerknuepfung(t *testing.T) {
@@ -287,11 +292,6 @@ func TestVariantePfandVerknuepfung(t *testing.T) {
 			}
 		})
 	}
-}
-
-func (s *schreibZaehler) UpdateProdukt(ctx context.Context, p produkt.Produkt) error {
-	s.schreibvorgaenge++
-	return s.ProduktRepo.UpdateProdukt(ctx, p)
 }
 
 func TestUpdateProdukt_PfandVerknuepfung(t *testing.T) {
