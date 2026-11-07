@@ -2,6 +2,7 @@ import { Check, Printer } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useActionSubmit } from '@/hooks/use-action-submit'
-import { cn, formatAnzahl,formatUhrzeit } from '@/lib/utils'
+import { cn, formatAnzahl, formatUhrzeit } from '@/lib/utils'
 
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { WarnKarte } from '../components/WarnKarte'
@@ -496,7 +497,8 @@ export function DruckstationConfigPage() {
   const {
     druckstationen,
     isPending,
-    error,
+    isError,
+    refetch,
     updateDruckstation,
     testbonDrucken,
   } = useDruckstationen()
@@ -504,9 +506,12 @@ export function DruckstationConfigPage() {
   let inhalt
   if (isPending) {
     inhalt = <p className="text-muted-foreground">Lade Druckstationen…</p>
-  } else if (error) {
+  } else if (isError) {
     inhalt = (
-      <p className="text-destructive">Fehler beim Laden der Druckstationen.</p>
+      <LadefehlerAlert
+        titel="Druckstationen konnten nicht geladen werden"
+        onErneutVersuchen={() => void refetch()}
+      />
     )
   } else {
     const konfiguriert = druckstationen.filter(istKonfiguriert)

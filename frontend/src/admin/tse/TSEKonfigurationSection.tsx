@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 
 import { TextField } from '@/components/common/FormFields'
+import { LadefehlerAlert } from '@/components/common/LadefehlerAlert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -278,7 +279,8 @@ export function TSEKonfigurationSection() {
   const {
     tseKonfiguration,
     isPending,
-    error,
+    isError,
+    refetch,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
     testTSEVerbindung,
@@ -289,11 +291,12 @@ export function TSEKonfigurationSection() {
     inhalt = (
       <p className="text-muted-foreground text-sm">Lade TSE-Konfiguration…</p>
     )
-  } else if (error) {
+  } else if (isError) {
     inhalt = (
-      <p className="text-destructive text-sm">
-        Fehler beim Laden der TSE-Konfiguration.
-      </p>
+      <LadefehlerAlert
+        titel="TSE-Konfiguration konnte nicht geladen werden"
+        onErneutVersuchen={() => void refetch()}
+      />
     )
   } else {
     const initial: TSEKonfigurationSpeichern = {

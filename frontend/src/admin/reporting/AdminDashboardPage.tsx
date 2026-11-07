@@ -3,7 +3,7 @@ import { beschreibeFehlBons } from '@/admin/settings/DruckstationBackend'
 import { useFehlgeschlageneDruckauftraege } from '@/admin/settings/hooks'
 import { useTSEAmpel } from '@/admin/tse/hooks'
 import { TSE_TEST_WARNUNG } from '@/admin/tse/tseAmpel'
-import { formatAnzahl,formatEuro, formatUhrzeit } from '@/lib/utils'
+import { formatAnzahl, formatEuro, formatUhrzeit } from '@/lib/utils'
 
 import { useLiveReporting } from './hooks'
 import { LiveReportingSection } from './LiveReportingSection'

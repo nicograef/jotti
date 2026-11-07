@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { QueryResult } from '@/lib/queryClient'
 
 import { type TSEAmpel, tseAmpel } from './tseAmpel'
 import {
@@ -37,10 +38,8 @@ function invalidiereTSE(queryClient: QueryClient): Promise<unknown> {
   ])
 }
 
-interface TSEKonfigurationResult {
+interface TSEKonfigurationResult extends QueryResult<TSEKonfiguration> {
   tseKonfiguration: TSEKonfiguration | undefined
-  isPending: boolean
-  error: Error | null
   saveTSEKonfiguration: (config: TSEKonfigurationSpeichern) => Promise<void>
   clearTSEKonfiguration: () => Promise<void>
   testTSEVerbindung: () => Promise<TSEVerbindungStatus>
@@ -48,7 +47,7 @@ interface TSEKonfigurationResult {
 
 export function useTSEKonfiguration(): TSEKonfigurationResult {
   const queryClient = useQueryClient()
-  const { isPending, data, error } = useQuery({
+  const { isPending, isError, data, refetch } = useQuery({
     queryKey: [TSE_KONFIGURATION_KEY],
     queryFn: () => tseBackend.getTSEKonfiguration(),
   })
@@ -70,7 +69,8 @@ export function useTSEKonfiguration(): TSEKonfigurationResult {
   return {
     tseKonfiguration: data,
     isPending,
-    error,
+    isError,
+    refetch,
     saveTSEKonfiguration,
     clearTSEKonfiguration,
     testTSEVerbindung,
@@ -110,57 +110,37 @@ export function useTSEEinrichtung(): TSEEinrichtungResult {
   return { richteTSEEin, uebernimmTSE }
 }
 
-export function useTSESignaturQueue(): {
-  queue: TSESignaturQueue | undefined
-  isPending: boolean
-  error: Error | null
-} {
-  const { data, isPending, error } = useQuery({
+function useTSESignaturQueue(): TSESignaturQueue | undefined {
+  const { data } = useQuery({
     queryKey: [TSE_SIGNATUR_QUEUE_KEY],
     queryFn: () => tseBackend.getTSESignaturQueue(),
   })
-
-  return { queue: data, isPending, error }
+  return data
 }
 
-export function useTSEStoerungen(): {
-  stoerungen: TSEStoerung[]
-  isPending: boolean
-  error: Error | null
-} {
-  const {
-    isPending,
-    data = [],
-    error,
-  } = useQuery({
+export function useTSEStoerungen(): { stoerungen: TSEStoerung[] } {
+  const { data = [] } = useQuery({
     queryKey: [TSE_STOERUNGEN_KEY],
     queryFn: () => tseBackend.getTSEStoerungen(),
   })
-
-  return { stoerungen: data, isPending, error }
+  return { stoerungen: data }
 }
 
 export function useTSEStatus(): {
   tseStatus: TSEStatus | undefined
   isPending: boolean
-  error: Error | null
 } {
-  const { data, isPending, error } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: [TSE_STATUS_KEY],
     queryFn: () => tseBackend.getTSEStatus(),
   })
-
-  return {
-    tseStatus: data,
-    isPending,
-    error,
-  }
+  return { tseStatus: data, isPending }
 }
 
 export function useTSEAmpel(): TSEAmpel & {
   queue: TSESignaturQueue | undefined
 } {
   const { tseStatus, isPending } = useTSEStatus()
-  const { queue } = useTSESignaturQueue()
+  const queue = useTSESignaturQueue()
   return { ...tseAmpel(tseStatus, isPending, queue), queue }
 }

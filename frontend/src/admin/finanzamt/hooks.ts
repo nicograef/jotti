@@ -20,21 +20,18 @@ export const BETREIBER_KEY = 'betreiber'
 
 export function useKassenidentitaet(): {
   kassenidentitaet: Kassenidentitaet | undefined
-  isPending: boolean
-  error: Error | null
 } {
-  const { data, isPending, error } = useQuery({
+  const { data } = useQuery({
     queryKey: [KASSENIDENTITAET_KEY],
     queryFn: () => betreiberBackend.getKassenidentitaet(),
   })
-  return { kassenidentitaet: data, isPending, error }
+  return { kassenidentitaet: data }
 }
 
 interface BetreiberResult {
   betreiber: Betreiber | undefined
   isPending: boolean
   isError: boolean
-  error: Error | null
   refetchBetreiber: UseQueryResult<Betreiber>['refetch']
   saveBetreiber: (b: BetreiberEingabe) => Promise<void>
   setElsterMeldung: () => Promise<void>
@@ -43,7 +40,7 @@ interface BetreiberResult {
 
 export function useBetreiber(): BetreiberResult {
   const queryClient = useQueryClient()
-  const { isPending, isError, data, error, refetch } = useQuery({
+  const { isPending, isError, data, refetch } = useQuery({
     queryKey: [BETREIBER_KEY],
     queryFn: () => betreiberBackend.getBetreiber(),
   })
@@ -67,7 +64,6 @@ export function useBetreiber(): BetreiberResult {
     betreiber: data,
     isPending,
     isError,
-    error,
     refetchBetreiber: refetch,
     saveBetreiber,
     setElsterMeldung,

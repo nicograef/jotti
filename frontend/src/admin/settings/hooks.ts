@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { BackendSingleton } from '@/lib/Backend'
+import type { QueryResult } from '@/lib/queryClient'
 
 import {
   DruckstationBackend,
@@ -15,10 +16,8 @@ export const DRUCKSTATIONEN_KEY = 'druckstationen'
 export const FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY =
   'fehlgeschlagene-druckauftraege'
 
-interface DruckstationenResult {
+interface DruckstationenResult extends QueryResult<DruckstationConfig[]> {
   druckstationen: DruckstationConfig[]
-  isPending: boolean
-  error: Error | null
   updateDruckstation: (newConfig: DruckstationConfig) => Promise<void>
   testbonDrucken: (kategorie: Kategorie) => Promise<void>
 }
@@ -27,8 +26,9 @@ export function useDruckstationen(): DruckstationenResult {
   const queryClient = useQueryClient()
   const {
     isPending,
+    isError,
     data = [],
-    error,
+    refetch,
   } = useQuery({
     queryKey: [DRUCKSTATIONEN_KEY],
     queryFn: () => druckstationBackend.getDruckstationen(),
@@ -46,7 +46,8 @@ export function useDruckstationen(): DruckstationenResult {
   return {
     druckstationen: data,
     isPending,
-    error,
+    isError,
+    refetch,
     updateDruckstation,
     testbonDrucken,
   }
@@ -54,8 +55,6 @@ export function useDruckstationen(): DruckstationenResult {
 
 interface FehlgeschlageneDruckauftraegeResult {
   druckauftraege: FehlgeschlagenerDruckauftrag[]
-  isPending: boolean
-  error: Error | null
   erneutVersuchen: (id: number) => Promise<void>
   verwerfen: (id: number) => Promise<void>
   alleVerwerfen: () => Promise<number>
@@ -63,11 +62,7 @@ interface FehlgeschlageneDruckauftraegeResult {
 
 export function useFehlgeschlageneDruckauftraege(): FehlgeschlageneDruckauftraegeResult {
   const queryClient = useQueryClient()
-  const {
-    isPending,
-    data = [],
-    error,
-  } = useQuery({
+  const { data = [] } = useQuery({
     queryKey: [FEHLGESCHLAGENE_DRUCKAUFTRAEGE_KEY],
     queryFn: () => druckstationBackend.getFehlgeschlageneDruckauftraege(),
   })
@@ -96,8 +91,6 @@ export function useFehlgeschlageneDruckauftraege(): FehlgeschlageneDruckauftraeg
 
   return {
     druckauftraege: data,
-    isPending,
-    error,
     erneutVersuchen,
     verwerfen,
     alleVerwerfen,

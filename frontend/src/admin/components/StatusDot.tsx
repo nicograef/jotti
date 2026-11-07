@@ -14,12 +14,10 @@ export function StatusDot({
   zustand,
   label,
   puls = false,
-  className,
 }: {
   zustand: StatusDotZustand
   label: string
   puls?: boolean
-  className?: string
 }) {
   return (
     <span
@@ -29,7 +27,6 @@ export function StatusDot({
         'inline-block size-[7px] shrink-0 rounded-full',
         zustandKlasse[zustand],
         puls && 'animate-pulsedot',
-        className,
       )}
     />
   )
