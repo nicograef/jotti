@@ -9,7 +9,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
    - Linsen: Korrektheit und Sicherheit; Fiskal-Compliance und Freeze-Disziplin; Architektur (Schichten, Cross-Layer-Konsistenz, Modularität, SOLID, Schwellen); Simplify (Reuse, KISS/YAGNI, Effizienz, Altitude, Lesbarkeit); Cleanup (veraltet, ungenutzt, Testkosten, Tests nach der Testregel).
 2. **Fix**: Lanes nach Dateibesitz, höchstens zwei schreibende gleichzeitig (5,8 GB RAM).
    - `fix/q-backend` besitzt backend/ und database/; `fix/q-frontend` besitzt frontend/. Beide parallel.
-   - `fix/q-edges` besitzt alles unter Wave-1-Bereich `edges`; startet, sobald eine der beiden ersten Lanes gelandet ist.
+   - `fix/q-edges` besitzt alles unter Wave-1-Bereich `edges`; läuft parallel als dritte Lane mit einem auf ihre Module begrenzten Gate, das volle Gate läuft beim Landen.
    - `fix/q-cross`: Befunde, die Backend und Frontend zugleich ändern; startet nach Landung von backend und frontend.
    - Doku-Zeilen, die ein Code-Befund falsch macht, ändert die Lane des Befunds; übrige Doku-Befunde gehen an Wave 3.
 3. **Distill** (`fix/q-distill`): Doku und Kommentare des ganzen Repos auf den Endstand, mit den Doku-Befunden aus Wave 1. FLAGs im Commit-Body.
@@ -30,7 +30,7 @@ Base: `eb16138a`. Scope: der ganze Code, alle Pläne, PRDs und Dokumente; `docs/
 | 1 Review | — | landed | 236 bestätigte Befunde |
 | 2 Fix backend | fix/q-backend | running | |
 | 2 Fix frontend | fix/q-frontend | running | |
-| 2 Fix edges | fix/q-edges | waiting | |
+| 2 Fix edges | fix/q-edges | running | |
 | 2 Fix cross | fix/q-cross | waiting | |
 | 3 Distill | fix/q-distill | waiting | |
 | 4 Distill verify | fix/q-verify | waiting | |
