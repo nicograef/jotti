@@ -27,30 +27,6 @@ export function formatAnzahl(
 }
 
 /**
- * `'alle'` — Umbuchung (every position), `'meine'` — Kassieren (only the
- * caller's own). Both with the correct grammatical number and the selection sum.
- */
-export function formatAlleAuswaehlenLabel(
-  anzahl: number,
-  summeCents: number,
-  variante: 'alle' | 'meine' = 'alle',
-): string {
-  let auswahl: string
-  if (variante === 'meine') {
-    auswahl =
-      anzahl === 1
-        ? 'Meine Position auswählen'
-        : `Meine ${anzahl.toString()} Positionen auswählen`
-  } else {
-    auswahl =
-      anzahl === 1
-        ? '1 Position auswählen'
-        : `Alle ${anzahl.toString()} Positionen auswählen`
-  }
-  return `${auswahl} · ${formatEuro(summeCents)}`
-}
-
-/**
  * Like {@link formatEuro} but prefixes "+" for a positive amount — for
  * difference displays where positive means surplus (Kassensturz-Differenz).
  */

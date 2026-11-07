@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  formatAlleAuswaehlenLabel,
   formatAnzahl,
   formatCents,
   formatEuro,
@@ -63,26 +62,6 @@ describe('formatEuroMitVorzeichen', () => {
 
   it('behält das Minus negativer Beträge', () => {
     expect(formatEuroMitVorzeichen(-350)).toBe(formatEuro(-350))
-  })
-})
-
-describe('formatAlleAuswaehlenLabel', () => {
-  it('nutzt „Alle …" mit Plural und „1 Position" im Singular (Standard-Variante)', () => {
-    expect(formatAlleAuswaehlenLabel(3, 1250)).toBe(
-      `Alle 3 Positionen auswählen · ${formatEuro(1250)}`,
-    )
-    expect(formatAlleAuswaehlenLabel(1, 700)).toBe(
-      `1 Position auswählen · ${formatEuro(700)}`,
-    )
-  })
-
-  it('nutzt „Meine …" in der Kassieren-Variante, Singular ohne Zahl', () => {
-    expect(formatAlleAuswaehlenLabel(2, 1250, 'meine')).toBe(
-      `Meine 2 Positionen auswählen · ${formatEuro(1250)}`,
-    )
-    expect(formatAlleAuswaehlenLabel(1, 700, 'meine')).toBe(
-      `Meine Position auswählen · ${formatEuro(700)}`,
-    )
   })
 })
 

@@ -1,16 +1,40 @@
 import { CircleCheck } from 'lucide-react'
 
 import type { MengenSteuerung } from '@/hooks/use-mengen'
-import { formatAlleAuswaehlenLabel } from '@/lib/utils'
+import { formatEuro } from '@/lib/utils'
 
 import { calculateTotalPrice, toMengen } from './drawerUtils'
+
+/**
+ * `'alle'` — Umbuchung (every position), `'meine'` — Kassieren (only the
+ * caller's own). Both with the correct grammatical number and the selection sum.
+ */
+function formatAlleAuswaehlenLabel(
+  anzahl: number,
+  summeCents: number,
+  variante: 'alle' | 'meine',
+): string {
+  let auswahl: string
+  if (variante === 'meine') {
+    auswahl =
+      anzahl === 1
+        ? 'Meine Position auswählen'
+        : `Meine ${anzahl.toString()} Positionen auswählen`
+  } else {
+    auswahl =
+      anzahl === 1
+        ? '1 Position auswählen'
+        : `Alle ${anzahl.toString()} Positionen auswählen`
+  }
+  return `${auswahl} · ${formatEuro(summeCents)}`
+}
 
 // Wählt alle Positionen voll aus; sind sie es schon, hebt derselbe Tap die
 // Auswahl auf.
 export function AlleAuswaehlenButton({
   positionen,
   steuerung,
-  variante,
+  variante = 'alle',
 }: {
   positionen: { positionId: string; menge: number; einzelpreisCents: number }[]
   steuerung: Pick<MengenSteuerung<string>, 'mengen' | 'reset' | 'setAll'>
