@@ -1,5 +1,5 @@
 -- name: GetProdukt :one
--- Die varianten-Einträge liefert die View produkt_varianten_json (Migration 09).
+-- Die varianten-Einträge liefert die View produkt_varianten_json (Migration 18).
 SELECT
     p.id,
     p.name,
@@ -132,18 +132,24 @@ WHERE p.id = neu.id;
 UPDATE produkte SET reihenfolge = sqlc.arg(reihenfolge), updated_at = sqlc.arg(updated_at) WHERE id = sqlc.arg(id);
 
 -- name: GetVariante :one
-SELECT id, name, preis_cents, status, created_at, updated_at
+SELECT id, name, preis_cents, status, pfand_variante_id, created_at, updated_at
 FROM produkt_varianten WHERE id = $1 AND status != 'deleted';
 
 -- name: CreateVariante :one
 -- Neue Varianten landen ans Ende ihres Produkts (siehe CreateProdukt).
-INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at, reihenfolge)
-VALUES ($1, $2, $3, $4, $5, $6,
+INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at, pfand_variante_id, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
     COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkt_varianten WHERE produkt_id = $1), 1))
 RETURNING id;
 
 -- name: UpdateVariante :execresult
-UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4 WHERE id = $5;
+UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4, pfand_variante_id = $6 WHERE id = $5;
+
+-- name: EntfernePfandVerweise :exec
+-- Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je
+-- Aufruf: ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
+UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = sqlc.arg(updated_at)
+WHERE pfand_variante_id = sqlc.arg(pfand_variante_id);
 
 -- name: GetVarianteReihenfolge :one
 SELECT id, produkt_id, reihenfolge FROM produkt_varianten WHERE id = $1 AND status != 'deleted';

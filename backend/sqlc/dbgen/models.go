@@ -346,6 +346,8 @@ type ProduktVarianten struct {
 	UpdatedAt time.Time
 	// Anzeigereihenfolge innerhalb des Produkts (aufsteigend, Tiebreaker id)
 	Reihenfolge int
+	// Pfand-Variante, die der Warenkorb je Stück dieser Variante dazulegt; NULL = kein Pfand. Gleicher Steuersatz, Ziel ist eine Variante eines Pfand-Produkts (geprüft im Backend).
+	PfandVarianteID sql.NullInt32
 }
 
 type ProduktVariantenJson struct {

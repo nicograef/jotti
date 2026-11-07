@@ -47,19 +47,20 @@ func (q *Queries) CreateProdukt(ctx context.Context, arg CreateProduktParams) (i
 }
 
 const createVariante = `-- name: CreateVariante :one
-INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at, reihenfolge)
-VALUES ($1, $2, $3, $4, $5, $6,
+INSERT INTO produkt_varianten (produkt_id, name, preis_cents, status, created_at, updated_at, pfand_variante_id, reihenfolge)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
     COALESCE((SELECT MAX(reihenfolge) + 1 FROM produkt_varianten WHERE produkt_id = $1), 1))
 RETURNING id
 `
 
 type CreateVarianteParams struct {
-	ProduktID  int
-	Name       string
-	PreisCents int
-	Status     Entitystatus
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ProduktID       int
+	Name            string
+	PreisCents      int
+	Status          Entitystatus
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	PfandVarianteID sql.NullInt32
 }
 
 // Neue Varianten landen ans Ende ihres Produkts (siehe CreateProdukt).
@@ -71,10 +72,28 @@ func (q *Queries) CreateVariante(ctx context.Context, arg CreateVarianteParams) 
 		arg.Status,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PfandVarianteID,
 	)
 	var id int
 	err := row.Scan(&id)
 	return id, err
+}
+
+const entfernePfandVerweise = `-- name: EntfernePfandVerweise :exec
+UPDATE produkt_varianten SET pfand_variante_id = NULL, updated_at = $1
+WHERE pfand_variante_id = $2
+`
+
+type EntfernePfandVerweiseParams struct {
+	UpdatedAt       time.Time
+	PfandVarianteID sql.NullInt32
+}
+
+// Löst jede Pfand-Verknüpfung auf eine Variante, etwa weil sie gelöscht wird. Eine ID je
+// Aufruf: ein Array-Parameter bräuchte in sqlc-Code für database/sql lib/pq.
+func (q *Queries) EntfernePfandVerweise(ctx context.Context, arg EntfernePfandVerweiseParams) error {
+	_, err := q.db.ExecContext(ctx, entfernePfandVerweise, arg.UpdatedAt, arg.PfandVarianteID)
+	return err
 }
 
 const getAktiveProdukte = `-- name: GetAktiveProdukte :many
@@ -248,7 +267,7 @@ type GetProduktRow struct {
 	Varianten  json.RawMessage
 }
 
-// Die varianten-Einträge liefert die View produkt_varianten_json (Migration 09).
+// Die varianten-Einträge liefert die View produkt_varianten_json (Migration 18).
 func (q *Queries) GetProdukt(ctx context.Context, id int) (GetProduktRow, error) {
 	row := q.db.QueryRowContext(ctx, getProdukt, id)
 	var i GetProduktRow
@@ -342,17 +361,18 @@ func (q *Queries) GetProduktVorgaenger(ctx context.Context, arg GetProduktVorgae
 }
 
 const getVariante = `-- name: GetVariante :one
-SELECT id, name, preis_cents, status, created_at, updated_at
+SELECT id, name, preis_cents, status, pfand_variante_id, created_at, updated_at
 FROM produkt_varianten WHERE id = $1 AND status != 'deleted'
 `
 
 type GetVarianteRow struct {
-	ID         int
-	Name       string
-	PreisCents int
-	Status     Entitystatus
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID              int
+	Name            string
+	PreisCents      int
+	Status          Entitystatus
+	PfandVarianteID sql.NullInt32
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, error) {
@@ -363,6 +383,7 @@ func (q *Queries) GetVariante(ctx context.Context, id int) (GetVarianteRow, erro
 		&i.Name,
 		&i.PreisCents,
 		&i.Status,
+		&i.PfandVarianteID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -579,15 +600,16 @@ func (q *Queries) UpdateProdukt(ctx context.Context, arg UpdateProduktParams) (s
 }
 
 const updateVariante = `-- name: UpdateVariante :execresult
-UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4 WHERE id = $5
+UPDATE produkt_varianten SET name = $1, preis_cents = $2, status = $3, updated_at = $4, pfand_variante_id = $6 WHERE id = $5
 `
 
 type UpdateVarianteParams struct {
-	Name       string
-	PreisCents int
-	Status     Entitystatus
-	UpdatedAt  time.Time
-	ID         int
+	Name            string
+	PreisCents      int
+	Status          Entitystatus
+	UpdatedAt       time.Time
+	ID              int
+	PfandVarianteID sql.NullInt32
 }
 
 func (q *Queries) UpdateVariante(ctx context.Context, arg UpdateVarianteParams) (sql.Result, error) {
@@ -597,5 +619,6 @@ func (q *Queries) UpdateVariante(ctx context.Context, arg UpdateVarianteParams) 
 		arg.Status,
 		arg.UpdatedAt,
 		arg.ID,
+		arg.PfandVarianteID,
 	)
 }
