@@ -37,30 +37,12 @@ import {
 } from './DruckstationBackend'
 import { useDruckstationen, useFehlgeschlageneDruckauftraege } from './hooks'
 
-const KATEGORIE_INFO: Record<
-  Kategorie,
-  { label: string; beschreibung: string }
-> = {
-  essen: {
-    label: STATION_KATEGORIE_LABEL.essen,
-    beschreibung: 'Bons für die Essensausgabe',
-  },
-  getraenk: {
-    label: STATION_KATEGORIE_LABEL.getraenk,
-    beschreibung: 'Bons für den Ausschank',
-  },
-  sonstiges: {
-    label: STATION_KATEGORIE_LABEL.sonstiges,
-    beschreibung: 'Bons für sonstige Positionen',
-  },
-  kassenbeleg: {
-    label: STATION_KATEGORIE_LABEL.kassenbeleg,
-    beschreibung: 'Beleg für Gäste',
-  },
-  abholbon: {
-    label: STATION_KATEGORIE_LABEL.abholbon,
-    beschreibung: 'Abholnummern beim Direktverkauf',
-  },
+const KATEGORIE_BESCHREIBUNG: Record<Kategorie, string> = {
+  essen: 'Bons für die Essensausgabe',
+  getraenk: 'Bons für den Ausschank',
+  sonstiges: 'Bons für sonstige Positionen',
+  kassenbeleg: 'Beleg für Gäste',
+  abholbon: 'Abholnummern beim Direktverkauf',
 }
 
 // „Pro Stück" und „Kein Bon" erscheinen nur am Abholbon (siehe erlaubtBonmodus).
@@ -144,7 +126,7 @@ function DruckstationCard({
   onUpdate: (config: DruckstationConfig) => Promise<void>
   onTestbon: (kategorie: Kategorie) => Promise<void>
 }) {
-  const info = KATEGORIE_INFO[config.kategorie]
+  const label = STATION_KATEGORIE_LABEL[config.kategorie]
   const zeigtBonmodus = hatBonmodus(config.kategorie)
   const [druckerIp, setDruckerIp] = useState(config.druckerIp)
   const [ipError, setIpError] = useState<string | null>(null)
@@ -176,7 +158,7 @@ function DruckstationCard({
     setIpError(null)
     await runSave(async () => {
       await onUpdate({ ...config, druckerIp })
-      toast.success(`Drucker-IP für „${info.label}“ gespeichert.`)
+      toast.success(`Drucker-IP für „${label}“ gespeichert.`)
       setIpGespeichert(true)
       setTimeout(() => {
         setIpGespeichert(false)
@@ -190,16 +172,16 @@ function DruckstationCard({
     }
     await runBonmodus(async () => {
       await onUpdate({ ...config, bonmodus })
-      toast.success(`Bonmodus für „${info.label}“ geändert.`)
+      toast.success(`Bonmodus für „${label}“ geändert.`)
     })
   }
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border p-5">
       <div>
-        <span className="text-base font-semibold">{info.label}</span>{' '}
+        <span className="text-base font-semibold">{label}</span>{' '}
         <span className="text-xs font-normal text-muted-foreground">
-          — {info.beschreibung}
+          — {KATEGORIE_BESCHREIBUNG[config.kategorie]}
         </span>
       </div>
 
@@ -248,7 +230,7 @@ function DruckstationCard({
           onClick={() =>
             void runTestbon(async () => {
               await onTestbon(config.kategorie)
-              toast.success(`Testbon an „${info.label}“ gesendet.`)
+              toast.success(`Testbon an „${label}“ gesendet.`)
             })
           }
         >
@@ -299,7 +281,7 @@ function NichtKonfigurierteKarte({
   }
 
   const namen = stationen
-    .map((s) => KATEGORIE_INFO[s.kategorie].label)
+    .map((s) => STATION_KATEGORIE_LABEL[s.kategorie])
     .join(' & ')
   const abholbonDabei = stationen.some((s) => s.kategorie === 'abholbon')
 
