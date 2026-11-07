@@ -15,7 +15,6 @@ import (
 	tseHTTP "github.com/nicograef/jotti/backend/api/fiskal/signatur/http"
 	kasseApp "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/application"
 	kasseHTTP "github.com/nicograef/jotti/backend/api/kasse/kassenfuehrung/http"
-	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
 	betreiberApp "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/application"
 	betreiberHTTP "github.com/nicograef/jotti/backend/api/stammdaten/betreiber/http"
@@ -29,7 +28,14 @@ import (
 
 func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
+	mountAdminStammdaten(r, deps)
+	mountAdminKasse(r, deps)
+	mountAdminDruck(r, deps)
+	mountAdminFiskal(r, deps)
+	return r.Handler(), r.Paths()
+}
 
+func mountAdminStammdaten(r *routeMux, deps Deps) {
 	uc := userHTTP.CommandHandler{Command: userApp.Command{UserRepo: deps.UserRepo}}
 	r.HandleFunc("/create-user", uc.CreateUserHandler())
 	r.HandleFunc("/update-user", uc.UpdateUserHandler())
@@ -54,13 +60,10 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/delete-produkt", pc.DeleteProduktHandler())
 	r.HandleFunc("/delete-variante", pc.DeleteVarianteHandler())
 
-	pq := produktHTTP.QueryHandler{Query: produktApp.Query{ProduktRepo: deps.ProduktRepo}}
+	pq := produktHTTP.QueryHandler{Query: deps.produktQuery()}
 	r.HandleFunc("/get-all-produkte", pq.GetAllProdukteHandler())
 
-	tc := tischHTTP.CommandHandler{Command: tischApp.Command{
-		TischRepo:   deps.TischRepo,
-		FavoritRepo: deps.FavoritRepo,
-	}}
+	tc := tischHTTP.CommandHandler{Command: deps.tischCommand()}
 	r.HandleFunc("/update-tisch", tc.TischAktualisierenHandler())
 	r.HandleFunc("/create-tisch", tc.TischErstellenHandler())
 	r.HandleFunc("/activate-tisch", tc.TischAktivierenHandler())
@@ -70,25 +73,20 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	tq := tischHTTP.QueryHandler{Query: tischApp.Query{TischRepo: deps.TischRepo}}
 	r.HandleFunc("/get-all-tische", tq.GetAllTischeHandler())
 
-	rq := reportingHTTP.QueryHandler{Query: reportingApp.Query{
-		ReportingRepo:       deps.ReportingRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		TischSessionRepo:    deps.KassenjournalRepo,
-		TischRepo:           deps.TischRepo,
-	}}
+	bq := betreiberHTTP.QueryHandler{Query: betreiberApp.Query{BetreiberRepo: deps.BetreiberRepo}}
+	r.HandleFunc("/get-betreiber", bq.GetBetreiberHandler())
+
+	bc := betreiberHTTP.CommandHandler{Command: betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}}
+	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
+	r.HandleFunc("/elster-meldung-setzen", bc.SetzeElsterMeldungHandler())
+	r.HandleFunc("/elster-meldung-zuruecknehmen", bc.NimmElsterMeldungZurueckHandler())
+}
+
+func mountAdminKasse(r *routeMux, deps Deps) {
+	rq := reportingHTTP.QueryHandler{Query: deps.reportingQuery()}
 	r.HandleFunc("/get-abrechnung", rq.GetReportingHandler())
 	r.HandleFunc("/get-abgeschlossene-kassensitzungen", rq.GetAbgeschlosseneKassensitzungenHandler())
 	r.HandleFunc("/get-live-reporting", rq.GetLiveReportingHandler())
-
-	exportHandler := exportHTTP.Handler{Service: exportApp.Export{
-		KassenjournalRepo:   deps.KassenjournalRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		BetreiberRepo:       deps.BetreiberRepo,
-		TSERepo:             deps.TSERepo,
-		TischRepo:           deps.TischRepo,
-		Version:             deps.Version,
-	}}
-	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
 	kc := kasseHTTP.CommandHandler{Command: kasseApp.Command{
 		KassenjournalRepo:   deps.KassenjournalRepo,
@@ -105,7 +103,9 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/get-aktive-kassensitzung", kq.GetAktiveKassensitzungHandler())
 	r.HandleFunc("/get-kassenbestand", kq.GetKassenbestandHandler())
 	r.HandleFunc("/get-geldtransit-liste", kq.GetGeldtransitListeHandler())
+}
 
+func mountAdminDruck(r *routeMux, deps Deps) {
 	druckstationCommandHandler := druckstationHTTP.CommandHandler{Command: druckstationApp.Command{
 		DruckstationRepo: deps.DruckstationRepo,
 		DruckauftragRepo: deps.DruckauftragRepo,
@@ -121,6 +121,18 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/druckauftrag-erneut-versuchen", druckauftragCommandHandler.RetryDruckauftragHandler())
 	r.HandleFunc("/druckauftrag-verwerfen", druckauftragCommandHandler.DiscardDruckauftragHandler())
 	r.HandleFunc("/druckauftraege-verwerfen", druckauftragCommandHandler.DiscardAlleFehlgeschlagenenHandler())
+}
+
+func mountAdminFiskal(r *routeMux, deps Deps) {
+	exportHandler := exportHTTP.Handler{Service: exportApp.Export{
+		KassenjournalRepo:   deps.KassenjournalRepo,
+		KassensitzungenRepo: deps.KassensitzungenRepo,
+		BetreiberRepo:       deps.BetreiberRepo,
+		TSERepo:             deps.TSERepo,
+		TischRepo:           deps.TischRepo,
+		Version:             deps.Version,
+	}}
+	r.HandleFunc("/export/dsfinvk", exportHandler.ExportHandler())
 
 	tseQueryHandler := tseHTTP.QueryHandler{Query: tseApp.Query{TSERepo: deps.TSERepo}}
 	r.HandleFunc("/get-tse-signatur-queue", tseQueryHandler.GetTSESignaturQueueHandler())
@@ -146,14 +158,4 @@ func NewAdminApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/update-tse-konfiguration", sc.UpdateTSEKonfigurationHandler())
 	r.HandleFunc("/tse-einrichten", sc.RichteTSEEinHandler())
 	r.HandleFunc("/tse-uebernehmen", sc.UebernimmTSEHandler())
-
-	bq := betreiberHTTP.QueryHandler{Query: betreiberApp.Query{BetreiberRepo: deps.BetreiberRepo}}
-	r.HandleFunc("/get-betreiber", bq.GetBetreiberHandler())
-
-	bc := betreiberHTTP.CommandHandler{Command: betreiberApp.Command{BetreiberRepo: deps.BetreiberRepo}}
-	r.HandleFunc("/update-betreiber", bc.UpdateBetreiberHandler())
-	r.HandleFunc("/elster-meldung-setzen", bc.SetzeElsterMeldungHandler())
-	r.HandleFunc("/elster-meldung-zuruecknehmen", bc.NimmElsterMeldungZurueckHandler())
-
-	return r.Handler(), r.Paths()
 }

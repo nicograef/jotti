@@ -3,6 +3,13 @@ package api
 import (
 	"database/sql"
 
+	direktverkaufApp "github.com/nicograef/jotti/backend/api/kasse/direktverkauf/application"
+	pfandrueckgabeApp "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/application"
+	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
+	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
+	produktApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
+	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
+
 	"github.com/nicograef/jotti/backend/config"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/betreiber_repo"
@@ -56,5 +63,53 @@ func NewDeps(cfg config.Config, db *sql.DB) Deps {
 		NewTSESetupClient: func(credentials tse.SetupCredentials) (tse.SetupClient, error) {
 			return tse_repo.NewFiskalyTSESetupClient(cfg.FiskalyBaseURL, credentials, nil)
 		},
+	}
+}
+
+// The services below are mounted in more than one area; each is wired once here, so no area can
+// miss a dependency another area has.
+
+func (d Deps) produktQuery() produktApp.Query {
+	return produktApp.Query{ProduktRepo: d.ProduktRepo}
+}
+
+func (d Deps) tischCommand() tischApp.Command {
+	return tischApp.Command{TischRepo: d.TischRepo, FavoritRepo: d.FavoritRepo}
+}
+
+func (d Deps) reportingQuery() reportingApp.Query {
+	return reportingApp.Query{
+		ReportingRepo:       d.ReportingRepo,
+		KassensitzungenRepo: d.KassensitzungenRepo,
+		TischSessionRepo:    d.KassenjournalRepo,
+		TischRepo:           d.TischRepo,
+	}
+}
+
+func (d Deps) tischgeschaeftCommand() tischgeschaeftApp.Command {
+	return tischgeschaeftApp.Command{
+		TischRepo:           d.TischRepo,
+		EventRepo:           d.KassenjournalRepo,
+		ProduktRepo:         d.ProduktRepo,
+		KassensitzungenRepo: d.KassensitzungenRepo,
+		DruckstationRepo:    d.DruckstationRepo,
+	}
+}
+
+func (d Deps) direktverkaufCommand() direktverkaufApp.Command {
+	return direktverkaufApp.Command{
+		EventRepo:           d.KassenjournalRepo,
+		ProduktRepo:         d.ProduktRepo,
+		KassensitzungenRepo: d.KassensitzungenRepo,
+		DruckstationRepo:    d.DruckstationRepo,
+	}
+}
+
+func (d Deps) pfandrueckgabeCommand() pfandrueckgabeApp.Command {
+	return pfandrueckgabeApp.Command{
+		EventRepo:           d.KassenjournalRepo,
+		ProduktRepo:         d.ProduktRepo,
+		KassensitzungenRepo: d.KassensitzungenRepo,
+		TischRepo:           d.TischRepo,
 	}
 }

@@ -11,27 +11,18 @@ import (
 	pfandrueckgabeHTTP "github.com/nicograef/jotti/backend/api/kasse/pfandrueckgabe/http"
 	tischgeschaeftApp "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/application"
 	tischgeschaeftHTTP "github.com/nicograef/jotti/backend/api/kasse/tischgeschaeft/http"
-	reportingApp "github.com/nicograef/jotti/backend/api/reporting/application"
 	reportingHTTP "github.com/nicograef/jotti/backend/api/reporting/http"
-	produktApp "github.com/nicograef/jotti/backend/api/stammdaten/produkt/application"
 	produktHTTP "github.com/nicograef/jotti/backend/api/stammdaten/produkt/http"
-	tischApp "github.com/nicograef/jotti/backend/api/stammdaten/tisch/application"
 	tischHTTP "github.com/nicograef/jotti/backend/api/stammdaten/tisch/http"
 )
 
 func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r := newRouteMux()
 
-	pq := produktHTTP.QueryHandler{Query: produktApp.Query{ProduktRepo: deps.ProduktRepo}}
+	pq := produktHTTP.QueryHandler{Query: deps.produktQuery()}
 	r.HandleFunc("/get-aktive-produkte", pq.GetActiveProdukteHandler())
 
-	tc := tischgeschaeftHTTP.CommandHandler{Command: tischgeschaeftApp.Command{
-		TischRepo:           deps.TischRepo,
-		EventRepo:           deps.KassenjournalRepo,
-		ProduktRepo:         deps.ProduktRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		DruckstationRepo:    deps.DruckstationRepo,
-	}}
+	tc := tischgeschaeftHTTP.CommandHandler{Command: deps.tischgeschaeftCommand()}
 	r.HandleFunc("/bestellung-aufnehmen", tc.BestellungAufnehmenHandler())
 	r.HandleFunc("/bestellung-umbuchen", tc.BestellungUmbuchenHandler())
 	r.HandleFunc("/zahlung-kassieren", tc.ZahlungKassierenHandler())
@@ -46,28 +37,14 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	}}
 	r.HandleFunc("/beleg-drucken", bc.KassenbelegDruckenHandler())
 
-	stc := tischHTTP.CommandHandler{Command: tischApp.Command{
-		TischRepo:   deps.TischRepo,
-		FavoritRepo: deps.FavoritRepo,
-	}}
+	stc := tischHTTP.CommandHandler{Command: deps.tischCommand()}
 	r.HandleFunc("/favorit-hinzufuegen", stc.FavoritHinzufuegenHandler())
 	r.HandleFunc("/favorit-entfernen", stc.FavoritEntfernenHandler())
 
-	dvCommand := direktverkaufApp.Command{
-		EventRepo:           deps.KassenjournalRepo,
-		ProduktRepo:         deps.ProduktRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		DruckstationRepo:    deps.DruckstationRepo,
-	}
-	dc := direktverkaufHTTP.CommandHandler{Command: dvCommand}
+	dc := direktverkaufHTTP.CommandHandler{Command: deps.direktverkaufCommand()}
 	r.HandleFunc("/direktverkauf-taetigen", dc.DirektverkaufTaetigenHandler())
 
-	pc := pfandrueckgabeHTTP.CommandHandler{Command: pfandrueckgabeApp.Command{
-		EventRepo:           deps.KassenjournalRepo,
-		ProduktRepo:         deps.ProduktRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		TischRepo:           deps.TischRepo,
-	}}
+	pc := pfandrueckgabeHTTP.CommandHandler{Command: deps.pfandrueckgabeCommand()}
 	r.HandleFunc("/pfand-zurueckgeben", pc.PfandZurueckgebenHandler())
 
 	dq := direktverkaufHTTP.QueryHandler{Query: direktverkaufApp.Query{
@@ -94,12 +71,7 @@ func NewServiceApi(deps Deps) (http.Handler, []string) {
 	r.HandleFunc("/get-aktive-tische-mit-favoriten", tq.GetAktiveTischeMitFavoritenHandler())
 	r.HandleFunc("/get-meine-tische-state", tq.GetMeineTischeStateHandler())
 
-	rq := reportingHTTP.QueryHandler{Query: reportingApp.Query{
-		ReportingRepo:       deps.ReportingRepo,
-		KassensitzungenRepo: deps.KassensitzungenRepo,
-		TischSessionRepo:    deps.KassenjournalRepo,
-		TischRepo:           deps.TischRepo,
-	}}
+	rq := reportingHTTP.QueryHandler{Query: deps.reportingQuery()}
 	r.HandleFunc("/get-eigene-uebersicht", rq.GetEigeneUebersichtHandler())
 
 	return r.Handler(), r.Paths()
