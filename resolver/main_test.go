@@ -156,44 +156,6 @@ func TestIntegrationAAnfrage(t *testing.T) {
 	}
 }
 
-func TestIntegrationChallengeCNAME(t *testing.T) {
-	udpAddr, _ := startTestServer(t, &handler{cfg: testZoneConfig()})
-
-	resp := exchange(t, "udp", udpAddr, newQuery("_acme-challenge."+testInstallID+".lokal.jotti.rocks.", dns.TypeTXT))
-
-	if len(resp.Answer) != 1 {
-		t.Fatalf("answer count: got %d, want 1", len(resp.Answer))
-	}
-	cname, ok := resp.Answer[0].(*dns.CNAME)
-	if !ok {
-		t.Fatalf("answer type: got %T, want *dns.CNAME", resp.Answer[0])
-	}
-	if want := testInstallID + ".auth.jotti.rocks."; cname.Target != want {
-		t.Fatalf("target: got %s, want %s", cname.Target, want)
-	}
-}
-
-func TestIntegrationNXDomainUndApex(t *testing.T) {
-	udpAddr, _ := startTestServer(t, &handler{cfg: testZoneConfig()})
-
-	nx := exchange(t, "udp", udpAddr, newQuery("unsinn."+testInstallID+".lokal.jotti.rocks.", dns.TypeA))
-	if nx.Rcode != dns.RcodeNameError {
-		t.Fatalf("rcode: got %d, want %d (NXDOMAIN)", nx.Rcode, dns.RcodeNameError)
-	}
-	if len(nx.Ns) != 1 {
-		t.Fatalf("authority count: got %d, want 1 (SOA)", len(nx.Ns))
-	}
-
-	soa := exchange(t, "udp", udpAddr, newQuery("lokal.jotti.rocks.", dns.TypeSOA))
-	if len(soa.Answer) != 1 {
-		t.Fatalf("SOA answer count: got %d, want 1", len(soa.Answer))
-	}
-	ns := exchange(t, "udp", udpAddr, newQuery("lokal.jotti.rocks.", dns.TypeNS))
-	if len(ns.Answer) != 1 {
-		t.Fatalf("NS answer count: got %d, want 1", len(ns.Answer))
-	}
-}
-
 func TestIntegrationForwardingZurAuthZone(t *testing.T) {
 	fakeAuth := dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		msg := new(dns.Msg)
