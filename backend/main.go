@@ -55,13 +55,6 @@ func main() {
 		subcommand = os.Args[1]
 	}
 
-	if subcommand == "rebuild-projections" {
-		if err := rebuildProjections(db); err != nil {
-			fatal("Failed to rebuild projections", "error", err)
-		}
-		return
-	}
-
 	if subcommand == "seed" {
 		if !seed.AllowedByEnv(os.Getenv) {
 			fatal(fmt.Sprintf("seed refused: set %s=1 to allow demo seeding (never do this in production)", seed.AllowSeedEnv))
@@ -112,26 +105,6 @@ func run(cfg config.Config, db *sql.DB) error {
 	}()
 
 	return a.Run(ctx)
-}
-
-func rebuildProjections(db *sql.DB) error {
-	defer func() {
-		if err := db.Close(); err != nil {
-			slog.Error("Failed to close database connection", "error", err)
-		}
-	}()
-
-	repo := kassenjournal_repo.NewRepository(db)
-
-	slog.Info("Rebuilding tisch-session projections from kassenjournal...")
-
-	count, err := repo.RebuildAllProjections(context.Background())
-	if err != nil {
-		return fmt.Errorf("rebuild projections: %w", err)
-	}
-
-	slog.Info("Projections rebuilt successfully", "subjects", count)
-	return nil
 }
 
 func seedDemodaten(db *sql.DB) error {

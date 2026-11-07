@@ -7,7 +7,7 @@ CLASS_developer := init hooks up up-attached down restart logs status \
 	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
 	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
 	starter-syso release-windows build-frontend build sqlc \
-	local-up local-down local-logs db-shell seed rebuild-projections clean \
+	local-up local-down local-logs db-shell seed clean \
 	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
 	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo crm \
 	check-govulncheck check-audit check-vuln check-integration check check-full verify \
@@ -264,9 +264,6 @@ db-shell: ## psql-Shell im Dev-Postgres öffnen
 BACKEND_CONTAINER ?= jotti-backend-dev
 seed: ## Demo-Daten per Seeder-Subkommando einspielen (Guard + Projektions-Rebuild inklusive)
 	docker exec $(BACKEND_CONTAINER) go run ./main.go seed
-
-rebuild-projections: ## tisch_sessions-Projektionen aus Events neu aufbauen
-	docker exec $(BACKEND_CONTAINER) go run ./main.go rebuild-projections
 
 # Aufräumen
 
