@@ -27,6 +27,8 @@ type betreiberResponse struct {
 	UstID        *string `json:"ustId"`
 	// ElsterGemeldetAm ist YYYY-MM-DD oder null, solange die Kasse nicht gemeldet ist.
 	ElsterGemeldetAm *string `json:"elsterGemeldetAm"`
+	// IstVollstaendig: the stored data pass the check that gates opening a Kassensitzung.
+	IstVollstaendig bool `json:"istVollstaendig"`
 }
 
 func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
@@ -53,6 +55,7 @@ func (h *QueryHandler) GetBetreiberHandler() http.HandlerFunc {
 			Steuernummer:     b.Steuernummer,
 			UstID:            b.UstID,
 			ElsterGemeldetAm: elsterGemeldetAm,
+			IstVollstaendig:  b.Validate() == nil,
 		})
 	}
 }

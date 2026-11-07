@@ -36,6 +36,7 @@ func TestGetBetreiberHandler_ElsterNichtGemeldet(t *testing.T) {
 		Plz:              "12345",
 		Ort:              "Musterstadt",
 		ElsterGemeldetAm: nil,
+		UpdatedAt:        time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC),
 	}}}
 
 	req := httptest.NewRequest(http.MethodPost, "/get-betreiber", nil)
@@ -52,6 +53,30 @@ func TestGetBetreiberHandler_ElsterNichtGemeldet(t *testing.T) {
 	}
 	if resp.Vereinsname != "Musterverein e.V." {
 		t.Errorf("expected vereinsname to be returned, got %q", resp.Vereinsname)
+	}
+	if !resp.IstVollstaendig {
+		t.Error("expected istVollstaendig for complete Betreiber data")
+	}
+}
+
+func TestGetBetreiberHandler_Unvollstaendig(t *testing.T) {
+	handler := &QueryHandler{Query: &mockQuery{betreiber: betreiber.Betreiber{
+		Vereinsname: "Musterverein e.V.",
+		Strasse:     "Musterstraße 1",
+		Ort:         "Musterstadt",
+		UpdatedAt:   time.Date(2026, 7, 1, 10, 0, 0, 0, time.UTC),
+	}}}
+
+	req := httptest.NewRequest(http.MethodPost, "/get-betreiber", nil)
+	rec := httptest.NewRecorder()
+
+	handler.GetBetreiberHandler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	if decodeBetreiberResponse(t, rec).IstVollstaendig {
+		t.Error("expected istVollstaendig false without PLZ")
 	}
 }
 

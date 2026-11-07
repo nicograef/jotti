@@ -18,22 +18,6 @@ import { useBetreiber, useKassenidentitaet } from './hooks'
 
 const LEITFADEN_URL = 'https://jotti.rocks/docs/leitfaden/finanzamt-anmelden/'
 
-// Kein „vollständig"-Flag im Backend: erledigt heißt, dass die Pflichtfelder
-// der Betreiber-Query gefüllt sind.
-function vereinsdatenErledigt(betreiber: {
-  vereinsname: string
-  strasse: string
-  plz: string
-  ort: string
-}): boolean {
-  return (
-    betreiber.vereinsname.trim() !== '' &&
-    betreiber.strasse.trim() !== '' &&
-    betreiber.plz.trim() !== '' &&
-    betreiber.ort.trim() !== ''
-  )
-}
-
 // Den Fehlerzustand eines Schritts rendert stattdessen die WarnKarte, damit die
 // Destructive-Token an einer Stelle wohnen.
 function SchrittKarte({
@@ -115,9 +99,10 @@ export function EinrichtungSection() {
     steuernummer: null,
     ustId: null,
     elsterGemeldetAm: null,
+    istVollstaendig: false,
   }
 
-  const vereinsdatenOk = vereinsdatenErledigt(daten)
+  const vereinsdatenOk = daten.istVollstaendig
   const tseTest = istTestUmgebung(tseStatus)
   const tseOk = !tseLoading && (tseStatus?.istKonfiguriert ?? false) && !tseTest
   const gemeldetAm = daten.elsterGemeldetAm

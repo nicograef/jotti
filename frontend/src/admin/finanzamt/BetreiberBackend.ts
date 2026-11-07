@@ -41,6 +41,7 @@ export const BetreiberEingabeSchema = z.object({
 export type BetreiberEingabe = z.infer<typeof BetreiberEingabeSchema>
 
 // elsterGemeldetAm is the date of the ELSTER Kassenmeldung (§ 146a Abs. 4 AO), null until reported.
+// istVollstaendig says the stored data pass the backend check that gates opening the Kasse.
 // No length caps: before setup the query returns empty fields, and a stored value may exceed the legal
 // maximum length, which the DSFinV-K export truncates.
 const BetreiberSchema = z.object({
@@ -51,6 +52,7 @@ const BetreiberSchema = z.object({
   steuernummer: z.string().nullable(),
   ustId: z.string().nullable(),
   elsterGemeldetAm: DateStringSchema.nullable(),
+  istVollstaendig: z.boolean(),
 })
 export type Betreiber = z.infer<typeof BetreiberSchema>
 

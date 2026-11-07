@@ -35,6 +35,7 @@ function makeBetreiber(overrides: Partial<Betreiber> = {}): Betreiber {
     steuernummer: null,
     ustId: null,
     elsterGemeldetAm: null,
+    istVollstaendig: true,
     ...overrides,
   }
 }
@@ -100,6 +101,7 @@ describe('FinanzamtPage — Einrichtungs-Checkliste', () => {
           strasse: '',
           plz: '',
           ort: '',
+          istVollstaendig: false,
         }),
         tseStatus: { umgebung: '', istKonfiguriert: false },
       }),
