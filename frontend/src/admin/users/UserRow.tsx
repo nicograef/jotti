@@ -31,7 +31,7 @@ interface UserRowProps {
   loading: boolean
   user: User
   isSelf: boolean
-  onEdit: (userId: number) => void
+  onEdit: (user: User) => void
   onActivate: (userId: number) => Promise<void>
   onDeactivate: (userId: number) => Promise<void>
   onResetPassword: (userId: number) => Promise<void>
@@ -89,7 +89,7 @@ export function UserRow(props: UserRowProps) {
           className="cursor-pointer rounded-full"
           aria-label="Helfer bearbeiten"
           onClick={() => {
-            props.onEdit(props.user.id)
+            props.onEdit(props.user)
           }}
         >
           <Pen />

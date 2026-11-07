@@ -97,8 +97,8 @@ export function AdminUsersPage() {
           loading={isPending}
           backend={userBackend}
           users={users}
-          onEdit={(userId) => {
-            setZuBearbeiten(users.find((u) => u.id === userId) ?? null)
+          onEdit={(user) => {
+            setZuBearbeiten(user)
           }}
           onStatusChange={() => {
             invalidateUsers()

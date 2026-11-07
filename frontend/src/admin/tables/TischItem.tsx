@@ -7,7 +7,7 @@ import type { Tisch } from './Tisch'
 interface TischItemProps {
   loading: boolean
   tisch: Tisch
-  onEdit: (tischId: number) => void
+  onEdit: (tisch: Tisch) => void
   onActivate: (tischId: number) => Promise<void>
   onDeactivate: (tischId: number) => Promise<void>
 }
@@ -20,7 +20,7 @@ export function TischItem(props: TischItemProps) {
   const hatSaldo = props.tisch.saldoCents > 0
 
   const oeffneEdit = () => {
-    props.onEdit(props.tisch.id)
+    props.onEdit(props.tisch)
   }
 
   return (

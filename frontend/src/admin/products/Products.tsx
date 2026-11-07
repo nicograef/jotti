@@ -14,7 +14,7 @@ interface ProductsProps {
   backend: ProduktListeBackend
   products: Produkt[]
   druckstationen: DruckstationConfig[]
-  onEdit: (produktId: number) => void
+  onEdit: (produkt: Produkt) => void
   onDelete: (produktId: number) => Promise<void>
   // Jede Änderung ohne eigene Meldung: die Liste lädt neu.
   onChanged: () => void

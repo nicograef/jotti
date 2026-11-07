@@ -67,8 +67,8 @@ export function AdminTablesPage() {
         loading={isPending}
         backend={tischBackend}
         tische={tische}
-        onEdit={(tischId) => {
-          setZuBearbeiten(tische.find((t) => t.id === tischId) ?? null)
+        onEdit={(tisch) => {
+          setZuBearbeiten(tisch)
         }}
         onStatusChange={() => {
           invalidateTische()

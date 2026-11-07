@@ -13,7 +13,7 @@ interface TischeProps {
   loading: boolean
   backend: Pick<TischBackend, 'activateTisch' | 'deactivateTisch'>
   tische: Tisch[]
-  onEdit: (tischId: number) => void
+  onEdit: (tisch: Tisch) => void
   onStatusChange: () => void
 }
 

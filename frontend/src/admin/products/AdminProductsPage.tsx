@@ -60,8 +60,8 @@ export function AdminProductsPage() {
         backend={produktBackend}
         products={produkte}
         druckstationen={druckstationen}
-        onEdit={(produktId) => {
-          setZuBearbeiten(produkte.find((p) => p.id === produktId) ?? null)
+        onEdit={(produkt) => {
+          setZuBearbeiten(produkt)
         }}
         onDelete={onProduktDelete}
         onChanged={invalidateProdukte}

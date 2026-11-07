@@ -80,18 +80,19 @@ describe('Tische', () => {
     const user = userEvent.setup()
     const onEdit = vi.fn()
     const be = backend()
+    const tisch3 = tisch({ id: 3, name: 'Tisch 3' })
     render(
       <Tische
         loading={false}
         backend={be}
-        tische={[tisch({ id: 3, name: 'Tisch 3' })]}
+        tische={[tisch3]}
         onEdit={onEdit}
         onStatusChange={vi.fn()}
       />,
     )
 
     await user.click(screen.getByText('Tisch 3'))
-    expect(onEdit).toHaveBeenCalledWith(3)
+    expect(onEdit).toHaveBeenCalledWith(tisch3)
 
     onEdit.mockClear()
     await user.click(screen.getByRole('switch'))

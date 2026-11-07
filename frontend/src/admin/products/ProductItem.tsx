@@ -49,7 +49,7 @@ interface ProductItemProps {
   isFirst: boolean
   isLast: boolean
   backend: ProduktListeBackend
-  onEdit: (produktId: number) => void
+  onEdit: (produkt: Produkt) => void
   onDelete: (produktId: number) => Promise<void>
   onChanged: () => void
   onVariantCreated: (variante: { name: string }) => void
@@ -213,7 +213,7 @@ export function ProductItem(props: ProductItemProps) {
               className="cursor-pointer rounded-full"
               aria-label="Produkt bearbeiten"
               onClick={() => {
-                props.onEdit(props.product.id)
+                props.onEdit(props.product)
               }}
             >
               <Pen />
@@ -236,7 +236,7 @@ export function ProductItem(props: ProductItemProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuItem
               onSelect={() => {
-                props.onEdit(props.product.id)
+                props.onEdit(props.product)
               }}
             >
               <Pen /> Bearbeiten

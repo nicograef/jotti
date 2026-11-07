@@ -13,7 +13,7 @@ interface UsersProps {
   loading: boolean
   backend: Pick<UserBackend, 'activateUser' | 'deactivateUser' | 'deleteUser'>
   users: User[]
-  onEdit: (userId: number) => void
+  onEdit: (user: User) => void
   onStatusChange: () => void
   onResetPassword: (userId: number) => Promise<void>
   onDeleted: (userId: number) => void
