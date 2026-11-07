@@ -34,7 +34,7 @@ type druckauftragZeile struct {
 	ZielIP        string
 	Payload       string // Base64-kodierte ESC/POS-Bytes
 	Status        string
-	BonArt        string
+	BonArt        druckstation.BonArt
 	Referenz      string
 	Versuche      int
 	LetzterFehler *string
@@ -158,7 +158,7 @@ type bondruckBuilder struct {
 }
 
 // zeile versieht einen Auftrag der produktiven Policy mit Status und historischen Zeitstempeln.
-func (b *bondruckBuilder) zeile(auftrag druckauftrag_repo.NeuerDruckauftrag, erstellt time.Time) druckauftragZeile {
+func (b *bondruckBuilder) zeile(auftrag druckstation.NeuerDruckauftrag, erstellt time.Time) druckauftragZeile {
 	z := druckauftragZeile{
 		ZielIP:     auftrag.ZielIP,
 		Payload:    auftrag.Payload,
@@ -261,7 +261,7 @@ func (b *bondruckBuilder) kassenbeleg(evt e.Event) (druckauftragZeile, bool, err
 	z := druckauftragZeile{
 		ZielIP:     b.stationen[string(druckstation.KategorieKassenbeleg)].DruckerIP,
 		Payload:    base64.StdEncoding.EncodeToString(payload),
-		BonArt:     string(druckstation.KategorieKassenbeleg),
+		BonArt:     druckstation.BonArtKassenbeleg,
 		Referenz:   referenz,
 		ErstelltAm: signatur.LogTimeEnd.Add(belegVerlangtNach),
 	}

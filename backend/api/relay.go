@@ -1,51 +1,16 @@
 package api
 
 import (
-	"context"
 	"net/http"
 
 	relayHTTP "github.com/nicograef/jotti/backend/api/druck/relay/http"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
-
-// druckauftragRepoRelayAdapter mappt Repository-Typen auf Relay-HTTP-Typen,
-// damit die HTTP-Schicht das Repository nicht importiert.
-type druckauftragRepoRelayAdapter struct {
-	repo druckauftrag_repo.Repository
-}
-
-func (a druckauftragRepoRelayAdapter) GetOffeneDruckauftraege(ctx context.Context) ([]relayHTTP.OffenerDruckauftrag, error) {
-	rows, err := a.repo.GetOffeneDruckauftraege(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]relayHTTP.OffenerDruckauftrag, 0, len(rows))
-	for _, row := range rows {
-		result = append(result, relayHTTP.OffenerDruckauftrag{
-			ID:      row.ID,
-			ZielIP:  row.ZielIP,
-			Payload: row.Payload,
-		})
-	}
-
-	return result, nil
-}
-
-func (a druckauftragRepoRelayAdapter) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []relayHTTP.Fehlversuch) error {
-	repoFehlversuche := make([]druckauftrag_repo.Fehlversuch, 0, len(fehlversuche))
-	for _, f := range fehlversuche {
-		repoFehlversuche = append(repoFehlversuche, druckauftrag_repo.Fehlversuch{ID: f.ID, Fehler: f.Fehler})
-	}
-
-	return a.repo.ReportDruckergebnis(ctx, gedruckteIDs, repoFehlversuche)
-}
 
 func NewRelayApi(deps Deps, relayToken string) (http.Handler, []string) {
 	r := newRouteMux()
 
 	handler := relayHTTP.Handler{
-		Repo:       druckauftragRepoRelayAdapter{repo: deps.DruckauftragRepo},
+		Repo:       deps.DruckauftragRepo,
 		RelayToken: relayToken,
 	}
 

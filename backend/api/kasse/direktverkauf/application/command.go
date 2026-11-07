@@ -13,7 +13,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/internal/logging"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
@@ -103,7 +102,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return ErrDatabase
 	}
 
-	buildAuftraege := func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
+	buildAuftraege := func(stored event.Event) []druckstation.NeuerDruckauftrag {
 		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, "")
 	}
 

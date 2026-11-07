@@ -18,7 +18,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/steuer"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/internal/logging"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 // vorgangSuche finds the event of one Vorgang type by the ID in its data.
@@ -241,14 +240,14 @@ func (c Command) KassenbelegDrucken(ctx context.Context, cmd KassenbelegDruckenC
 
 	payload := escpos.FormatKassenbeleg(KassenbelegDaten(betreiber, kassenidentitaet.Seriennummer.String(), quelle, tseAbschnitt, tseVermerk))
 
-	auftrag := druckauftrag_repo.NeuerDruckauftrag{
+	auftrag := druckstation.NeuerDruckauftrag{
 		ZielIP:   kassenbelegStation.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
-		BonArt:   string(druckstation.KategorieKassenbeleg),
+		BonArt:   druckstation.BonArtKassenbeleg,
 		Referenz: quelle.Referenz,
 	}
 
-	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
+	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckstation.NeuerDruckauftrag{auftrag}); err != nil {
 		log.Error("Failed to enqueue kassenbeleg", "error", err, "tisch_id", cmd.TischID, "zahlung_id", cmd.ZahlungID, "verkauf_id", cmd.VerkaufID, "rueckgabe_id", cmd.RueckgabeID)
 		return "", ErrDatabase
 	}

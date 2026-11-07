@@ -9,7 +9,6 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/druck/bondruck/application/escpos"
 	"github.com/nicograef/jotti/backend/domain/druckstation"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 type druckstationCommandRepo interface {
@@ -18,7 +17,7 @@ type druckstationCommandRepo interface {
 }
 
 type druckauftragCommandRepo interface {
-	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
+	EnqueueDruckauftraege(ctx context.Context, auftraege []druckstation.NeuerDruckauftrag) error
 }
 
 type Command struct {
@@ -70,14 +69,14 @@ func (c Command) TestbonDrucken(ctx context.Context, kategorie string) error {
 
 	payload := escpos.FormatTestbon(kat.Anzeigename(), time.Now())
 
-	auftrag := druckauftrag_repo.NeuerDruckauftrag{
+	auftrag := druckstation.NeuerDruckauftrag{
 		ZielIP:   station.DruckerIP,
 		Payload:  base64.StdEncoding.EncodeToString(payload),
-		BonArt:   "testbon",
+		BonArt:   druckstation.BonArtTestbon,
 		Referenz: "testdruck:" + kategorie,
 	}
 
-	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckauftrag_repo.NeuerDruckauftrag{auftrag}); err != nil {
+	if err := c.DruckauftragRepo.EnqueueDruckauftraege(ctx, []druckstation.NeuerDruckauftrag{auftrag}); err != nil {
 		log.Error("Failed to enqueue testbon", "error", err, "kategorie", kategorie)
 		return ErrDatabase
 	}

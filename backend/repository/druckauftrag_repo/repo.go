@@ -34,25 +34,6 @@ func backoffDauer(versuch int) time.Duration {
 	}
 }
 
-type NeuerDruckauftrag struct {
-	ZielIP   string
-	Payload  string
-	BonArt   string
-	Referenz string
-}
-
-type OffenerDruckauftrag struct {
-	ID      int
-	ZielIP  string
-	Payload string
-}
-
-// Fehlversuch meldet einen fehlgeschlagenen Zustellversuch eines Druckauftrags.
-type Fehlversuch struct {
-	ID     int
-	Fehler string
-}
-
 type Repository struct {
 	db *sql.DB
 	q  *dbgen.Queries
@@ -62,7 +43,7 @@ func NewRepository(database *sql.DB) Repository {
 	return Repository{db: database, q: dbgen.New(database)}
 }
 
-func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []NeuerDruckauftrag) error {
+func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []druckstation.NeuerDruckauftrag) error {
 	if len(auftraege) == 0 {
 		return nil
 	}
@@ -74,12 +55,12 @@ func (r Repository) EnqueueDruckauftraege(ctx context.Context, auftraege []Neuer
 
 // InsertDruckauftraege runs in the caller's transaction so an event and its print jobs commit atomically
 // (transactional outbox, see kassenjournal_repo.NeuesEvent).
-func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []NeuerDruckauftrag) error {
+func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []druckstation.NeuerDruckauftrag) error {
 	for _, auftrag := range auftraege {
 		err := qtx.InsertDruckauftrag(ctx, dbgen.InsertDruckauftragParams{
 			ZielIp:   auftrag.ZielIP,
 			Payload:  auftrag.Payload,
-			BonArt:   auftrag.BonArt,
+			BonArt:   string(auftrag.BonArt),
 			Referenz: auftrag.Referenz,
 		})
 		if err != nil {
@@ -90,15 +71,15 @@ func InsertDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []N
 	return nil
 }
 
-func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruckauftrag, error) {
+func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]druckstation.OffenerDruckauftrag, error) {
 	rows, err := r.q.GetOffeneDruckauftraege(ctx)
 	if err != nil {
 		return nil, db.Error(err)
 	}
 
-	result := make([]OffenerDruckauftrag, 0, len(rows))
+	result := make([]druckstation.OffenerDruckauftrag, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, OffenerDruckauftrag{
+		result = append(result, druckstation.OffenerDruckauftrag{
 			ID:      row.ID,
 			ZielIP:  row.ZielIp,
 			Payload: row.Payload,
@@ -110,7 +91,7 @@ func (r Repository) GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruck
 
 // ReportDruckergebnis acknowledges idempotently: the status guard 'offen' makes a twice-reported ID a no-op.
 // See docs/handbuch.md §4.5.
-func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
+func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []druckstation.Fehlversuch) error {
 	if len(gedruckteIDs) == 0 && len(fehlversuche) == 0 {
 		return nil
 	}
@@ -137,7 +118,7 @@ func (r Repository) ReportDruckergebnis(ctx context.Context, gedruckteIDs []int,
 				return db.Error(err)
 			}
 			// Solange der Auftrag offen bleibt, die Backoff-Fälligkeit für den
-			// nächsten Versuch setzen. Beim MaxDruckversuche-ten Fehlversuch ist er
+			// nächsten Versuch setzen. Beim MaxDruckversuche-ten druckstation.Fehlversuch ist er
 			// bereits fehlgeschlagen und wird nicht mehr ausgeliefert — kein Backoff.
 			if row.Status == "offen" {
 				wartezeit := backoffDauer(row.Versuche)
@@ -166,7 +147,7 @@ func (r Repository) GetFehlgeschlageneDruckauftraege(ctx context.Context) ([]dru
 	for _, row := range rows {
 		result = append(result, druckstation.FehlgeschlagenerDruckauftrag{
 			ID:            row.ID,
-			BonArt:        row.BonArt,
+			BonArt:        druckstation.BonArt(row.BonArt),
 			ZielIP:        row.ZielIp,
 			Referenz:      row.Referenz,
 			Versuche:      row.Versuche,

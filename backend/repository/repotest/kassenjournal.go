@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 )
 
@@ -42,7 +42,7 @@ type KassenjournalRepo struct {
 	tischNames             map[int]string
 	tischSessionErr        error
 	kassenbestand          int
-	druckauftraege         []druckauftrag_repo.NeuerDruckauftrag
+	druckauftraege         []druckstation.NeuerDruckauftrag
 }
 
 // versionConflict mirrors the UNIQUE(subject, version) constraint of the kassenjournal.
@@ -133,7 +133,7 @@ func (m *KassenjournalRepo) WriteEventsAtomic(_ context.Context, _ int, events [
 	return nil
 }
 
-func (m *KassenjournalRepo) CapturedDruckauftraege() []druckauftrag_repo.NeuerDruckauftrag {
+func (m *KassenjournalRepo) CapturedDruckauftraege() []druckstation.NeuerDruckauftrag {
 	return m.druckauftraege
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/internal/logging"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 type eventRepo interface {
@@ -26,7 +25,7 @@ type druckstationRepo interface {
 }
 
 type druckauftragRepo interface {
-	EnqueueDruckauftraege(ctx context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error
+	EnqueueDruckauftraege(ctx context.Context, auftraege []druckstation.NeuerDruckauftrag) error
 }
 
 type tseAuftragRepo interface {

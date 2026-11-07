@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 func setup(t *testing.T) (Repository, func(t *testing.T)) {
@@ -35,7 +36,7 @@ func TestEnqueueAndGetOffeneDruckauftraege(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+	err := repo.EnqueueDruckauftraege(context.Background(), []druckstation.NeuerDruckauftrag{
 		{
 			ZielIP:   "192.168.1.51",
 			Payload:  "AAA=",
@@ -120,7 +121,7 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	// der Auftrag bis dahin nicht mehr im Poll erscheint.
 	for versuch := 1; versuch <= MaxDruckversuche-1; versuch++ {
 		fehler := "drucker nicht erreichbar #" + strconv.Itoa(versuch)
-		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: fehler}}); err != nil {
+		if err := repo.ReportDruckergebnis(context.Background(), nil, []druckstation.Fehlversuch{{ID: id, Fehler: fehler}}); err != nil {
 			t.Fatalf("Expected no error on fehlversuch %d, got %v", versuch, err)
 		}
 
@@ -153,7 +154,7 @@ func TestReportDruckergebnis_FehlversuchZaehlung(t *testing.T) {
 	}
 
 	// Sechster Fehlversuch: Auftrag wird fehlgeschlagen und verschwindet aus dem Poll.
-	if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: "endgueltig"}}); err != nil {
+	if err := repo.ReportDruckergebnis(context.Background(), nil, []druckstation.Fehlversuch{{ID: id, Fehler: "endgueltig"}}); err != nil {
 		t.Fatalf("Expected no error on letzten fehlversuch, got %v", err)
 	}
 
@@ -196,7 +197,7 @@ func TestReportDruckergebnis_StaleFehlversuchIstNoOp(t *testing.T) {
 	err := repo.ReportDruckergebnis(
 		context.Background(),
 		[]int{offenID},
-		[]Fehlversuch{{ID: gedrucktID, Fehler: "verspaetet gemeldet"}},
+		[]druckstation.Fehlversuch{{ID: gedrucktID, Fehler: "verspaetet gemeldet"}},
 	)
 	if err != nil {
 		t.Fatalf("Expected stale fehlversuch to be a no-op, got %v", err)
@@ -259,7 +260,7 @@ func TestGetFehlgeschlageneDruckauftraege_NurFehlgeschlagene(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+	err := repo.EnqueueDruckauftraege(context.Background(), []druckstation.NeuerDruckauftrag{
 		{ZielIP: "192.168.1.51", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "offen-ref"},
 		{ZielIP: "192.168.1.52", Payload: "BBB=", BonArt: "arbeitsbon", Referenz: "fehl-ref"},
 	})
@@ -403,7 +404,7 @@ func TestDiscardAlleFehlgeschlagenen_NurFehlgeschlagene(t *testing.T) {
 	repo, teardown := setup(t)
 	defer teardown(t)
 
-	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+	err := repo.EnqueueDruckauftraege(context.Background(), []druckstation.NeuerDruckauftrag{
 		{ZielIP: "192.168.1.51", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "fehl-ref-1"},
 		{ZielIP: "192.168.1.52", Payload: "BBB=", BonArt: "arbeitsbon", Referenz: "fehl-ref-2"},
 		{ZielIP: "192.168.1.53", Payload: "CCC=", BonArt: "arbeitsbon", Referenz: "offen-ref"},
@@ -474,7 +475,7 @@ func TestDiscardAlleFehlgeschlagenen_NurFehlgeschlagene(t *testing.T) {
 func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler string) {
 	t.Helper()
 	for range MaxDruckversuche {
-		if err := repo.ReportDruckergebnis(context.Background(), nil, []Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
+		if err := repo.ReportDruckergebnis(context.Background(), nil, []druckstation.Fehlversuch{{ID: id, Fehler: letzterFehler}}); err != nil {
 			t.Fatalf("Failed to drive auftrag %d into fehlgeschlagen: %v", id, err)
 		}
 	}
@@ -486,7 +487,7 @@ func makeFehlgeschlagen(t *testing.T, repo Repository, id int, letzterFehler str
 
 func enqueueOne(t *testing.T, repo Repository, zielIP string) int {
 	t.Helper()
-	err := repo.EnqueueDruckauftraege(context.Background(), []NeuerDruckauftrag{
+	err := repo.EnqueueDruckauftraege(context.Background(), []druckstation.NeuerDruckauftrag{
 		{ZielIP: zielIP, Payload: "AAA=", BonArt: "arbeitsbon", Referenz: "bestellung-aufgenommen:1"},
 	})
 	if err != nil {

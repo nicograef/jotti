@@ -292,7 +292,7 @@ func writeDruckauftraege(ctx context.Context, qtx *dbgen.Queries, auftraege []dr
 			ZielIp:        a.ZielIP,
 			Payload:       a.Payload,
 			Status:        a.Status,
-			BonArt:        a.BonArt,
+			BonArt:        string(a.BonArt),
 			Referenz:      a.Referenz,
 			Versuche:      a.Versuche,
 			LetzterFehler: nullString(a.LetzterFehler),

@@ -6,24 +6,14 @@ import (
 	"net/http"
 
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 // druckauftragRepo: zwischen Handler und Repository liegt bewusst keine reine
 // Durchreich-Schicht; verdrahtet wird im Composition Root (api/relay.go).
 type druckauftragRepo interface {
-	GetOffeneDruckauftraege(ctx context.Context) ([]OffenerDruckauftrag, error)
-	ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error
-}
-
-type OffenerDruckauftrag struct {
-	ID      int
-	ZielIP  string
-	Payload string
-}
-
-type Fehlversuch struct {
-	ID     int
-	Fehler string
+	GetOffeneDruckauftraege(ctx context.Context) ([]druckstation.OffenerDruckauftrag, error)
+	ReportDruckergebnis(ctx context.Context, gedruckteIDs []int, fehlversuche []druckstation.Fehlversuch) error
 }
 
 type Handler struct {
@@ -112,9 +102,9 @@ func (h *Handler) ErgebnisHandler() http.HandlerFunc {
 			return
 		}
 
-		fehlversuche := make([]Fehlversuch, 0, len(body.Fehlversuche))
+		fehlversuche := make([]druckstation.Fehlversuch, 0, len(body.Fehlversuche))
 		for _, f := range body.Fehlversuche {
-			fehlversuche = append(fehlversuche, Fehlversuch(f))
+			fehlversuche = append(fehlversuche, druckstation.Fehlversuch(f))
 		}
 
 		if err := h.Repo.ReportDruckergebnis(r.Context(), body.GedruckteIDs, fehlversuche); err != nil {

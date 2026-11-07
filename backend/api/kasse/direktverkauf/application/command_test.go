@@ -14,7 +14,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/produkt"
 	"github.com/nicograef/jotti/backend/domain/steuer"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
@@ -45,7 +44,7 @@ var testVariant = produkt.Variante{
 // (single event, stream type, version, subject).
 type spyEventRepo struct {
 	written        []writtenEvent
-	druckauftraege []druckauftrag_repo.NeuerDruckauftrag
+	druckauftraege []druckstation.NeuerDruckauftrag
 	writeErr       error
 	streamEvents   []event.Event
 	readErr        error

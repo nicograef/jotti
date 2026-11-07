@@ -16,7 +16,6 @@ import (
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tisch"
 	"github.com/nicograef/jotti/backend/domain/tse"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
 
@@ -52,11 +51,11 @@ var kassenbelegStationen = map[string]druckstation.Druckstation{
 }
 
 type mockDruckauftragRepo struct {
-	enqueued []druckauftrag_repo.NeuerDruckauftrag
+	enqueued []druckstation.NeuerDruckauftrag
 	err      error
 }
 
-func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraege []druckauftrag_repo.NeuerDruckauftrag) error {
+func (m *mockDruckauftragRepo) EnqueueDruckauftraege(_ context.Context, auftraege []druckstation.NeuerDruckauftrag) error {
 	if m.err != nil {
 		return m.err
 	}

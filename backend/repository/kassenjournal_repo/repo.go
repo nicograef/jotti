@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
@@ -47,7 +48,7 @@ func (r Repository) WriteEvent(ctx context.Context, e event.Event, streamType ka
 type NeuesEvent struct {
 	Event          event.Event
 	StreamType     kasse.StreamType
-	BuildAuftraege func(event.Event) []druckauftrag_repo.NeuerDruckauftrag
+	BuildAuftraege func(event.Event) []druckstation.NeuerDruckauftrag
 }
 
 // WriteEventsAtomic writes the given events across stream types all-or-nothing and triggers the

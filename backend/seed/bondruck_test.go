@@ -69,8 +69,8 @@ func TestBuildDruckauftraege_StatusVerteilung(t *testing.T) {
 	fenster := druckerFensterAus(s, testJetzt)
 
 	statusZahl := map[string]int{}
-	bonArten := map[string]int{}
-	fehlgeschlageneBonArten := map[string]int{}
+	bonArten := map[druckstation.BonArt]int{}
+	fehlgeschlageneBonArten := map[druckstation.BonArt]int{}
 	for _, a := range auftraege {
 		statusZahl[a.Status]++
 		bonArten[a.BonArt]++
@@ -169,7 +169,7 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 		if evtTyp, _, _ := strings.Cut(evt.Type, ":"); evtTyp != typ {
 			t.Errorf("Referenz %q verweist auf Event vom Typ %s", a.Referenz, evt.Type)
 		}
-		referenzen[a.BonArt+"/"+a.Referenz]++
+		referenzen[string(a.BonArt)+"/"+a.Referenz]++
 
 		payload, err := base64.StdEncoding.DecodeString(a.Payload)
 		if err != nil || len(payload) == 0 {

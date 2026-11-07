@@ -14,9 +14,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
-	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 )
 
 func createUser(db *sql.DB) (int, error) {
@@ -404,8 +404,8 @@ func TestWriteEventsAtomic_CommitsEventAndAuftrag(t *testing.T) {
 	err = repo.WriteEventsAtomic(context.Background(), ksNr, []NeuesEvent{{
 		Event:      e,
 		StreamType: kasse.StreamTypeTischSession,
-		BuildAuftraege: func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-			return []druckauftrag_repo.NeuerDruckauftrag{{
+		BuildAuftraege: func(stored event.Event) []druckstation.NeuerDruckauftrag {
+			return []druckstation.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
 				Payload:  "AAA=",
 				BonArt:   "arbeitsbon",
@@ -454,8 +454,8 @@ func TestWriteEventsAtomic_RollsBackEventOnAuftragError(t *testing.T) {
 	err = repo.WriteEventsAtomic(context.Background(), ksNr, []NeuesEvent{{
 		Event:      e,
 		StreamType: kasse.StreamTypeTischSession,
-		BuildAuftraege: func(_ event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-			return []druckauftrag_repo.NeuerDruckauftrag{{
+		BuildAuftraege: func(_ event.Event) []druckstation.NeuerDruckauftrag {
+			return []druckstation.NeuerDruckauftrag{{
 				ZielIP:   "192.168.1.50",
 				Payload:  "AAA=",
 				BonArt:   "ungueltig",
@@ -663,8 +663,8 @@ func TestWriteEventsAtomic_RollsBackBothEvents(t *testing.T) {
 		{
 			Event:      verkauf,
 			StreamType: kasse.StreamTypeDirektverkauf,
-			BuildAuftraege: func(stored event.Event) []druckauftrag_repo.NeuerDruckauftrag {
-				return []druckauftrag_repo.NeuerDruckauftrag{{ZielIP: "192.168.1.50", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: fmt.Sprintf("direktverkauf-getaetigt:%d", stored.ID)}}
+			BuildAuftraege: func(stored event.Event) []druckstation.NeuerDruckauftrag {
+				return []druckstation.NeuerDruckauftrag{{ZielIP: "192.168.1.50", Payload: "AAA=", BonArt: "arbeitsbon", Referenz: fmt.Sprintf("direktverkauf-getaetigt:%d", stored.ID)}}
 			},
 		},
 		{Event: rueckgabe, StreamType: kasse.StreamTypePfandrueckgabe},

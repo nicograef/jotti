@@ -45,7 +45,7 @@ func (h *QueryHandler) GetFehlgeschlageneDruckauftraegeHandler() http.HandlerFun
 		for _, a := range auftraege {
 			dtos = append(dtos, fehlgeschlagenerDruckauftragDTO{
 				ID:            a.ID,
-				BonArt:        a.BonArt,
+				BonArt:        string(a.BonArt),
 				ZielIP:        a.ZielIP,
 				Referenz:      a.Referenz,
 				Versuche:      a.Versuche,

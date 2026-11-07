@@ -8,23 +8,25 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 )
 
 type mockRepo struct {
-	offene       []OffenerDruckauftrag
+	offene       []druckstation.OffenerDruckauftrag
 	gedruckteIDs []int
-	fehlversuche []Fehlversuch
+	fehlversuche []druckstation.Fehlversuch
 	err          error
 }
 
-func (m *mockRepo) GetOffeneDruckauftraege(_ context.Context) ([]OffenerDruckauftrag, error) {
+func (m *mockRepo) GetOffeneDruckauftraege(_ context.Context) ([]druckstation.OffenerDruckauftrag, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 	return m.offene, nil
 }
 
-func (m *mockRepo) ReportDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []Fehlversuch) error {
+func (m *mockRepo) ReportDruckergebnis(_ context.Context, gedruckteIDs []int, fehlversuche []druckstation.Fehlversuch) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -68,7 +70,7 @@ func performJSONRequest(t *testing.T, handler http.HandlerFunc, body any) *httpt
 }
 
 func TestPollHandler_AcceptsMatchingToken(t *testing.T) {
-	h := makeHandler("relay-secret", &mockRepo{offene: []OffenerDruckauftrag{{ID: 7, ZielIP: "192.168.1.20", Payload: "AAA="}}})
+	h := makeHandler("relay-secret", &mockRepo{offene: []druckstation.OffenerDruckauftrag{{ID: 7, ZielIP: "192.168.1.20", Payload: "AAA="}}})
 
 	rr := performJSONRequest(t, h.PollHandler(), map[string]any{"token": "relay-secret"})
 	if rr.Code != http.StatusOK {

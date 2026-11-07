@@ -138,11 +138,41 @@ func NewDruckstation(kategorie Kategorie, druckerIP string, bonmodus Bonmodus) (
 	return d, nil
 }
 
+// BonArt is the kind of a print job; its values are the bon_art CHECK constraint of druckauftraege.
+type BonArt string
+
+const (
+	BonArtArbeitsbon  BonArt = "arbeitsbon"
+	BonArtKassenbeleg BonArt = "kassenbeleg"
+	BonArtTestbon     BonArt = "testbon"
+)
+
+// NeuerDruckauftrag is a print job for the outbox; Payload is Base64 ESC/POS.
+type NeuerDruckauftrag struct {
+	ZielIP   string
+	Payload  string
+	BonArt   BonArt
+	Referenz string
+}
+
+// OffenerDruckauftrag is a print job the relay still has to deliver.
+type OffenerDruckauftrag struct {
+	ID      int
+	ZielIP  string
+	Payload string
+}
+
+// Fehlversuch meldet einen fehlgeschlagenen Zustellversuch eines Druckauftrags.
+type Fehlversuch struct {
+	ID     int
+	Fehler string
+}
+
 // FehlgeschlagenerDruckauftrag ist ein nach der maximalen Zahl von Zustellversuchen
 // aufgegebener Druckauftrag, wie ihn die Druckstationen-Seite zur Verwaltung anzeigt.
 type FehlgeschlagenerDruckauftrag struct {
 	ID            int
-	BonArt        string
+	BonArt        BonArt
 	ZielIP        string
 	Referenz      string
 	Versuche      int
