@@ -37,7 +37,7 @@ type DirektverkaufHistorieEintrag struct {
 }
 
 type vorgangKern struct {
-	Positionen        []PositionEventData
+	Positionen        []Position
 	GesamtbetragCents int
 	Kommentar         string
 }
@@ -63,7 +63,7 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 			}
 			vorgangData = data
 			kern := vorgang(vorgangData)
-			positionen := PositionenFromEventData(kern.Positionen)
+			positionen := kern.Positionen
 			eintrag.UserID = evt.UserID
 			eintrag.UserName = evt.UserName
 			eintrag.GetaetigtAm = evt.Time
@@ -96,8 +96,8 @@ func replayVorgang[V any, S any](events []e.Event, vorgangTypen []EventType, sto
 
 func BuildDirektverkaufHistorieEintrag(events []e.Event) (DirektverkaufHistorieEintrag, error) {
 	eintrag, data, err := replayVorgang(events, []EventType{EventTypeDirektverkaufGetaetigtV1, EventTypeDirektverkaufGetaetigtV2}, EventTypeDirektverkaufStorniertV1,
-		func(d DirektverkaufGetaetigtV1Data) vorgangKern {
-			return vorgangKern{Positionen: d.Positionen, GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
+		func(d DirektverkaufGetaetigtV2Data) vorgangKern {
+			return vorgangKern{Positionen: PositionenV2MitKommentar(d.Positionen), GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
 		},
 		func(d DirektverkaufStorniertV1Data) stornoKern {
 			return stornoKern{StornierungID: d.StornierungID, Positionen: d.Positionen, GesamtStornierungCents: d.GesamtStornierungCents}

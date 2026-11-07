@@ -523,7 +523,7 @@ func TestEventContract_DirektverkaufGetaetigtV2(t *testing.T) {
 	unmarshalJSON(t, lit, &data)
 	assertField(t, "verkaufId", data.VerkaufID, "88888888-8888-4888-8888-888888888888")
 	assertField(t, "gesamtbetragCents", data.GesamtbetragCents, 700)
-	assertPositionV2(t, data.Positionen)
+	assertPositionV2(t, PositionenV2OhneKommentar(data.Positionen))
 	assertJSONKeyPresent(t, data, "kommentar")
 
 	// Readers that ignore the flag read v2 as v1.
@@ -533,6 +533,65 @@ func TestEventContract_DirektverkaufGetaetigtV2(t *testing.T) {
 		t.Fatalf("v1 positionen count: %d", len(v1.Positionen))
 	}
 	assertPosition(t, v1.Positionen[0])
+}
+
+// D22: the Positionskommentar is an additive optional key; an event without it keeps the frozen bytes.
+func TestEventContract_DirektverkaufGetaetigtV2_Positionskommentar(t *testing.T) {
+	const altLit = `{
+		"verkaufId":         "88888888-8888-4888-8888-888888888888",
+		"positionen":        [` + positionV2Literal + `],
+		"gesamtbetragCents": 700,
+		"kommentar":         ""
+	}`
+	var alt DirektverkaufGetaetigtV2Data
+	unmarshalJSON(t, altLit, &alt)
+	assertField(t, "positionen[0].kommentar", alt.Positionen[0].Kommentar, "")
+	if err := direktverkaufGetaetigtV2DataSchema.Validate(&alt); err != nil {
+		t.Errorf("alt event without position kommentar rejected by schema: %v", err)
+	}
+
+	const altKompakt = `{"verkaufId":"88888888-8888-4888-8888-888888888888","positionen":[{"positionId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","varianteId":7,"produktName":"Cola","varianteName":"0,5l","kategorie":"getraenk","steuersatz":"regel","einzelpreisCents":350,"menge":2,"pfand":true}],"gesamtbetragCents":700,"kommentar":""}`
+	raw, err := json.Marshal(alt)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(raw) != altKompakt {
+		t.Errorf("alt event not byte-identical:\n got %s\nwant %s", raw, altKompakt)
+	}
+
+	const mitLit = `{
+		"verkaufId":         "88888888-8888-4888-8888-888888888888",
+		"positionen":        [{
+			"positionId":       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+			"varianteId":       7,
+			"produktName":      "Cola",
+			"varianteName":     "0,5l",
+			"kategorie":        "getraenk",
+			"steuersatz":       "regel",
+			"einzelpreisCents": 350,
+			"menge":            2,
+			"pfand":            true,
+			"kommentar":        "ohne Senf"
+		}],
+		"gesamtbetragCents": 700,
+		"kommentar":         ""
+	}`
+	var mit DirektverkaufGetaetigtV2Data
+	unmarshalJSON(t, mitLit, &mit)
+	assertPositionV2(t, PositionenV2OhneKommentar(mit.Positionen))
+	assertField(t, "positionen[0].kommentar", mit.Positionen[0].Kommentar, "ohne Senf")
+	assertJSONKeyPresent(t, mit.Positionen[0], "kommentar")
+
+	// Readers of DirektverkaufGetaetigtV1Data ignore the key.
+	var v1 DirektverkaufGetaetigtV1Data
+	unmarshalJSON(t, mitLit, &v1)
+	if len(v1.Positionen) != 1 {
+		t.Fatalf("v1 positionen count: %d", len(v1.Positionen))
+	}
+	assertPosition(t, v1.Positionen[0])
+	if err := direktverkaufGetaetigtV1DataSchema.Validate(&v1); err != nil {
+		t.Errorf("v1 reader rejects event with position kommentar: %v", err)
+	}
 }
 
 func TestEventContract_DirektverkaufStorniertV1(t *testing.T) {

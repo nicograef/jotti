@@ -1153,7 +1153,7 @@ func TestMapPfandVerkaufTraegtGvTypPfand(t *testing.T) {
 		}),
 		pfandEvent(t, 4, kasse.EventTypeDirektverkaufGetaetigtV2, kasse.DirektverkaufSubject(3, verkaufV2ID), 1, 7, "anna", 15, kasse.DirektverkaufGetaetigtV2Data{
 			VerkaufID:         verkaufV2ID,
-			Positionen:        []kasse.PositionV2EventData{{PositionEventData: pfandPosition("pf3", 1), Pfand: true}},
+			Positionen:        []kasse.KommentiertePositionV2EventData{{PositionV2EventData: kasse.PositionV2EventData{PositionEventData: pfandPosition("pf3", 1), Pfand: true}}},
 			GesamtbetragCents: 200,
 		}),
 		pfandEvent(t, 5, kasse.EventTypeDirektverkaufStorniertV1, kasse.DirektverkaufSubject(3, verkaufV2ID), 2, 7, "anna", 20, kasse.DirektverkaufStorniertV1Data{

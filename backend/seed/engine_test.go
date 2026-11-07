@@ -393,7 +393,7 @@ func TestBuildSeedDaten_PfandKennzeichenEingefroren(t *testing.T) {
 		case string(kasse.EventTypeZahlungKassiertV2):
 			pruefe(ev.event, parseData[kasse.ZahlungKassiertV2Data](t, ev.event).Positionen)
 		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
-			pruefe(ev.event, parseData[kasse.DirektverkaufGetaetigtV2Data](t, ev.event).Positionen)
+			pruefe(ev.event, kasse.PositionenV2OhneKommentar(parseData[kasse.DirektverkaufGetaetigtV2Data](t, ev.event).Positionen))
 		}
 	}
 	if pfandZeilen == 0 {

@@ -26,23 +26,21 @@ var direktverkaufGetaetigtV1DataSchema = z.Struct(z.Shape{
 	"Kommentar":         z.String().TestFunc(zeichen.Max(100)),
 })
 
-// DirektverkaufGetaetigtV2Data is v1 plus the Pfand flag per position, for the DSFinV-K GV_TYP. A
-// reader that ignores the flag reads both versions as DirektverkaufGetaetigtV1Data.
+// DirektverkaufGetaetigtV2Data is v1 plus the Pfand flag and the optional Positionskommentar (D22)
+// per position. A reader that ignores both reads either version as DirektverkaufGetaetigtV1Data.
 type DirektverkaufGetaetigtV2Data struct {
-	VerkaufID         string                `json:"verkaufId"`
-	Positionen        []PositionV2EventData `json:"positionen"`
-	GesamtbetragCents int                   `json:"gesamtbetragCents"`
-	Kommentar         string                `json:"kommentar"`
+	VerkaufID         string                            `json:"verkaufId"`
+	Positionen        []KommentiertePositionV2EventData `json:"positionen"`
+	GesamtbetragCents int                               `json:"gesamtbetragCents"`
+	Kommentar         string                            `json:"kommentar"`
 }
 
-func (d DirektverkaufGetaetigtV2Data) v1() DirektverkaufGetaetigtV1Data {
-	return DirektverkaufGetaetigtV1Data{
-		VerkaufID:         d.VerkaufID,
-		Positionen:        positionenV1(d.Positionen),
-		GesamtbetragCents: d.GesamtbetragCents,
-		Kommentar:         d.Kommentar,
-	}
-}
+var direktverkaufGetaetigtV2DataSchema = z.Struct(z.Shape{
+	"VerkaufID":         z.String().UUID().Required(),
+	"Positionen":        z.Slice(kommentiertePositionSchema).Min(1).Required(),
+	"GesamtbetragCents": z.Int().GTE(1).Required(),
+	"Kommentar":         z.String().TestFunc(zeichen.Max(100)),
+})
 
 // IstDirektverkaufGetaetigt reports direktverkauf-getaetigt in any version.
 func IstDirektverkaufGetaetigt(eventType string) bool {
@@ -73,13 +71,12 @@ func NewDirektverkaufGetaetigtEvent(subject string, verkaufID string, userID int
 
 	data := DirektverkaufGetaetigtV2Data{
 		VerkaufID:         verkaufID,
-		Positionen:        toPositionenV2EventData(positionen),
+		Positionen:        toKommentiertePositionenV2EventData(positionen),
 		GesamtbetragCents: gesamtbetragCents,
 		Kommentar:         kommentar,
 	}
 
-	basis := data.v1()
-	if err := validateEventData(direktverkaufGetaetigtV1DataSchema, &basis, "direktverkauf getaetigt"); err != nil {
+	if err := validateEventData(direktverkaufGetaetigtV2DataSchema, &data, "direktverkauf getaetigt"); err != nil {
 		return e.Event{}, err
 	}
 

@@ -357,8 +357,9 @@ func (a *belegAbleitung) direktverkauf(ev event.Event) (beleg, error) {
 	if err != nil {
 		return beleg{}, err
 	}
-	positionen, pfand := verkaufsPositionen(data.Positionen)
-	a.verkaufsPfand[data.VerkaufID] = pfandJePosition(data.Positionen)
+	basis := kasse.PositionenV2OhneKommentar(data.Positionen)
+	positionen, pfand := verkaufsPositionen(basis)
+	a.verkaufsPfand[data.VerkaufID] = pfandJePosition(basis)
 	return beleg{
 		bonID:       data.VerkaufID,
 		bonTyp:      bonTypBeleg,

@@ -18,7 +18,7 @@ type PfandrueckgabeHistorieEintrag struct {
 func BuildPfandrueckgabeHistorieEintrag(events []e.Event) (PfandrueckgabeHistorieEintrag, error) {
 	eintrag, data, err := replayVorgang(events, []EventType{EventTypePfandZurueckgegebenV1}, EventTypePfandrueckgabeStorniertV1,
 		func(d PfandZurueckgegebenV1Data) vorgangKern {
-			return vorgangKern{Positionen: d.Positionen, GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
+			return vorgangKern{Positionen: PositionenFromEventData(d.Positionen), GesamtbetragCents: d.GesamtbetragCents, Kommentar: d.Kommentar}
 		},
 		func(d PfandrueckgabeStorniertV1Data) stornoKern {
 			return stornoKern{StornierungID: d.StornierungID, Positionen: d.Positionen, GesamtStornierungCents: d.GesamtStornierungCents}

@@ -113,6 +113,36 @@ func toPositionenV2EventData(positionen []Position) []PositionV2EventData {
 	return out
 }
 
+func toKommentiertePositionenV2EventData(positionen []Position) []KommentiertePositionV2EventData {
+	basis := toPositionenV2EventData(positionen)
+	out := make([]KommentiertePositionV2EventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = KommentiertePositionV2EventData{PositionV2EventData: basis[i], Kommentar: p.Kommentar}
+	}
+	return out
+}
+
+// PositionenV2MitKommentar maps the positions of direktverkauf-getaetigt:v2 including their Kommentar.
+func PositionenV2MitKommentar(positionen []KommentiertePositionV2EventData) []Position {
+	out := make([]Position, len(positionen))
+	for i, p := range positionen {
+		out[i] = PositionFromEventData(p.PositionEventData)
+		out[i].Pfand = p.Pfand
+		out[i].Kommentar = p.Kommentar
+	}
+	return out
+}
+
+// PositionenV2OhneKommentar is the v2 form with the Pfand flag for readers the Positionskommentar
+// must not reach: the DSFinV-K export.
+func PositionenV2OhneKommentar(positionen []KommentiertePositionV2EventData) []PositionV2EventData {
+	out := make([]PositionV2EventData, len(positionen))
+	for i, p := range positionen {
+		out[i] = p.PositionV2EventData
+	}
+	return out
+}
+
 func positionenV1(positionen []PositionV2EventData) []PositionEventData {
 	out := make([]PositionEventData, len(positionen))
 	for i, p := range positionen {
