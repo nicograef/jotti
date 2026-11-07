@@ -126,19 +126,14 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	if err := c.EventRepo.WriteEventsAtomic(ctx, ks.ZNr, events); err != nil {
-		if errors.Is(err, db.ErrAlreadyExists) || errors.Is(err, db.ErrConflict) {
-			log.Warn("OCC conflict bei Direktverkauf", "subject", subject)
+		err = fromWriteError(ctx, err, "subject", subject)
+		if errors.Is(err, ErrConflict) {
 			if pfand != nil {
 				return c.pruefeVerrechnetenVerkauf(ctx, verkaufID, inputs, pfand)
 			}
 			return c.pruefeUnverrechnetenVerkauf(ctx, verkaufID)
 		}
-		if errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen) {
-			log.Warn("Kassensitzung nicht mehr offen", "verkauf_id", verkaufID)
-			return ErrKasseNichtGeoeffnet
-		}
-		log.Error("Failed to write direktverkauf getaetigt event", "error", err)
-		return ErrDatabase
+		return err
 	}
 
 	log.Info("Direktverkauf getaetigt", "verkauf_id", verkaufID, "mit_pfand", pfand != nil)
@@ -195,27 +190,33 @@ func (c Command) DirektverkaufStornieren(ctx context.Context, userID int, userNa
 }
 
 // writeEventOCC writes at expectedVersion+1: 0 for a fresh stream, the replay's highest version for
-// a Storno. A UNIQUE(subject, version) conflict or a deadlock means the stream changed since reading
-// and becomes ErrConflict.
+// a Storno.
 func (c Command) writeEventOCC(ctx context.Context, e event.Event, streamType kasse.StreamType, subject string, expectedVersion int, kassensitzungNr int) error {
-	log := logging.FromContext(ctx)
 	e.Version = expectedVersion + 1
 
-	_, err := c.EventRepo.WriteEvent(ctx, e, streamType, kassensitzungNr)
+	if _, err := c.EventRepo.WriteEvent(ctx, e, streamType, kassensitzungNr); err != nil {
+		return fromWriteError(ctx, err, "subject", subject, "version", e.Version, "type", e.Type)
+	}
+	return nil
+}
+
+// fromWriteError maps an event-write error: a UNIQUE(subject, version) violation or a deadlock means
+// the stream changed since reading (ErrConflict), a Kassensitzung closed since reading is
+// ErrKasseNichtGeoeffnet.
+func fromWriteError(ctx context.Context, err error, logArgs ...any) error {
+	log := logging.FromContext(ctx)
 	switch {
-	case err == nil:
-		return nil
 	case errors.Is(err, db.ErrAlreadyExists):
-		log.Warn("OCC conflict", "version", e.Version, "subject", subject)
+		log.Warn("OCC conflict", logArgs...)
 		return ErrConflict
 	case errors.Is(err, db.ErrConflict):
-		log.Warn("Deadlock on event write", "subject", subject)
+		log.Warn("Deadlock on event write", logArgs...)
 		return ErrConflict
 	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
-		log.Warn("Kassensitzung nicht mehr offen", "subject", subject)
+		log.Warn("Kassensitzung nicht mehr offen", logArgs...)
 		return ErrKasseNichtGeoeffnet
 	default:
-		log.Error("Failed to write event", "error", err, "subject", subject, "type", e.Type)
+		log.Error("Failed to write events", append([]any{"error", err}, logArgs...)...)
 		return ErrDatabase
 	}
 }
