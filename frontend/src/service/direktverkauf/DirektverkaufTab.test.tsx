@@ -219,6 +219,59 @@ describe('DirektverkaufTab', () => {
   })
 })
 
+describe('DirektverkaufTab mit Auto-Pfand', () => {
+  it('verkauft das verknüpfte Pfand mit der Variante', async () => {
+    setViewportWidth(1024)
+    const user = userEvent.setup()
+    const fake = backend()
+    // Bier (Getränke) verknüpft das Glaspfand (Sonstiges); nur die Getränke-Zeile ist sichtbar.
+    const bier: Produkt = {
+      ...testProdukt,
+      id: 2,
+      name: 'Bier',
+      kategorie: 'getraenk',
+      steuersatz: 'regel',
+      varianten: [
+        {
+          ...testProdukt.varianten[0],
+          id: 2,
+          name: '0,5 l',
+          preisCents: 450,
+          pfandVarianteId: 19,
+        },
+      ],
+    }
+    renderWithBackend(
+      <DirektverkaufTabHarness
+        pfandProdukte={[]}
+        products={[bier, pfandProdukt]}
+        productsLoading={false}
+        onErfolg={vi.fn()}
+      />,
+      fake,
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: 'Variante hinzufügen' }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Verkauf abschließen' }),
+    )
+
+    await waitFor(() => {
+      expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(1)
+    })
+    expect(fake.bodies('service/direktverkauf-taetigen')).toEqual([
+      expect.objectContaining({
+        positionen: [
+          { produktId: 2, varianteId: 2, menge: 1 },
+          { produktId: 9, varianteId: 19, menge: 1 },
+        ],
+      }),
+    ])
+  })
+})
+
 // Verdrahtet wie die Buchungsseiten: Der Erfolg öffnet den Pop, der Refetch
 // (hier `reload`) läuft erst beim Schließen.
 function DirektverkaufMitPop({ reload }: { reload: () => void }) {
