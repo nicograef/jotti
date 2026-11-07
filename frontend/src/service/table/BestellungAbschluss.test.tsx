@@ -105,7 +105,9 @@ describe('BestellungAbschluss (Spalte)', () => {
     ])
   })
 
-  it('erneuert den bestellungId, wenn sich der Kommentar nach einem Fehlversuch ändert', async () => {
+  // Eine verlorene Antwort darf nicht doppelt bestellen: auch mit geändertem
+  // Kommentar wiederholt der Retry dieselbe Bestellung.
+  it('behält den bestellungId, wenn sich der Kommentar nach einem Fehlversuch ändert', async () => {
     const user = userEvent.setup()
     const { fake } = renderSpalte(
       new FakeBackend().respond(
@@ -125,14 +127,12 @@ describe('BestellungAbschluss (Spalte)', () => {
     })
     const ersterKey = bestellungen()[0].bestellungId
 
-    // Geänderter Inhalt ist ein anderer Vorgang: Mit dem alten Schlüssel würde
-    // das Backend ihn als Duplikat verwerfen.
     await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Zwiebeln')
     await user.click(aufnehmen())
     await waitFor(() => {
       expect(bestellungen()).toHaveLength(2)
     })
-    expect(bestellungen()[1].bestellungId).not.toBe(ersterKey)
+    expect(bestellungen()[1].bestellungId).toBe(ersterKey)
     expect(bestellungen()[1].kommentar).toBe('Ohne Zwiebeln')
   })
 })

@@ -256,7 +256,9 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     expect(screen.getByLabelText('Erhalten')).toHaveValue('')
   })
 
-  it('behält den verkaufId über einen Retry und erneuert ihn, wenn sich der Inhalt danach ändert', async () => {
+  // Eine verlorene Antwort darf nicht doppelt buchen: auch mit geändertem
+  // Kommentar wiederholt der Retry denselben Verkauf.
+  it('behält den verkaufId über einen Retry, auch mit geändertem Kommentar', async () => {
     const user = userEvent.setup()
     const { fake } = renderSpalte(
       new FakeBackend().fail(
@@ -278,19 +280,16 @@ describe('DirektverkaufAbschluss (Spalte)', () => {
     await waitFor(() => {
       expect(verkaeufe()).toHaveLength(2)
     })
-    const [erster, retry] = verkaeufe()
-    expect(retry.verkaufId).toBe(erster.verkaufId)
-
-    // Ohne Pfand vergleicht das Backend den Inhalt einer bekannten verkaufId
-    // nicht: der geänderte Verkauf bräuchte sonst nie gebucht.
     await user.type(screen.getByPlaceholderText(/Kommentar/), 'Ohne Senf')
     await user.click(abschliessen())
     await waitFor(() => {
       expect(verkaeufe()).toHaveLength(3)
     })
-    const geaendert = verkaeufe()[2]
-    expect(geaendert.verkaufId).toMatch(UUID)
-    expect(geaendert.verkaufId).not.toBe(erster.verkaufId)
-    expect(geaendert.kommentar).toBe('Ohne Senf')
+
+    const [erster, retry, mitKommentar] = verkaeufe()
+    expect(erster.verkaufId).toMatch(UUID)
+    expect(retry.verkaufId).toBe(erster.verkaufId)
+    expect(mitKommentar.verkaufId).toBe(erster.verkaufId)
+    expect(mitKommentar.kommentar).toBe('Ohne Senf')
   })
 })

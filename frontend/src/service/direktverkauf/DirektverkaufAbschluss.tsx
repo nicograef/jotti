@@ -38,11 +38,14 @@ export function DirektverkaufAbschluss(props: DirektverkaufAbschlussProps) {
       }}
       receiptItems={props.receiptItems}
       totalCents={props.totalCents}
-      kassieren={(eingabe) => {
+      kassieren={({ kommentar, ...eingabe }) => {
+        // Der Kommentar gehört nicht zum Schlüssel: wer ihn nach einer verlorenen
+        // Antwort ändert, wiederholt denselben Verkauf.
         const inhalt = { positionen: props.positionen, ...eingabe }
         return direktverkaufBackend.direktverkaufTaetigen({
           verkaufId: props.vorgang.schluesselFuer(inhalt),
           ...inhalt,
+          kommentar,
         })
       }}
       kommentar={props.vorgang.kommentar}

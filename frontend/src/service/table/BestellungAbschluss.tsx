@@ -36,9 +36,10 @@ export function BestellungAbschluss(props: BestellungAbschlussProps) {
   })
 
   const onSubmit = async () => {
+    // Der Kommentar gehört nicht zum Schlüssel: wer ihn nach einer verlorenen
+    // Antwort ändert, wiederholt dieselbe Bestellung.
     const bestellungId = props.vorgang.schluesselFuer({
       positionen: props.positionen,
-      kommentar,
     })
     await run(async () => {
       await tischBackend.bestellungAufnehmen({
