@@ -108,48 +108,59 @@ func enrich(ctx context.Context, repo produktRepo, inputs []PositionInput, nurPf
 
 	positionen := make([]kasse.Position, 0, len(inputs))
 	for _, input := range inputs {
-		varianteMitProdukt, ok := variantenByID[input.VarianteID]
-		if !ok {
-			log.Error("Variant not found in batch result", "variante_id", input.VarianteID)
-			return nil, ErrProduktNotFound
+		position, err := positionAus(ctx, input, variantenByID, produkteByID, nurPfand)
+		if err != nil {
+			return nil, err
 		}
-		prod, ok := produkteByID[input.ProduktID]
-		if !ok {
-			log.Error("Product not found in batch result", "produkt_id", input.ProduktID)
-			return nil, ErrProduktNotFound
-		}
-
-		// Die Paarung Produkt/Variante kommt vom Client: ohne diese Prüfung erbte die Position
-		// Kategorie und Steuersatz eines fremden Produkts, den Preis aber von der Variante.
-		if varianteMitProdukt.ProduktID != input.ProduktID {
-			log.Error("Variant does not belong to the referenced product", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
-			return nil, ErrProduktNotFound
-		}
-		variante := varianteMitProdukt.Variante
-
-		// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
-		// Menü nicht auf, könnten aber per direktem POST referenziert werden.
-		if variante.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
-			log.Warn("Variant or product not active", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
-			return nil, ErrVarianteNichtAktiv
-		}
-
-		if nurPfand && !prod.Pfand {
-			log.Warn("Product is no Pfand product", "produkt_id", input.ProduktID)
-			return nil, ErrKeinPfandProdukt
-		}
-
-		positionen = append(positionen, kasse.Position{
-			VarianteID:       input.VarianteID,
-			ProduktName:      prod.Name,
-			VarianteName:     variante.Name,
-			Kategorie:        string(prod.Kategorie),
-			Steuersatz:       string(prod.Steuersatz),
-			EinzelpreisCents: variante.PreisCents,
-			Menge:            input.Menge,
-			Pfand:            prod.Pfand,
-		})
+		positionen = append(positionen, position)
 	}
 
 	return positionen, nil
+}
+
+// positionAus validates one input against the batch-loaded variants and products and builds its position.
+func positionAus(ctx context.Context, input PositionInput, variantenByID map[int]produkt.VarianteMitProdukt, produkteByID map[int]produkt.Produkt, nurPfand bool) (kasse.Position, error) {
+	log := logging.FromContext(ctx)
+
+	varianteMitProdukt, ok := variantenByID[input.VarianteID]
+	if !ok {
+		log.Error("Variant not found in batch result", "variante_id", input.VarianteID)
+		return kasse.Position{}, ErrProduktNotFound
+	}
+	prod, ok := produkteByID[input.ProduktID]
+	if !ok {
+		log.Error("Product not found in batch result", "produkt_id", input.ProduktID)
+		return kasse.Position{}, ErrProduktNotFound
+	}
+
+	// Die Paarung Produkt/Variante kommt vom Client: ohne diese Prüfung erbte die Position
+	// Kategorie und Steuersatz eines fremden Produkts, den Preis aber von der Variante.
+	if varianteMitProdukt.ProduktID != input.ProduktID {
+		log.Error("Variant does not belong to the referenced product", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
+		return kasse.Position{}, ErrProduktNotFound
+	}
+	variante := varianteMitProdukt.Variante
+
+	// Defense-in-Depth: deaktivierte (inactive) Varianten/Produkte tauchen im
+	// Menü nicht auf, könnten aber per direktem POST referenziert werden.
+	if variante.Status != produkt.ActiveStatus || prod.Status != produkt.ActiveStatus {
+		log.Warn("Variant or product not active", "variante_id", input.VarianteID, "produkt_id", input.ProduktID)
+		return kasse.Position{}, ErrVarianteNichtAktiv
+	}
+
+	if nurPfand && !prod.Pfand {
+		log.Warn("Product is no Pfand product", "produkt_id", input.ProduktID)
+		return kasse.Position{}, ErrKeinPfandProdukt
+	}
+
+	return kasse.Position{
+		VarianteID:       input.VarianteID,
+		ProduktName:      prod.Name,
+		VarianteName:     variante.Name,
+		Kategorie:        string(prod.Kategorie),
+		Steuersatz:       string(prod.Steuersatz),
+		EinzelpreisCents: variante.PreisCents,
+		Menge:            input.Menge,
+		Pfand:            prod.Pfand,
+	}, nil
 }
