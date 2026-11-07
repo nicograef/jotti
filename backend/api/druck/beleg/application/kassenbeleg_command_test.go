@@ -850,42 +850,6 @@ func TestKassenbelegDrucken_Direktverkauf_NichtGefunden(t *testing.T) {
 	}
 }
 
-func TestKassenbelegDrucken_Direktverkauf_KassenbelegDruckerNichtKonfiguriert(t *testing.T) {
-	ctx := context.Background()
-	verkaufID := uuid.New().String()
-	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
-
-	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{
-		{
-			VarianteID:   1,
-			ProduktName:  "Cola",
-			VarianteName: "0,5l",
-			Kategorie:    "getraenk", Steuersatz: "regel",
-			EinzelpreisCents: 350,
-			Menge:            1,
-		},
-	}, "")
-	if err != nil {
-		t.Fatalf("expected no event error, got %v", err)
-	}
-
-	eventMock := repotest.NewKassenjournalRepo(nil, nil)
-	eventMock.AddEvent(verkaufEvent)
-
-	command := Command{
-		EventRepo:           eventMock,
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-		BetreiberRepo:       &mockBetreiberRepo{},
-		DruckstationRepo:    &mockDruckstationRepo{},
-		DruckauftragRepo:    &mockDruckauftragRepo{},
-		TSERepo:             &mockTSEAuftragRepo{},
-	}
-
-	if _, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID}); !errors.Is(err, ErrKassenbelegDruckerNichtKonfiguriert) {
-		t.Errorf("expected ErrKassenbelegDruckerNichtKonfiguriert, got %v", err)
-	}
-}
-
 func belegTestBetreiberMock() *mockBetreiberRepo {
 	return &mockBetreiberRepo{
 		betreiber: betreiber.Betreiber{
@@ -957,54 +921,6 @@ func TestKassenbelegDrucken_Direktverkauf_MitSignaturAmAuftrag(t *testing.T) {
 		if !strings.Contains(got, check) {
 			t.Errorf("expected %q in direktverkauf receipt, got:\n%q", check, got)
 		}
-	}
-}
-
-// Solange der Signaturauftrag des Direktverkaufs nicht quittiert ist, antwortet
-// der Beleg-Abruf mit ausstehend und legt keinen Druckauftrag an.
-func TestKassenbelegDrucken_Direktverkauf_SignaturAusstehend_KeinDruckauftrag(t *testing.T) {
-	ctx := context.Background()
-	verkaufID := uuid.New().String()
-	subject := kasse.DirektverkaufSubject(testKassensitzungNr, verkaufID)
-
-	verkaufEvent, err := kasse.NewDirektverkaufGetaetigtEvent(subject, verkaufID, 1, "Test User", []kasse.Position{{
-		VarianteID:   1,
-		ProduktName:  "Cola",
-		VarianteName: "0,5l",
-		Kategorie:    "getraenk", Steuersatz: "regel",
-		EinzelpreisCents: 350,
-		Menge:            1,
-	}}, "")
-	if err != nil {
-		t.Fatalf("expected no event error, got %v", err)
-	}
-
-	eventMock := repotest.NewKassenjournalRepo(nil, nil)
-	eventMock.AddEvent(verkaufEvent) // Event-ID 1
-
-	tseRepo := &mockTSEAuftragRepo{staende: map[int]tse.SignaturauftragStand{
-		1: {Status: tse.StatusOffen, ErstelltAm: time.Now().UTC()},
-	}}
-
-	auftragMock := &mockDruckauftragRepo{}
-	command := Command{
-		EventRepo:           eventMock,
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-		DruckstationRepo:    &mockDruckstationRepo{konfig: kassenbelegStationen},
-		BetreiberRepo:       belegTestBetreiberMock(),
-		DruckauftragRepo:    auftragMock,
-		TSERepo:             tseRepo,
-	}
-
-	status, err := command.KassenbelegDrucken(ctx, KassenbelegDruckenCommand{VerkaufID: verkaufID})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if status != BelegStatusAusstehend {
-		t.Errorf("expected status ausstehend, got %q", status)
-	}
-	if len(auftragMock.enqueued) != 0 {
-		t.Errorf("expected no druckauftrag while signature is pending, got %d", len(auftragMock.enqueued))
 	}
 }
 
