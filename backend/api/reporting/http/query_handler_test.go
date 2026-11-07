@@ -43,7 +43,7 @@ func TestGetReportingHandler_MissingKassensitzungNr(t *testing.T) {
 
 	handler.GetReportingHandler().ServeHTTP(rec, req)
 
-	assertBadRequestCode(t, rec, "invalid_kassensitzung_nr")
+	assertBadRequestCode(t, rec, "validation_error")
 }
 
 func assertBadRequestCode(t *testing.T, rec *httptest.ResponseRecorder, expectedCode string) {

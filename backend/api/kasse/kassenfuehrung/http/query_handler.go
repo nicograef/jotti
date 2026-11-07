@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
@@ -27,9 +28,13 @@ type aktiveKassensitzungResponse struct {
 	EroeffnetAm string `json:"eroeffnetAm"`
 }
 
-type kassenbestandRequest struct {
+type kassensitzungNrRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
+
+var kassensitzungNrSchema = z.Struct(z.Shape{
+	"KassensitzungNr": kasse.KassensitzungNrSchema.Required(),
+})
 
 // Invariante (vor Kassensturz): anfangsbestand + bareinnahmen + einlagen − entnahmen = sollBestand.
 type kassenbestandResponse struct {
@@ -38,10 +43,6 @@ type kassenbestandResponse struct {
 	BareinnahmenCents   int `json:"bareinnahmenCents"`
 	EinlagenCents       int `json:"einlagenCents"`
 	EntnahmenCents      int `json:"entnahmenCents"`
-}
-
-type geldtransitListeRequest struct {
-	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
 type geldtransitItemResponse struct {
@@ -77,13 +78,8 @@ func (h *QueryHandler) GetAktiveKassensitzungHandler() http.HandlerFunc {
 
 func (h *QueryHandler) GetKassenbestandHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := kassenbestandRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.KassensitzungNr < 1 {
-			helper.SendClientError(w, "invalid_kassensitzung_nr", nil)
+		body := kassensitzungNrRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, kassensitzungNrSchema) {
 			return
 		}
 
@@ -105,13 +101,8 @@ func (h *QueryHandler) GetKassenbestandHandler() http.HandlerFunc {
 
 func (h *QueryHandler) GetGeldtransitListeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body := geldtransitListeRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.KassensitzungNr < 1 {
-			helper.SendClientError(w, "invalid_kassensitzung_nr", nil)
+		body := kassensitzungNrRequest{}
+		if !helper.ReadAndValidateBody(w, r, &body, kassensitzungNrSchema) {
 			return
 		}
 

@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/helper"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/internal/logging"
 )
 
@@ -31,6 +33,11 @@ type exportRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
+// Not Required: zog skips the zero value, so 0 selects the default session.
+var exportSchema = z.Struct(z.Shape{
+	"KassensitzungNr": kasse.KassensitzungNrSchema,
+})
+
 // ExportHandler streams the chosen Kassensitzung's DSFinV-K ZIP. The /admin/ mount
 // already enforces the admin role.
 func (h *Handler) ExportHandler() http.HandlerFunc {
@@ -38,15 +45,11 @@ func (h *Handler) ExportHandler() http.HandlerFunc {
 		log := logging.FromContext(r.Context())
 
 		// First deadline at handler entry: it covers the early error paths that answer
-		// before Erstellen() (unreadable body, invalid_kassensitzung).
+		// before Erstellen() (unreadable or invalid body).
 		helper.ExtendWriteDeadline(w, r, exportWriteTimeout)
 
 		body := exportRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-		if body.KassensitzungNr < 0 {
-			helper.SendClientError(w, "invalid_kassensitzung", nil)
+		if !helper.ReadAndValidateBody(w, r, &body, exportSchema) {
 			return
 		}
 

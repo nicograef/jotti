@@ -64,6 +64,7 @@ type valueCase struct {
 }
 
 var valueCases = []valueCase{
+	{schema: "kasse.KassensitzungNrSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(kasse.KassensitzungNrSchema)},
 	{schema: "kasse.PositionEingabeSchema", smallest: 1, largest: 999, accepts: acceptsNumber(kasse.PositionEingabeSchema)},
 	{schema: "produkt.IDSchema", smallest: 1, largest: maxInt4, accepts: acceptsNumber(produkt.IDSchema)},
 	{schema: "produkt.PreisCentsSchema", smallest: 1, largest: 99999, accepts: acceptsNumber(produkt.PreisCentsSchema)},

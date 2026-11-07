@@ -1,8 +1,18 @@
 package kasse
 
-import "time"
+import (
+	"math"
+	"time"
+
+	z "github.com/Oudwins/zog"
+)
 
 type KassensitzungStatus string
+
+// KassensitzungNrSchema bounds a Z-Nummer like an ID: the int4 column holds at most MaxInt32.
+var KassensitzungNrSchema = z.Int().
+	GTE(1, z.Message("Ungültige Kassensitzungsnummer")).
+	LTE(math.MaxInt32, z.Message("Ungültige Kassensitzungsnummer"))
 
 type Kassensitzung struct {
 	ZNr         int

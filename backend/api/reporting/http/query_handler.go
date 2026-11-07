@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	z "github.com/Oudwins/zog"
 	"github.com/nicograef/jotti/backend/api/helper"
 	"github.com/nicograef/jotti/backend/api/middleware"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/reporting"
 )
 
@@ -24,6 +26,10 @@ type QueryHandler struct {
 type getReportingRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
+
+var getReportingSchema = z.Struct(z.Shape{
+	"KassensitzungNr": kasse.KassensitzungNrSchema.Required(),
+})
 
 type metadatenResponse struct {
 	EroeffnetAm               *time.Time `json:"eroeffnetAm"`
@@ -44,12 +50,7 @@ type reportingResponse struct {
 func (h *QueryHandler) GetReportingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body := getReportingRequest{}
-		if !helper.ReadBody(w, r, &body) {
-			return
-		}
-
-		if body.KassensitzungNr < 1 {
-			helper.SendClientError(w, "invalid_kassensitzung_nr", "kassensitzungNr must be at least 1")
+		if !helper.ReadAndValidateBody(w, r, &body, getReportingSchema) {
 			return
 		}
 

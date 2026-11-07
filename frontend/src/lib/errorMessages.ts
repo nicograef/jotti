@@ -31,10 +31,6 @@ const commonErrorMessages: Record<string, string> = {
     'Die Daten wurden gerade von jemand anderem geändert. Bitte aktualisieren und erneut versuchen.',
   invalid_json:
     'Die Anfrage konnte nicht verarbeitet werden. Bitte Eingaben prüfen und erneut versuchen.',
-  invalid_kassensitzung:
-    'Die gewählte Kassensitzung ist ungültig. Bitte neu auswählen und erneut versuchen.',
-  invalid_kassensitzung_nr:
-    'Die Kassensitzung konnte nicht gefunden werden. Bitte neu auswählen und erneut versuchen.',
   invalid_produkt_data:
     'Die Produktdaten sind ungültig. Bitte alle Felder prüfen.',
   invalid_tisch_data: 'Die Tischdaten sind ungültig. Bitte Eingaben prüfen.',

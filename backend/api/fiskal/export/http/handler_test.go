@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -162,13 +163,14 @@ func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 }
 
 func TestExportHandler_InvalidKassensitzungNr(t *testing.T) {
-	svc := &mockService{}
-	h := &Handler{Service: svc}
+	for _, nr := range []int{-1, math.MaxInt32 + 1} {
+		h := &Handler{Service: &mockService{}}
 
-	rec := httptest.NewRecorder()
-	performRequest(t, h.ExportHandler(), rec, -1)
+		rec := httptest.NewRecorder()
+		performRequest(t, h.ExportHandler(), rec, nr)
 
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400, got %d", rec.Code)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("kassensitzungNr %d: expected status 400, got %d", nr, rec.Code)
+		}
 	}
 }
