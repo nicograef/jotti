@@ -28,6 +28,7 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 | Anfrageformular ohne Mailprogramm oder ohne Annahmesatz |       1 | Kopier-Fallback und Annahmesatz im Formular der Website                                     |
 | Ausgabe-Schritt streichen                               |       1 | D01                                                                                         |
 | Bedienung ohne lokales WLAN, Handys über Mobilfunk      |       1 | Leitfaden „Self-Hosting"                                                                    |
+| Bestellkommentar erscheint auf allen Arbeitsbons        |       1 | D22, [#145](https://github.com/nicograef/jotti/issues/145)                                  |
 | Direktverkauf ohne Tisch                                |       1 | K-24                                                                                        |
 | Einzelbon pro Stück                                     |       1 | K-25 (Bonmodus am Abholbon)                                                                 |
 | Kategorie-Auswahl über der Produktliste                 |       1 | D10 (Kategorie-Pills)                                                                       |
@@ -56,7 +57,6 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 | Wunsch oder Fehler                                         | Vereine | Stand                                                                                                                                             |
 | ---------------------------------------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ausgabestationen unabhängig von Produktkategorien          |       1 | Piepton entfernt, „Kein Bon" im Direktverkauf; Modell im [PRD](prds/prd-stationsmodell.md), [#146](https://github.com/nicograef/jotti/issues/146) |
-| Bestellkommentar erscheint auf allen Arbeitsbons           |       1 | [PRD](prds/prd-kommentar-je-position.md), [#145](https://github.com/nicograef/jotti/issues/145)                                                   |
 | Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                                                                                          |
 | Installation ohne Docker oder gehosteter Betrieb           |       1 | [PRD](prds/prd-windows-einzeldatei.md), [Plan](plans/plan-windows-einzeldatei.md)                                                                 |
 | Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                                                                                          |

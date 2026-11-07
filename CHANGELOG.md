@@ -11,6 +11,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 ### Kassenbetrieb
 
 - Bestellungen pro Tisch aufnehmen, mit Produkten, Varianten, Steuersätzen und Kommentaren.
+- Kommentar je Position: Am Tisch und im Direktverkauf trägt jede Position einen eigenen Kommentar. Er druckt nur auf dem Arbeits- oder Abholbon ihrer Station und steht in der Historie unter seiner Position.
 - Zahlungen kassieren, inklusive Teilzahlungen und Rückgeldberechnung.
 - Bestellungen stornieren mit Pflichtkommentar; vorbehalten für Admin und Serviceleitung.
 - Bestellungen auf einen anderen Tisch umbuchen.

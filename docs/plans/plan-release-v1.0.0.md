@@ -31,6 +31,7 @@ Usability mit echten Vereinshelfern und die Abnahme-Entscheidungen selbst.
       Pflichtangaben deckt bereits die ESC/POS-Formatter-Testsuite ab; hier zählt nur das
       physische Druckbild.
 - [ ] Bondrucker-Druckbild insgesamt sichtprüfen (Lesbarkeit, Schnitt, Papiervorschub).
+- [ ] Positionskommentar auf Sammel-, Einzel- und Stückbon sichtprüfen: unter seiner Position, fett, umbrochen; auf dem Einzelbon vor dem Bestellkommentar.
 
 ### Block B: Windows-Rechner
 
