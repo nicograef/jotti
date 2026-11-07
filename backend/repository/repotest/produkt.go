@@ -121,6 +121,12 @@ func (m *ProduktRepo) VerschiebeVariante(ctx context.Context, varianteID int, ho
 	return m.err
 }
 
+// DeleteVariante writes only the deleted Variante; removing the Pfand-Verknüpfungen on it is pinned
+// by the repository's integration test.
+func (m *ProduktRepo) DeleteVariante(ctx context.Context, v produkt.Variante) error {
+	return m.UpdateVariante(ctx, v)
+}
+
 func (m *ProduktRepo) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	if m.err != nil {
 		return m.err

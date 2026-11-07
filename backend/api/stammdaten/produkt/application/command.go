@@ -18,6 +18,7 @@ type produktRepo interface {
 	CreateVariante(ctx context.Context, produktID int, variante produkt.Variante) (int, error)
 	UpdateVariante(ctx context.Context, variante produkt.Variante) error
 	UpdateVarianten(ctx context.Context, varianten []produkt.Variante) error
+	DeleteVariante(ctx context.Context, variante produkt.Variante) error
 	DeleteProduktMitVarianten(ctx context.Context, produkt produkt.Produkt) error
 	VerschiebeProdukt(ctx context.Context, produktID int, hoch bool) error
 	VerschiebeVariante(ctx context.Context, varianteID int, hoch bool) error
@@ -313,7 +314,7 @@ func (c Command) DeleteVariante(ctx context.Context, produktID int, varianteID i
 	variante := eigenesProdukt.Varianten[idx]
 	variante.Delete()
 
-	err = c.ProduktRepo.UpdateVariante(ctx, variante)
+	err = c.ProduktRepo.DeleteVariante(ctx, variante)
 	if err != nil {
 		log.Error("Failed to delete variante", "error", err, "variante_id", varianteID)
 		return ErrDatabase

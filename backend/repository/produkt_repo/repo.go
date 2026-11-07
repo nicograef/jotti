@@ -238,15 +238,12 @@ func setVarianteReihenfolge(ctx context.Context, qtx *dbgen.Queries, id int, rei
 }
 
 // DeleteProduktMitVarianten writes the status transitions of a produkt whose Delete() the caller
-// already applied, together with its varianten, in one transaction.
+// already applied, together with its varianten, in one transaction. Every Pfand-Verknüpfung on one
+// of the varianten goes in the same transaction.
 func (r Repository) DeleteProduktMitVarianten(ctx context.Context, p produkt.Produkt) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		for i := range p.Varianten {
-			result, err := qtx.UpdateVariante(ctx, updateVarianteParams(p.Varianten[i]))
-			if err != nil {
-				return db.Error(err)
-			}
-			if err := db.ResultError(result); err != nil {
+			if err := deleteVariante(ctx, qtx, p.Varianten[i]); err != nil {
 				return err
 			}
 		}

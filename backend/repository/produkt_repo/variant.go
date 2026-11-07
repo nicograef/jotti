@@ -58,3 +58,27 @@ func (r Repository) UpdateVariante(ctx context.Context, v produkt.Variante) erro
 
 	return db.ResultError(result)
 }
+
+// DeleteVariante writes the status transition of a variante whose Delete() the caller already
+// applied and removes every Pfand-Verknüpfung on it, in one transaction.
+func (r Repository) DeleteVariante(ctx context.Context, v produkt.Variante) error {
+	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
+		return deleteVariante(ctx, qtx, v)
+	})
+}
+
+func deleteVariante(ctx context.Context, qtx *dbgen.Queries, v produkt.Variante) error {
+	result, err := qtx.UpdateVariante(ctx, updateVarianteParams(v))
+	if err != nil {
+		return db.Error(err)
+	}
+	if err := db.ResultError(result); err != nil {
+		return err
+	}
+
+	err = qtx.EntfernePfandVerweise(ctx, dbgen.EntfernePfandVerweiseParams{UpdatedAt: v.UpdatedAt, PfandVarianteID: v.ID})
+	if err != nil {
+		return db.Error(err)
+	}
+	return nil
+}
