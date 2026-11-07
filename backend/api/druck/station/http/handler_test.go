@@ -23,30 +23,22 @@ func (m *mockDruckstationCommand) TestbonDrucken(_ context.Context, kategorie st
 	return nil
 }
 
-// Which Bonmodus a station category takes is the handler's decision: Produktstationen
-// and Abholbon need one, the Kassenbeleg none, pro_stueck and kein_bon only the Abholbon. An
-// accepted row must reach the command, a rejected one must not.
+// The handler validates the field formats and delegates the Kategorie/Bonmodus combination to
+// druckstation.ErlaubtBonmodus, whose test holds the matrix. An accepted row must reach the
+// command, a rejected one must not.
 func TestUpdateDruckstationenHandler_KategorieUndBonmodus(t *testing.T) {
 	tests := []struct {
 		kategorie, druckerIP, bonmodus string
 		wantStatus                     int
 	}{
 		{"essen", "192.168.1.51", "pro_position", http.StatusOK},
-		{"getraenk", "", "pro_bestellung", http.StatusOK},
 		{"kassenbeleg", "192.168.1.60", "", http.StatusOK},
-		{"abholbon", "192.168.1.70", "pro_bestellung", http.StatusOK},
-		{"abholbon", "192.168.1.70", "pro_stueck", http.StatusOK},
 		{"abholbon", "", "kein_bon", http.StatusOK},
 		{"invalid", "192.168.1.51", "pro_position", http.StatusBadRequest},
 		{"essen", "192.168.1.51", "invalid", http.StatusBadRequest},
 		{"essen", "999.999.999.999", "pro_position", http.StatusBadRequest},
 		{"essen", "192.168.1.51", "pro_stueck", http.StatusBadRequest},
-		{"getraenk", "192.168.1.51", "pro_stueck", http.StatusBadRequest},
-		{"sonstiges", "192.168.1.51", "pro_stueck", http.StatusBadRequest},
-		{"getraenk", "192.168.1.52", "kein_bon", http.StatusBadRequest},
 		{"kassenbeleg", "", "pro_position", http.StatusBadRequest},
-		{"essen", "192.168.1.51", "", http.StatusBadRequest},
-		{"abholbon", "192.168.1.51", "", http.StatusBadRequest},
 	}
 	for _, tt := range tests {
 		t.Run(tt.kategorie+"/"+tt.druckerIP+"/"+tt.bonmodus, func(t *testing.T) {

@@ -10,19 +10,10 @@ func TestNewDruckstation(t *testing.T) {
 		bonmodus  Bonmodus
 		wantError bool
 	}{
-		{"produktkategorie pro_position", KategorieEssen, "192.168.1.51", BonmodusProPosition, false},
-		{"produktkategorie pro_bestellung", KategorieGetraenk, "", BonmodusProBestellung, false},
-		{"produktkategorie ohne bonmodus", KategorieSonstiges, "", "", true},
-		{"produktkategorie ungültiger bonmodus", KategorieEssen, "", Bonmodus("invalid"), true},
+		{"produktkategorie mit bonmodus", KategorieEssen, "192.168.1.51", BonmodusProPosition, false},
 		{"kassenbeleg ohne bonmodus", KategorieKassenbeleg, "192.168.1.60", "", false},
-		{"abholbon pro_bestellung", KategorieAbholbon, "192.168.1.70", BonmodusProBestellung, false},
-		{"abholbon pro_position", KategorieAbholbon, "", BonmodusProPosition, false},
-		{"abholbon pro_stueck", KategorieAbholbon, "192.168.1.70", BonmodusProStueck, false},
-		{"produktkategorie pro_stueck abgelehnt", KategorieEssen, "", BonmodusProStueck, true},
 		{"abholbon kein_bon ohne IP", KategorieAbholbon, "", BonmodusKeinBon, false},
-		{"produktkategorie kein_bon abgelehnt", KategorieGetraenk, "192.168.1.52", BonmodusKeinBon, true},
-		{"abholbon ohne bonmodus abgelehnt", KategorieAbholbon, "", "", true},
-		{"kassenbeleg mit bonmodus abgelehnt", KategorieKassenbeleg, "", BonmodusProPosition, true},
+		{"bonmodus, den die kategorie nicht erlaubt", KategorieEssen, "", BonmodusProStueck, true},
 		{"ungültige kategorie", Kategorie("foo"), "", "", true},
 		{"ungültige IPv4", KategorieEssen, "256.1.1.1", BonmodusProPosition, true},
 		{"IPv6 abgelehnt", KategorieEssen, "2001:db8::1", BonmodusProPosition, true},
@@ -53,19 +44,6 @@ func TestNewDruckstation(t *testing.T) {
 	}
 }
 
-func TestKategorieHatBonmodus(t *testing.T) {
-	mitBonmodus := []Kategorie{KategorieEssen, KategorieGetraenk, KategorieSonstiges, KategorieAbholbon}
-	for _, k := range mitBonmodus {
-		if !k.HatBonmodus() {
-			t.Errorf("%q should carry a Bonmodus", k)
-		}
-	}
-
-	if KategorieKassenbeleg.HatBonmodus() {
-		t.Errorf("%q should not carry a Bonmodus", KategorieKassenbeleg)
-	}
-}
-
 func TestKategorieErlaubtBonmodus(t *testing.T) {
 	cases := []struct {
 		kategorie Kategorie
@@ -75,16 +53,21 @@ func TestKategorieErlaubtBonmodus(t *testing.T) {
 		{KategorieEssen, BonmodusProPosition, true},
 		{KategorieEssen, BonmodusProBestellung, true},
 		{KategorieEssen, BonmodusProStueck, false},
+		{KategorieEssen, BonmodusKeinBon, false},
 		{KategorieEssen, "", false},
+		{KategorieGetraenk, BonmodusProBestellung, true},
 		{KategorieGetraenk, BonmodusProStueck, false},
+		{KategorieGetraenk, BonmodusKeinBon, false},
 		{KategorieSonstiges, BonmodusProStueck, false},
+		{KategorieSonstiges, "", false},
 		{KategorieAbholbon, BonmodusProPosition, true},
 		{KategorieAbholbon, BonmodusProBestellung, true},
 		{KategorieAbholbon, BonmodusProStueck, true},
+		{KategorieAbholbon, BonmodusKeinBon, true},
 		{KategorieAbholbon, "", false},
+		{KategorieAbholbon, Bonmodus("invalid"), false},
 		{KategorieKassenbeleg, "", true},
 		{KategorieKassenbeleg, BonmodusProPosition, false},
-		{KategorieAbholbon, Bonmodus("invalid"), false},
 	}
 
 	for _, tc := range cases {
