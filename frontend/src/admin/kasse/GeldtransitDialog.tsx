@@ -51,9 +51,10 @@ export function GeldtransitDialog({
   richtung: GeldtransitRichtung | null
   onSuccess: () => void
 }) {
-  // One geldtransitId per logical Vorgang, assigned by the open effect: a retry with the consumed key
-  // would be dropped by the backend as a duplicate. Booking needs the open dialog, so the effect always runs first.
+  // One geldtransitId per logical Vorgang, assigned by the open effect. The backend drops a repeated key as a
+  // duplicate without comparing the payload, so a retry with changed content gets a fresh key.
   const geldtransitIdRef = useRef('')
+  const letzterVersuchRef = useRef<string | null>(null)
 
   const form = useForm<FormData>({
     defaultValues: { betragCents: 0, kommentar: '' },
@@ -65,6 +66,7 @@ export function GeldtransitDialog({
     if (open) {
       form.reset({ betragCents: 0, kommentar: '' })
       geldtransitIdRef.current = crypto.randomUUID()
+      letzterVersuchRef.current = null
     }
   }, [open, form])
 
@@ -82,6 +84,14 @@ export function GeldtransitDialog({
 
   const onSubmit = async (data: FormData) => {
     if (richtung === null) return
+    const versuch = JSON.stringify([richtung, data.betragCents, data.kommentar])
+    if (
+      letzterVersuchRef.current !== null &&
+      letzterVersuchRef.current !== versuch
+    ) {
+      geldtransitIdRef.current = crypto.randomUUID()
+    }
+    letzterVersuchRef.current = versuch
     await run(async () => {
       await kasseBackend.geldtransitBuchen(
         geldtransitIdRef.current,

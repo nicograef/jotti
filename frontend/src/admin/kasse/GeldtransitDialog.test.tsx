@@ -32,11 +32,25 @@ function dialog(open: boolean) {
   )
 }
 
-async function buche(betrag: string) {
+async function buche(betrag: string, kommentar = 'Wechselgeld') {
   const user = userEvent.setup()
+  await user.clear(screen.getByLabelText('Betrag'))
   await user.type(screen.getByLabelText('Betrag'), betrag)
-  await user.type(screen.getByLabelText('Kommentar'), 'Wechselgeld')
+  await user.clear(screen.getByLabelText('Kommentar'))
+  await user.type(screen.getByLabelText('Kommentar'), kommentar)
   await user.click(screen.getByRole('button', { name: 'Geld einlegen' }))
+}
+
+function fehlschlagDannErfolg(): FakeBackend {
+  return new FakeBackend().respond(
+    'admin/geldtransit-buchen',
+    vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new BackendError(503, 'weg')
+      })
+      .mockReturnValue({}),
+  )
 }
 
 function geldtransitIds(fake: FakeBackend): unknown[] {
@@ -74,4 +88,30 @@ describe('GeldtransitDialog', () => {
     })
     expect(geldtransitIds(fake)[1]).not.toBe(ersterKey)
   })
+
+  // Nach verlorener Antwort hätte das Backend den ersten Versuch schon gebucht:
+  // gleicher Inhalt muss denselben Schlüssel tragen, geänderter einen neuen.
+  it.each([
+    ['gleichem Inhalt', '25', 'Wechselgeld', true],
+    ['geändertem Betrag', '30', 'Wechselgeld', false],
+    ['geändertem Kommentar', '25', 'Wechselgeld neu', false],
+  ])(
+    'behält den geldtransitId beim Retry mit %s nur bei gleichem Inhalt',
+    async (_fall, betrag, kommentar, gleicherKey) => {
+      const fake = fehlschlagDannErfolg()
+      renderWithBackend(dialog(true), fake)
+
+      await buche('25')
+      await waitFor(() => {
+        expect(geldtransitIds(fake)).toHaveLength(1)
+      })
+      await buche(betrag, kommentar)
+      await waitFor(() => {
+        expect(geldtransitIds(fake)).toHaveLength(2)
+      })
+
+      const [erster, zweiter] = geldtransitIds(fake)
+      expect(zweiter === erster).toBe(gleicherKey)
+    },
+  )
 })
