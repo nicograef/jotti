@@ -3,7 +3,7 @@ import { type ReactNode, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { NameField, PriceField } from '@/components/common/FormFields'
+import { NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,6 +21,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 
 import { produktBackend } from './hooks'
+import { PriceField } from './PriceField'
 import { CreateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = CreateVarianteSchema.omit({ produktId: true })

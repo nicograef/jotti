@@ -24,15 +24,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from '@/components/ui/input-otp'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toUsername } from '@/lib/identity'
-import type { Kategorie } from '@/lib/produktSchemas'
 import { formatCents, parseCents } from '@/lib/utils'
 
 import { EuroInput } from './EuroInput'
@@ -295,54 +287,6 @@ function EuroFieldControl({
       />
       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
     </Field>
-  )
-}
-
-/** Euro input for a product's gross price (Brutto), bound to the `preisCents` form field. */
-export function PriceField<AllFormFields extends FieldValues>({
-  form,
-  placeholder,
-}: FieldProps<{ preisCents: number } & AllFormFields>) {
-  return (
-    <EuroField
-      form={form}
-      name={'preisCents' as FieldPath<{ preisCents: number } & AllFormFields>}
-      label="Preis"
-      placeholder={placeholder ?? 'Preis in Euro (z.B. 4,50)'}
-    />
-  )
-}
-
-export function CategoryField<AllFormFields extends FieldValues>({
-  form,
-  placeholder,
-}: FieldProps<{ kategorie: Kategorie } & AllFormFields>) {
-  const id = useId()
-  return (
-    <Controller
-      name={'kategorie' as Path<{ kategorie: Kategorie } & AllFormFields>}
-      control={form.control}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid} className="gap-1">
-          <FieldLabel htmlFor={id}>Kategorie</FieldLabel>
-          <Select
-            name={field.name}
-            value={field.value}
-            onValueChange={field.onChange}
-          >
-            <SelectTrigger id={id} aria-invalid={fieldState.invalid}>
-              <SelectValue placeholder={placeholder ?? 'Auswählen'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="essen">Essen</SelectItem>
-              <SelectItem value="getraenk">Getränk</SelectItem>
-              <SelectItem value="sonstiges">Sonstiges</SelectItem>
-            </SelectContent>
-          </Select>
-          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-        </Field>
-      )}
-    />
   )
 }
 

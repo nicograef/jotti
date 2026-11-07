@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
-import { CategoryField, NameField } from '@/components/common/FormFields'
+import { NameField } from '@/components/common/FormFields'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -22,6 +22,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { Kategorie } from '@/lib/produktSchemas'
 
+import { CategoryField } from './CategoryField'
 import { produktBackend } from './hooks'
 import { PfandField } from './PfandField'
 import { defaultSteuersatzByKategorie } from './Produkt'

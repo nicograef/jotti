@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { NameField, PriceField } from '@/components/common/FormFields'
+import { NameField } from '@/components/common/FormFields'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +33,7 @@ import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import type { Variante } from '@/lib/produktSchemas'
 
 import { produktBackend } from './hooks'
+import { PriceField } from './PriceField'
 import { UpdateVarianteSchema } from './ProduktBackend'
 
 const FormDataSchema = UpdateVarianteSchema.omit({ id: true })
