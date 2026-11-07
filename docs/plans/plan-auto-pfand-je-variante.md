@@ -280,9 +280,9 @@ Plus auf „Bier 0,5 l" legt im Warenkorb ein Glaspfand dazu, am Tisch wie im Di
 
 ### Acceptance criteria
 
-- [ ] Tabellentest `mitPfand`: Plus; Minus; Boden bei null für Variante und Pfand; zwei Varianten mit einem Pfand summieren sich; Plus und Minus am Pfand von Hand ändern nur das Pfand. Verify: `cd frontend && pnpm exec vitest run src/service/pfandKopplung.test.ts`
-- [ ] Am Tisch zeigt die verknüpfte Zeile „+ 2,00 € Pfand", und Plus auf sie sendet Variante und Pfand mit je Menge 1 an `service/bestellung-aufnehmen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/table/BestellungTab.test.tsx -t 'Auto-Pfand'`
-- [ ] Im Direktverkauf sendet Plus auf eine verknüpfte Variante Variante und Pfand an `service/direktverkauf-taetigen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufTab.test.tsx -t 'Auto-Pfand'`
-- [ ] Der Leitfaden beschreibt die Einrichtung, und jedes zitierte UI-Label existiert im Frontend. Verify: `grep -n 'Neue Variante anlegen' docs/leitfaden/belege-steuersaetze.md && ./scripts/check-ui-labels.sh`
-- [ ] Glossar und Entscheidung stehen. Verify: `grep -q 'Pfand-Verknüpfung' docs/language.md && grep -q 'Pfand-Verknüpfung' docs/decisions.md`
-- [ ] Gate grün. Verify: `make check check-repo check-format && make lint && E2E_STACK_PROJECT=jotti-autopfand-e2e-4 E2E_STACK_PORT=8092 make test-e2e`
+- [x] Tabellentest `mitPfand`: Plus; Minus; Boden bei null für Variante und Pfand; zwei Varianten mit einem Pfand summieren sich; Plus und Minus am Pfand von Hand ändern nur das Pfand. Verify: `cd frontend && pnpm exec vitest run src/service/pfandKopplung.test.ts`
+- [x] Am Tisch zeigt die verknüpfte Zeile „+ 2,00 € Pfand", und Plus auf sie sendet Variante und Pfand mit je Menge 1 an `service/bestellung-aufnehmen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/table/BestellungTab.test.tsx -t 'Auto-Pfand'`
+- [x] Im Direktverkauf sendet Plus auf eine verknüpfte Variante Variante und Pfand an `service/direktverkauf-taetigen` (Testname enthält „Auto-Pfand"). Verify: `cd frontend && pnpm exec vitest run src/service/direktverkauf/DirektverkaufTab.test.tsx -t 'Auto-Pfand'`
+- [x] Der Leitfaden beschreibt die Einrichtung, und jedes zitierte UI-Label existiert im Frontend. Verify: `grep -n 'Neue Variante anlegen' docs/leitfaden/belege-steuersaetze.md && ./scripts/check-ui-labels.sh`
+- [x] Glossar und Entscheidung stehen. Verify: `grep -q 'Pfand-Verknüpfung' docs/language.md && grep -q 'Pfand-Verknüpfung' docs/decisions.md`
+- [x] Gate grün. Verify: `make check check-repo check-format && make lint && E2E_STACK_PROJECT=jotti-autopfand-e2e-4 E2E_STACK_PORT=8092 make test-e2e`
