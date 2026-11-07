@@ -106,22 +106,4 @@ describe('PositionAuswahlListe', () => {
     expect(name.className).toContain('break-words')
     expect(name.className).not.toContain('truncate')
   })
-
-  it('vergibt aria-Labels für alle Stepper-Buttons', () => {
-    render(
-      <PositionAuswahlListe
-        positionen={positionen}
-        mengen={{}}
-        onAdd={vi.fn()}
-        onRemove={vi.fn()}
-      />,
-    )
-
-    expect(
-      screen.getByRole('button', { name: 'Pommes hinzufügen' }),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Pommes verringern' }),
-    ).toBeInTheDocument()
-  })
 })

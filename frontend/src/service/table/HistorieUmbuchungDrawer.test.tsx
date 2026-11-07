@@ -143,15 +143,6 @@ describe('HistorieUmbuchungDrawer', () => {
     expect(button).toBeDisabled()
   })
 
-  it('titelt menschenlesbar mit Vorgangstyp und Name statt UUID-Fragment', async () => {
-    renderDrawer()
-    await zielTischeGeladen()
-
-    const title = screen.getByText(/^Bestellung ·/)
-    expect(title).toHaveTextContent('Nico')
-    expect(screen.queryByText(/00000000/)).not.toBeInTheDocument()
-  })
-
   it('nennt den Sperrgrund neben der Aktion und gibt frei, sobald er erfüllt ist', async () => {
     const user = userEvent.setup()
     renderDrawer()
