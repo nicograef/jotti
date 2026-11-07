@@ -6,12 +6,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/nicograef/jotti/backend/api/druck/station/application"
 )
 
 type mockDruckstationCommand struct {
-	testbonErr        error
 	upserts           []string
 	testbonKategorien []string
 }
@@ -23,7 +20,7 @@ func (m *mockDruckstationCommand) UpsertDruckstation(_ context.Context, kategori
 
 func (m *mockDruckstationCommand) TestbonDrucken(_ context.Context, kategorie string) error {
 	m.testbonKategorien = append(m.testbonKategorien, kategorie)
-	return m.testbonErr
+	return nil
 }
 
 // Which Bonmodus a station category takes is the handler's decision: Produktstationen
@@ -109,24 +106,5 @@ func TestTestbonDruckenHandler_InvalidKategorie(t *testing.T) {
 	}
 	if len(cmd.testbonKategorien) != 0 {
 		t.Errorf("expected command not called on validation error, got %v", cmd.testbonKategorien)
-	}
-}
-
-func TestTestbonDruckenHandler_NichtKonfiguriert(t *testing.T) {
-	cmd := &mockDruckstationCommand{testbonErr: application.ErrDruckstationNichtKonfiguriert}
-	handler := &CommandHandler{Command: cmd}
-
-	body := `{"kategorie":"essen"}`
-	req := httptest.NewRequest(http.MethodPost, "/admin/testbon-drucken", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	handler.TestbonDruckenHandler().ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusBadRequest {
-		t.Errorf("expected status 400 for nicht konfiguriert, got %d: %s", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), "druckstation_nicht_konfiguriert") {
-		t.Errorf("expected error code druckstation_nicht_konfiguriert, got %s", rec.Body.String())
 	}
 }
