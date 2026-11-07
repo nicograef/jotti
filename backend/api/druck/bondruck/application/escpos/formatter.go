@@ -85,6 +85,13 @@ func FormatPositionBon(
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
 
+	if pos.Kommentar != "" {
+		buf.WriteString(AlignLeft)
+		buf.WriteString(BoldOn)
+		writePositionsKommentar(&buf, pos.Kommentar)
+		buf.WriteString(BoldOff)
+	}
+
 	if kommentar != "" {
 		buf.WriteString("\n")
 		buf.WriteString(AlignLeft)
@@ -117,6 +124,11 @@ func FormatSammelBon(
 	for _, pos := range positionen {
 		artikel := fmt.Sprintf("%dx %s", pos.Menge, pos.Bezeichnung())
 		writeLine(&buf, artikel)
+		if pos.Kommentar != "" {
+			buf.WriteString(TextNormal)
+			writePositionsKommentar(&buf, pos.Kommentar)
+			buf.WriteString(TextDoubleHigh)
+		}
 	}
 	buf.WriteString(BoldOff)
 	buf.WriteString(TextNormal)
@@ -132,6 +144,16 @@ func FormatSammelBon(
 	writeArbeitsbonFuss(&buf, zeitpunkt, userName)
 
 	return buf.Bytes()
+}
+
+// writePositionsKommentar writes the Positionskommentar under its position line, each wrapped
+// line indented by two spaces; the caller sets size, weight and alignment.
+func writePositionsKommentar(buf *bytes.Buffer, kommentar string) {
+	for zeile := range strings.SplitSeq(wrapCP437(kommentar, lineWidth-2), "\n") {
+		buf.WriteString("  ")
+		buf.WriteString(zeile)
+		buf.WriteByte('\n')
+	}
 }
 
 // writeArbeitsbonKopf leaves the alignment centered; each Arbeitsbon sets its own for the positions.

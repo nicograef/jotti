@@ -118,6 +118,51 @@ func TestFormatSammelBon_WithKommentar(t *testing.T) {
 	}
 }
 
+const (
+	arbeitsbonKopfTisch7 = escpos.Init + escpos.SetCodepagePC437 + escpos.AlignCenter + escpos.TextDoubleAll + escpos.BoldOn +
+		"== Tisch 7 ==\n" + escpos.BoldOff + escpos.TextNormal + "\n"
+	arbeitsbonFussMaria = "------------------------------------------------\n" + "  21:34  Bedienung: Maria\n" + "\n\n\n\n\n" + escpos.CutPaper
+)
+
+func TestFormatSammelBon_PositionskommentarUnterSeinerPosition(t *testing.T) {
+	kommentiert := testPos
+	kommentiert.Kommentar = "bitte ohne Zwiebeln und ohne Kuemmel, dafuer mit extra viel Senf"
+	ohne := kasse.Position{PositionID: "pos-2", ProduktName: "Bratwurst", VarianteName: "mit Brot", Kategorie: "essen", Menge: 1}
+
+	got := escpos.FormatSammelBon([]kasse.Position{kommentiert, ohne}, "Tisch 7", "Maria", testTime, "Tisch wartet")
+
+	want := arbeitsbonKopfTisch7 +
+		escpos.AlignLeft + escpos.TextDoubleHigh + escpos.BoldOn +
+		"3x Pommes gross\n" +
+		escpos.TextNormal +
+		"  bitte ohne Zwiebeln und ohne Kuemmel, dafuer\n" +
+		"  mit extra viel Senf\n" +
+		escpos.TextDoubleHigh +
+		"1x Bratwurst mit Brot\n" +
+		escpos.BoldOff + escpos.TextNormal +
+		"\n" + escpos.BoldOn + "Tisch wartet\n" + escpos.BoldOff +
+		arbeitsbonFussMaria
+	if string(got) != want {
+		t.Errorf("Sammelbon:\n got %q\nwant %q", got, want)
+	}
+}
+
+func TestFormatPositionBon_PositionskommentarVorBestellkommentar(t *testing.T) {
+	kommentiert := testPos
+	kommentiert.Kommentar = "ohne Ketchup"
+
+	got := escpos.FormatPositionBon(kommentiert, "Tisch 7", "Maria", testTime, "Tisch wartet")
+
+	want := arbeitsbonKopfTisch7 +
+		escpos.TextDoubleHigh + escpos.BoldOn + "3x Pommes gross\n" + escpos.BoldOff + escpos.TextNormal +
+		escpos.AlignLeft + escpos.BoldOn + "  ohne Ketchup\n" + escpos.BoldOff +
+		"\n" + escpos.AlignLeft + escpos.BoldOn + "Tisch wartet\n" + escpos.BoldOff +
+		escpos.AlignLeft + arbeitsbonFussMaria
+	if string(got) != want {
+		t.Errorf("Einzelbon:\n got %q\nwant %q", got, want)
+	}
+}
+
 func TestFormatDirektverkaufAbholbon_HasFixedLabelAndNoPrices(t *testing.T) {
 	pos2 := kasse.Position{
 		PositionID:       "pos-2",
