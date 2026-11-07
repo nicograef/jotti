@@ -10,13 +10,6 @@ export const STEUERSATZ_LABEL: Record<Steuersatz, string> = {
   kombi: 'Kombi (70/30)',
 }
 
-export const VarianteStatus = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-} as const
-export type VarianteStatus =
-  (typeof VarianteStatus)[keyof typeof VarianteStatus]
-
 // Die Anzeigereihenfolge selbst liefert das Backend fertig sortiert; das
 // Frontend kennt sie nicht als Wert.
 export const Richtung = {

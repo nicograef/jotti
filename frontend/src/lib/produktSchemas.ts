@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { EntityStatusSchema } from '@/lib/entityStatus'
 import { createNameSchema } from '@/lib/nameSchema'
 import { DateStringSchema } from '@/lib/utils'
 
@@ -45,11 +46,6 @@ export const SteuersatzSchema = z.enum([
   Steuersatz.BEFREIT,
   Steuersatz.KOMBI,
 ])
-
-// Soft-gelöschte Entitäten liefert das Backend nie aus (beide Lesepfade filtern
-// `status != 'deleted'`), daher nur die beiden im UI erreichbaren Werte.
-export const EntityStatusSchema = z.enum(['active', 'inactive'])
-export type EntityStatus = z.infer<typeof EntityStatusSchema>
 
 export const ProduktIdSchema = z.number().int().min(1)
 export const VarianteIdSchema = z.number().int().min(1)

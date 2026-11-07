@@ -20,9 +20,9 @@ import {
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
+import { UserRole } from '@/lib/identity'
 
 import { RoleField } from './RoleField'
-import { UserRole } from './User'
 import { CreateUserSchema, UserBackend } from './UserBackend'
 
 const FormDataSchema = CreateUserSchema

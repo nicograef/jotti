@@ -3,6 +3,14 @@ import { z } from 'zod'
 // Credential rules shared by auth and user management, each mirroring its zog counterpart in domain/user.
 // The trim matters: the backend stores the trimmed value, so an untrimmed pasted credential would not match.
 
+export const UserRole = {
+  ADMIN: 'admin',
+  SERVICELEITUNG: 'serviceleitung',
+  SERVICE: 'service',
+} as const
+export type UserRole = (typeof UserRole)[keyof typeof UserRole]
+export const UserRoleSchema = z.enum(UserRole)
+
 export const UsernameSchema = z
   .string()
   .trim()

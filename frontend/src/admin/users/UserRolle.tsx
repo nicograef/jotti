@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-
-import { UserRole } from './User'
+import { UserRole } from '@/lib/identity'
 
 // No role-to-colour mapping: per-role badge colours are a legend-less puzzle adding nothing the label lacks.
 // oxlint-disable-next-line react/only-export-components

@@ -1,7 +1,8 @@
 import { Switch } from '@/components/ui/switch'
+import { EntityStatus } from '@/lib/entityStatus'
 import { cn, formatEuro } from '@/lib/utils'
 
-import { type Tisch, TischStatus } from './Tisch'
+import type { Tisch } from './Tisch'
 
 interface TischItemProps {
   loading: boolean
@@ -15,7 +16,7 @@ interface TischItemProps {
 // zusätzlich als Single Source of Truth. Die Begründung steht als sichtbare
 // Zeile: auf Touch-Handys gibt es kein Hover für einen Tooltip.
 export function TischItem(props: TischItemProps) {
-  const isActive = props.tisch.status === TischStatus.ACTIVE
+  const isActive = props.tisch.status === EntityStatus.ACTIVE
   const hatSaldo = props.tisch.saldoCents > 0
 
   const oeffneEdit = () => {

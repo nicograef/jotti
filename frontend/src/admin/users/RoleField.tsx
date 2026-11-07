@@ -15,8 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-import { UserRole } from './User'
+import { UserRole } from '@/lib/identity'
 
 const ROLLE_BESCHREIBUNG: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'Administratoren können alle Funktionen nutzen.',

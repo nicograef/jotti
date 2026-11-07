@@ -21,8 +21,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
+import { EntityStatus } from '@/lib/entityStatus'
 
-import { type User, UserStatus } from './User'
+import type { User } from './User'
 import { RolleBadge } from './UserRolle'
 import { BENUTZER_SPALTEN } from './UsersSpalten'
 
@@ -42,7 +43,7 @@ interface UserRowProps {
 // Verteidigung.
 export function UserRow(props: UserRowProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const isActive = props.user.status === UserStatus.ACTIVE
+  const isActive = props.user.status === EntityStatus.ACTIVE
 
   return (
     <div

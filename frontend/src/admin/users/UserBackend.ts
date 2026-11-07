@@ -2,8 +2,9 @@ import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
 import { OnetimePasswordSchema } from '@/lib/identity'
+import { UserRole } from '@/lib/identity'
 
-import { type User, UserIdSchema, UserRole, UserSchema } from './User'
+import { type User, UserIdSchema, UserSchema } from './User'
 
 export const CreateUserSchema = UserSchema.pick({
   name: true,

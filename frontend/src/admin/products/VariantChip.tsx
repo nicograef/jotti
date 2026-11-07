@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { VariantNamePreis } from '@/components/common/VariantNamePreis'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { EntityStatus } from '@/lib/entityStatus'
 import type { Variante } from '@/lib/produktSchemas'
 import { cn } from '@/lib/utils'
 
 import { EditVariantDialog } from './EditVariantDialog'
-import { Richtung, VarianteStatus } from './Produkt'
+import { Richtung } from './Produkt'
 import type { ProduktBackend } from './ProduktBackend'
 
 interface VariantChipProps {
@@ -30,7 +31,7 @@ interface VariantChipProps {
 // Richtungs-Benennung der API.
 export function VariantChip(props: VariantChipProps) {
   const [editOpen, setEditOpen] = useState(false)
-  const isActive = props.variant.status === VarianteStatus.ACTIVE
+  const isActive = props.variant.status === EntityStatus.ACTIVE
   const verschiebbar = !(props.isFirst && props.isLast)
 
   // `relative z-10` is required: the Switch's invisible hit-area extension (after:-inset-x-3) otherwise

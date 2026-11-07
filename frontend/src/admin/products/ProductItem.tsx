@@ -35,10 +35,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useActionSubmit } from '@/hooks/use-action-submit'
+import { EntityStatus } from '@/lib/entityStatus'
 import type { Produkt } from '@/lib/produktSchemas'
 
 import { NewVariantDialog } from './NewVariantDialog'
-import { Richtung, VarianteStatus } from './Produkt'
+import { Richtung } from './Produkt'
 import type { ProduktListeBackend } from './ProduktBackend'
 import { VariantChip } from './VariantChip'
 
@@ -86,7 +87,7 @@ export function ProductItem(props: ProductItemProps) {
     sortVariantsLoading
 
   const activeVarianten = props.product.varianten.filter(
-    (v) => v.status === VarianteStatus.ACTIVE,
+    (v) => v.status === EntityStatus.ACTIVE,
   )
 
   const handleActivateVariant = async (variantId: number) => {

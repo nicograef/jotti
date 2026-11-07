@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
 import type { BackendClient } from '@/lib/Backend'
+import { KategorieSchema as ProduktKategorieSchema } from '@/lib/produktSchemas'
 import { DateStringSchema } from '@/lib/utils'
 
+// Die Produkt-Kategorien plus die beiden Stationen ohne Produkte.
 const KategorieSchema = z.enum([
-  'essen',
-  'getraenk',
-  'sonstiges',
+  ...ProduktKategorieSchema.options,
   'kassenbeleg',
   'abholbon',
 ])

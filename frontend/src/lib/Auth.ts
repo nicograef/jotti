@@ -1,12 +1,14 @@
 import { jwtDecode } from 'jwt-decode'
 import { z } from 'zod'
 
+import { UserRole, UserRoleSchema } from './identity'
+
 const JottiTokenSchema = z.object({
   iss: z.literal('jotti'),
   exp: z.int().min(0),
   iat: z.int().min(0),
   sub: z.number().int().min(1),
-  role: z.enum(['admin', 'serviceleitung', 'service']),
+  role: UserRoleSchema,
 })
 type JottiToken = z.infer<typeof JottiTokenSchema>
 
@@ -42,15 +44,15 @@ class Auth {
   }
 
   public get isAdmin(): boolean {
-    return this.token?.role === 'admin'
+    return this.token?.role === UserRole.ADMIN
   }
 
   public get isServiceleitung(): boolean {
-    return this.token?.role === 'serviceleitung'
+    return this.token?.role === UserRole.SERVICELEITUNG
   }
 
   public get isService(): boolean {
-    return this.token?.role === 'service'
+    return this.token?.role === UserRole.SERVICE
   }
 
   public get canCancel(): boolean {

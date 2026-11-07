@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { EntityStatus } from '@/lib/entityStatus'
+
 import { AdminPageHeader } from '../components/AdminPageHeader'
 import { EditTischDialog } from './EditTischDialog'
 import { ALLE_TISCHE_KEY, tischBackend, useAllTische } from './hooks'
@@ -17,7 +19,9 @@ export function AdminTablesPage() {
   const invalidateTische = () =>
     void queryClient.invalidateQueries({ queryKey: [ALLE_TISCHE_KEY] })
 
-  const aktiveAnzahl = tische.filter((t) => t.status === 'active').length
+  const aktiveAnzahl = tische.filter(
+    (t) => t.status === EntityStatus.ACTIVE,
+  ).length
   const mitSaldoAnzahl = tische.filter((t) => t.saldoCents > 0).length
   const unterzeile = [
     `${String(tische.length)} ${tische.length === 1 ? 'Tisch' : 'Tische'}`,
