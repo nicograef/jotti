@@ -30,6 +30,7 @@ func cleanSeedDB(t *testing.T, db *sql.DB) {
 		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_position' WHERE kategorie IN ('essen', 'getraenk', 'sonstiges')",
 		"UPDATE druckstationen SET drucker_ip = '', bonmodus = 'pro_bestellung' WHERE kategorie = 'abholbon'",
 		"UPDATE druckstationen SET drucker_ip = '', bonmodus = NULL WHERE kategorie = 'kassenbeleg'",
+		"DELETE FROM zusatzdrucker",
 		"DELETE FROM tisch_favoriten",
 		"DELETE FROM tisch_sessions",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
