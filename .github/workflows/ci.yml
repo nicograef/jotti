@@ -362,11 +362,13 @@ jobs:
           retention-days: 7
 
   # Runs jotti.exe on a Windows host: Postgres, migrations, backend and Caddy in one process.
+  # Measures size and start times under Defender and fails over a threshold; the measurement
+  # is uploaded either way.
   einzeldatei-windows:
     needs: [changes, einzeldatei-build]
     if: ${{ (needs.changes.outputs.einzeldatei == 'true') || (needs.changes.outputs.ci == 'true') }}
     runs-on: windows-2025
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       # No run registers with auth.jotti.rocks or spends Let's Encrypt limits.
       ACMEDNS_BASE_URL: http://127.0.0.1:9
@@ -374,6 +376,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # The runner image may switch Defender's protection off or exclude whole drives. The step
+      # restores a club PC's defaults before jotti.exe lands on disk; whether realtime protection
+      # ended up on is recorded after the runs, so a failure here only shows in the measurement.
+      - name: Switch on Defender realtime protection
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          "EINZELDATEI_DEFENDER_START=$((Get-Date).ToString('o'))" >> $env:GITHUB_ENV
+          $svc = Get-Service -Name WinDefend
+          if ($svc.Status -ne 'Running') { Set-Service -Name WinDefend -StartupType Automatic; Start-Service -Name WinDefend }
+          $pref = Get-MpPreference
+          if ($pref.ExclusionPath) { "removing exclusions: $($pref.ExclusionPath -join ', ')"; Remove-MpPreference -ExclusionPath $pref.ExclusionPath }
+          if ($pref.ExclusionProcess) { "removing exclusions: $($pref.ExclusionProcess -join ', ')"; Remove-MpPreference -ExclusionProcess $pref.ExclusionProcess }
+          Set-MpPreference -DisableRealtimeMonitoring $false -DisableBehaviorMonitoring $false -DisableIOAVProtection $false `
+            -DisableScriptScanning $false -DisableArchiveScanning $false -DisableBlockAtFirstSeen $false
+          Update-MpSignature
+          Get-MpComputerStatus | Format-List AMServiceEnabled, AntivirusEnabled, RealTimeProtectionEnabled, IoavProtectionEnabled, AntivirusSignatureVersion
 
       - name: Download jotti.exe
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -393,9 +413,50 @@ jobs:
             if (Get-Service -Name $name -ErrorAction SilentlyContinue) { Stop-Service -Name $name -Force; "stopped $name" }
           }
 
+      # messung needs the fresh runner, so it runs before start.
+      - name: Measure size, first and later start of jotti.exe
+        shell: bash
+        run: bash scripts/einzeldatei-smoke.sh messung ./jotti.exe messung.tsv
+
       - name: Start, serve and stop jotti.exe
         shell: bash
         run: bash scripts/einzeldatei-smoke.sh start ./jotti.exe
+
+      # Counts only detections since the Defender step; the runner image's own history is no finding.
+      - name: Record Defender state and detections
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          $status = Get-MpComputerStatus -ErrorAction SilentlyContinue
+          $on = [bool]($status -and $status.RealTimeProtectionEnabled)
+          $since = if ($env:EINZELDATEI_DEFENDER_START) { [datetime]::Parse($env:EINZELDATEI_DEFENDER_START, $null, 'RoundtripKind') } else { [datetime]::MinValue }
+          $funde = @(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object { $_.InitialDetectionTime -ge $since })
+          $funde | Format-List
+          $tsv = Join-Path $env:GITHUB_WORKSPACE 'messung.tsv'
+          [IO.File]::AppendAllText($tsv, "defender_echtzeitschutz`t$($on.ToString().ToLower())`ndefender_funde`t$($funde.Count)`n")
+
+      - name: Upload the measurement
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: einzeldatei-messung
+          path: messung.tsv
+          retention-days: 30
+
+      - name: Summarize the measurement
+        if: ${{ always() && hashFiles('messung.tsv') != '' }}
+        shell: bash
+        run: |
+          {
+            echo '| Key | Value |'
+            echo '| --- | --- |'
+            awk -F'\t' '{ sub(/\r$/, "", $2); print "| " $1 " | " $2 " |" }' messung.tsv
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Hold the measurement to its thresholds
+        if: ${{ always() && hashFiles('messung.tsv') != '' }}
+        shell: bash
+        run: bash scripts/einzeldatei-smoke.sh auswerten messung.tsv
 
   frontend-ci:
     needs: changes
