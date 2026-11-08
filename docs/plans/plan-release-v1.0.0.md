@@ -39,6 +39,7 @@ Usability mit echten Vereinshelfern und die Abnahme-Entscheidungen selbst.
       unter `dist/`; ZIP auf dem echten Windows-Rechner entpacken und bis zum ersten Login
       smoke-testen. Der API-Roundtrip auf Linux-Hosts läuft bereits über
       `scripts/ops-smoke.sh install`; hier zählt nur der reale Windows-Start.
+- [ ] Verzeichnisrechte des Starters (#174) auf dem echten Windows-Rechner prüfen: `icacls` auf dem Datenverzeichnis zeigt SYSTEM und Administratoren mit Vollzugriff und den angemeldeten Benutzer mit Ändern, sonst niemanden.
 
 ### Block C: fiskaly-Konto und TSE-Inbetriebnahme
 
