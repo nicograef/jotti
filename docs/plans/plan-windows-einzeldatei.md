@@ -294,9 +294,9 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Shell-Skripte und Workflows bestehen ihre Prüfungen: `make check-shell check-workflows`
-- [ ] Der Messlauf des HEAD-Commits hat alle fünf Werte geliefert und liegt lokal vor: `id="$(gh run list -w CI -e push -c "$(git rev-parse HEAD)" -L 1 --json databaseId -q '.[0].databaseId')" && gh run watch "$id" >/dev/null; rm -rf /tmp/einzeldatei-messung && gh run download "$id" -n einzeldatei-messung -D /tmp/einzeldatei-messung && test "$(cut -f1 /tmp/einzeldatei-messung/messung.tsv | sort | paste -sd' ')" = 'defender_echtzeitschutz defender_funde erststart_s folgestart_s groesse_bytes'`
-- [ ] Die Auswertung lässt Werte unter den Schwellen durch und scheitert an einem überschrittenen: `printf 'groesse_bytes\t90000000\nerststart_s\t10\nfolgestart_s\t5\ndefender_echtzeitschutz\ttrue\ndefender_funde\t0\n' > /tmp/em-ok.tsv && printf 'groesse_bytes\t130000000\nerststart_s\t10\nfolgestart_s\t5\ndefender_echtzeitschutz\ttrue\ndefender_funde\t0\n' > /tmp/em-zu-gross.tsv && bash scripts/einzeldatei-smoke.sh auswerten /tmp/em-ok.tsv && ! bash scripts/einzeldatei-smoke.sh auswerten /tmp/em-zu-gross.tsv`
+- [x] Shell-Skripte und Workflows bestehen ihre Prüfungen: `make check-shell check-workflows`
+- [x] Der Messlauf des HEAD-Commits hat alle fünf Werte geliefert und liegt lokal vor: `id="$(gh run list -w CI -e push -c "$(git rev-parse HEAD)" -L 1 --json databaseId -q '.[0].databaseId')" && gh run watch "$id" >/dev/null; rm -rf /tmp/einzeldatei-messung && gh run download "$id" -n einzeldatei-messung -D /tmp/einzeldatei-messung && test "$(cut -f1 /tmp/einzeldatei-messung/messung.tsv | sort | paste -sd' ')" = 'defender_echtzeitschutz defender_funde erststart_s folgestart_s groesse_bytes'`
+- [x] Die Auswertung lässt Werte unter den Schwellen durch und scheitert an einem überschrittenen: `printf 'groesse_bytes\t90000000\nerststart_s\t10\nfolgestart_s\t5\ndefender_echtzeitschutz\ttrue\ndefender_funde\t0\n' > /tmp/em-ok.tsv && printf 'groesse_bytes\t130000000\nerststart_s\t10\nfolgestart_s\t5\ndefender_echtzeitschutz\ttrue\ndefender_funde\t0\n' > /tmp/em-zu-gross.tsv && bash scripts/einzeldatei-smoke.sh auswerten /tmp/em-ok.tsv && ! bash scripts/einzeldatei-smoke.sh auswerten /tmp/em-zu-gross.tsv`
 
 ## Phase 6: Go/Stop-Gate nach Stufe 1
 
