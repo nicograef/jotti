@@ -1,6 +1,6 @@
 # Caddyfile for the jotti.rocks project deployment (docker-compose.rocks.yml):
 # landing page, demo app and the acme-dns API. Self-hosters get a Caddyfile
-# rendered by jotti-reverse-proxy (caddyfile.go) instead.
+# rendered by jotti-reverse-proxy (caddyconf/caddyfile.go) instead.
 {
 	admin off
 	email graef.nico@gmail.com
@@ -79,7 +79,7 @@ jotti.rocks {
 demo.jotti.rocks {
 	import access_log
 	import security_headers
-	# Verbatim copy of contentSecurityPolicy in caddyfile.go, held together by
+	# Verbatim copy of contentSecurityPolicy in caddyconf/caddyfile.go, held together by
 	# TestRocksCaddyfileCarriesSameCSP.
 	header Content-Security-Policy "default-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self' blob:; media-src 'self'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests"
 

@@ -1,4 +1,4 @@
-package main
+package caddyconf
 
 import (
 	"os"
@@ -6,17 +6,21 @@ import (
 	"testing"
 )
 
-func withState() caddyfileInput {
-	return caddyfileInput{
-		state:      InstallState{Username: "user-1", Password: "pass-1", Subdomain: "sub-1"},
-		hasState:   true,
-		zone:       "lokal.jotti.rocks",
-		acmeDNSURL: "https://auth.jotti.rocks",
+func withState() LANInput {
+	return LANInput{
+		HasState:   true,
+		Username:   "user-1",
+		Password:   "pass-1",
+		Subdomain:  "sub-1",
+		Zone:       "lokal.jotti.rocks",
+		ACMEDNSURL: "https://auth.jotti.rocks",
+		Upstream:   ContainerUpstream,
+		AppRoot:    ContainerAppRoot,
 	}
 }
 
 func TestRenderCaddyfileWithState(t *testing.T) {
-	out := renderCaddyfile(withState())
+	out := RenderLAN(withState())
 
 	wants := []string{
 		"(jotti_proxy) {",
@@ -30,7 +34,7 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		appHandler,
+		appHandler(ContainerAppRoot),
 		"https:// {",
 		"on_demand",
 		"skip_install_trust",
@@ -57,11 +61,9 @@ func TestRenderCaddyfileWithState(t *testing.T) {
 }
 
 func TestRenderCaddyfileWithoutStateOmitsWildcard(t *testing.T) {
-	out := renderCaddyfile(caddyfileInput{
-		hasState:   false,
-		zone:       "lokal.jotti.rocks",
-		acmeDNSURL: "https://auth.jotti.rocks",
-	})
+	in := withState()
+	in.HasState = false
+	out := RenderLAN(in)
 
 	if strings.Contains(out, "acmedns") {
 		t.Errorf("ohne State darf keine acmedns-Site gerendert werden\n---\n%s", out)
@@ -79,23 +81,23 @@ func TestRenderCaddyfileWithoutStateOmitsWildcard(t *testing.T) {
 
 func TestRenderCaddyfileStagingAddsStagingCA(t *testing.T) {
 	in := withState()
-	in.leStaging = true
+	in.LEStaging = true
 
-	out := renderCaddyfile(in)
+	out := RenderLAN(in)
 	if !strings.Contains(out, "ca "+leStagingCA) {
 		t.Errorf("Staging-CA-Direktive fehlt\n---\n%s", out)
 	}
 }
 
-func publicInputFixture() publicInput {
-	return publicInput{
-		domain: "jotti.meinverein.de",
-		email:  "verein@example.de",
+func publicInputFixture() PublicInput {
+	return PublicInput{
+		Domain: "jotti.meinverein.de",
+		Email:  "verein@example.de",
 	}
 }
 
 func TestRenderPublicCaddyfile(t *testing.T) {
-	out := renderPublicCaddyfile(publicInputFixture())
+	out := RenderPublic(publicInputFixture())
 
 	wants := []string{
 		"email verein@example.de",
@@ -104,7 +106,7 @@ func TestRenderPublicCaddyfile(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		appHandler,
+		appHandler(ContainerAppRoot),
 		`Strict-Transport-Security "` + hstsPublic + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -130,9 +132,9 @@ func TestRenderPublicCaddyfile(t *testing.T) {
 
 func TestRenderPublicCaddyfileWWWRedirect(t *testing.T) {
 	in := publicInputFixture()
-	in.wwwRedirect = true
+	in.WWWRedirect = true
 
-	out := renderPublicCaddyfile(in)
+	out := RenderPublic(in)
 	if !strings.Contains(out, "www.jotti.meinverein.de {") {
 		t.Errorf("www-Redirect-Site fehlt\n---\n%s", out)
 	}
@@ -140,23 +142,23 @@ func TestRenderPublicCaddyfileWWWRedirect(t *testing.T) {
 		t.Errorf("www→apex-Redirect fehlt\n---\n%s", out)
 	}
 
-	if strings.Contains(renderPublicCaddyfile(publicInputFixture()), "www.") {
+	if strings.Contains(RenderPublic(publicInputFixture()), "www.") {
 		t.Errorf("ohne wwwRedirect darf keine www-Site gerendert werden")
 	}
 }
 
 func TestRenderPublicCaddyfileStagingAddsStagingCA(t *testing.T) {
 	in := publicInputFixture()
-	in.leStaging = true
+	in.LEStaging = true
 
-	out := renderPublicCaddyfile(in)
+	out := RenderPublic(in)
 	if !strings.Contains(out, "acme_ca "+leStagingCA) {
 		t.Errorf("globale Staging-CA-Direktive fehlt\n---\n%s", out)
 	}
 }
 
 func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
-	out := renderHTTPOnlyCaddyfile()
+	out := RenderHTTPOnly()
 
 	wants := []string{
 		"auto_https off",
@@ -165,7 +167,7 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 		"import jotti_proxy",
 		"handle_path /api/* {",
 		"reverse_proxy backend:3000",
-		appHandler,
+		appHandler(ContainerAppRoot),
 		`Strict-Transport-Security "` + hstsLAN + `"`,
 		`X-Content-Type-Options "nosniff"`,
 		`X-Frame-Options "DENY"`,
@@ -187,7 +189,7 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 // TestRocksCaddyfileCarriesSameCSP keeps the two CSP copies equal: contentSecurityPolicy
 // and the demo site in Caddyfile.rocks.
 func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
-	conf, err := os.ReadFile("Caddyfile.rocks")
+	conf, err := os.ReadFile("../Caddyfile.rocks")
 	if err != nil {
 		t.Fatalf("read Caddyfile.rocks: %v", err)
 	}
@@ -199,11 +201,11 @@ func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
 // TestRocksCaddyfileServesSameApp keeps the demo site in Caddyfile.rocks on the same
 // app handler as every generated site.
 func TestRocksCaddyfileServesSameApp(t *testing.T) {
-	conf, err := os.ReadFile("Caddyfile.rocks")
+	conf, err := os.ReadFile("../Caddyfile.rocks")
 	if err != nil {
 		t.Fatalf("read Caddyfile.rocks: %v", err)
 	}
-	if !strings.Contains(string(conf), appHandler) {
-		t.Errorf("Caddyfile.rocks does not carry appHandler verbatim; want:\n%s", appHandler)
+	if !strings.Contains(string(conf), appHandler(ContainerAppRoot)) {
+		t.Errorf("Caddyfile.rocks does not carry appHandler verbatim; want:\n%s", appHandler(ContainerAppRoot))
 	}
 }

@@ -1,6 +1,17 @@
-package main
+// Package caddyconf renders the Caddyfiles of the jotti proxy: LAN, public and HTTP-only.
+// The container passes the Container* values; the Windows single file passes its own upstream and paths.
+package caddyconf
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
+
+// Container values: the backend service in Compose and the app build in the proxy image.
+const (
+	ContainerUpstream = "backend:3000"
+	ContainerAppRoot  = "/srv/app"
+)
 
 // contentSecurityPolicy applies to every generated site via proxySnippet and, verbatim,
 // to the demo site in Caddyfile.rocks. TestRocksCaddyfileCarriesSameCSP keeps both copies equal.
@@ -25,12 +36,17 @@ const leStagingCA = "https://acme-staging-v02.api.letsencrypt.org/directory"
 // Encrypt den Record über eigene Resolver sieht.
 const challengeResolvers = "1.1.1.1 8.8.8.8"
 
-// appHandler serves the app's static build from /srv/app, the last handler of every
-// generated site and, verbatim, of the demo site in Caddyfile.rocks; TestRocksCaddyfileServesSameApp
-// keeps both copies equal. Response headers are set only for files that exist, so a 404 carries none.
-const appHandler = `	# App: statischer Vite-Build aus dem Image
+// appHandler serves the app's static build from root, the last handler of every generated
+// site and, with ContainerAppRoot, verbatim of the demo site in Caddyfile.rocks;
+// TestRocksCaddyfileServesSameApp keeps both copies equal. Response headers are set only for
+// files that exist, so a 404 carries none.
+func appHandler(root string) string {
+	return fmt.Sprintf(appHandlerTemplate, caddyPath(root))
+}
+
+const appHandlerTemplate = `	# App: statischer Vite-Build aus dem Image
 	handle {
-		root * /srv/app
+		root * %s
 		encode zstd gzip
 
 		# Jeder Dateiname unter /assets/ trägt einen Inhalts-Hash: für immer cachen.
@@ -69,27 +85,39 @@ const appHandler = `	# App: statischer Vite-Build aus dem Image
 		}
 	}`
 
-type caddyfileInput struct {
-	state      InstallState // acme-dns-Credentials für die Wildcard-Site
-	hasState   bool         // false ⇒ nur die Fallback-Site rendern
-	zone       string       // z. B. "lokal.jotti.rocks"
-	acmeDNSURL string       // acme-dns-API, z. B. "https://auth.jotti.rocks"
-	leStaging  bool         // true ⇒ Zertifikate über die LE-Staging-CA holen
+// LANInput beschreibt den lokalen Stack. Username, Password und Subdomain sind die
+// acme-dns-Zugangsdaten der Wildcard-Site und zählen nur mit HasState.
+type LANInput struct {
+	HasState    bool   // false ⇒ nur die Fallback-Site rendern
+	Username    string // acme-dns-Benutzer
+	Password    string // acme-dns-Passwort
+	Subdomain   string // acme-dns-Subdomain, zugleich die Install-ID
+	Zone        string // z. B. "lokal.jotti.rocks"
+	ACMEDNSURL  string // acme-dns-API, z. B. "https://auth.jotti.rocks"
+	LEStaging   bool   // true ⇒ Zertifikate über die LE-Staging-CA holen
+	Upstream    string // host:port des Backends, im Container ContainerUpstream
+	AppRoot     string // Verzeichnis des App-Builds, im Container ContainerAppRoot
+	StorageRoot string // Caddys Speicherort für Zertifikate und CA; leer ⇒ Caddys Vorgabe
 }
 
-// renderCaddyfile erzeugt den Caddyfile des lokalen Stacks: die Wildcard-Site (nur
+// RenderLAN erzeugt den Caddyfile des lokalen Stacks: die Wildcard-Site (nur
 // mit acme-dns-Credentials) und immer die Fallback-Site mit Caddys interner CA.
-func renderCaddyfile(in caddyfileInput) string {
+func RenderLAN(in LANInput) string {
 	wildcard := ""
-	if in.hasState {
+	if in.HasState {
 		wildcard = wildcardSite(in) + "\n\n"
+	}
+
+	storage := ""
+	if in.StorageRoot != "" {
+		storage = "\n\tstorage file_system " + caddyPath(in.StorageRoot)
 	}
 
 	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
 {
 	admin off
 	# Installing the local root into the container's trust store is pointless and fails on the read-only root filesystem.
-	skip_install_trust
+	skip_install_trust%s
 }
 
 # Gemeinsame Proxy- und Security-Header-Konfiguration für beide Sites.
@@ -112,13 +140,13 @@ https:// {
 http:// {
 	redir https://{host}{uri} permanent
 }
-`, proxySnippet(hstsLAN, false), wildcard)
+`, storage, proxySnippet(hstsLAN, false, in.Upstream, in.AppRoot), wildcard)
 }
 
 // proxySnippet renders the shared `(jotti_proxy)` snippet, so headers and CSP match in every mode.
 // The rate limit models 10 r/s with burst 20: caddy-ratelimit has a sliding window without a
 // separate burst, so the peak served at once is `events 30` per `window 1s`.
-func proxySnippet(hsts string, rateLimited bool) string {
+func proxySnippet(hsts string, rateLimited bool, upstream, appRoot string) string {
 	rateLimit := ""
 	if rateLimited {
 		rateLimit = `
@@ -144,32 +172,33 @@ func proxySnippet(hsts string, rateLimited bool) string {
 
 	# Backend-API unter /api/ (Prefix beim Proxyen entfernen)
 	handle_path /api/* {%s
-		reverse_proxy backend:3000
+		reverse_proxy %s
 	}
 
 %s
-}`, hsts, contentSecurityPolicy, rateLimit, appHandler)
+}`, hsts, contentSecurityPolicy, rateLimit, upstream, appHandler(appRoot))
 }
 
-type publicInput struct {
-	domain      string // öffentliche Domain, z. B. "jotti.meinverein.de"
-	email       string // Kontakt-E-Mail für den ACME-Account
-	wwwRedirect bool   // true ⇒ www.<domain> dauerhaft auf <domain> umleiten
-	leStaging   bool   // true ⇒ Zertifikate über die LE-Staging-CA holen (Tests)
+// PublicInput beschreibt den Self-Hoster-prod-Stack.
+type PublicInput struct {
+	Domain      string // öffentliche Domain, z. B. "jotti.meinverein.de"
+	Email       string // Kontakt-E-Mail für den ACME-Account
+	WWWRedirect bool   // true ⇒ www.<domain> dauerhaft auf <domain> umleiten
+	LEStaging   bool   // true ⇒ Zertifikate über die LE-Staging-CA holen (Tests)
 }
 
-// renderPublicCaddyfile erzeugt den Caddyfile des Self-Hoster-prod-Stacks: dasselbe
+// RenderPublic erzeugt den Caddyfile des Self-Hoster-prod-Stacks: dasselbe
 // `(jotti_proxy)`-Snippet wie der LAN-Mode, aber stärkeres HSTS und das
 // /api/-Rate-Limit.
-func renderPublicCaddyfile(in publicInput) string {
+func RenderPublic(in PublicInput) string {
 	staging := ""
-	if in.leStaging {
+	if in.LEStaging {
 		staging = "\n\tacme_ca " + leStagingCA
 	}
 
 	www := ""
-	if in.wwwRedirect {
-		www = fmt.Sprintf("\n\nwww.%s {\n\tredir https://%s{uri} permanent\n}", in.domain, in.domain)
+	if in.WWWRedirect {
+		www = fmt.Sprintf("\n\nwww.%s {\n\tredir https://%s{uri} permanent\n}", in.Domain, in.Domain)
 	}
 
 	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
@@ -184,14 +213,14 @@ func renderPublicCaddyfile(in publicInput) string {
 %s {
 	import jotti_proxy
 }%s
-`, in.email, staging, proxySnippet(hstsPublic, true), in.domain, www)
+`, in.Email, staging, proxySnippet(hstsPublic, true, ContainerUpstream, ContainerAppRoot), in.Domain, www)
 }
 
-// renderHTTPOnlyCaddyfile bedient ausschließlich Klartext-HTTP auf :80 — nur für
+// RenderHTTPOnly bedient ausschließlich Klartext-HTTP auf :80 — nur für
 // die E2E-Testumgebung (docker-compose.e2e.yml, PROXY_HTTP_ONLY=1), wo der Stack
 // lokal bleibt. Das /api/-Rate-Limit bleibt aus, damit Test-Suiten nicht gedrosselt
 // werden.
-func renderHTTPOnlyCaddyfile() string {
+func RenderHTTPOnly() string {
 	return fmt.Sprintf(`# Generiert vom jotti-reverse-proxy beim Start — nicht von Hand bearbeiten.
 {
 	admin off
@@ -204,14 +233,14 @@ func renderHTTPOnlyCaddyfile() string {
 http:// {
 	import jotti_proxy
 }
-`, proxySnippet(hstsLAN, false))
+`, proxySnippet(hstsLAN, false, ContainerUpstream, ContainerAppRoot))
 }
 
 // wildcardSite rendert `*.<install-id>.<zone>` mit DNS-01-Challenge über acme-dns;
 // bis Caddy ausgestellt hat (oder offline) trägt die Fallback-Site.
-func wildcardSite(in caddyfileInput) string {
+func wildcardSite(in LANInput) string {
 	caBlock := ""
-	if in.leStaging {
+	if in.LEStaging {
 		caBlock = "\n\t\tca " + leStagingCA
 	}
 
@@ -228,5 +257,15 @@ func wildcardSite(in caddyfileInput) string {
 		resolvers %s%s
 	}
 	import jotti_proxy
-}`, in.state.Subdomain, in.zone, in.state.Username, in.state.Password, in.state.Subdomain, in.acmeDNSURL, challengeResolvers, caBlock)
+}`, in.Subdomain, in.Zone, in.Username, in.Password, in.Subdomain, in.ACMEDNSURL, challengeResolvers, caBlock)
+}
+
+// caddyPath renders a filesystem path as one Caddyfile token: forward slashes, which Caddy
+// accepts on Windows too, and quotes around a path with whitespace (C:/Program Files).
+func caddyPath(p string) string {
+	p = strings.ReplaceAll(p, `\`, "/")
+	if strings.ContainsAny(p, " \t") {
+		return `"` + p + `"`
+	}
+	return p
 }

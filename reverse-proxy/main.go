@@ -16,6 +16,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/nicograef/jotti/reverse-proxy/caddyconf"
 )
 
 // lanZone muss zur Zone des jotti-Resolvers passen, darum ist sie nicht konfigurierbar.
@@ -104,11 +106,11 @@ func runPublicMode(cfg config) {
 		log.Printf("ACME-CA: Let's-Encrypt-STAGING (Testmodus, kein vertrauenswürdiges Zertifikat)")
 	}
 
-	caddyfile := renderPublicCaddyfile(publicInput{
-		domain:      cfg.domain,
-		email:       cfg.email,
-		wwwRedirect: cfg.wwwRedirect,
-		leStaging:   cfg.leStaging,
+	caddyfile := caddyconf.RenderPublic(caddyconf.PublicInput{
+		Domain:      cfg.domain,
+		Email:       cfg.email,
+		WWWRedirect: cfg.wwwRedirect,
+		LEStaging:   cfg.leStaging,
 	})
 	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
@@ -120,7 +122,7 @@ func runPublicMode(cfg config) {
 func runHTTPOnlyMode() {
 	log.Printf("HTTP-Only-Mode aktiv (nur E2E) | Zugangsadresse: http://<host>")
 
-	caddyfile := renderHTTPOnlyCaddyfile()
+	caddyfile := caddyconf.RenderHTTPOnly()
 	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
 	runCaddyOrExit()
@@ -156,12 +158,16 @@ func runLANMode(cfg config) {
 		log.Printf("ACME-CA: Let's-Encrypt-STAGING (Testmodus, kein vertrauenswürdiges Zertifikat)")
 	}
 
-	caddyfile := renderCaddyfile(caddyfileInput{
-		state:      state,
-		hasState:   hasState,
-		zone:       lanZone,
-		acmeDNSURL: cfg.acmeDNSURL,
-		leStaging:  cfg.leStaging,
+	caddyfile := caddyconf.RenderLAN(caddyconf.LANInput{
+		HasState:   hasState,
+		Username:   state.Username,
+		Password:   state.Password,
+		Subdomain:  state.Subdomain,
+		Zone:       lanZone,
+		ACMEDNSURL: cfg.acmeDNSURL,
+		LEStaging:  cfg.leStaging,
+		Upstream:   caddyconf.ContainerUpstream,
+		AppRoot:    caddyconf.ContainerAppRoot,
 	})
 	writeCaddyfileOrExit(caddyfilePath, caddyfile)
 
