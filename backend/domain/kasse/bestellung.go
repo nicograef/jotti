@@ -151,6 +151,15 @@ func positionenV1(positionen []PositionV2EventData) []PositionEventData {
 	return out
 }
 
+// VarianteIDs lists the VarianteID of each position, in order and with duplicates.
+func VarianteIDs(positionen []Position) []int {
+	ids := make([]int, len(positionen))
+	for i, p := range positionen {
+		ids[i] = p.VarianteID
+	}
+	return ids
+}
+
 // MitPfandKennzeichen sets Pfand on each position whose variant belongs to a Pfand-Produkt.
 func MitPfandKennzeichen(positionen []Position, pfandVarianten map[int]bool) []Position {
 	out := slices.Clone(positionen)

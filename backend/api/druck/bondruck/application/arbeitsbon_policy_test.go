@@ -74,7 +74,7 @@ func TestCreateArbeitsbonAuftraege_ProPosition(t *testing.T) {
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 7")
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege (one per position), got %d", len(auftraege))
@@ -102,7 +102,7 @@ func TestCreateArbeitsbonAuftraege_ProBestellung(t *testing.T) {
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 5")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 5")
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected 1 sammelbon, got %d", len(auftraege))
@@ -121,7 +121,7 @@ func TestCreateArbeitsbonAuftraege_NoDruckerFuerKategorie(t *testing.T) {
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 2")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 2")
 
 	if len(auftraege) != 0 {
 		t.Errorf("expected 0 auftraege (no printer for kategorie), got %d", len(auftraege))
@@ -138,7 +138,7 @@ func TestCreateArbeitsbonAuftraege_ByteIdentischZumFormatter_ProPosition(t *test
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 7")
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege, got %d", len(auftraege))
 	}
@@ -186,7 +186,7 @@ func TestCreateArbeitsbonAuftraege_PositionskommentarNurAnSeinerStation(t *testi
 		"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 7")
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 sammelbons, got %d", len(auftraege))
@@ -218,7 +218,7 @@ func TestCreateArbeitsbonAuftraege_ProPosition_PositionskommentarNurAufSeinemEin
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 7")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 7")
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 einzelbons, got %d", len(auftraege))
@@ -245,7 +245,7 @@ func TestCreateArbeitsbonAuftraege_TischNameStattID(t *testing.T) {
 		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, "Tisch 15")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, konfig, nil, "Tisch 15")
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected 1 auftrag, got %d", len(auftraege))
@@ -276,7 +276,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAnProduktstationen(t *testing.T)
 		"getraenk": {DruckerIP: "192.168.1.52", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 auftraege (one per configured category), got %d", len(auftraege))
@@ -303,7 +303,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProBestellung(t *testin
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_bestellung"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 	if len(auftraege) != 1 {
 		t.Fatalf("expected exactly 1 abholbon auftrag, got %d", len(auftraege))
@@ -335,7 +335,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProPosition(t *testing.
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_position"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 	if len(auftraege) != 2 {
 		t.Fatalf("expected 2 abholbon auftraege (one per position), got %d", len(auftraege))
@@ -363,7 +363,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck(t *testing.T)
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 	if len(auftraege) != 4 {
 		t.Fatalf("expected 4 abholbon auftraege (one per unit), got %d", len(auftraege))
@@ -425,7 +425,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand(t *testing.T)
 			}
 
 			evt := makeDirektverkaufEvent(t, 26, []kasse.Position{bier, pfand}, "")
-			auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+			auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 			erwartet := tt.erwartet(evt)
 			if len(auftraege) != len(erwartet) {
@@ -441,7 +441,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_OhnePfand(t *testing.T)
 			}
 
 			nurPfand := makeDirektverkaufEvent(t, 27, []kasse.Position{pfand}, "")
-			if auftraege := CreateArbeitsbonAuftraegeFromEvent(nurPfand, stationen, ""); len(auftraege) != 0 {
+			if auftraege := CreateArbeitsbonAuftraegeFromEvent(nurPfand, stationen, nil, ""); len(auftraege) != 0 {
 				t.Errorf("expected no auftrag for a Pfand-only sale, got %d", len(auftraege))
 			}
 		})
@@ -456,7 +456,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_Positionskomm
 		"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: "pro_stueck"},
 	}
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, "")
 
 	if len(auftraege) != 3 {
 		t.Fatalf("expected 3 stückbons, got %d", len(auftraege))
@@ -481,7 +481,7 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbon_ProStueck_Positionskomm
 func TestCreateArbeitsbonAuftraege_DirektverkaufOhneStationen(t *testing.T) {
 	evt := makeDirektverkaufEvent(t, 23, []kasse.Position{position("Pommes", "gross", "essen", 1)}, "")
 
-	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{}, "")
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{}, nil, "")
 
 	if len(auftraege) != 0 {
 		t.Errorf("expected 0 auftraege without configured stations, got %d", len(auftraege))
@@ -516,10 +516,154 @@ func TestCreateArbeitsbonAuftraege_DirektverkaufAus(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			auftraege := CreateArbeitsbonAuftraegeFromEvent(tc.evt, tc.stationen, "Tisch 1")
+			auftraege := CreateArbeitsbonAuftraegeFromEvent(tc.evt, tc.stationen, nil, "Tisch 1")
 			if len(auftraege) != tc.want {
 				t.Errorf("expected %d auftraege, got %d", tc.want, len(auftraege))
 			}
 		})
 	}
+}
+
+// variante gives a fixture position its own VarianteID, the key of the Zusatzdrucker-Zuordnung.
+func variante(pos kasse.Position, varianteID int) kasse.Position {
+	pos.VarianteID = varianteID
+	return pos
+}
+
+func sammelbon(evt event.Event, kontext string, positionen ...kasse.Position) string {
+	return base64.StdEncoding.EncodeToString(escpos.FormatSammelBon(positionen, kontext, evt.UserName, evt.Time, ""))
+}
+
+type erwarteterAuftrag struct {
+	zielIP  string
+	payload string
+}
+
+func assertAuftraege(t *testing.T, auftraege []druckstation.NeuerDruckauftrag, referenz string, erwartet []erwarteterAuftrag) {
+	t.Helper()
+	if len(auftraege) != len(erwartet) {
+		t.Fatalf("expected %d auftraege, got %d", len(erwartet), len(auftraege))
+	}
+	for i, auftrag := range auftraege {
+		if auftrag.ZielIP != erwartet[i].zielIP {
+			t.Errorf("auftrag %d: expected ZielIP %s, got %s", i, erwartet[i].zielIP, auftrag.ZielIP)
+		}
+		if auftrag.Payload != erwartet[i].payload {
+			t.Errorf("auftrag %d: unexpected payload %q", i, decodePayload(t, auftrag))
+		}
+		if auftrag.BonArt != druckstation.BonArtArbeitsbon {
+			t.Errorf("auftrag %d: expected BonArt arbeitsbon, got %s", i, auftrag.BonArt)
+		}
+		if auftrag.Referenz != referenz {
+			t.Errorf("auftrag %d: expected referenz %s, got %s", i, referenz, auftrag.Referenz)
+		}
+	}
+}
+
+// Ein zugeordnetes Produkt druckt am Zusatzdrucker, nicht an der Station seiner Kategorie; auch bei
+// gleicher IP bleiben es zwei Aufträge.
+func TestCreateArbeitsbonAuftraege_ZusatzdruckerVorKategorie(t *testing.T) {
+	pommes := variante(position("Pommes", "gross", "essen", 1), 1)
+	kuchen := variante(position("Kuchen", "Stueck", "essen", 2), 2)
+	evt := makeBestellungEvent(t, 50, "kassensitzung-1/tisch-7", []kasse.Position{pommes, kuchen}, "")
+	stationen := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+	}
+	zusatzdrucker := map[int]druckstation.Zusatzdrucker{
+		2: {ID: 1, Name: "Kaffee & Kuchen", DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, "Tisch 7")
+
+	assertAuftraege(t, auftraege, "bestellung-aufgenommen:50", []erwarteterAuftrag{
+		{"192.168.1.51", sammelbon(evt, "Tisch 7", pommes)},
+		{"192.168.1.51", sammelbon(evt, "Tisch 7", kuchen)},
+	})
+}
+
+// Ein Zusatzdrucker ohne IP druckt nichts, und seine Produkte fallen nicht auf die Kategorie zurück.
+func TestCreateArbeitsbonAuftraege_ZusatzdruckerOhneIPOhneRueckfall(t *testing.T) {
+	pommes := variante(position("Pommes", "gross", "essen", 1), 1)
+	kuchen := variante(position("Kuchen", "Stueck", "essen", 1), 2)
+	evt := makeBestellungEvent(t, 51, "kassensitzung-1/tisch-7", []kasse.Position{kuchen, pommes}, "")
+	stationen := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+	}
+	zusatzdrucker := map[int]druckstation.Zusatzdrucker{
+		2: {ID: 1, Name: "Kaffee & Kuchen", DruckerIP: "", Bonmodus: "pro_bestellung"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, "Tisch 7")
+
+	assertAuftraege(t, auftraege, "bestellung-aufgenommen:51", []erwarteterAuftrag{
+		{"192.168.1.51", sammelbon(evt, "Tisch 7", pommes)},
+	})
+}
+
+// pro_bestellung ergibt je Zusatzdrucker einen Sammelbon mit genau seinen Positionen, in der
+// Reihenfolge des ersten Auftretens.
+func TestCreateArbeitsbonAuftraege_ZusatzdruckerSammelbonJeDrucker(t *testing.T) {
+	kuchen := variante(position("Kuchen", "Stueck", "essen", 1), 2)
+	kaffee := variante(position("Kaffee", "Tasse", "getraenk", 2), 3)
+	torte := variante(position("Torte", "Stueck", "essen", 1), 4)
+	evt := makeBestellungEvent(t, 52, "kassensitzung-1/tisch-7", []kasse.Position{kuchen, kaffee, torte}, "")
+	kuchentheke := druckstation.Zusatzdrucker{ID: 1, Name: "Kuchentheke", DruckerIP: "192.168.1.61", Bonmodus: "pro_bestellung"}
+	kaffeebar := druckstation.Zusatzdrucker{ID: 2, Name: "Kaffeebar", DruckerIP: "192.168.1.62", Bonmodus: "pro_bestellung"}
+	zusatzdrucker := map[int]druckstation.Zusatzdrucker{2: kuchentheke, 3: kaffeebar, 4: kuchentheke}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, map[string]druckstation.Druckstation{}, zusatzdrucker, "Tisch 7")
+
+	assertAuftraege(t, auftraege, "bestellung-aufgenommen:52", []erwarteterAuftrag{
+		{"192.168.1.61", sammelbon(evt, "Tisch 7", kuchen, torte)},
+		{"192.168.1.62", sammelbon(evt, "Tisch 7", kaffee)},
+	})
+}
+
+// Im Direktverkauf gelten „Kein Bon" und der Abholbon vor der Zuordnung.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAbholbonIgnoriertZusatzdrucker(t *testing.T) {
+	pommes := variante(position("Pommes", "gross", "essen", 1), 1)
+	kuchen := variante(position("Kuchen", "Stueck", "essen", 1), 2)
+	zusatzdrucker := map[int]druckstation.Zusatzdrucker{
+		2: {ID: 1, Name: "Kaffee & Kuchen", DruckerIP: "192.168.1.61", Bonmodus: "pro_position"},
+	}
+	stationen := func(bonmodus druckstation.Bonmodus) map[string]druckstation.Druckstation {
+		return map[string]druckstation.Druckstation{
+			"essen":    {DruckerIP: "192.168.1.51", Bonmodus: "pro_position"},
+			"abholbon": {DruckerIP: "192.168.1.77", Bonmodus: bonmodus},
+		}
+	}
+
+	t.Run("abholbon", func(t *testing.T) {
+		evt := makeDirektverkaufEvent(t, 53, []kasse.Position{pommes, kuchen}, "")
+		auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen(druckstation.BonmodusProBestellung), zusatzdrucker, "")
+		abholbon := base64.StdEncoding.EncodeToString(escpos.FormatDirektverkaufAbholbon([]kasse.Position{pommes, kuchen}, evt.UserName, evt.Time, ""))
+		assertAuftraege(t, auftraege, "direktverkauf-getaetigt:53", []erwarteterAuftrag{{"192.168.1.77", abholbon}})
+	})
+
+	t.Run("kein bon", func(t *testing.T) {
+		evt := makeDirektverkaufEvent(t, 54, []kasse.Position{pommes, kuchen}, "")
+		if auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen(druckstation.BonmodusKeinBon), zusatzdrucker, ""); len(auftraege) != 0 {
+			t.Errorf("expected no auftrag with kein_bon, got %d", len(auftraege))
+		}
+	})
+}
+
+// Ohne Abholbon druckt ein zugeordnetes Produkt im Direktverkauf am Zusatzdrucker.
+func TestCreateArbeitsbonAuftraege_DirektverkaufAmZusatzdrucker(t *testing.T) {
+	pommes := variante(position("Pommes", "gross", "essen", 1), 1)
+	kuchen := variante(position("Kuchen", "Stueck", "essen", 1), 2)
+	evt := makeDirektverkaufEvent(t, 55, []kasse.Position{kuchen, pommes}, "")
+	stationen := map[string]druckstation.Druckstation{
+		"essen": {DruckerIP: "192.168.1.51", Bonmodus: "pro_bestellung"},
+	}
+	zusatzdrucker := map[int]druckstation.Zusatzdrucker{
+		2: {ID: 1, Name: "Kaffee & Kuchen", DruckerIP: "192.168.1.61", Bonmodus: "pro_position"},
+	}
+
+	auftraege := CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, "")
+
+	assertAuftraege(t, auftraege, "direktverkauf-getaetigt:55", []erwarteterAuftrag{
+		{"192.168.1.61", base64.StdEncoding.EncodeToString(escpos.FormatPositionBon(kuchen, "Direktverkauf", evt.UserName, evt.Time, ""))},
+		{"192.168.1.51", sammelbon(evt, "Direktverkauf", pommes)},
+	})
 }

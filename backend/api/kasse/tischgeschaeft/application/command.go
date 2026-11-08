@@ -44,6 +44,7 @@ type produktRepo interface {
 
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
+	GetZusatzdruckerJeVariante(ctx context.Context, varianteIDs []int) (map[int]druckstation.Zusatzdrucker, error)
 }
 
 type Command struct {
@@ -121,8 +122,14 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 		return ErrDatabase
 	}
 
+	zusatzdrucker, err := c.DruckstationRepo.GetZusatzdruckerJeVariante(ctx, kasse.VarianteIDs(positionen))
+	if err != nil {
+		log.Error("Failed to load zusatzdrucker for arbeitsbon", "error", err, "tisch_id", tischID)
+		return ErrDatabase
+	}
+
 	buildAuftraege := func(stored event.Event) []druckstation.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, tischName)
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, tischName)
 	}
 
 	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird deshalb erst
@@ -422,11 +429,7 @@ func (c Command) zahlungVerrechnet(ctx context.Context, zahlung event.Event, tis
 
 // mitPfandKennzeichen: the Zahlung is the Beleg, so it freezes the Pfand flag the product carries now.
 func (c Command) mitPfandKennzeichen(ctx context.Context, positionen []kasse.Position, tischID int) ([]kasse.Position, error) {
-	varianteIDs := make([]int, len(positionen))
-	for i, p := range positionen {
-		varianteIDs[i] = p.VarianteID
-	}
-	pfandVarianten, err := c.ProduktRepo.GetPfandVarianten(ctx, varianteIDs)
+	pfandVarianten, err := c.ProduktRepo.GetPfandVarianten(ctx, kasse.VarianteIDs(positionen))
 	if err != nil {
 		logging.FromContext(ctx).Error("Failed to read the pfand flag of the paid positions", "error", err, "tisch_id", tischID)
 		return nil, ErrDatabase

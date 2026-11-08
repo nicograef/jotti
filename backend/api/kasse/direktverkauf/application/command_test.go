@@ -108,8 +108,9 @@ func (s *spyEventRepo) GetPfandrueckgabeStornierung(_ context.Context, _ string)
 }
 
 type mockDruckstationRepo struct {
-	konfig map[string]druckstation.Druckstation
-	err    error
+	konfig        map[string]druckstation.Druckstation
+	zusatzdrucker map[int]druckstation.Zusatzdrucker // keyed by VarianteID
+	err           error
 }
 
 func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context) (map[string]druckstation.Druckstation, error) {
@@ -117,6 +118,13 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 		return nil, m.err
 	}
 	return m.konfig, nil
+}
+
+func (m *mockDruckstationRepo) GetZusatzdruckerJeVariante(_ context.Context, _ []int) (map[int]druckstation.Zusatzdrucker, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.zusatzdrucker, nil
 }
 
 func newProductMock() produktRepo {

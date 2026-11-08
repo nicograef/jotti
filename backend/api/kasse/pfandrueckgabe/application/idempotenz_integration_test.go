@@ -96,6 +96,10 @@ func (keineDruckstationen) GetKonfigurierteDruckstationen(context.Context) (map[
 	return nil, nil
 }
 
+func (keineDruckstationen) GetZusatzdruckerJeVariante(context.Context, []int) (map[int]druckstation.Zusatzdrucker, error) {
+	return map[int]druckstation.Zusatzdrucker{}, nil
+}
+
 // newDirektverkaufCommand books a Direktverkauf with settled Pfand, the partner a pure Rückgabe must not match.
 func newDirektverkaufCommand(db *sql.DB) direktverkaufApp.Command {
 	return direktverkaufApp.Command{

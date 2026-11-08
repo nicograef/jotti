@@ -103,7 +103,7 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 			tischName = tischNamen[tischID]
 		}
 
-		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, tischName) {
+		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, tischName) {
 			zeilen = append(zeilen, b.zeile(auftrag, evt.Time))
 		}
 

@@ -35,6 +35,7 @@ type produktRepo interface {
 
 type druckstationRepo interface {
 	GetKonfigurierteDruckstationen(ctx context.Context) (map[string]druckstation.Druckstation, error)
+	GetZusatzdruckerJeVariante(ctx context.Context, varianteIDs []int) (map[int]druckstation.Zusatzdrucker, error)
 }
 
 type Command struct {
@@ -78,8 +79,14 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 		return ErrDatabase
 	}
 
+	zusatzdrucker, err := c.DruckstationRepo.GetZusatzdruckerJeVariante(ctx, kasse.VarianteIDs(positionen))
+	if err != nil {
+		log.Error("Failed to load zusatzdrucker for direktverkauf", "error", err)
+		return ErrDatabase
+	}
+
 	buildAuftraege := func(stored event.Event) []druckstation.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, "")
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, "")
 	}
 
 	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeDirektverkauf, BuildAuftraege: buildAuftraege}}
