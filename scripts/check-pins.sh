@@ -12,7 +12,8 @@
 # windows/**/*.go, the packageManager and prettier fields of frontend, website
 # and e2e, and the typescript field of frontend and e2e. website stays on
 # TypeScript 6: astro check refuses TypeScript 7. The golang image and every go
-# directive (go.mod, go.work) share one Go minor.
+# directive (go.mod, go.work) share one Go minor. POSTGRES_WINDOWS_VERSION in
+# scripts/einzeldatei-assets.sh equals the postgres image tag.
 # jotti's own images (ghcr.io/nicograef/jotti-*) are exempt: their tag follows the
 # release on purpose. The tag is compared up to the first "-", so
 # caddy:2.11.4-builder and caddy:2.11.4 are one version; a digest pin counts as
@@ -272,6 +273,37 @@ check_go_minor() {
 }
 
 check_go_minor
+
+# The single file embeds Postgres for Windows; its version is the postgres image's (D15).
+check_postgres_windows() {
+  local assets="scripts/einzeldatei-assets.sh" want line ref tag mismatches=0 pinned=0
+  want="$(sed -n 's/^POSTGRES_WINDOWS_VERSION="\(.*\)"$/\1/p' "$assets")"
+  if [[ -z "$want" ]]; then
+    error "$assets: no POSTGRES_WINDOWS_VERSION."
+    violations=$((violations + 1))
+    return
+  fi
+  for line in "${pins[@]+"${pins[@]}"}"; do
+    ref="${line%%$'\t'*}"
+    [[ "$(image_name "$ref")" == "postgres" ]] || continue
+    pinned=$((pinned + 1))
+    tag="$(image_tag "$ref")"
+    if [[ "${tag%%-*}" != "$want" ]]; then
+      error "${line#*$'\t'}: postgres $tag, $assets pins POSTGRES_WINDOWS_VERSION $want."
+      mismatches=$((mismatches + 1))
+    fi
+  done
+  if [[ "$pinned" -eq 0 ]]; then
+    error "No postgres image pin to compare POSTGRES_WINDOWS_VERSION $want with."
+    mismatches=1
+  fi
+  violations=$((violations + mismatches))
+  if [[ "$mismatches" -eq 0 ]]; then
+    info "Postgres: $want in every postgres image and in $assets."
+  fi
+}
+
+check_postgres_windows
 
 compare_package_field packageManager "${PACKAGE_JSONS[@]}"
 compare_package_field typescript "${TYPESCRIPT_PACKAGE_JSONS[@]}"
