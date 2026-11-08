@@ -317,11 +317,11 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Die Datei ist höchstens 120 MB groß: `awk -F'\t' '$1=="groesse_bytes"{f=1; exit !($2<=120000000)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
-- [ ] Der erste Start erreicht die Anmeldeseite in höchstens 60 s: `awk -F'\t' '$1=="erststart_s"{f=1; exit !($2<=60)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
-- [ ] Ein späterer Start erreicht sie in höchstens 15 s: `awk -F'\t' '$1=="folgestart_s"{f=1; exit !($2<=15)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
-- [ ] Defender lief mit Echtzeitschutz und hat nichts gemeldet: `awk -F'\t' '$1=="defender_echtzeitschutz"&&$2=="true"{e=1} $1=="defender_funde"&&$2==0{f=1} END{exit !(e&&f)}' /tmp/einzeldatei-messung/messung.tsv`
-- [ ] Das Ergebnis steht als Zeile in den Entscheidungen: `grep -n 'Einzeldatei' docs/decisions.md`
+- [x] Die Datei ist höchstens 120 MB groß: `LC_ALL=C awk -F'\t' '$1=="groesse_bytes"{f=1; exit !($2<=120000000)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
+- [x] Der erste Start erreicht die Anmeldeseite in höchstens 60 s: `LC_ALL=C awk -F'\t' '$1=="erststart_s"{f=1; exit !($2<=60)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
+- [x] Ein späterer Start erreicht sie in höchstens 15 s: `LC_ALL=C awk -F'\t' '$1=="folgestart_s"{f=1; exit !($2<=15)} END{if(!f) exit 1}' /tmp/einzeldatei-messung/messung.tsv`
+- [x] Defender lief mit Echtzeitschutz und hat nichts gemeldet: `LC_ALL=C awk -F'\t' '$1=="defender_echtzeitschutz"&&$2=="true"{e=1} $1=="defender_funde"&&$2==0{f=1} END{exit !(e&&f)}' /tmp/einzeldatei-messung/messung.tsv`
+- [x] Das Ergebnis steht als Zeile in den Entscheidungen: `grep -n 'Einzeldatei' docs/decisions.md`
 
 ## Phase 7: LAN-Modus als importierbares Paket
 
