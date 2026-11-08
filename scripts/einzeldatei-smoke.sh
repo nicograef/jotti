@@ -62,7 +62,9 @@ mode_start() {
       fatal "$exe ended before it served the app."
     fi
     if [[ "$waited" -ge "$TIMEOUT" ]]; then
+      # A file stuck before its Enter prompt would never read the release.
       touch "$release"
+      kill "$EXE_PID" 2>/dev/null || true
       wait "$EXE_PID" || true
       cat "$log" >&2
       fatal "$exe did not serve health and app within ${TIMEOUT}s."

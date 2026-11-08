@@ -24,6 +24,7 @@ type Paths struct {
 	LastVersion string // <Data>\last-version
 	PGData      string // <Data>\pgdata
 	Caddy       string // <Data>\caddy
+	Logs        string // <Data>\logs
 }
 
 // Dateinamen im Datenverzeichnis, die auch der Docker-Starter schreibt.
@@ -45,6 +46,7 @@ func NewPaths(programFiles, programData, version string) Paths {
 		LastVersion: filepath.Join(data, lastVersionFile),
 		PGData:      filepath.Join(data, pgdataDir),
 		Caddy:       filepath.Join(data, "caddy"),
+		Logs:        filepath.Join(data, "logs"),
 	}
 }
 

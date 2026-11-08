@@ -155,7 +155,7 @@ func run(ctx context.Context, enter <-chan struct{}) int {
 		return 1
 	}
 
-	cluster := postgres.Cluster{Bin: paths.PostgresBin, Data: paths.PGData, Port: postgresPort}
+	cluster := postgres.Cluster{Bin: paths.PostgresBin, Data: paths.PGData, Logs: paths.Logs, Port: postgresPort}
 	if !cluster.Initialized() {
 		fmt.Println("Datenbank wird angelegt ...")
 		if err := cluster.Init(cfg.Postgres.User, cfg.Postgres.Password); err != nil {

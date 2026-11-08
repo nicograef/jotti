@@ -15,6 +15,7 @@ import (
 type Cluster struct {
 	Bin  string // Ordner mit initdb, pg_ctl und postgres
 	Data string // Datenverzeichnis (pgdata)
+	Logs string // Ordner für postgres.log und pg_ctl.log
 	Port int
 }
 
@@ -74,22 +75,38 @@ func (c Cluster) Running() bool {
 }
 
 func (c Cluster) logFile() string {
-	return filepath.Join(c.Data, "postgres.log")
+	return filepath.Join(c.Logs, "postgres.log")
 }
 
 func (c Cluster) exe(name string) string {
 	return filepath.Join(c.Bin, name+exeSuffix)
 }
 
+// run schreibt die Ausgabe in eine Datei statt in eine Pipe: Der Postmaster erbt die
+// Ausgabe-Handles von pg_ctl und hielte eine Pipe offen, bis er endet.
 func (c Cluster) run(name string, args ...string) error {
-	cmd := exec.Command(c.exe(name), args...) //nolint:gosec // G204: Pfade der eigenen Ablage
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return fmt.Errorf("%s: %w\n%s", name, err, out)
-		}
-		return fmt.Errorf("%s: %w", name, err)
+	if err := os.MkdirAll(c.Logs, 0o750); err != nil {
+		return err
 	}
-	return nil
+	outPath := filepath.Join(c.Logs, "pg_ctl.log")
+	out, err := os.Create(outPath)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(c.exe(name), args...) //nolint:gosec // G204: Pfade der eigenen Ablage
+	cmd.Stdout = out
+	cmd.Stderr = out
+	runErr := cmd.Run()
+	if err := out.Close(); err != nil && runErr == nil {
+		return err
+	}
+	if runErr == nil {
+		return nil
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(runErr, &exitErr) {
+		return fmt.Errorf("%s: %w", name, runErr)
+	}
+	output, _ := os.ReadFile(outPath)
+	return fmt.Errorf("%s: %w\n%s", name, runErr, output)
 }
