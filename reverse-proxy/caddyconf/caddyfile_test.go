@@ -186,6 +186,39 @@ func TestRenderHTTPOnlyCaddyfile(t *testing.T) {
 	}
 }
 
+// TestRenderLAN_WindowsWerte renders the values of the Windows single file: loopback upstream,
+// backslash paths with a space and an own storage root. Mapped back, the output equals the container's.
+func TestRenderLAN_WindowsWerte(t *testing.T) {
+	container := withState()
+	container.HasState = false
+	windows := container
+	windows.Upstream = "127.0.0.1:13000"
+	windows.AppRoot = `C:\Program Files\jotti\v0.0.1-ci\app`
+	windows.StorageRoot = `C:\ProgramData\jotti\caddy`
+
+	out := RenderLAN(windows)
+
+	wants := []string{
+		"\treverse_proxy 127.0.0.1:13000\n",
+		"\troot * \"C:/Program Files/jotti/v0.0.1-ci/app\"\n",
+		"\tskip_install_trust\n\tstorage file_system C:/ProgramData/jotti/caddy\n}",
+	}
+	for _, want := range wants {
+		if !strings.Contains(out, want) {
+			t.Errorf("Caddyfile enthält %q nicht\n---\n%s", want, out)
+		}
+	}
+
+	back := strings.NewReplacer(
+		"reverse_proxy 127.0.0.1:13000", "reverse_proxy backend:3000",
+		`root * "C:/Program Files/jotti/v0.0.1-ci/app"`, "root * /srv/app",
+		"\n\tstorage file_system C:/ProgramData/jotti/caddy", "",
+	).Replace(out)
+	if want := RenderLAN(container); back != want {
+		t.Errorf("Ausgabe weicht außer Upstream, App-Wurzel und Speicherort vom Container ab\n--- Windows\n%s\n--- Container\n%s", out, want)
+	}
+}
+
 // TestRocksCaddyfileCarriesSameCSP keeps the two CSP copies equal: contentSecurityPolicy
 // and the demo site in Caddyfile.rocks.
 func TestRocksCaddyfileCarriesSameCSP(t *testing.T) {
