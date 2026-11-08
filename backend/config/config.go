@@ -16,6 +16,8 @@ type postgresConfig struct {
 }
 
 type Config struct {
+	// ListenHost leer heißt: alle Schnittstellen.
+	ListenHost     string
 	Port           int
 	Postgres       postgresConfig
 	JWTSecret      string

@@ -2,25 +2,18 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
-	"time"
-
-	"database/sql"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/nicograef/jotti/backend/app"
-	"github.com/nicograef/jotti/backend/bootstrap"
 	"github.com/nicograef/jotti/backend/config"
 	dbpkg "github.com/nicograef/jotti/backend/db"
 	"github.com/nicograef/jotti/backend/internal/logging"
-	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
-	"github.com/nicograef/jotti/backend/repository/user_repo"
 	"github.com/nicograef/jotti/backend/seed"
 )
 
@@ -34,18 +27,9 @@ func main() {
 
 	psqlconn := dbpkg.ConnString(cfg.Postgres.Host, strconv.Itoa(cfg.Postgres.Port), cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName)
 
-	db, err := sql.Open("pgx", psqlconn)
+	db, err := dbpkg.Open(context.Background(), psqlconn)
 	if err != nil {
 		fatal("Failed to connect to Postgres", "error", err)
-	}
-
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetMaxOpenConns(50)
-	db.SetMaxIdleConns(10)
-
-	// Begrenzt auf die Datenbank warten (Boot-Reihenfolge nach Stromausfall), statt sofort zu sterben.
-	if err := dbpkg.PingWithRetry(db.Ping, 30*time.Second, time.Second, time.Sleep); err != nil {
-		fatal("Failed to ping Postgres", "error", err)
 	}
 
 	slog.Info("Connected to database")
@@ -77,34 +61,10 @@ func run(cfg config.Config, db *sql.DB) error {
 		}
 	}()
 
-	// A migration may empty tisch_sessions (03 does); without the rebuild a table would lose its open positions.
-	count, err := kassenjournal_repo.NewRepository(db).RebuildAllProjections(context.Background())
-	if err != nil {
-		return fmt.Errorf("rebuild projections: %w", err)
-	}
-	slog.Info("Projections rebuilt", "subjects", count)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	// Der Klartext-Code des Einmalpassworts landet im Log-Strom.
-	repo := user_repo.NewRepository(db)
-	res, err := bootstrap.EnsureInitialAdmin(context.Background(), repo)
-	if err != nil {
-		return fmt.Errorf("bootstrap initial admin: %w", err)
-	}
-	res.Log(slog.Default())
-
-	a := app.NewApp(cfg, db, version)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		cancel()
-	}()
-
-	return a.Run(ctx)
+	return app.Serve(ctx, cfg, db, version)
 }
 
 func seedDemodaten(db *sql.DB) error {

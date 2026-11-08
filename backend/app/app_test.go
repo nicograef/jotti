@@ -144,3 +144,20 @@ func TestRun_ContextCancellation(t *testing.T) {
 		t.Errorf("Run() returned error: %v", err)
 	}
 }
+
+func TestNewApp_ListenAddr(t *testing.T) {
+	cases := []struct {
+		host string
+		port int
+		want string
+	}{
+		{"", 3000, ":3000"},
+		{"127.0.0.1", 13000, "127.0.0.1:13000"},
+	}
+	for _, c := range cases {
+		cfg := config.Config{ListenHost: c.host, Port: c.port}
+		if got := NewApp(cfg, &sql.DB{}, "dev").Server.Addr; got != c.want {
+			t.Errorf("ListenHost %q, Port %d: Addr = %q, want %q", c.host, c.port, got, c.want)
+		}
+	}
+}

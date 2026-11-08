@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api"
@@ -24,7 +26,7 @@ type App struct {
 func NewApp(cfg config.Config, db *sql.DB, version string) *App {
 	router := SetupRoutes(cfg, db, version)
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Addr:         net.JoinHostPort(cfg.ListenHost, strconv.Itoa(cfg.Port)),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -80,7 +82,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	errChan := make(chan error, 1)
 	go func() {
-		slog.Info("Starting server", "port", app.Config.Port)
+		slog.Info("Starting server", "addr", app.Server.Addr)
 		if err := app.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		}

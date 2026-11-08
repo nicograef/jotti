@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	_ "github.com/jackc/pgx/v5/stdlib" // registriert den Treiber "pgx" für Open
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
@@ -94,6 +95,26 @@ func ConnString(host, port, user, password, dbname string) string {
 
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		quote(host), quote(port), quote(user), quote(password), quote(dbname))
+}
+
+// Open opens the pgx pool and waits up to 30 s for the database (boot order after a power cut) instead of failing at once.
+func Open(ctx context.Context, connString string) (*sql.DB, error) {
+	database, err := sql.Open("pgx", connString)
+	if err != nil {
+		return nil, fmt.Errorf("open postgres: %w", err)
+	}
+
+	database.SetConnMaxLifetime(5 * time.Minute)
+	database.SetMaxOpenConns(50)
+	database.SetMaxIdleConns(10)
+
+	ping := func() error { return database.PingContext(ctx) }
+	if err := PingWithRetry(ping, 30*time.Second, time.Second, time.Sleep); err != nil {
+		_ = database.Close()
+		return nil, fmt.Errorf("ping postgres: %w", err)
+	}
+
+	return database, nil
 }
 
 // PingWithRetry calls ping until it succeeds or budget/interval attempts (at least one) are used up.
