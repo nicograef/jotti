@@ -60,6 +60,21 @@ updates:
         patterns:
           - '*'
 
+  # Caddy and its two modules stay on the versions reverse-proxy/Dockerfile builds; they
+  # are bumped by hand with the caddy image bump of the docker group below.
+  - package-ecosystem: 'gomod'
+    directory: '/windows/einzeldatei'
+    schedule:
+      interval: 'monthly'
+    groups:
+      einzeldatei-gomod:
+        patterns:
+          - '*'
+    ignore:
+      - dependency-name: 'github.com/caddyserver/caddy/v2'
+      - dependency-name: 'github.com/caddy-dns/acmedns'
+      - dependency-name: 'github.com/mholt/caddy-ratelimit'
+
   # scripts/check-pins.sh requires one prettier and one typescript version across
   # frontend and e2e, so group-by bumps each of them in both in one PR.
   - package-ecosystem: 'npm'
