@@ -3,6 +3,7 @@ package application
 import (
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -541,22 +542,21 @@ type erwarteterAuftrag struct {
 
 func assertAuftraege(t *testing.T, auftraege []druckstation.NeuerDruckauftrag, referenz string, erwartet []erwarteterAuftrag) {
 	t.Helper()
-	if len(auftraege) != len(erwartet) {
-		t.Fatalf("expected %d auftraege, got %d", len(erwartet), len(auftraege))
-	}
-	for i, auftrag := range auftraege {
-		if auftrag.ZielIP != erwartet[i].zielIP {
-			t.Errorf("auftrag %d: expected ZielIP %s, got %s", i, erwartet[i].zielIP, auftrag.ZielIP)
-		}
-		if auftrag.Payload != erwartet[i].payload {
-			t.Errorf("auftrag %d: unexpected payload %q", i, decodePayload(t, auftrag))
-		}
+	got := make([]erwarteterAuftrag, 0, len(auftraege))
+	for _, auftrag := range auftraege {
 		if auftrag.BonArt != druckstation.BonArtArbeitsbon {
-			t.Errorf("auftrag %d: expected BonArt arbeitsbon, got %s", i, auftrag.BonArt)
+			t.Errorf("expected BonArt arbeitsbon, got %s", auftrag.BonArt)
 		}
 		if auftrag.Referenz != referenz {
-			t.Errorf("auftrag %d: expected referenz %s, got %s", i, referenz, auftrag.Referenz)
+			t.Errorf("expected referenz %s, got %s", referenz, auftrag.Referenz)
 		}
+		got = append(got, erwarteterAuftrag{zielIP: auftrag.ZielIP, payload: auftrag.Payload})
+	}
+	if !slices.Equal(got, erwartet) {
+		for _, auftrag := range auftraege {
+			t.Logf("got %s: %q", auftrag.ZielIP, decodePayload(t, auftrag))
+		}
+		t.Fatalf("expected %d auftraege in order, got %d different ones", len(erwartet), len(auftraege))
 	}
 }
 
