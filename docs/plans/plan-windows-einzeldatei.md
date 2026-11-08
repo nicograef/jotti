@@ -185,9 +185,9 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Das Proxy-Modul besteht sein Gate: `make check-local-proxy`
-- [ ] Loopback-Upstream, App-Wurzel mit Leerzeichen und Speicherort rendern wie erwartet: `cd reverse-proxy && go test -count=1 -run '^TestRenderLAN_WindowsWerte$' -v ./caddyconf/ | grep -- '--- PASS: TestRenderLAN_WindowsWerte '`
-- [ ] Das Image baut mit dem Unterpaket, und der HTTP-only-Modus der E2E-Suite läuft unverändert: `E2E_STACK_PORT=8094 E2E_STACK_PROJECT=jotti-e2e-einzeldatei-2 make test-e2e`
+- [x] Das Proxy-Modul besteht sein Gate: `make check-local-proxy`
+- [x] Loopback-Upstream, App-Wurzel mit Leerzeichen und Speicherort rendern wie erwartet: `cd reverse-proxy && go test -count=1 -run '^TestRenderLAN_WindowsWerte$' -v ./caddyconf/ | grep -- '--- PASS: TestRenderLAN_WindowsWerte '`
+- [x] Das Image baut mit dem Unterpaket, und der HTTP-only-Modus der E2E-Suite läuft unverändert: `E2E_STACK_PORT=8094 E2E_STACK_PROJECT=jotti-e2e-einzeldatei-2 make test-e2e`
 
 ## Phase 3: Hostfunktionen des Starters als Paket
 
