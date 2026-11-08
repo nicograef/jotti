@@ -37,5 +37,5 @@ Der Qualitäts-Durchgang über das ganze Repo (Waves 1 bis 5, Basis `eb16138a`) 
 | 5 Abschluss | — | landed | Dependabot 08811709, 19d2c26c und c4b5db24 (`@hookform/resolvers` 7), Folgebefunde a8eeede3 |
 | F1 #145 Kommentar je Position | plan/kommentar-je-position | landed | fca378c1, D22 |
 | F2 Auto-Pfand je Variante | plan/auto-pfand-je-variante | landed | 37ebe4c0, Migration 18, D23 |
-| F3 Zusatzdrucker | plan/zusatzdrucker | running | Migration 19 |
-| F4 Windows-Einzeldatei Stufe 1 | plan/windows-einzeldatei | waiting | Phasen 1 bis 6 |
+| F3 Zusatzdrucker | plan/zusatzdrucker | landed | 2aaad487, Migration 19, D24 |
+| F4 Windows-Einzeldatei Stufe 1 | plan/windows-einzeldatei | running | Phasen 1 bis 6 |
