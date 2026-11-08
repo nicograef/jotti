@@ -6,9 +6,9 @@ CLASS_developer := init hooks up up-attached down restart logs status \
 	test test-frontend test-integration test-tse-live test-tse-live-setup test-all test-e2e fuzz \
 	lint-backend lint-backend-full lint-frontend lint-e2e lint-website lint fmt-backend fmt-frontend fmt-repo fmt \
 	build-backend build-relay build-resolver build-local-proxy build-starter-windows build-relay-windows \
-	starter-syso release-windows build-frontend build sqlc \
+	build-einzeldatei-windows starter-syso einzeldatei-syso release-windows build-frontend build sqlc \
 	local-up local-down local-logs db-shell seed clean \
-	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-resolver \
+	check-tools check-tools-integration check-backend check-sqlc check-relay check-starter check-einzeldatei check-resolver \
 	check-local-proxy check-format check-frontend check-e2e check-shell check-workflows check-repo crm \
 	check-govulncheck check-audit check-vuln check-integration check check-full verify \
 	website-dev website-build website-test website-check website-screenshots help
@@ -145,8 +145,15 @@ build-starter-windows: ## Windows-Starter (jotti-start.exe) cross-kompilieren (V
 build-relay-windows: ## Windows-Relay (jotti-relay.exe) cross-kompilieren (VERSION=… für die Versionszeile)
 	cd windows/relay && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti-relay.exe .
 
+build-einzeldatei-windows: ## Windows-Einzeldatei (jotti.exe) mit Postgres, App und Migrationen cross-kompilieren (VERSION=…)
+	VERSION="$(VERSION)" ./scripts/einzeldatei-assets.sh
+	cd windows/einzeldatei && GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o jotti.exe .
+
 starter-syso: ## Windows-Manifest (rsrc_windows_amd64.syso) aus jotti-start.manifest neu erzeugen (selten noetig)
 	cd windows/starter && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti-start.manifest -arch amd64 -o rsrc_windows_amd64.syso
+
+einzeldatei-syso: ## Windows-Manifest der Einzeldatei (rsrc_windows_amd64.syso) aus jotti.manifest neu erzeugen (selten noetig)
+	cd windows/einzeldatei && go run github.com/akavel/rsrc@v0.10.2 -manifest jotti.manifest -arch amd64 -o rsrc_windows_amd64.syso
 
 release-windows: build-starter-windows build-relay-windows ## Release-ZIP (Exes + Release-Compose + Doku) unter dist/ bauen (VERSION=… setzen; baut KEINE Images)
 	rm -rf "$(RELEASE_DIR)"
@@ -305,6 +312,9 @@ check-relay: ## Print-Relay komplett prüfen (Deps, Format, Lint, Vet, Test, Bui
 check-starter: ## Windows-Starter komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd windows/starter && $(go-module-check)
 
+check-einzeldatei: ## Windows-Einzeldatei komplett prüfen (Deps, Format, Lint, Vet, Test, Build, Vet für Windows)
+	cd windows/einzeldatei && $(go-module-check) && GOOS=windows go vet ./...
+
 check-resolver: ## DNS-Resolver komplett prüfen (Deps, Format, Lint, Vet, Test, Build)
 	cd resolver && $(go-module-check)
 
@@ -349,7 +359,7 @@ crm: ## Privates Vereinsregister in .crm/ prüfen, docs/feldfeedback.md daraus e
 # GOWORK=off scans each module at its own go.mod versions, as its Docker image builds it:
 # the workspace would raise them to the highest any module requires.
 GOVULNCHECK := GOWORK=off go -C backend tool govulncheck
-GO_MODULES ?= backend resolver reverse-proxy windows/relay windows/starter
+GO_MODULES ?= backend resolver reverse-proxy windows/relay windows/starter windows/einzeldatei
 AUDIT_PROJECTS ?= frontend website
 
 check-govulncheck: ## Go-Module auf erreichbare Schwachstellen prüfen (govulncheck, braucht Netz; GO_MODULES=… grenzt ein)
@@ -369,7 +379,7 @@ check-vuln: check-govulncheck check-audit ## Schwachstellen-Scans wie security-s
 check-integration: check-tools-integration ## Integrationstests gegen echte Datenbank ausführen
 	./scripts/test-integration.sh
 
-check: check-tools check-backend check-sqlc check-relay check-starter check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo check-vuln ## Komplettprüfung ohne DB-Integration (Schwachstellen-Scans brauchen Netz)
+check: check-tools check-backend check-sqlc check-relay check-starter check-einzeldatei check-resolver check-local-proxy check-frontend website-check check-e2e check-shell check-workflows check-repo check-vuln ## Komplettprüfung ohne DB-Integration (Schwachstellen-Scans brauchen Netz)
 
 check-full: check check-integration ## Vollständige Prüfung inkl. Integrationstests
 

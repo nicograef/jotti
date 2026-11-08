@@ -28,6 +28,9 @@ type Config struct {
 
 const MinSecretLength = 16
 
+// DefaultFiskalyBaseURL ist die produktive fiskaly-API, wenn FISKALY_BASE_URL fehlt.
+const DefaultFiskalyBaseURL = "https://kassensichv-middleware.fiskaly.com"
+
 // placeholderSecrets sind die öffentlich im Repo stehenden Beispielwerte aus
 // .env.example plus das erratbare Postgres-Passwort "admin": ein bekanntes Secret
 // heißt JWT-Forgery und damit Auth-Bypass, deshalb harte Ablehnung.
@@ -55,7 +58,7 @@ func Load() Config {
 		Postgres:       postgres,
 		JWTSecret:      os.Getenv("JWT_SECRET"),
 		RelayToken:     os.Getenv("RELAY_AUTH_TOKEN"),
-		FiskalyBaseURL: parseEnvString("FISKALY_BASE_URL", "https://kassensichv-middleware.fiskaly.com"),
+		FiskalyBaseURL: parseEnvString("FISKALY_BASE_URL", DefaultFiskalyBaseURL),
 		EnableTestApi:  os.Getenv("JOTTI_ENABLE_TEST_API") == "1",
 	}
 

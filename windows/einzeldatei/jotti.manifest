@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  requireAdministrator: jotti.exe schreibt nach %ProgramFiles% und startet Postgres
+  und Caddy auf den Ports 80 und 443. Ein Doppelklick loest eine UAC-Abfrage aus.
+
+  Aus dieser XML erzeugt `rsrc` das eingecheckte rsrc_windows_amd64.syso
+  (Makefile-Ziel `einzeldatei-syso`); der Go-Linker bindet es nur bei windows/amd64-Builds ein.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="amd64" name="jotti.einzeldatei" type="win32" />
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>

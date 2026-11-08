@@ -4,6 +4,7 @@ use (
 	./backend
 	./resolver
 	./reverse-proxy
+	./windows/einzeldatei
 	./windows/relay
 	./windows/starter
 )

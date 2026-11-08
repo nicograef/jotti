@@ -39,6 +39,9 @@ a.out
 /windows/relay/relay
 /resolver/resolver
 /reverse-proxy/reverse-proxy
+# Assets of jotti.exe (scripts/einzeldatei-assets.sh); .gitkeep keeps the embed valid
+/windows/einzeldatei/assets/files/*
+!/windows/einzeldatei/assets/files/.gitkeep
 
 # ── Logs ─────────────────────────────────────────────────────────────────────
 logs
