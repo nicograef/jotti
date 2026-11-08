@@ -19,7 +19,7 @@ type Paths struct {
 	Program     string // %ProgramFiles%\jotti\<version>
 	PostgresBin string // <Program>\postgres\bin
 	App         string // <Program>\app
-	Data        string // %PROGRAMDATA%\jotti
+	Data        string // core.StateDir(): %PROGRAMDATA%\jotti
 	Env         string // <Data>\.env
 	LastVersion string // <Data>\last-version
 	PGData      string // <Data>\pgdata
@@ -33,10 +33,10 @@ const (
 	pgdataDir       = "pgdata"
 )
 
-// Paths leitet alle Pfade aus %ProgramFiles%, %PROGRAMDATA% und der Version ab.
-func NewPaths(programFiles, programData, version string) Paths {
+// NewPaths leitet alle Pfade aus %ProgramFiles%, dem Datenverzeichnis und der Version ab.
+// data kommt aus core.StateDir(), damit Starter und Einzeldatei dasselbe Verzeichnis prüfen.
+func NewPaths(programFiles, data, version string) Paths {
 	program := filepath.Join(programFiles, "jotti", version)
-	data := filepath.Join(programData, "jotti")
 	return Paths{
 		Program:     program,
 		PostgresBin: filepath.Join(program, "postgres", "bin"),

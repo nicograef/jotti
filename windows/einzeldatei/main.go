@@ -19,8 +19,11 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/nicograef/jotti/backend/app"
@@ -48,47 +51,68 @@ const (
 	healthURL    = "https://127.0.0.1/api/health"
 )
 
-// healthTimeout deckt den ersten Start ab: Entpacken, initdb, Migrationen und das erste Zertifikat.
+// healthTimeout deckt den Start von Backend und Caddy samt erstem Zertifikat ab.
 const healthTimeout = 3 * time.Minute
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	enter := enterPressed(os.Stdin)
+	// Schließen des Konsolenfensters kommt unter Windows als SIGTERM an; Windows lässt
+	// dann einige Sekunden, um Caddy, Backend und Postgres zu beenden.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	enter := watchEnter(os.Stdin)
 	code := run(ctx, enter)
 	stop()
 	if code != 0 {
 		// Ein per Doppelklick geöffnetes Fenster schließt beim Exit; die Meldung bleibt bis Enter lesbar.
 		fmt.Println("\nEnter schliesst dieses Fenster.")
 		select {
-		case <-enter:
+		case <-enter.Pressed():
 		case <-ctx.Done():
 		}
 	}
 	os.Exit(code)
 }
 
-// enterPressed meldet jede Zeile auf stdin; ein geschlossenes stdin zählt wie Enter.
-func enterPressed(r io.Reader) <-chan struct{} {
-	ch := make(chan struct{}, 1)
+// enterKey meldet Zeilen auf stdin erst, nachdem Pressed() aufgerufen wurde: Enter
+// während des minutenlangen ersten Starts beendet jotti nicht gleich nach dem Start.
+type enterKey struct {
+	armed   atomic.Bool
+	pressed chan struct{}
+}
+
+// watchEnter liest stdin bis zum Ende; ein geschlossenes stdin zählt wie Enter.
+func watchEnter(r io.Reader) *enterKey {
+	k := &enterKey{pressed: make(chan struct{}, 1)}
 	go func() {
 		scanner := bufio.NewScanner(r)
 		for scanner.Scan() {
-			ch <- struct{}{}
+			if k.armed.Load() {
+				select {
+				case k.pressed <- struct{}{}:
+				default:
+				}
+			}
 		}
-		close(ch)
+		close(k.pressed)
 	}()
-	return ch
+	return k
 }
 
-func run(ctx context.Context, enter <-chan struct{}) int {
+// Pressed schaltet die Taste scharf: Nur Enter nach diesem Aufruf zählt.
+func (k *enterKey) Pressed() <-chan struct{} {
+	k.armed.Store(true)
+	return k.pressed
+}
+
+func run(ctx context.Context, enter *enterKey) int {
 	fmt.Printf("jotti %s\n\n", version)
 
-	programFiles, programData := os.Getenv("ProgramFiles"), os.Getenv("PROGRAMDATA")
-	if programFiles == "" || programData == "" {
+	programFiles := os.Getenv("ProgramFiles")
+	dataDir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), "")
+	if programFiles == "" || dataDir == "" {
 		fmt.Println("Diese Datei laeuft nur unter Windows (ProgramFiles und PROGRAMDATA fehlen).")
 		return 1
 	}
-	paths := layout.NewPaths(programFiles, programData, version)
+	paths := layout.NewPaths(programFiles, dataDir, version)
 
 	if err := host.PrepareStateDir(paths.Data); err != nil {
 		fmt.Println(err)
@@ -216,7 +240,7 @@ func prepareDatabase(ctx context.Context, cfg config.Config, files fs.FS) (*sql.
 }
 
 // serve startet Backend und Caddy, wartet auf Enter und beendet Caddy vor dem Backend.
-func serve(ctx context.Context, enter <-chan struct{}, cfg config.Config, db *sql.DB, paths layout.Paths) int {
+func serve(ctx context.Context, enter *enterKey, cfg config.Config, db *sql.DB, paths layout.Paths) int {
 	backendCtx, stopBackend := context.WithCancel(context.Background())
 	defer stopBackend()
 	backendDone := make(chan error, 1)
@@ -247,9 +271,10 @@ func serve(ctx context.Context, enter <-chan struct{}, cfg config.Config, db *sq
 		if err := writePrivate(paths.LastVersion, []byte(version+"\n")); err != nil {
 			fmt.Printf("Hinweis: Versionsmarker konnte nicht geschrieben werden (%v).\n", err)
 		}
+		pressed := enter.Pressed()
 		fmt.Println("\njotti laeuft: https://127.0.0.1")
 		fmt.Println("Enter beendet jotti.")
-		code = waitForEnd(ctx, enter, backendDone, proxyDone)
+		code = waitForEnd(ctx, pressed, backendDone, proxyDone)
 	case err := <-backendDone:
 		fmt.Printf("Backend beendet: %v\n", err)
 		backendDone <- err
