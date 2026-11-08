@@ -105,6 +105,14 @@ func run(ctx context.Context, enter <-chan struct{}) int {
 		fmt.Println("  Bitte weiter jotti-start.exe aus dem ZIP nutzen: https://github.com/nicograef/jotti/releases/latest")
 		return 1
 	}
+	// Eigene DACL ohne den angemeldeten Benutzer: pgdata und Caddys CA-Schlüssel ließen ihn
+	// sonst Code als Administrator ausführen. Postgres schreibt pgdata und logs als Prozessbenutzer.
+	for _, dir := range []string{paths.PGData, paths.Logs, paths.Caddy} {
+		if err := host.PreparePrivateDir(dir); err != nil {
+			fmt.Printf("Start verweigert: %v\n", err)
+			return 1
+		}
+	}
 
 	created, err := core.MaterializeEnv(paths.Env, fileExists, writePrivate)
 	if err != nil {

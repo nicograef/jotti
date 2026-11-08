@@ -98,36 +98,117 @@ func TestPrepareStateDirACL(t *testing.T) {
 	}
 }
 
-func TestPrepareStateDirRefusesForeignOwner(t *testing.T) {
-	dir := filepath.Join(programDataTempDir(t), "jotti")
-	if err := os.Mkdir(dir, 0o750); err != nil {
-		t.Fatal(err)
+// TestPreparePrivateDirACL prueft die eigene DACL von pgdata unter dem Zustandsverzeichnis:
+// Sie erbt nicht dessen Aenderungsrecht fuer den angemeldeten Benutzer, gibt aber dem
+// Prozessbenutzer Vollzugriff, den Postgres mit eingeschraenktem Token braucht.
+func TestPreparePrivateDirACL(t *testing.T) {
+	process, err := processUserSID()
+	if err != nil {
+		t.Fatalf("processUserSID: %v", err)
 	}
-	setOwner(t, dir, sidUsers)
+	wantDir := []ace{
+		{aceTypeAllowed, aceFlagsDirInherit, maskFullAccess, "S-1-5-18"},
+		{aceTypeAllowed, aceFlagsDirInherit, maskFullAccess, "S-1-5-32-544"},
+		{aceTypeAllowed, aceFlagsDirInherit, maskFullAccess, process},
+	}
+	wantFile := []ace{
+		{aceTypeAllowed, aceFlagInherited, maskFullAccess, "S-1-5-18"},
+		{aceTypeAllowed, aceFlagInherited, maskFullAccess, "S-1-5-32-544"},
+		{aceTypeAllowed, aceFlagInherited, maskFullAccess, process},
+	}
 
-	err := PrepareStateDir(dir)
-	if err == nil || !strings.Contains(err.Error(), "gehoert") {
-		t.Fatalf("PrepareStateDir = %v, want refusal for the owner %s", err, sidUsers)
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, dir string)
+	}{
+		{"neuer Ordner", func(*testing.T, string) {}},
+		{"vorhandener Ordner mit der ACL des Zustandsverzeichnisses", func(t *testing.T, dir string) {
+			if err := os.Mkdir(dir, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "PG_VERSION"), []byte("17\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}},
 	}
-	assertUntouched(t, dir)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := filepath.Join(programDataTempDir(t), "jotti")
+			if err := PrepareStateDir(state); err != nil {
+				t.Fatalf("PrepareStateDir: %v", err)
+			}
+			dir := filepath.Join(state, "pgdata")
+			tt.setup(t, dir)
+
+			for range 2 {
+				if err := PreparePrivateDir(dir); err != nil {
+					t.Fatalf("PreparePrivateDir: %v", err)
+				}
+			}
+
+			protected, got := readDACL(t, dir)
+			if !protected {
+				t.Error("DACL von pgdata erbt noch vom Zustandsverzeichnis")
+			}
+			assertACEs(t, dir, got, wantDir)
+
+			conf := filepath.Join(dir, "postgresql.auto.conf")
+			if err := os.WriteFile(conf, []byte("\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, got = readDACL(t, conf)
+			assertACEs(t, conf, got, wantFile)
+		})
+	}
 }
 
-func TestPrepareStateDirRefusesJunction(t *testing.T) {
-	base := programDataTempDir(t)
-	target := filepath.Join(base, "ziel")
-	if err := os.Mkdir(target, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	link := filepath.Join(base, "jotti")
-	if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
-		t.Fatalf("mklink /J: %v: %s", err, out)
-	}
+// prepareFuncs sind die Funktionen, die einen vorgefundenen Ordner nur pruefend uebernehmen.
+var prepareFuncs = []struct {
+	name    string
+	prepare func(dir string) error
+}{
+	{"PrepareStateDir", PrepareStateDir},
+	{"PreparePrivateDir", PreparePrivateDir},
+}
 
-	err := PrepareStateDir(link)
-	if err == nil || !strings.Contains(err.Error(), "kein gewoehnlicher Ordner") {
-		t.Fatalf("PrepareStateDir = %v, want refusal of the junction", err)
+func TestPrepareDirRefusesForeignOwner(t *testing.T) {
+	for _, f := range prepareFuncs {
+		t.Run(f.name, func(t *testing.T) {
+			dir := filepath.Join(programDataTempDir(t), "jotti")
+			if err := os.Mkdir(dir, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			setOwner(t, dir, sidUsers)
+
+			err := f.prepare(dir)
+			if err == nil || !strings.Contains(err.Error(), "gehoert") {
+				t.Fatalf("%s = %v, want refusal for the owner %s", f.name, err, sidUsers)
+			}
+			assertUntouched(t, dir)
+		})
 	}
-	assertUntouched(t, target)
+}
+
+func TestPrepareDirRefusesJunction(t *testing.T) {
+	for _, f := range prepareFuncs {
+		t.Run(f.name, func(t *testing.T) {
+			base := programDataTempDir(t)
+			target := filepath.Join(base, "ziel")
+			if err := os.Mkdir(target, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			link := filepath.Join(base, "jotti")
+			if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+				t.Fatalf("mklink /J: %v: %s", err, out)
+			}
+
+			err := f.prepare(link)
+			if err == nil || !strings.Contains(err.Error(), "kein gewoehnlicher Ordner") {
+				t.Fatalf("%s = %v, want refusal of the junction", f.name, err)
+			}
+			assertUntouched(t, target)
+		})
+	}
 }
 
 func programDataTempDir(t *testing.T) string {

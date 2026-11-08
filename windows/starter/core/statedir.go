@@ -27,3 +27,12 @@ func StateDirOwnerAllowed(owner string, currentUsers []string) bool {
 func StateDirSDDL(userSID string) string {
 	return "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;" + userSID + ")"
 }
+
+// PrivateDirSDDL ist die geschuetzte DACL der Unterordner, deren Inhalt Code als
+// Administrator ausfuehren koennte (pgdata, Caddys CA-Schluessel): Vollzugriff nur fuer
+// SYSTEM, Administratoren und den Prozessbenutzer, nicht fuer den angemeldeten Benutzer.
+// Postgres laeuft mit eingeschraenktem Token, in dem die Administratoren nur noch
+// verweigern; es schreibt allein ueber die SID des Prozessbenutzers.
+func PrivateDirSDDL(processSID string) string {
+	return "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;" + processSID + ")"
+}

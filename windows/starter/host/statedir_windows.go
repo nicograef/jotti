@@ -41,10 +41,62 @@ func PrepareStateDir(dir string) error {
 	if err != nil {
 		return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
 	}
-
-	sd, err := securityDescriptor(core.StateDirSDDL(interactive))
-	if err != nil {
+	err = prepareProtectedDir(dir, core.StateDirSDDL(interactive), []string{interactive, process})
+	var foreign *foreignDirError
+	switch {
+	case errors.As(err, &foreign) && foreign.owner == "":
+		return errors.New(core.DiagnoseZustandsverzeichnisFremd(dir, foreign.Error()))
+	case errors.As(err, &foreign):
+		return errors.New(core.DiagnoseZustandsverzeichnisFremd(dir,
+			"gehoert "+accountName(foreign.owner)+" statt SYSTEM, den Administratoren oder dem angemeldeten Benutzer"))
+	case err != nil:
 		return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
+	}
+	return nil
+}
+
+// PreparePrivateDir legt einen Unterordner des Zustandsverzeichnisses mit eigener,
+// nicht erbender DACL an (core.PrivateDirSDDL). Ein vorgefundener Ordner muss SYSTEM,
+// den Administratoren oder dem Prozessbenutzer gehoeren: Hat der angemeldete Benutzer
+// ihn angelegt, koennte er darin Konfiguration fuer den Postmaster hinterlegt haben.
+func PreparePrivateDir(dir string) error {
+	process, err := processUserSID()
+	if err != nil {
+		return fmt.Errorf("ermitteln des Prozessbenutzers: %w", err)
+	}
+	err = prepareProtectedDir(dir, core.PrivateDirSDDL(process), []string{process})
+	var foreign *foreignDirError
+	switch {
+	case errors.As(err, &foreign) && foreign.owner == "":
+		return fmt.Errorf("%s %s", dir, foreign.Error())
+	case errors.As(err, &foreign):
+		return fmt.Errorf("%s gehoert %s statt SYSTEM, den Administratoren oder %s", dir,
+			accountName(foreign.owner), accountName(process))
+	case err != nil:
+		return fmt.Errorf("setzen der Zugriffsrechte fuer %s: %w", dir, err)
+	}
+	return nil
+}
+
+// foreignDirError meldet einen vorgefundenen Ordner, der nicht uebernommen wird:
+// owner ist der unzulaessige Besitzer, leer bei einer Verknuepfung oder Datei.
+type foreignDirError struct {
+	owner string
+}
+
+func (e *foreignDirError) Error() string {
+	if e.owner == "" {
+		return "ist kein gewoehnlicher Ordner, sondern eine Verknuepfung oder Datei"
+	}
+	return "gehoert " + e.owner
+}
+
+// prepareProtectedDir legt dir mit der DACL aus sddl an oder setzt sie auf einem
+// vorgefundenen Ordner, dessen Besitzer SYSTEM, die Administratoren oder einer von owners ist.
+func prepareProtectedDir(dir, sddl string, owners []string) error {
+	sd, err := securityDescriptor(sddl)
+	if err != nil {
+		return err
 	}
 	defer localFree(sd)
 
@@ -52,30 +104,25 @@ func PrepareStateDir(dir string) error {
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		// Mit der DACL anlegen statt nachtraeglich setzen: kein Zeitfenster, in dem ein
-		// anderer Benutzer eine .env hineinlegen koennte.
+		// anderer Benutzer eine Datei hineinlegen koennte.
 		if err := createDirWithSD(dir, sd); err != nil {
-			return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, fmt.Errorf("anlegen: %w", err)))
+			return fmt.Errorf("anlegen: %w", err)
 		}
 	case err != nil:
-		return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
+		return err
 	case !info.IsDir():
 		// Eine Verknuepfung koennte die Rechtevergabe auf einen Systemordner umlenken.
-		return errors.New(core.DiagnoseZustandsverzeichnisFremd(dir, "ist kein gewoehnlicher Ordner, sondern eine Verknuepfung oder Datei"))
+		return &foreignDirError{}
 	default:
 		owner, err := ownerSID(dir)
 		if err != nil {
-			return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
+			return err
 		}
-		if !core.StateDirOwnerAllowed(owner, []string{interactive, process}) {
-			return errors.New(core.DiagnoseZustandsverzeichnisFremd(dir,
-				"gehoert "+accountName(owner)+" statt SYSTEM, den Administratoren oder dem angemeldeten Benutzer"))
+		if !core.StateDirOwnerAllowed(owner, owners) {
+			return &foreignDirError{owner: owner}
 		}
 	}
-
-	if err := setProtectedDACL(dir, sd); err != nil {
-		return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
-	}
-	return nil
+	return setProtectedDACL(dir, sd)
 }
 
 // stateDirUsers liefert den in dieser Sitzung angemeldeten Benutzer und den Benutzer
