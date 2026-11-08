@@ -199,7 +199,7 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 			if v.PfandVarianteID == 0 {
 				continue
 			}
-			_, err := qtx.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
+			res, err := qtx.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
 				ID:              v.ID,
 				Name:            v.Name,
 				PreisCents:      v.PreisCents,
@@ -207,7 +207,7 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 				UpdatedAt:       jetzt,
 				PfandVarianteID: sql.NullInt32{Int32: int32(v.PfandVarianteID), Valid: true},
 			})
-			if err != nil {
+			if err := genauEineZeile(res, err); err != nil {
 				return fmt.Errorf("pfand-verknüpfung variante %d: %w", v.ID, err)
 			}
 		}
@@ -273,26 +273,35 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 }
 
 // writeZusatzdrucker legt den Zusatzdrucker über die Queries der Admin-Seite an und ordnet ihm seine Produkte zu.
-func writeZusatzdrucker(ctx context.Context, qtx *dbgen.Queries, zd zusatzdruckerKonfig) error {
-	if _, err := druckstation.NewZusatzdrucker(zd.Name, zd.DruckerIP, zd.Bonmodus); err != nil {
-		return fmt.Errorf("zusatzdrucker %q: %w", zd.Name, err)
+func writeZusatzdrucker(ctx context.Context, qtx *dbgen.Queries, konfig zusatzdruckerKonfig) error {
+	zd, err := druckstation.NewZusatzdrucker(konfig.Name, konfig.DruckerIP, konfig.Bonmodus)
+	if err != nil {
+		return fmt.Errorf("zusatzdrucker %q: %w", konfig.Name, err)
 	}
 	id, err := qtx.CreateZusatzdrucker(ctx, dbgen.CreateZusatzdruckerParams{Name: zd.Name, DruckerIp: zd.DruckerIP, Bonmodus: string(zd.Bonmodus)})
 	if err != nil {
 		return fmt.Errorf("zusatzdrucker %q anlegen: %w", zd.Name, err)
 	}
-	for _, produktID := range zd.Produkte {
+	for _, produktID := range konfig.Produkte {
 		res, err := qtx.AssignProduktZusatzdrucker(ctx, dbgen.AssignProduktZusatzdruckerParams{ProduktID: produktID, ZusatzdruckerID: id})
-		if err != nil {
+		if err := genauEineZeile(res, err); err != nil {
 			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: %w", produktID, zd.Name, err)
 		}
-		n, err := res.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: %w", produktID, zd.Name, err)
-		}
-		if n != 1 {
-			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: produkt gelöscht oder unbekannt", produktID, zd.Name)
-		}
+	}
+	return nil
+}
+
+// genauEineZeile fails unless the statement changed exactly one row; zero rows mean a deleted or unknown target.
+func genauEineZeile(res sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return fmt.Errorf("%d zeilen geändert, erwartet 1 (ziel gelöscht oder unbekannt)", n)
 	}
 	return nil
 }

@@ -406,9 +406,14 @@ func TestBuildSeedDaten_PfandKennzeichenEingefroren(t *testing.T) {
 // einer verknüpften Variante trägt ihr Pfand je Stück in genau einer Pfand-Position.
 func TestBuildSeedDaten_AutoPfand(t *testing.T) {
 	s, daten := buildTestDaten(t)
-	ziele, err := pfandZielIndex(s.Produkte)
-	if err != nil {
-		t.Fatalf("pfandZielIndex: %v", err)
+	// Die Ziele unabhängig von pfandZielIndex direkt aus den Stammdaten lesen.
+	ziele := map[int]int{}
+	for _, p := range s.Produkte {
+		for _, v := range p.Varianten {
+			if v.PfandVarianteID != 0 {
+				ziele[v.ID] = v.PfandVarianteID
+			}
+		}
 	}
 
 	vorgaenge := 0

@@ -748,8 +748,9 @@ func pfandZielIndex(produkte []produkt) (map[int]int, error) {
 	return ziele, nil
 }
 
-// mitPfand adds the linked Pfand per unit like the cart: one position per variant, a new Pfand
-// position last, as the Pfand-Produkt comes last in the product order.
+// mitPfand adds the linked Pfand per unit like the cart: the Pfand joins an existing position of
+// its variant, else it becomes a new position at the end. Unlike the cart, the order of the other
+// positions stays as the Drehbuch lists them.
 func mitPfand(posten []bestellposten, pfandZiele map[int]int) []bestellposten {
 	ergebnis := slices.Clone(posten)
 	for _, p := range posten {
