@@ -17,6 +17,8 @@ type zusatzdruckerCommandRepo interface {
 	CreateZusatzdrucker(ctx context.Context, zd druckstation.Zusatzdrucker) (int, error)
 	UpdateZusatzdrucker(ctx context.Context, zd druckstation.Zusatzdrucker) error
 	DeleteZusatzdrucker(ctx context.Context, id int) error
+	AssignProdukt(ctx context.Context, produktID, zusatzdruckerID int) error
+	UnassignProdukt(ctx context.Context, produktID int) error
 }
 
 type druckauftragCommandRepo interface {
@@ -106,6 +108,36 @@ func (c Command) TestbonDrucken(ctx context.Context, id int) error {
 	}
 
 	log.Info("Testbon queued", "id", id, "druckerIP", zd.DruckerIP)
+	return nil
+}
+
+// ProduktZuordnen moves an existing Zuordnung of the Produkt to this Zusatzdrucker.
+func (c Command) ProduktZuordnen(ctx context.Context, produktID, zusatzdruckerID int) error {
+	log := logging.FromContext(ctx)
+
+	if err := c.ZusatzdruckerRepo.AssignProdukt(ctx, produktID, zusatzdruckerID); err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			log.Warn("Produkt or zusatzdrucker not found", "produktID", produktID, "zusatzdruckerID", zusatzdruckerID)
+			return ErrZuordnungNichtMoeglich
+		}
+		log.Error("Failed to assign produkt", "error", err, "produktID", produktID, "zusatzdruckerID", zusatzdruckerID)
+		return ErrDatabase
+	}
+
+	log.Info("Produkt assigned to zusatzdrucker", "produktID", produktID, "zusatzdruckerID", zusatzdruckerID)
+	return nil
+}
+
+// ZuordnungEntfernen succeeds without an existing Zuordnung; the Produkt prints at its Kategorie again.
+func (c Command) ZuordnungEntfernen(ctx context.Context, produktID int) error {
+	log := logging.FromContext(ctx)
+
+	if err := c.ZusatzdruckerRepo.UnassignProdukt(ctx, produktID); err != nil {
+		log.Error("Failed to unassign produkt", "error", err, "produktID", produktID)
+		return ErrDatabase
+	}
+
+	log.Info("Produkt unassigned from zusatzdrucker", "produktID", produktID)
 	return nil
 }
 

@@ -128,6 +128,8 @@ func mountAdminDruck(r *routeMux, deps Deps) {
 	r.HandleFunc("/update-zusatzdrucker", zusatzdruckerCommandHandler.UpdateZusatzdruckerHandler())
 	r.HandleFunc("/delete-zusatzdrucker", zusatzdruckerCommandHandler.DeleteZusatzdruckerHandler())
 	r.HandleFunc("/zusatzdrucker-testbon-drucken", zusatzdruckerCommandHandler.TestbonDruckenHandler())
+	r.HandleFunc("/assign-produkt-zusatzdrucker", zusatzdruckerCommandHandler.AssignProduktHandler())
+	r.HandleFunc("/unassign-produkt-zusatzdrucker", zusatzdruckerCommandHandler.UnassignProduktHandler())
 
 	druckauftragCommandHandler := druckauftragHTTP.CommandHandler{Command: druckauftragApp.Command{DruckauftragRepo: deps.DruckauftragRepo}}
 	druckauftragQueryHandler := druckauftragHTTP.QueryHandler{Query: druckauftragApp.Query{DruckauftragRepo: deps.DruckauftragRepo}}
