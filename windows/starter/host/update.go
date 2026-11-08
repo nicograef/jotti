@@ -42,7 +42,7 @@ func fetchLatestRelease(version string) (string, error) {
 		return "", err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "jotti/"+version)
+	req.Header.Set("User-Agent", "jotti-starter/"+version)
 
 	client := &http.Client{Timeout: updateCheckTimeout}
 	resp, err := client.Do(req)
