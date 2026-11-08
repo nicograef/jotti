@@ -155,9 +155,9 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Das Backend-Modul besteht sein Gate: `make check-backend`
-- [ ] Repositories und Abläufe gegen echtes Postgres bleiben grün: `TEST_PG_CONTAINER=jotti-pg-einzeldatei TEST_PG_PORT=5447 make check-integration`
-- [ ] Das Container-Binary startet über `app.Serve()` und bedient die App: `E2E_STACK_PORT=8093 E2E_STACK_PROJECT=jotti-e2e-einzeldatei-1 make test-e2e`
+- [x] Das Backend-Modul besteht sein Gate: `make check-backend`
+- [x] Repositories und Abläufe gegen echtes Postgres bleiben grün: `TEST_PG_CONTAINER=jotti-pg-einzeldatei TEST_PG_PORT=5447 make check-integration`
+- [x] Das Container-Binary startet über `app.Serve()` und bedient die App: `E2E_STACK_PORT=8093 E2E_STACK_PROJECT=jotti-e2e-einzeldatei-1 make test-e2e`
 
 ## Phase 2: Caddyfile-Erzeugung als importierbares Paket
 
