@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"path/filepath"
@@ -52,7 +53,7 @@ func (d *fakeDB) sleep(dur time.Duration) { d.now += dur }
 func TestPingWithRetry(t *testing.T) {
 	t.Run("succeeds on the first attempt without sleeping", func(t *testing.T) {
 		d := &fakeDB{}
-		err := PingWithRetry(d.ping, 30*time.Second, time.Second, d.sleep)
+		err := PingWithRetry(t.Context(), d.ping, 30*time.Second, time.Second, d.sleep)
 
 		if err != nil {
 			t.Errorf("expected nil error, got %v", err)
@@ -64,7 +65,7 @@ func TestPingWithRetry(t *testing.T) {
 
 	t.Run("succeeds after transient failures", func(t *testing.T) {
 		d := &fakeDB{upAt: 2 * time.Second}
-		err := PingWithRetry(d.ping, 30*time.Second, time.Second, d.sleep)
+		err := PingWithRetry(t.Context(), d.ping, 30*time.Second, time.Second, d.sleep)
 
 		if err != nil {
 			t.Errorf("expected nil error, got %v", err)
@@ -76,7 +77,7 @@ func TestPingWithRetry(t *testing.T) {
 
 	t.Run("gives up after the budget is exhausted", func(t *testing.T) {
 		d := &fakeDB{upAt: time.Hour}
-		err := PingWithRetry(d.ping, 5*time.Second, time.Second, d.sleep)
+		err := PingWithRetry(t.Context(), d.ping, 5*time.Second, time.Second, d.sleep)
 
 		if !errors.Is(err, errDown) {
 			t.Errorf("expected the last ping error, got %v", err)
@@ -86,9 +87,40 @@ func TestPingWithRetry(t *testing.T) {
 		}
 	})
 
+	t.Run("stops at once when the context is cancelled", func(t *testing.T) {
+		d := &fakeDB{upAt: time.Hour}
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+		err := PingWithRetry(ctx, d.ping, 30*time.Second, time.Second, d.sleep)
+
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled, got %v", err)
+		}
+		if d.now != 0 {
+			t.Errorf("expected no waiting, waited %v", d.now)
+		}
+	})
+
+	t.Run("stops when the context is cancelled during a wait", func(t *testing.T) {
+		d := &fakeDB{upAt: time.Hour}
+		ctx, cancel := context.WithCancel(t.Context())
+		sleep := func(dur time.Duration) {
+			d.sleep(dur)
+			cancel()
+		}
+		err := PingWithRetry(ctx, d.ping, 30*time.Second, time.Second, sleep)
+
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled, got %v", err)
+		}
+		if d.now != time.Second {
+			t.Errorf("expected one wait of 1s before stopping, waited %v", d.now)
+		}
+	})
+
 	t.Run("tries at least once when the interval exceeds the budget", func(t *testing.T) {
 		d := &fakeDB{upAt: time.Hour}
-		err := PingWithRetry(d.ping, time.Second, 30*time.Second, d.sleep)
+		err := PingWithRetry(t.Context(), d.ping, time.Second, 30*time.Second, d.sleep)
 
 		if !errors.Is(err, errDown) {
 			t.Errorf("expected the ping error, got %v", err)

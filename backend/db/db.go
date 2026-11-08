@@ -109,7 +109,15 @@ func Open(ctx context.Context, connString string) (*sql.DB, error) {
 	database.SetMaxIdleConns(10)
 
 	ping := func() error { return database.PingContext(ctx) }
-	if err := PingWithRetry(ping, 30*time.Second, time.Second, time.Sleep); err != nil {
+	sleep := func(d time.Duration) {
+		timer := time.NewTimer(d)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+		case <-timer.C:
+		}
+	}
+	if err := PingWithRetry(ctx, ping, 30*time.Second, time.Second, sleep); err != nil {
 		_ = database.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}
@@ -119,7 +127,8 @@ func Open(ctx context.Context, connString string) (*sql.DB, error) {
 
 // PingWithRetry calls ping until it succeeds or budget/interval attempts (at least one) are used up.
 // It logs every failed attempt, so a delayed database shows in the boot log.
-func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
+// A done ctx ends the retry at once with ctx.Err(), so a stopping caller does not wait out the budget.
+func PingWithRetry(ctx context.Context, ping func() error, budget, interval time.Duration, sleep func(time.Duration)) error {
 	attempts := max(int(budget/interval), 1)
 
 	var err error
@@ -129,6 +138,9 @@ func PingWithRetry(ping func() error, budget, interval time.Duration, sleep func
 				slog.Info("Connected to database after retry", "attempts", attempt)
 			}
 			return nil
+		}
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
 		}
 
 		slog.Warn("Waiting for database", "error", err, "attempt", attempt, "maxAttempts", attempts)
