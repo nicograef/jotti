@@ -51,7 +51,7 @@ func (c Cluster) Init(user, password string) error {
 }
 
 // Start startet den Postmaster und wartet, bis er Verbindungen annimmt.
-// Ein verwaister Postmaster aus einem früheren Lauf wird vorher mit -m fast gestoppt.
+// Einen verwaisten Postmaster, etwa nach einem abgestürzten Lauf, stoppt Start vorher mit -m fast.
 func (c Cluster) Start() error {
 	if c.Running() {
 		if err := c.Stop(); err != nil {
