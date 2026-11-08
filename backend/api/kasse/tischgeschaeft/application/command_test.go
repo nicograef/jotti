@@ -87,11 +87,18 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 	return m.konfig, nil
 }
 
-func (m *mockDruckstationRepo) GetZusatzdruckerJeVariante(_ context.Context, _ []int) (map[int]druckstation.Zusatzdrucker, error) {
+// GetZusatzdruckerJeVariante answers only the requested Varianten, like the repository.
+func (m *mockDruckstationRepo) GetZusatzdruckerJeVariante(_ context.Context, varianteIDs []int) (map[int]druckstation.Zusatzdrucker, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	return m.zusatzdrucker, nil
+	result := map[int]druckstation.Zusatzdrucker{}
+	for _, id := range varianteIDs {
+		if zd, ok := m.zusatzdrucker[id]; ok {
+			result[id] = zd
+		}
+	}
+	return result, nil
 }
 
 func TestBestellungAufnehmen_KasseNichtGeoeffnet(t *testing.T) {
@@ -166,6 +173,37 @@ func TestBestellungAufnehmen_EnqueueArbeitsbonDruckauftraege(t *testing.T) {
 	}
 	if enqueued[0].Payload == "" {
 		t.Error("expected non-empty payload")
+	}
+}
+
+func TestBestellungAufnehmen_DrucktAmZusatzdrucker(t *testing.T) {
+	ctx := context.Background()
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
+	command.ProduktRepo = productMock
+	command.DruckstationRepo = &mockDruckstationRepo{
+		konfig: map[string]druckstation.Druckstation{
+			"getraenk": {DruckerIP: "192.168.1.50", Bonmodus: "pro_position"},
+		},
+		zusatzdrucker: map[int]druckstation.Zusatzdrucker{
+			testVariant.ID: {ID: 1, Name: "Bar", DruckerIP: "192.168.1.61", Bonmodus: "pro_position"},
+		},
+	}
+
+	inputs := []enrichment.PositionInput{{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2}}
+	if err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab", 1, inputs, ""); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	enqueued := eventMock.CapturedDruckauftraege()
+	if len(enqueued) != 1 {
+		t.Fatalf("expected 1 enqueued druckauftrag, got %d", len(enqueued))
+	}
+	if enqueued[0].ZielIP != "192.168.1.61" {
+		t.Errorf("expected ZielIP of the Zusatzdrucker 192.168.1.61, got %s", enqueued[0].ZielIP)
 	}
 }
 
