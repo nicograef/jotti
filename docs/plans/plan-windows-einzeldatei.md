@@ -265,13 +265,13 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Das neue Modul besteht sein Gate: `make check-einzeldatei`
-- [ ] Die Docker-Erkennung verweigert `last-version` ohne `pgdata` und lässt die übrigen Fälle durch: `cd windows/einzeldatei && go test -count=1 -run '^TestDockerInstallation$' -v ./internal/layout/ | grep -- '--- PASS: TestDockerInstallation '`
-- [ ] Die Postgres-Pins von Compose und Einzeldatei stimmen überein: `bash scripts/check-pins.sh`
-- [ ] Die Workflows bestehen actionlint: `make check-workflows`
-- [ ] Die Datei baut per Cross-Compile mit allen Assets: `make build-einzeldatei-windows VERSION=v0.0.1-ci`
-- [ ] Auf dem Windows-Runner startet sie, liefert Anmeldeseite und Health und endet sauber: `id="$(gh run list -w CI -e push -c "$(git rev-parse HEAD)" -L 1 --json databaseId -q '.[0].databaseId')" && gh run watch "$id" --exit-status >/dev/null && gh run view "$id" --json jobs -q '.jobs[] | select(.name=="einzeldatei-windows") | .conclusion' | grep -x success`
-- [ ] Die Repo-Gates bleiben grün: `make check-repo check-format`
+- [x] Das neue Modul besteht sein Gate: `make check-einzeldatei`
+- [x] Die Docker-Erkennung verweigert `last-version` ohne `pgdata` und lässt die übrigen Fälle durch: `cd windows/einzeldatei && go test -count=1 -run '^TestDockerInstallation$' -v ./internal/layout/ | grep -- '--- PASS: TestDockerInstallation '`
+- [x] Die Postgres-Pins von Compose und Einzeldatei stimmen überein: `bash scripts/check-pins.sh`
+- [x] Die Workflows bestehen actionlint: `make check-workflows`
+- [x] Die Datei baut per Cross-Compile mit allen Assets: `make build-einzeldatei-windows VERSION=v0.0.1-ci`
+- [x] Auf dem Windows-Runner startet sie, liefert Anmeldeseite und Health und endet sauber: `id="$(gh run list -w CI -e push -c "$(git rev-parse HEAD)" -L 1 --json databaseId -q '.[0].databaseId')" && gh run watch "$id" --exit-status >/dev/null && gh run view "$id" --json jobs -q '.jobs[] | select(.name=="einzeldatei-windows") | .conclusion' | grep -x success`
+- [x] Die Repo-Gates bleiben grün: `make check-repo check-format`
 
 ## Phase 5: Messung auf dem Windows-Runner
 
