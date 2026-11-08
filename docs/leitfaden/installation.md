@@ -80,6 +80,14 @@ Die Einrichtung hat zwei Teile:
 Danach je Station den „Testbon" senden. Seine letzte Zeile zeigt Umlaute und ß.
 Sind sie unlesbar, kennt der Drucker PC437 nicht; dann taugt er nicht für jotti.
 
+Hat ein Produkt einen eigenen Ausgabeort, legt ihr unter „Zusätzlicher Drucker"
+einen weiteren Drucker an. Mit „Produkt hinzufügen" druckt das Produkt dort statt
+an der Station seiner Kategorie.
+
+Ordnet die Produkte vor dem Eröffnen der Kassensitzung ihren Kategorien zu.
+Wer während der Kassensitzung umsortiert, findet das Produkt in der Statistik
+unter zwei Kategorien.
+
 ## Aktualisieren
 
 Eine neue Version spielt ihr in drei Schritten ein, eure Daten bleiben erhalten.
