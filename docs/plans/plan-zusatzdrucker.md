@@ -171,11 +171,11 @@ Der Admin ordnet einem Zusatzdrucker Produkte zu, sieht sie auf der Karte und en
 
 ### Acceptance criteria
 
-- [ ] Zuordnen, Wandern, Entfernen und die gruppierte Antwort stimmen über Command, Query und echtes Postgres (Integrationstest `backend/api/druck/zusatzdrucker/application/zuordnung_integration_test.go`, Testnamen mit „Zuordnung": Zuordnung erscheint unter dem Drucker und mit `zusatzdruckerName` in der Auswahl; eine zweite Zuordnung wandert; Entfernen ohne Zuordnung ist ein Erfolg; ein gelöschtes Produkt fehlt in beiden Listen, und sein Zuordnen ergibt wie ein unbekannter Drucker `ErrZuordnungNichtMoeglich`): `TEST_PG_CONTAINER=jotti-postgres-test-zd TEST_PG_PORT=5447 TEST_PKG='./api/druck/zusatzdrucker/...' TEST_RUN='Zuordnung' make check-integration`
-- [ ] Jeder neue Sentinel ist abgebildet: `cd backend && go test -run TestErrorMappingContract ./api/`
-- [ ] Anlegen, Zuordnen und Testbon laufen im Browser, die Seite besteht die Kontrastprüfung: `(cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium) && E2E_STACK_PROJECT=jotti-e2e-zusatzdrucker E2E_STACK_PORT=8091 ./scripts/e2e-stack.sh pnpm --dir e2e exec playwright test tests/admin-druckstationen-verwalten.spec.ts tests/admin-kontrast-axe.spec.ts`
-- [ ] Leitfaden-Zitate existieren im Frontend, Prosa-Grenzen halten: `make check-repo`
-- [ ] `make check check-repo check-format && make lint && TEST_PG_CONTAINER=jotti-postgres-test-zd TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-e2e-zusatzdrucker E2E_STACK_PORT=8091 make test-e2e`
+- [x] Zuordnen, Wandern, Entfernen und die gruppierte Antwort stimmen über Command, Query und echtes Postgres (Integrationstest `backend/api/druck/zusatzdrucker/application/zuordnung_integration_test.go`, Testnamen mit „Zuordnung": Zuordnung erscheint unter dem Drucker und mit `zusatzdruckerName` in der Auswahl; eine zweite Zuordnung wandert; Entfernen ohne Zuordnung ist ein Erfolg; ein gelöschtes Produkt fehlt in beiden Listen, und sein Zuordnen ergibt wie ein unbekannter Drucker `ErrZuordnungNichtMoeglich`): `TEST_PG_CONTAINER=jotti-postgres-test-zd TEST_PG_PORT=5447 TEST_PKG='./api/druck/zusatzdrucker/...' TEST_RUN='Zuordnung' make check-integration`
+- [x] Jeder neue Sentinel ist abgebildet: `cd backend && go test -run TestErrorMappingContract ./api/`
+- [x] Anlegen, Zuordnen und Testbon laufen im Browser, die Seite besteht die Kontrastprüfung: `(cd e2e && pnpm install --frozen-lockfile && pnpm exec playwright install chromium) && E2E_STACK_PROJECT=jotti-e2e-zusatzdrucker E2E_STACK_PORT=8091 ./scripts/e2e-stack.sh pnpm --dir e2e exec playwright test tests/admin-druckstationen-verwalten.spec.ts tests/admin-kontrast-axe.spec.ts`
+- [x] Leitfaden-Zitate existieren im Frontend, Prosa-Grenzen halten: `make check-repo`
+- [x] `make check check-repo check-format && make lint && TEST_PG_CONTAINER=jotti-postgres-test-zd TEST_PG_PORT=5447 make check-integration && E2E_STACK_PROJECT=jotti-e2e-zusatzdrucker E2E_STACK_PORT=8091 make test-e2e`
 
 ## Phase 3: Arbeitsbons am Zusatzdrucker drucken
 
