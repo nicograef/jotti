@@ -5,8 +5,8 @@
 *
 !reverse-proxy/go.mod
 !reverse-proxy/go.sum
-!reverse-proxy/*.go
-reverse-proxy/*_test.go
+!reverse-proxy/**/*.go
+reverse-proxy/**/*_test.go
 !frontend
 !website
 !docs

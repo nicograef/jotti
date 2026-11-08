@@ -22,7 +22,8 @@ ENV GOTOOLCHAIN=auto
 WORKDIR /src
 COPY reverse-proxy/go.mod reverse-proxy/go.sum ./
 RUN go mod download
-COPY reverse-proxy/*.go ./
+# Dockerfile.dockerignore lets only the Go sources through, packages included, without tests.
+COPY reverse-proxy/ ./
 RUN go build -o /go/bin/jotti-reverse-proxy .
 
 FROM node:24-alpine AS app-builder
