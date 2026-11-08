@@ -727,8 +727,8 @@ func tischIndex(tische []tisch) map[int]tisch {
 	return idx
 }
 
-// buildPositionen löst Bestellposten gegen den Varianten-Index zu vollständigen Positionen auf.
-// Die PositionID bleibt leer — sie wird vom Bestell-Konstruktor vergeben.
+// buildPositionen löst Bestellposten gegen den Varianten-Index zu vollständigen Positionen auf,
+// wie enrichment.EnrichPositionen eine Anfrage. Die PositionID vergibt der Bestell-Konstruktor.
 func buildPositionen(posten []bestellposten, variantenIdx map[int]kasse.Position) ([]kasse.Position, error) {
 	positionen := make([]kasse.Position, 0, len(posten))
 	for _, p := range posten {
@@ -737,6 +737,7 @@ func buildPositionen(posten []bestellposten, variantenIdx map[int]kasse.Position
 			return nil, fmt.Errorf("variante %d nicht im Szenario", p.VarianteID)
 		}
 		vorlage.Menge = p.Menge
+		vorlage.Kommentar = p.Kommentar
 		positionen = append(positionen, vorlage)
 	}
 	return positionen, nil

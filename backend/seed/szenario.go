@@ -80,11 +80,12 @@ type druckstationKonfig struct {
 
 // --- Drehbuch-Typen ---
 
-// bestellposten verweist auf eine Produktvariante und die gewünschte Menge.
-// Die Engine löst daraus die vollständige Position aus den Stammdaten auf.
+// bestellposten verweist auf eine Produktvariante, die gewünschte Menge und den optionalen
+// Positionskommentar. Die Engine löst daraus die vollständige Position aus den Stammdaten auf.
 type bestellposten struct {
 	VarianteID int
 	Menge      int
+	Kommentar  string
 }
 
 // aktion ist ein Schritt im Drehbuch einer Kassensitzung. Die Engine übersetzt jede Aktion
@@ -246,6 +247,11 @@ func strPtr(s string) *string { return &s }
 // pos ist die Kurzschreibweise für einen Bestellposten im Drehbuch.
 func pos(varianteID, menge int) bestellposten {
 	return bestellposten{VarianteID: varianteID, Menge: menge}
+}
+
+// kommentiert ist ein Bestellposten mit Positionskommentar (D22).
+func kommentiert(varianteID, menge int, kommentar string) bestellposten {
+	return bestellposten{VarianteID: varianteID, Menge: menge, Kommentar: kommentar}
 }
 
 // posten bündelt Bestellposten zu einer Bestellung.
@@ -668,7 +674,7 @@ func samstagsAktionen() []aktion {
 		posten(pos(16, 6), pos(45, 6)),
 		posten(pos(12, 4), pos(39, 4)),
 	),
-		bestellen{Tisch: 4, User: sophie, Posten: posten(pos(13, 2)), Kommentar: "Nachbestellung Geburtstagsrunde"},
+		bestellen{Tisch: 4, User: sophie, Posten: posten(kommentiert(13, 2, "ohne Zwiebeln")), Kommentar: "Nachbestellung Geburtstagsrunde"},
 		kassieren{Tisch: 4, User: sophie},
 		stornieren{Tisch: 4, User: sophie, Posten: posten(pos(13, 1)), Kommentar: "Reklamation: Grillplatte kalt serviert"},
 	)
@@ -800,9 +806,9 @@ func sonntagsAktionen() []aktion {
 		posten(pos(49, 2), pos(48, 2)),
 		posten(pos(11, 2), pos(42, 2)),
 	)
-	// Tisch 6: frische Gäste, bestellt, noch nicht kassiert.
+	// Tisch 6: frische Gäste, bestellt, noch nicht kassiert; die Currywurst mit Positionskommentar.
 	frischeGaeste := []aktion{
-		bestellen{Tisch: 6, User: lisa, Posten: posten(pos(11, 3), pos(31, 2), pos(5, 2))},
+		bestellen{Tisch: 6, User: lisa, Posten: posten(kommentiert(3, 2, "extra scharf"), pos(5, 2), pos(11, 3), pos(31, 2))},
 	}
 	// Tisch 7: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
 	// (Warenrücknahme), der Tisch ist danach ausgeglichen.
@@ -813,7 +819,7 @@ func sonntagsAktionen() []aktion {
 	}
 	// Tisch 8: zwei offene Bestellungen, noch nichts kassiert.
 	offeneBestellungen := []aktion{
-		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(13, 1), pos(5, 2), pos(31, 3))},
+		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(5, 2), kommentiert(13, 1, "ohne Zwiebeln"), pos(31, 3))},
 		bestellen{Tisch: 8, User: lisa, Posten: posten(pos(16, 2))},
 	}
 	// Kegelclub: Stornierung nach Bezahlung — die Bar-Rückgabe ist Teil des Stornos
@@ -828,7 +834,7 @@ func sonntagsAktionen() []aktion {
 		bestellen{Tisch: 11, User: markus, Posten: posten(pos(11, 2))},
 	}
 	frischBestellt := []aktion{
-		bestellen{Tisch: 14, User: anna, Posten: posten(pos(11, 2), pos(14, 1), pos(39, 2))},
+		bestellen{Tisch: 14, User: anna, Posten: posten(pos(11, 2), kommentiert(14, 1, "glutenfrei, Dressing extra"), pos(39, 2))},
 	}
 	zeltA1 := append(runden(16, jan, 6,
 		posten(pos(1, 4), pos(24, 4)),
@@ -869,7 +875,7 @@ func sonntagsAktionen() []aktion {
 		direktverkauf{VerkaufID: dvID(3, 1), User: sophie, Posten: posten(pos(51, 2), pos(52, 1))},
 		direktverkauf{VerkaufID: dvID(3, 2), User: sophie, Posten: posten(pos(16, 4))},
 		direktverkauf{VerkaufID: dvID(3, 3), User: sophie, Posten: posten(pos(51, 2))},
-		direktverkauf{VerkaufID: dvID(3, 4), User: sophie, Posten: posten(pos(16, 2), pos(52, 2))},
+		direktverkauf{VerkaufID: dvID(3, 4), User: sophie, Posten: posten(kommentiert(16, 2, "mit Sahne"), pos(52, 2))},
 	}
 
 	tag := verflechte(stammtisch, teilbezahlt, vorstand, frischeGaeste, warenruecknahme, offeneBestellungen,
