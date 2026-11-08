@@ -209,9 +209,9 @@ Entschieden von Nico am 7. November:
 
 ### Acceptance criteria
 
-- [ ] Das Starter-Modul besteht sein Gate: `make check-starter`
-- [ ] Der Windows-Zweig kompiliert und besteht vet: `cd windows/starter && GOOS=windows go vet ./...`
-- [ ] Der Starter baut für Windows: `make build-starter-windows`
+- [x] Das Starter-Modul besteht sein Gate: `make check-starter`
+- [x] Der Windows-Zweig kompiliert und besteht vet: `cd windows/starter && GOOS=windows go vet ./...`
+- [x] Der Starter baut für Windows: `make build-starter-windows`
 
 ## Phase 4: Durchstich der Einzeldatei
 
