@@ -192,6 +192,26 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 		}
 	}
 
+	// Pfand-Verknüpfungen erst nach allen Varianten: das Ziel steht in einem späteren Produkt.
+	for _, p := range s.Produkte {
+		for _, v := range p.Varianten {
+			if v.PfandVarianteID == 0 {
+				continue
+			}
+			_, err := qtx.UpdateVariante(ctx, dbgen.UpdateVarianteParams{
+				ID:              v.ID,
+				Name:            v.Name,
+				PreisCents:      v.PreisCents,
+				Status:          dbgen.Entitystatus(v.Status),
+				UpdatedAt:       jetzt,
+				PfandVarianteID: sql.NullInt32{Int32: int32(v.PfandVarianteID), Valid: true},
+			})
+			if err != nil {
+				return fmt.Errorf("pfand-verknüpfung variante %d: %w", v.ID, err)
+			}
+		}
+	}
+
 	for _, f := range s.Favoriten {
 		err := qtx.AddFavorit(ctx, dbgen.AddFavoritParams{
 			UserID:  f.UserID,

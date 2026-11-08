@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
+	produktDomain "github.com/nicograef/jotti/backend/domain/produkt"
 )
 
 // seedEvent bündelt ein Domain-Event mit der Kassensitzungs-Zuordnung, die der Writer für die
@@ -60,6 +61,10 @@ func (s tagesSummen) UmsatzGesamtCents() int {
 func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 	variantenIdx := variantenIndex(s.Produkte)
 	pfandIdx := pfandVariantenIndex(s.Produkte)
+	pfandZiele, err := pfandZielIndex(s.Produkte)
+	if err != nil {
+		return seedDaten{}, err
+	}
 	benutzerIdx := benutzerIndex(s.Benutzer)
 	tischIdx := tischIndex(s.Tische)
 
@@ -79,6 +84,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 			sitzung:        *sitzung,
 			varianten:      variantenIdx,
 			pfandVarianten: pfandIdx,
+			pfandZiele:     pfandZiele,
 			benutzer:       benutzerIdx,
 			tische:         tischIdx,
 			versionen:      map[string]int{},
@@ -131,6 +137,7 @@ type sitzungsBuilder struct {
 	sitzung        kassensitzungDrehbuch
 	varianten      map[int]kasse.Position
 	pfandVarianten map[int]bool
+	pfandZiele     map[int]int
 	benutzer       map[int]string
 	tische         map[int]tisch
 
@@ -205,7 +212,7 @@ func (b *sitzungsBuilder) bestellen(a bestellen) error {
 	if err != nil {
 		return err
 	}
-	positionen, err := buildPositionen(a.Posten, b.varianten)
+	positionen, err := buildPositionen(mitPfand(a.Posten, b.pfandZiele), b.varianten)
 	if err != nil {
 		return err
 	}
@@ -341,7 +348,7 @@ func (b *sitzungsBuilder) direktverkauf(a direktverkauf) error {
 	if err != nil {
 		return err
 	}
-	positionen, err := buildPositionen(a.Posten, b.varianten)
+	positionen, err := buildPositionen(mitPfand(a.Posten, b.pfandZiele), b.varianten)
 	if err != nil {
 		return err
 	}
@@ -707,6 +714,57 @@ func pfandVariantenIndex(produkte []produkt) map[int]bool {
 		}
 	}
 	return idx
+}
+
+// pfandZielIndex maps each linking variant to its Pfand variant and checks every link with the
+// production rule (D23).
+func pfandZielIndex(produkte []produkt) (map[int]int, error) {
+	katalog := make([]produktDomain.Produkt, len(produkte))
+	produktJeVariante := map[int]int{}
+	for i, p := range produkte {
+		katalog[i] = produktDomain.Produkt{ID: p.ID, Name: p.Name, Kategorie: p.Kategorie, Steuersatz: p.Steuersatz, Pfand: p.Pfand, Status: p.Status}
+		for _, v := range p.Varianten {
+			katalog[i].Varianten = append(katalog[i].Varianten, produktDomain.Variante{ID: v.ID, Name: v.Name, PreisCents: v.PreisCents, Status: v.Status})
+			produktJeVariante[v.ID] = i
+		}
+	}
+
+	ziele := map[int]int{}
+	for i, p := range produkte {
+		for _, v := range p.Varianten {
+			if v.PfandVarianteID == 0 {
+				continue
+			}
+			ziel, ok := produktJeVariante[v.PfandVarianteID]
+			if !ok {
+				return nil, fmt.Errorf("variante %d: pfand-variante %d nicht im Szenario", v.ID, v.PfandVarianteID)
+			}
+			if err := produktDomain.PruefePfandVerknuepfung(katalog[i], katalog[ziel], v.PfandVarianteID); err != nil {
+				return nil, fmt.Errorf("variante %d: %w", v.ID, err)
+			}
+			ziele[v.ID] = v.PfandVarianteID
+		}
+	}
+	return ziele, nil
+}
+
+// mitPfand adds the linked Pfand per unit like the cart: one position per variant, a new Pfand
+// position last, as the Pfand-Produkt comes last in the product order.
+func mitPfand(posten []bestellposten, pfandZiele map[int]int) []bestellposten {
+	ergebnis := slices.Clone(posten)
+	for _, p := range posten {
+		ziel, ok := pfandZiele[p.VarianteID]
+		if !ok {
+			continue
+		}
+		i := slices.IndexFunc(ergebnis, func(q bestellposten) bool { return q.VarianteID == ziel })
+		if i < 0 {
+			ergebnis = append(ergebnis, bestellposten{VarianteID: ziel})
+			i = len(ergebnis) - 1
+		}
+		ergebnis[i].Menge += p.Menge
+	}
+	return ergebnis
 }
 
 // benutzerIndex bildet jede Benutzer-ID auf den Username ab (eingefroren in den Events).

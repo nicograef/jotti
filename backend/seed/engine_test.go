@@ -401,6 +401,52 @@ func TestBuildSeedDaten_PfandKennzeichenEingefroren(t *testing.T) {
 	}
 }
 
+// TestBuildSeedDaten_AutoPfand prüft D23 wie der Warenkorb: Jede Bestellung und jeder Verkauf
+// einer verknüpften Variante trägt ihr Pfand je Stück in genau einer Pfand-Position.
+func TestBuildSeedDaten_AutoPfand(t *testing.T) {
+	s, daten := buildTestDaten(t)
+	ziele, err := pfandZielIndex(s.Produkte)
+	if err != nil {
+		t.Fatalf("pfandZielIndex: %v", err)
+	}
+
+	vorgaenge := 0
+	pruefe := func(evt e.Event, positionen []kasse.PositionEventData) {
+		verlangt := map[int]int{}
+		gebucht := map[int]int{}
+		zeilen := map[int]int{}
+		for _, p := range positionen {
+			if ziel, ok := ziele[p.VarianteID]; ok {
+				verlangt[ziel] += p.Menge
+			}
+			gebucht[p.VarianteID] += p.Menge
+			zeilen[p.VarianteID]++
+		}
+		for ziel, menge := range verlangt {
+			vorgaenge++
+			if gebucht[ziel] < menge || zeilen[ziel] != 1 {
+				t.Errorf("%s %s: Pfand-Variante %d in %d Zeile(n) mit Menge %d, erwartet eine Zeile mit mindestens %d",
+					evt.Type, evt.Subject, ziel, zeilen[ziel], gebucht[ziel], menge)
+			}
+		}
+	}
+	for _, ev := range daten.Events {
+		switch ev.event.Type {
+		case string(kasse.EventTypeBestellungAufgenommenV1):
+			pruefe(ev.event, kasse.PositionenOhneKommentar(parseData[kasse.BestellungAufgenommenV1Data](t, ev.event).Positionen))
+		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
+			var positionen []kasse.PositionEventData
+			for _, p := range parseData[kasse.DirektverkaufGetaetigtV2Data](t, ev.event).Positionen {
+				positionen = append(positionen, p.PositionEventData)
+			}
+			pruefe(ev.event, positionen)
+		}
+	}
+	if vorgaenge == 0 {
+		t.Error("kein Vorgang mit verknüpfter Variante, erwartet Hugo und Aperol")
+	}
+}
+
 // TestBuildSeedDaten_Kassenfuehrung prüft Geldtransit in beide Richtungen sowie den
 // Kassensturz: Der Soll-Bestand entspricht einer unabhängigen Aggregation der vorherigen
 // Events (Kassenbestand-Formel), die Differenz erzeugt die zugehörige Differenz-Buchung.

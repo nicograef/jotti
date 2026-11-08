@@ -53,6 +53,8 @@ type variante struct {
 	Name       string
 	PreisCents int
 	Status     produktDomain.Status
+	// PfandVarianteID is the Pfand the cart adds per unit (D23); 0 means none.
+	PfandVarianteID int
 }
 
 type produkt struct {
@@ -458,8 +460,8 @@ func demoSzenario() szenario {
 				{ID: 47, Name: "Verschiedene Sorten", PreisCents: 200, Status: produktDomain.ActiveStatus},
 			}},
 			{ID: 19, Name: "Hugo/Aperol", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.ActiveStatus, Varianten: []variante{
-				{ID: 48, Name: "Hugo", PreisCents: 550, Status: produktDomain.ActiveStatus},
-				{ID: 49, Name: "Aperol Spritz", PreisCents: 550, Status: produktDomain.ActiveStatus},
+				{ID: 48, Name: "Hugo", PreisCents: 550, Status: produktDomain.ActiveStatus, PfandVarianteID: 55},
+				{ID: 49, Name: "Aperol Spritz", PreisCents: 550, Status: produktDomain.ActiveStatus, PfandVarianteID: 55},
 			}},
 			{ID: 20, Name: "Glühwein", Kategorie: produktDomain.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Status: produktDomain.InactiveStatus, Varianten: []variante{
 				{ID: 50, Name: "Tasse", PreisCents: 350, Status: produktDomain.ActiveStatus},
@@ -739,12 +741,12 @@ func samstagsAktionen() []aktion {
 		posten(pos(10, 2), pos(39, 2)),
 		posten(pos(14, 2), pos(36, 2)),
 	)
-	// Stehtisch Bar: Hugo und Aperol im Pfandglas. Gäste bringen Gläser zurück, eins davon
+	// Stehtisch Bar: Hugo und Aperol im Pfandglas, die Engine legt das Pfand dazu. Gäste bringen Gläser zurück, eins davon
 	// gehört dem Nachbarstand; die Serviceleitung storniert es aus der Rückgabe.
 	bar := append(runden(18, anna, 28,
 		posten(pos(24, 2)),
-		posten(pos(48, 2), pos(55, 2)),
-		posten(pos(49, 2), pos(55, 2)),
+		posten(pos(48, 2)),
+		posten(pos(49, 2)),
 		posten(pos(23, 3)),
 		posten(pos(30, 2)),
 	),
@@ -865,11 +867,12 @@ func sonntagsAktionen() []aktion {
 		bestellen{Tisch: 19, User: anna, Posten: posten(pos(11, 2), pos(24, 2))},
 		umbuchen{VonTisch: 19, NachTisch: 4, User: anna},
 	)
+	// Terrasse: Die offene Bestellung enthält Aperol, also auch dessen Pfandglas.
 	terrasse := append(runden(20, anna, 4,
 		posten(pos(41, 2), pos(16, 2)),
 		posten(pos(24, 3)),
 	),
-		bestellen{Tisch: 20, User: anna, Posten: posten(pos(45, 2), pos(16, 2))},
+		bestellen{Tisch: 20, User: anna, Posten: posten(pos(16, 2), pos(45, 2), pos(49, 2))},
 	)
 	stand := []aktion{
 		direktverkauf{VerkaufID: dvID(3, 1), User: sophie, Posten: posten(pos(51, 2), pos(52, 1))},

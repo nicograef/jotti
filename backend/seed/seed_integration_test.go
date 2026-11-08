@@ -141,6 +141,15 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("Seed ohne reihenfolge = id: %d Produkte, %d Varianten", produkteOhneReihenfolge, variantenOhneReihenfolge)
 	}
 
+	// Hugo und Aperol verweisen auf das Pfandglas; ohne den Verweis legt der Warenkorb im Demo kein Pfand dazu.
+	var pfandVerknuepfungen int
+	if err := db.QueryRow("SELECT COUNT(*) FROM produkt_varianten WHERE pfand_variante_id = 55").Scan(&pfandVerknuepfungen); err != nil {
+		t.Fatalf("Pfand-Verknüpfungen zählen: %v", err)
+	}
+	if pfandVerknuepfungen != 2 {
+		t.Errorf("%d Varianten mit Pfand-Verknüpfung, erwartet 2 (Hugo, Aperol Spritz)", pfandVerknuepfungen)
+	}
+
 	// Kassenjournal enthält Events.
 	var eventCount int
 	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventCount); err != nil {
