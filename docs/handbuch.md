@@ -212,7 +212,7 @@ Rechtliche Grundlagen und Betreiber-Ablauf (Z-Bon statt X-Bon, Zählprotokoll, A
 ### 3.12 Policies
 
 - **Stornierungsberechtigung (K-04):** Die JWT-Rollen-Middleware des `/serviceleitung/*`-Bereichs (`rolesServiceleitung`, `backend/app/routes.go`) erzwingt sie, bevor der Request die Anwendungsschicht erreicht. Rollen → [5.1](#51-rollen-und-berechtigungsmatrix).
-- **Arbeitsbon-Druck nach Kategorie (K-12):** Jedes `bestellung-aufgenommen:v1`- und `direktverkauf-getaetigt`-Event löst die Arbeitsbon-Policy aus. Sie reiht Druckaufträge in die Outbox ein (→ [4.5 Bondruck](#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
+- **Arbeitsbon-Druck (K-12):** Jedes `bestellung-aufgenommen:v1`- und `direktverkauf-getaetigt`-Event löst die Arbeitsbon-Policy aus. Sie reiht Druckaufträge in die Outbox ein (→ [4.5 Bondruck](#45-bondruck-arbeitsbon-und-kassenbeleg-k-12)).
 - **Umbuchung (K-09):** Verschiebt unbezahlte Positionen geldneutral von Quell- auf Ziel-Tisch (`bestellung-umgebucht:v1`). Beide Streams schreibt eine Cross-Aggregat-Transaktion atomar.
 
 ### 3.13 TSE-Architektur
@@ -321,7 +321,7 @@ Bondruck umfasst zwei fachlich getrennte Bon-Familien auf einer gemeinsamen Druc
 | Arbeitsbon  | `bestellung-aufgenommen:v1`, `direktverkauf-getaetigt` (automatisch) | nicht-fiskalisch       | Ware ohne Preise (Küche/Theke)                  |
 | Kassenbeleg | `POST /service/beleg-drucken` (auf Anforderung)                      | fiskalisch (§ 146a AO) | Positionen mit Preisen, Vereinsdaten, Kassen-ID |
 
-**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Kategorie. Sie schlägt Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`) in der `druckstationen`-Tabelle nach. Die Tabelle hat eine Zeile pro Kategorie (Admin-Konfiguration mit beidseitiger IPv4-Validierung). Dann formatiert die Policy den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Kategorien ohne konfigurierte Druckstation erzeugen keinen Auftrag. Inhalt: Tischname, Positionen (Art + Menge) mit ihrem Positionskommentar, Bestellkommentar am Ende, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO. Bei `direktverkauf-getaetigt` wählt dieselbe Policy Abholbon oder Arbeitsbons nach dem Direktverkauf-Routing unten.
+**Arbeitsbon (operativ, K-12):** Eine Policy im Kasse-Context (→ [3.12 Policies](#312-policies)). Bei `bestellung-aufgenommen:v1` gruppiert die Arbeitsbon-Policy (`backend/api/druck/bondruck`) die Positionen nach Druckziel. Auflösungsregel: Zusatzdrucker des Produkts vor Druckstation der Kategorie. Die `druckstationen`-Tabelle hat eine Zeile pro Kategorie, `zusatzdrucker_produkte` ordnet einem Zusatzdrucker einzelne Produkte zu. Je Druckziel gelten dessen Drucker-IP und Bonmodus (`pro_position` oder `pro_bestellung`), beide als Admin-Konfiguration mit beidseitiger IPv4-Validierung. Dann formatiert die Policy den ESC/POS-Payload und reiht je einen Druckauftrag in die Outbox ein. Die Druckziele folgen dabei der Reihenfolge ihrer ersten Position. Ein Druckziel ohne IP erzeugt keinen Auftrag; ein Zusatzdrucker ohne IP fällt nicht auf die Kategorie zurück. Inhalt: Tischname, Positionen (Art + Menge) mit ihrem Positionskommentar, Bestellkommentar am Ende, Uhrzeit, Servicekraft, keine Preise. Kein Beleg i. S. v. § 146a AO. Bei `direktverkauf-getaetigt` wählt dieselbe Policy Abholbon oder Arbeitsbons nach dem Direktverkauf-Routing unten.
 
 **Kassenbeleg (fiskalisch, auf Anforderung):** Ein Service-Command (`POST /service/beleg-drucken`) erzeugt pro Anforderung höchstens einen Druckauftrag an den Kassenbeleg-Drucker (keinen, solange die Signatur aussteht). Er nimmt eine von sechs Body-Formen an:
 
@@ -340,8 +340,8 @@ Der Pfandbeleg ist ein Kassenbeleg mit negativen Positionen, negativer Steuermat
 
 - Trägt die Abholbon-Station den Bonmodus `kein_bon`, entsteht kein Auftrag, auch nicht an den Produktstationen. Ihre IP spielt dann keine Rolle.
 - Ist die Abholbon-Station konfiguriert, entstehen Abholbons an dieser Station gemäß ihrem Bonmodus. `pro_bestellung` ergibt einen Sammel-Abholbon, `pro_position` einen je Position, `pro_stueck` einen je Einheit. Jeder Abholbon trägt den Positionskommentar seiner Position, `pro_stueck` auf jedem Stückbon. Pfand-Positionen erscheinen auf keinem Abholbon; ein reiner Pfand-Verkauf erzeugt keinen Auftrag.
-- Sonst entstehen Arbeitsbons an die Produktstationen.
-- Ohne konfigurierte Stationen entsteht kein Auftrag.
+- Sonst entstehen Arbeitsbons am Zusatzdrucker des Produkts, für die übrigen Positionen an den Produktstationen.
+- Ohne konfigurierte Stationen und Zusatzdrucker entsteht kein Auftrag.
 
 Der Kassenbeleg-Drucker ist die Druckstation `kassenbeleg`; fehlt ihre IP, schlägt `POST /service/beleg-drucken` mit klarer Fehlermeldung fehl.
 
