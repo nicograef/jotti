@@ -21,6 +21,8 @@
 # Environment:
 #   EINZELDATEI_TIMEOUT   seconds to wait for health, app and the Enter prompt, default 180
 set -euo pipefail
+# mawk follows LC_NUMERIC: under de_DE it reads 60.5 as 60 and compares 9.4 as a string.
+export LC_ALL=C
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/lib.sh
