@@ -422,7 +422,8 @@ jobs:
         shell: bash
         run: bash scripts/einzeldatei-smoke.sh start ./jotti.exe
 
-      # Counts only detections since the Defender step; the runner image's own history is no finding.
+      # Lists every detection since the Defender step but counts only those on jotti.exe and the
+      # folders it writes; the step lifted the drive exclusions, so other runner files may hit too.
       - name: Record Defender state and detections
         if: ${{ always() }}
         shell: pwsh
@@ -430,8 +431,14 @@ jobs:
           $status = Get-MpComputerStatus -ErrorAction SilentlyContinue
           $on = [bool]($status -and $status.RealTimeProtectionEnabled)
           $since = if ($env:EINZELDATEI_DEFENDER_START) { [datetime]::Parse($env:EINZELDATEI_DEFENDER_START, $null, 'RoundtripKind') } else { [datetime]::MinValue }
-          $funde = @(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object { $_.InitialDetectionTime -ge $since })
-          $funde | Format-List
+          $alle = @(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object { $_.InitialDetectionTime -ge $since })
+          $alle | Format-List
+          $pfade = @((Join-Path $env:GITHUB_WORKSPACE 'jotti.exe'), (Join-Path $env:ProgramFiles 'jotti'), (Join-Path $env:ProgramData 'jotti'))
+          $funde = @($alle | Where-Object {
+            $resources = @($_.Resources)
+            $pfade | Where-Object { $p = $_; $resources | Where-Object { $_ -and $_.IndexOf($p, [StringComparison]::OrdinalIgnoreCase) -ge 0 } }
+          })
+          "detections on jotti: $($funde.Count) of $($alle.Count)"
           $tsv = Join-Path $env:GITHUB_WORKSPACE 'messung.tsv'
           [IO.File]::AppendAllText($tsv, "defender_echtzeitschutz`t$($on.ToString().ToLower())`ndefender_funde`t$($funde.Count)`n")
 
