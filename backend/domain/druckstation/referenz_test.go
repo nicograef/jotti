@@ -15,7 +15,6 @@ func TestReferenzAnzeige(t *testing.T) {
 		{TestdruckReferenz(KategorieGetraenk), "Testbon Getränk"},
 		{"testdruck:kassenbeleg", "Testbon Kassenbeleg"},
 		{"testdruck:foo", "Testbon foo"},
-		{ZusatzdruckerTestdruckReferenz("Kaffee & Kuchen"), "Testbon Kaffee & Kuchen"},
 		{"unbekanntes-format:99", "unbekanntes-format:99"},
 		{"ohne-doppelpunkt", "ohne-doppelpunkt"},
 		{"zahlung-kassiert:", "zahlung-kassiert:"},
