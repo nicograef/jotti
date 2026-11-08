@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nicograef/jotti/backend/db"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
@@ -245,6 +246,12 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 		}
 	}
 
+	for _, zd := range s.Zusatzdrucker {
+		if err := writeZusatzdrucker(ctx, qtx, zd); err != nil {
+			return err
+		}
+	}
+
 	// TSE-Stammdaten wie eine echte fiskaly-Einrichtung schreiben, damit die tse.csv
 	// des Demo-Exports vollständig ist.
 	stammdaten := fakeTSEStammdaten()
@@ -262,6 +269,31 @@ func writeStammdaten(ctx context.Context, qtx *dbgen.Queries, s szenario, jetzt 
 		return fmt.Errorf("tse-stammdaten je tss schreiben: %w", err)
 	}
 
+	return nil
+}
+
+// writeZusatzdrucker legt den Zusatzdrucker über die Queries der Admin-Seite an und ordnet ihm seine Produkte zu.
+func writeZusatzdrucker(ctx context.Context, qtx *dbgen.Queries, zd zusatzdruckerKonfig) error {
+	if _, err := druckstation.NewZusatzdrucker(zd.Name, zd.DruckerIP, zd.Bonmodus); err != nil {
+		return fmt.Errorf("zusatzdrucker %q: %w", zd.Name, err)
+	}
+	id, err := qtx.CreateZusatzdrucker(ctx, dbgen.CreateZusatzdruckerParams{Name: zd.Name, DruckerIp: zd.DruckerIP, Bonmodus: string(zd.Bonmodus)})
+	if err != nil {
+		return fmt.Errorf("zusatzdrucker %q anlegen: %w", zd.Name, err)
+	}
+	for _, produktID := range zd.Produkte {
+		res, err := qtx.AssignProduktZusatzdrucker(ctx, dbgen.AssignProduktZusatzdruckerParams{ProduktID: produktID, ZusatzdruckerID: id})
+		if err != nil {
+			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: %w", produktID, zd.Name, err)
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: %w", produktID, zd.Name, err)
+		}
+		if n != 1 {
+			return fmt.Errorf("produkt %d dem zusatzdrucker %q zuordnen: produkt gelöscht oder unbekannt", produktID, zd.Name)
+		}
+	}
 	return nil
 }
 

@@ -80,6 +80,15 @@ type druckstationKonfig struct {
 	Bonmodus  druckstation.Bonmodus
 }
 
+// zusatzdruckerKonfig ist ein Zusatzdrucker im Drehbuch (D24): Die Arbeitsbons der zugeordneten
+// Produkte drucken dort statt an der Station ihrer Kategorie. Die ID vergibt die Datenbank.
+type zusatzdruckerKonfig struct {
+	Name      string
+	DruckerIP string
+	Bonmodus  druckstation.Bonmodus
+	Produkte  []int
+}
+
 // --- Drehbuch-Typen ---
 
 // bestellposten verweist auf eine Produktvariante, die gewünschte Menge und den optionalen
@@ -239,6 +248,7 @@ type szenario struct {
 	Favoriten      []favorit
 	Betreiber      betreiber.Betreiber
 	Druckstationen []druckstationKonfig
+	Zusatzdrucker  []zusatzdruckerKonfig
 	Sitzungen      []kassensitzungDrehbuch
 }
 
@@ -503,6 +513,10 @@ func demoSzenario() szenario {
 			{Kategorie: druckstation.KategorieSonstiges, DruckerIP: "192.168.8.53", Bonmodus: druckstation.BonmodusProPosition},
 			{Kategorie: druckstation.KategorieKassenbeleg, DruckerIP: "192.168.8.54"},
 			{Kategorie: druckstation.KategorieAbholbon, DruckerIP: "192.168.8.55", Bonmodus: druckstation.BonmodusProBestellung},
+		},
+		// Hugo und Aperol mixt die Cocktailbar, ihre Bons drucken dort statt an der Getränke-Station.
+		Zusatzdrucker: []zusatzdruckerKonfig{
+			{Name: "Cocktailbar", DruckerIP: "192.168.8.56", Bonmodus: druckstation.BonmodusProBestellung, Produkte: []int{19}},
 		},
 		Sitzungen: []kassensitzungDrehbuch{
 			{

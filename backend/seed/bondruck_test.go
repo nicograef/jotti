@@ -149,8 +149,16 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 		}
 	}
 
+	zusatzdruckerBons := map[string]int{}
+	for _, zd := range s.Zusatzdrucker {
+		zusatzdruckerBons[zd.DruckerIP] = 0
+	}
+
 	referenzen := map[string]int{}
 	for _, a := range auftraege {
+		if _, ok := zusatzdruckerBons[a.ZielIP]; ok && a.BonArt == druckstation.BonArtArbeitsbon {
+			zusatzdruckerBons[a.ZielIP]++
+		}
 		typ, idText, ok := strings.Cut(a.Referenz, ":")
 		if !ok {
 			t.Errorf("Auftrag mit unerwarteter Referenz %q", a.Referenz)
@@ -179,6 +187,16 @@ func TestBuildDruckauftraege_ReferenzenUndPayloads(t *testing.T) {
 
 		if a.BonArt == "arbeitsbon" && a.ZielIP == abholbonIP && !strings.Contains(string(payload), "Direktverkauf") {
 			t.Errorf("Abholbon %s ohne Direktverkauf-Kopfzeile", a.Referenz)
+		}
+	}
+
+	// D24: Die zugeordneten Produkte drucken ihre Arbeitsbons am Zusatzdrucker.
+	if len(zusatzdruckerBons) == 0 {
+		t.Error("kein Zusatzdrucker im Drehbuch")
+	}
+	for ip, anzahl := range zusatzdruckerBons {
+		if anzahl == 0 {
+			t.Errorf("Zusatzdrucker %s ohne Arbeitsbon", ip)
 		}
 	}
 

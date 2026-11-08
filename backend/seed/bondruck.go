@@ -80,6 +80,8 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 		stationen[string(st.Kategorie)] = druckstation.Druckstation{Kategorie: st.Kategorie, DruckerIP: st.DruckerIP, Bonmodus: st.Bonmodus}
 	}
 
+	zusatzdrucker := zusatzdruckerJeVariante(s)
+
 	tischNamen := make(map[int]string, len(s.Tische))
 	for _, t := range s.Tische {
 		tischNamen[t.ID] = t.Name
@@ -103,7 +105,7 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 			tischName = tischNamen[tischID]
 		}
 
-		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, nil, tischName) {
+		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, tischName) {
 			zeilen = append(zeilen, b.zeile(auftrag, evt.Time))
 		}
 
@@ -140,6 +142,29 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 	}
 
 	return zeilen, nil
+}
+
+// zusatzdruckerJeVariante keys each Zusatzdrucker by the variants of its products, the form
+// GetZusatzdruckerJeVariante hands the Arbeitsbon policy in production. The policy groups by ID
+// only, so the scenario position stands in for the database ID.
+func zusatzdruckerJeVariante(s szenario) map[int]druckstation.Zusatzdrucker {
+	produktZu := map[int]druckstation.Zusatzdrucker{}
+	for i, zd := range s.Zusatzdrucker {
+		for _, produktID := range zd.Produkte {
+			produktZu[produktID] = druckstation.Zusatzdrucker{ID: i + 1, Name: zd.Name, DruckerIP: zd.DruckerIP, Bonmodus: zd.Bonmodus}
+		}
+	}
+	jeVariante := map[int]druckstation.Zusatzdrucker{}
+	for _, p := range s.Produkte {
+		zd, ok := produktZu[p.ID]
+		if !ok {
+			continue
+		}
+		for _, v := range p.Varianten {
+			jeVariante[v.ID] = zd
+		}
+	}
+	return jeVariante
 }
 
 // bondruckBuilder hält die Drucker-Ausfallfenster, die quittierten Signaturen je Event-ID,
