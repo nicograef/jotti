@@ -6,8 +6,9 @@
 #
 # Modes:
 #   start   starts the file with a pipe on stdin, waits until https://127.0.0.1/api/health
-#           answers 200 and https://127.0.0.1/ serves the app's index.html (both -k: internal CA),
-#           then sends Enter and requires exit 0 with no postgres.exe left.
+#           answers 200, https://127.0.0.1/ serves the app's index.html (both -k: internal CA)
+#           and the file prompts for Enter, then sends Enter and requires exit 0 with no
+#           postgres.exe left. An Enter sent during the start must not end the file.
 #
 # Environment:
 #   EINZELDATEI_TIMEOUT   seconds to wait for health and app, default 180
@@ -28,17 +29,21 @@ postgres_running() {
   tasklist //FI "IMAGENAME eq postgres.exe" //NH 2>/dev/null | grep -qi 'postgres.exe'
 }
 
-# app_ready succeeds once health answers 200 and / serves the app's index.html.
+# app_ready LOG succeeds once health answers 200, / serves the app's index.html and LOG
+# shows the Enter prompt.
 app_ready() {
   curl -kfsS -o /dev/null --max-time 5 https://127.0.0.1/api/health 2>/dev/null \
-    && curl -kfsS --max-time 5 https://127.0.0.1/ 2>/dev/null | grep -q '<title>jotti</title>'
+    && curl -kfsS --max-time 5 https://127.0.0.1/ 2>/dev/null | grep -q '<title>jotti</title>' \
+    && grep -q 'Enter beendet jotti' "$1"
 }
 
-# start_exe EXE LOG RELEASE — runs EXE with stdin fed by a loop that sends one Enter as soon as
-# the file RELEASE exists; sets EXE_PID to the pipeline's last process.
+# start_exe EXE LOG RELEASE — runs EXE with stdin fed by one Enter during the start, which EXE
+# must ignore, and one more as soon as the file RELEASE exists; sets EXE_PID to the pipeline's
+# last process.
 start_exe() {
   local exe="$1" log="$2" release="$3"
   (
+    echo
     while [[ ! -e "$release" ]]; do sleep 1; done
     echo
   ) | "$exe" >"$log" 2>&1 &
@@ -55,7 +60,7 @@ mode_start() {
   info "Starting $exe ..."
   start_exe "$exe" "$log" "$release"
 
-  until app_ready; do
+  until app_ready "$log"; do
     if ! kill -0 "$EXE_PID" 2>/dev/null; then
       touch "$release"
       cat "$log" >&2
@@ -73,6 +78,11 @@ mode_start() {
     waited=$((waited + 1))
   done
   info "Health and app answer after ${waited}s."
+  sleep 3
+  if ! kill -0 "$EXE_PID" 2>/dev/null; then
+    cat "$log" >&2
+    fatal "$exe ended on the Enter sent during its start."
+  fi
 
   touch "$release"
   wait "$EXE_PID" || status=$?
