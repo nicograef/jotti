@@ -20,23 +20,24 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 
 ## Umgesetzt
 
-| Wunsch                                                  | Vereine | Umsetzung                                                                                   |
-| ------------------------------------------------------- | ------: | ------------------------------------------------------------------------------------------- |
-| Gläserpfand: Rückgabe und Verrechnung                   |       3 | [CHANGELOG.md](../CHANGELOG.md), [Belege und Steuersätze](leitfaden/belege-steuersaetze.md) |
-| Erster Login dokumentiert                               |       2 | Leitfaden „Installation" und README                                                         |
-| Reihenfolge von Produkten und Varianten festlegen       |       2 | S-01                                                                                        |
-| Anfrageformular ohne Mailprogramm oder ohne Annahmesatz |       1 | Kopier-Fallback und Annahmesatz im Formular der Website                                     |
-| Ausgabe-Schritt streichen                               |       1 | D01                                                                                         |
-| Bedienung ohne lokales WLAN, Handys über Mobilfunk      |       1 | Leitfaden „Self-Hosting"                                                                    |
-| Bestellkommentar erscheint auf allen Arbeitsbons        |       1 | D22, [#145](https://github.com/nicograef/jotti/issues/145)                                  |
-| Direktverkauf ohne Tisch                                |       1 | K-24                                                                                        |
-| Einzelbon pro Stück                                     |       1 | K-25 (Bonmodus am Abholbon)                                                                 |
-| Kategorie-Auswahl über der Produktliste                 |       1 | D10 (Kategorie-Pills)                                                                       |
-| Lange Produktnamen am Handy umbrechen                   |       1 | Q-01                                                                                        |
-| Liste bewährter Bondrucker                              |       1 | Leitfaden „Installation"                                                                    |
-| Neuinstallation scheitert (Migration, pnpm 11)          |       1 | behoben                                                                                     |
-| README nannte nicht vorhandene Funktionen               |       1 | behoben                                                                                     |
-| Rückgeldberechnung                                      |       1 | K-10                                                                                        |
+| Wunsch                                                  | Vereine | Umsetzung                                                                                                                            |
+| ------------------------------------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Gläserpfand: Rückgabe und Verrechnung                   |       3 | [CHANGELOG.md](../CHANGELOG.md), [Belege und Steuersätze](leitfaden/belege-steuersaetze.md)                                          |
+| Erster Login dokumentiert                               |       2 | Leitfaden „Installation" und README                                                                                                  |
+| Reihenfolge von Produkten und Varianten festlegen       |       2 | S-01                                                                                                                                 |
+| Anfrageformular ohne Mailprogramm oder ohne Annahmesatz |       1 | Kopier-Fallback und Annahmesatz im Formular der Website                                                                              |
+| Ausgabe-Schritt streichen                               |       1 | D01                                                                                                                                  |
+| Ausgabestationen unabhängig von Produktkategorien       |       1 | Piepton entfernt, „Kein Bon" im Direktverkauf; Zusatzdrucker je Produkt (D24), [#146](https://github.com/nicograef/jotti/issues/146) |
+| Bedienung ohne lokales WLAN, Handys über Mobilfunk      |       1 | Leitfaden „Self-Hosting"                                                                                                             |
+| Bestellkommentar erscheint auf allen Arbeitsbons        |       1 | D22, [#145](https://github.com/nicograef/jotti/issues/145)                                                                           |
+| Direktverkauf ohne Tisch                                |       1 | K-24                                                                                                                                 |
+| Einzelbon pro Stück                                     |       1 | K-25 (Bonmodus am Abholbon)                                                                                                          |
+| Kategorie-Auswahl über der Produktliste                 |       1 | D10 (Kategorie-Pills)                                                                                                                |
+| Lange Produktnamen am Handy umbrechen                   |       1 | Q-01                                                                                                                                 |
+| Liste bewährter Bondrucker                              |       1 | Leitfaden „Installation"                                                                                                             |
+| Neuinstallation scheitert (Migration, pnpm 11)          |       1 | behoben                                                                                                                              |
+| README nannte nicht vorhandene Funktionen               |       1 | behoben                                                                                                                              |
+| Rückgeldberechnung                                      |       1 | K-10                                                                                                                                 |
 
 ## Abgelehnt
 
@@ -54,16 +55,15 @@ Wünsche, Fehlerberichte und Fragen aus den Mails und GitHub-Issues der Vereine,
 
 ## Offen
 
-| Wunsch oder Fehler                                         | Vereine | Stand                                                                                                                                             |
-| ---------------------------------------------------------- | ------: | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ausgabestationen unabhängig von Produktkategorien          |       1 | Piepton entfernt, „Kein Bon" im Direktverkauf; Modell im [PRD](prds/prd-stationsmodell.md), [#146](https://github.com/nicograef/jotti/issues/146) |
-| Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                                                                                          |
-| Installation ohne Docker oder gehosteter Betrieb           |       1 | [PRD](prds/prd-windows-einzeldatei.md), [Plan](plans/plan-windows-einzeldatei.md)                                                                 |
-| Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                                                                                          |
-| Rabatte und Gutschriften                                   |       1 | [backlog.md](backlog.md)                                                                                                                          |
-| Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md)                                                                                                                          |
-| Umlaute auf Epson-Bondruckern unlesbar                     |       1 | PC437 umgesetzt, Druckprobe offen; [#144](https://github.com/nicograef/jotti/issues/144)                                                          |
-| WLAN mit mehreren Access Points verliert die Adresse       |       1 | [backlog.md](backlog.md)                                                                                                                          |
+| Wunsch oder Fehler                                         | Vereine | Stand                                                                                    |
+| ---------------------------------------------------------- | ------: | ---------------------------------------------------------------------------------------- |
+| Bondrucker hängt still, Relay meldet nichts                |       1 | [backlog.md](backlog.md)                                                                 |
+| Installation ohne Docker oder gehosteter Betrieb           |       1 | [PRD](prds/prd-windows-einzeldatei.md), [Plan](plans/plan-windows-einzeldatei.md)        |
+| Letzter Admin hat sein Passwort vergessen                  |       1 | [backlog.md](backlog.md)                                                                 |
+| Rabatte und Gutschriften                                   |       1 | [backlog.md](backlog.md)                                                                 |
+| Tische mit eigenen offenen Bestellungen automatisch zeigen |       1 | [backlog.md](backlog.md)                                                                 |
+| Umlaute auf Epson-Bondruckern unlesbar                     |       1 | PC437 umgesetzt, Druckprobe offen; [#144](https://github.com/nicograef/jotti/issues/144) |
+| WLAN mit mehreren Access Points verliert die Adresse       |       1 | [backlog.md](backlog.md)                                                                 |
 
 ## Wiederkehrende Fragen
 
