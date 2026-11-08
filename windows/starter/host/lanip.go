@@ -1,4 +1,4 @@
-package main
+package host
 
 import (
 	"fmt"
@@ -7,9 +7,9 @@ import (
 	"github.com/nicograef/jotti/windows/starter/core"
 )
 
-// detectLANIP ermittelt die LAN-IP fuer die LAN_IP-Env des Caddy-Containers; ohne
-// sie laeuft der Start weiter, Caddy rendert dann nur die Fallback-Site.
-func detectLANIP() string {
+// DetectLANIP ermittelt die LAN-IP fuer die Caddy-Konfiguration; ohne sie laeuft
+// der Start weiter, Caddy rendert dann nur die Fallback-Site.
+func DetectLANIP() string {
 	ip, err := core.SelectLANIP(outboundIP(), localInterfaces())
 	if err != nil {
 		fmt.Printf("Hinweis: LAN-IP konnte nicht ermittelt werden (%v) - die Zugangsadresse fuers WLAN "+

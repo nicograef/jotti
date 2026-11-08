@@ -63,7 +63,7 @@ linters:
         linters: [gosec]
         text: G304
       # The starter's Win32 security calls pass pointers through syscall.Proc.Call.
-      - path: ^windows/starter/statedir_windows(_test)?\.go$
+      - path: ^windows/starter/host/statedir_windows(_test)?\.go$
         linters: [gosec]
         text: G103
       # Tests read the fixture files they wrote to their own temporary directory.

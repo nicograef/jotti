@@ -1,4 +1,4 @@
-package main
+package host
 
 import (
 	"encoding/binary"
@@ -77,8 +77,8 @@ func TestPrepareStateDirACL(t *testing.T) {
 
 			// Zweimal wie bei jedem weiteren Start des Starters.
 			for range 2 {
-				if err := prepareStateDir(dir); err != nil {
-					t.Fatalf("prepareStateDir: %v", err)
+				if err := PrepareStateDir(dir); err != nil {
+					t.Fatalf("PrepareStateDir: %v", err)
 				}
 			}
 
@@ -105,9 +105,9 @@ func TestPrepareStateDirRefusesForeignOwner(t *testing.T) {
 	}
 	setOwner(t, dir, sidUsers)
 
-	err := prepareStateDir(dir)
+	err := PrepareStateDir(dir)
 	if err == nil || !strings.Contains(err.Error(), "gehoert") {
-		t.Fatalf("prepareStateDir = %v, want refusal for the owner %s", err, sidUsers)
+		t.Fatalf("PrepareStateDir = %v, want refusal for the owner %s", err, sidUsers)
 	}
 	assertUntouched(t, dir)
 }
@@ -123,9 +123,9 @@ func TestPrepareStateDirRefusesJunction(t *testing.T) {
 		t.Fatalf("mklink /J: %v: %s", err, out)
 	}
 
-	err := prepareStateDir(link)
+	err := PrepareStateDir(link)
 	if err == nil || !strings.Contains(err.Error(), "kein gewoehnlicher Ordner") {
-		t.Fatalf("prepareStateDir = %v, want refusal of the junction", err)
+		t.Fatalf("PrepareStateDir = %v, want refusal of the junction", err)
 	}
 	assertUntouched(t, target)
 }

@@ -1,4 +1,4 @@
-package main
+package host
 
 import (
 	"fmt"
@@ -17,12 +17,12 @@ const (
 	updateCheckTimeout = 3 * time.Second
 )
 
-// notifyIfUpdateAvailable weist nach einem gesunden Start auf eine neuere Version
+// NotifyIfUpdateAvailable weist nach einem gesunden Start auf eine neuere Version
 // hin. Jeder Fehler wird still verschluckt — der Check darf den Start nie stoeren.
 // Bewusst nur melden, nie automatisch aktualisieren (kein Auto-Update einer
 // laufenden Kasse).
-func notifyIfUpdateAvailable() {
-	latest, err := fetchLatestRelease()
+func NotifyIfUpdateAvailable(version string) {
+	latest, err := fetchLatestRelease(version)
 	if err != nil {
 		return
 	}
@@ -36,13 +36,13 @@ func notifyIfUpdateAvailable() {
 
 // fetchLatestRelease holt den tag_name des neuesten Releases. Der User-Agent ist
 // Pflicht — GitHub lehnt Requests ohne ab.
-func fetchLatestRelease() (string, error) {
+func fetchLatestRelease(version string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, latestReleaseAPI, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "jotti-starter/"+version)
+	req.Header.Set("User-Agent", "jotti/"+version)
 
 	client := &http.Client{Timeout: updateCheckTimeout}
 	resp, err := client.Do(req)

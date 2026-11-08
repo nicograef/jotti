@@ -2,8 +2,9 @@
 // jotti-Betrieb (requireAdministrator-Manifest, eine UAC-Abfrage pro Start).
 // Host-Zustand (.env-Spiegel, last-version-Marker) liegt unter Windows kanonisch in
 // %PROGRAMDATA%\jotti — unabhaengig vom Entpack-Ort. Die reine Logik liegt in
-// windows/starter/core; die Windows-Schritte laufen nur unter GOOS == "windows",
-// der Repo-Dev-Lauf unter Linux ueberspringt sie und bleibt ordnerlokal.
+// windows/starter/core, die Hostfunktionen in windows/starter/host; die
+// Windows-Schritte laufen nur unter GOOS == "windows", der Repo-Dev-Lauf unter
+// Linux ueberspringt sie und bleibt ordnerlokal.
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"runtime"
 
 	"github.com/nicograef/jotti/windows/starter/core"
+	"github.com/nicograef/jotti/windows/starter/host"
 )
 
 // version wird beim Release per -ldflags "-X main.version=vX.Y.Z" gesetzt.
@@ -71,7 +73,7 @@ func run() int {
 			fmt.Println(msg)
 			return 1
 		}
-		firewallOK = ensureFirewall()
+		firewallOK = host.EnsureFirewallRule(host.FirewallRule{Name: "jotti", Ports: []int{80, 443}})
 	} else {
 		// Linux-Dev-Lauf: ohne Daemon-Garantie und ohne Volume bleibt die .env ordnerlokal.
 		created, err := core.MaterializeEnv(envPath, fileExists, writeEnvFile)
@@ -99,7 +101,7 @@ func run() int {
 		return 1
 	}
 
-	lanIP := detectLANIP()
+	lanIP := host.DetectLANIP()
 	if err := composeUp(composePath, envPath, lanIP); err != nil {
 		fmt.Printf("Der jotti-Stack konnte nicht gestartet werden: %v\n", err)
 		return 1
@@ -120,7 +122,7 @@ func run() int {
 
 	printAdminCode()
 
-	notifyIfUpdateAvailable()
+	host.NotifyIfUpdateAvailable(version)
 	return 0
 }
 
@@ -128,7 +130,7 @@ const lastVersionFile = "last-version"
 
 func resolveStateDir(fallback string) (string, error) {
 	dir := core.StateDir(runtime.GOOS, os.Getenv("PROGRAMDATA"), fallback)
-	if err := prepareStateDir(dir); err != nil {
+	if err := host.PrepareStateDir(dir); err != nil {
 		return "", err
 	}
 	return dir, nil

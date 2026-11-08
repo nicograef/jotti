@@ -1,4 +1,4 @@
-package main
+package host
 
 import (
 	"errors"
@@ -33,10 +33,10 @@ var (
 	procGetSystemDirectoryW       = syscall.NewLazyDLL("kernel32.dll").NewProc("GetSystemDirectoryW")
 )
 
-// prepareStateDir legt %PROGRAMDATA%\jotti an und sperrt es fuer andere lokale
+// PrepareStateDir legt %PROGRAMDATA%\jotti an und sperrt es fuer andere lokale
 // Benutzer: die geerbte ProgramData-ACL gaebe jedem Benutzer Lesezugriff auf .env
 // und Backups. Ein vorgefundener Ordner wird nur mit unbedenklichem Besitzer uebernommen.
-func prepareStateDir(dir string) error {
+func PrepareStateDir(dir string) error {
 	interactive, process, err := stateDirUsers()
 	if err != nil {
 		return errors.New(core.DiagnoseZustandsverzeichnisRechte(dir, err))
@@ -48,7 +48,7 @@ func prepareStateDir(dir string) error {
 	}
 	defer localFree(sd)
 
-	info, err := os.Lstat(dir) //nolint:gosec // PROGRAMDATA is the operator's own environment
+	info, err := os.Lstat(dir)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
 		// Mit der DACL anlegen statt nachtraeglich setzen: kein Zeitfenster, in dem ein
