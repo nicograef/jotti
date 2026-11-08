@@ -11,9 +11,9 @@
 #              answers 200, https://127.0.0.1/ serves the app's index.html (both -k: internal CA)
 #              and the file prompts for Enter, then sends Enter and requires exit 0 with no
 #              postgres.exe left. An Enter sent during the start must not end the file.
-#   messung    requires a host jotti never ran on, runs `start` twice and appends erststart_s
-#              and folgestart_s (process start until health and app answer) and groesse_bytes
-#              to <tsv>, one "<key>\t<value>" line each.
+#   messung    requires a host jotti never ran on, appends groesse_bytes to <tsv>, then runs
+#              `start` twice and appends erststart_s and folgestart_s (process start until health
+#              and app answer) after each run, one "<key>\t<value>" line each.
 #   auswerten  prints the values of <tsv> and fails when one is missing or over its threshold:
 #              groesse_bytes 120000000, erststart_s 60, folgestart_s 15,
 #              defender_echtzeitschutz not true, defender_funde over 0.
@@ -134,14 +134,13 @@ mode_messung() {
     [[ ! -e "$dir" ]] || fatal "$dir exists; messung needs a host jotti never ran on."
   done
 
+  # Each value lands as soon as it is known, so a failing later run keeps the earlier ones.
+  printf 'groesse_bytes\t%s\n' "$(wc -c <"$exe" | tr -d '[:space:]')" >>"$tsv"
   run_once "$exe"
   erststart="$SERVED_S"
+  printf 'erststart_s\t%s\n' "$erststart" >>"$tsv"
   run_once "$exe"
-  {
-    printf 'erststart_s\t%s\n' "$erststart"
-    printf 'folgestart_s\t%s\n' "$SERVED_S"
-    printf 'groesse_bytes\t%s\n' "$(wc -c <"$exe" | tr -d '[:space:]')"
-  } >>"$tsv"
+  printf 'folgestart_s\t%s\n' "$SERVED_S" >>"$tsv"
   info "First start ${erststart}s, later start ${SERVED_S}s."
 }
 
