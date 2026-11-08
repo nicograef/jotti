@@ -2,6 +2,7 @@ package seed
 
 import (
 	"encoding/json"
+	"maps"
 	"strings"
 	"testing"
 	"time"
@@ -444,6 +445,52 @@ func TestBuildSeedDaten_AutoPfand(t *testing.T) {
 	}
 	if vorgaenge == 0 {
 		t.Error("kein Vorgang mit verknüpfter Variante, erwartet Hugo und Aperol")
+	}
+}
+
+// TestBuildSeedDaten_Positionskommentare prüft, dass die kommentierten Posten des Drehbuchs ihren
+// Positionskommentar ins Event tragen und alle übrigen Positionen ohne Kommentar bleiben.
+func TestBuildSeedDaten_Positionskommentare(t *testing.T) {
+	_, daten := buildTestDaten(t)
+
+	type kommentar struct {
+		eventTyp   string
+		varianteID int
+		text       string
+	}
+	gefunden := map[kommentar]int{}
+	ohneKommentar := 0
+	zaehle := func(eventTyp string, varianteID int, text string) {
+		if text == "" {
+			ohneKommentar++
+			return
+		}
+		gefunden[kommentar{eventTyp, varianteID, text}]++
+	}
+	for _, ev := range daten.Events {
+		switch ev.event.Type {
+		case string(kasse.EventTypeBestellungAufgenommenV1):
+			for _, p := range parseData[kasse.BestellungAufgenommenV1Data](t, ev.event).Positionen {
+				zaehle(ev.event.Type, p.VarianteID, p.Kommentar)
+			}
+		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
+			for _, p := range parseData[kasse.DirektverkaufGetaetigtV2Data](t, ev.event).Positionen {
+				zaehle(ev.event.Type, p.VarianteID, p.Kommentar)
+			}
+		}
+	}
+
+	erwartet := map[kommentar]int{
+		{"bestellung-aufgenommen:v1", 13, "ohne Zwiebeln"}:              2,
+		{"bestellung-aufgenommen:v1", 3, "extra scharf"}:                1,
+		{"bestellung-aufgenommen:v1", 14, "glutenfrei, Dressing extra"}: 1,
+		{"direktverkauf-getaetigt:v2", 16, "mit Sahne"}:                 1,
+	}
+	if !maps.Equal(gefunden, erwartet) {
+		t.Errorf("Positionskommentare = %v, erwartet %v", gefunden, erwartet)
+	}
+	if ohneKommentar == 0 {
+		t.Error("keine Position ohne Kommentar, erwartet die unkommentierten Posten des Drehbuchs")
 	}
 }
 
