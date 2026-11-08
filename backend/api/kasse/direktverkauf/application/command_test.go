@@ -120,11 +120,18 @@ func (m *mockDruckstationRepo) GetKonfigurierteDruckstationen(_ context.Context)
 	return m.konfig, nil
 }
 
-func (m *mockDruckstationRepo) GetZusatzdruckerJeVariante(_ context.Context, _ []int) (map[int]druckstation.Zusatzdrucker, error) {
+// GetZusatzdruckerJeVariante answers only the requested Varianten, like the repository.
+func (m *mockDruckstationRepo) GetZusatzdruckerJeVariante(_ context.Context, varianteIDs []int) (map[int]druckstation.Zusatzdrucker, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	return m.zusatzdrucker, nil
+	result := map[int]druckstation.Zusatzdrucker{}
+	for _, id := range varianteIDs {
+		if zd, ok := m.zusatzdrucker[id]; ok {
+			result[id] = zd
+		}
+	}
+	return result, nil
 }
 
 func newProductMock() produktRepo {
@@ -374,6 +381,30 @@ func TestDirektverkaufTaetigen_AbholbonModeQueuesExactlyOneAuftrag(t *testing.T)
 	}
 	if auftrag.Payload == "" {
 		t.Error("expected non-empty payload")
+	}
+}
+
+func TestDirektverkaufTaetigen_DrucktAmZusatzdrucker(t *testing.T) {
+	spy := &spyEventRepo{}
+	command := newCommand(spy, testOpenKS)
+	command.DruckstationRepo = &mockDruckstationRepo{
+		konfig: map[string]druckstation.Druckstation{
+			string(testProduct.Kategorie): {DruckerIP: "192.168.1.50", Bonmodus: "pro_bestellung"},
+		},
+		zusatzdrucker: map[int]druckstation.Zusatzdrucker{
+			testVariant.ID: {ID: 1, Name: "Bar", DruckerIP: "192.168.1.61", Bonmodus: "pro_bestellung"},
+		},
+	}
+
+	if err := command.DirektverkaufTaetigen(context.Background(), 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab", testInputs, "", nil); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(spy.druckauftraege) != 1 {
+		t.Fatalf("expected exactly 1 druckauftrag, got %d", len(spy.druckauftraege))
+	}
+	if spy.druckauftraege[0].ZielIP != "192.168.1.61" {
+		t.Errorf("expected ZielIP of the Zusatzdrucker 192.168.1.61, got %s", spy.druckauftraege[0].ZielIP)
 	}
 }
 
