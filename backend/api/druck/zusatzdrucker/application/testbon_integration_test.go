@@ -12,13 +12,14 @@ import (
 
 	"github.com/nicograef/jotti/backend/api/druck/zusatzdrucker/application"
 	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/druckstation"
 	"github.com/nicograef/jotti/backend/repository/druckauftrag_repo"
 	"github.com/nicograef/jotti/backend/repository/druckstation_repo"
 )
 
-// setup returns a Command over real repositories and the open sql.DB for assertions against
-// druckauftraege. Zusatzdrucker and the outbox start and end empty.
-func setup(t *testing.T) (application.Command, *sql.DB) {
+// setup returns a Command over real repositories, the repository for reading rows back and the open
+// sql.DB for assertions against druckauftraege. Zusatzdrucker and the outbox start and end empty.
+func setup(t *testing.T) (application.Command, druckstation_repo.Repository, *sql.DB) {
 	t.Helper()
 	db := dbtest.Open()
 
@@ -41,11 +42,11 @@ func setup(t *testing.T) (application.Command, *sql.DB) {
 	return application.Command{
 		ZusatzdruckerRepo: repo,
 		DruckauftragRepo:  druckauftrag_repo.NewRepository(db),
-	}, db
+	}, repo, db
 }
 
 func TestTestbonDrucken_ReihtAuftragAnZusatzdruckerEin(t *testing.T) {
-	cmd, db := setup(t)
+	cmd, _, db := setup(t)
 	ctx := context.Background()
 
 	id, err := cmd.Anlegen(ctx, "Kaffee & Kuchen")
@@ -86,12 +87,20 @@ func TestTestbonDrucken_ReihtAuftragAnZusatzdruckerEin(t *testing.T) {
 }
 
 func TestTestbonDrucken_ZusatzdruckerOhneIPWirdAbgelehnt(t *testing.T) {
-	cmd, db := setup(t)
+	cmd, repo, db := setup(t)
 	ctx := context.Background()
 
 	id, err := cmd.Anlegen(ctx, "Kaffee & Kuchen")
 	if err != nil {
 		t.Fatalf("Anlegen: %v", err)
+	}
+	got, err := repo.GetZusatzdrucker(ctx, id)
+	if err != nil {
+		t.Fatalf("GetZusatzdrucker: %v", err)
+	}
+	want := druckstation.Zusatzdrucker{ID: id, Name: "Kaffee & Kuchen", DruckerIP: "", Bonmodus: druckstation.BonmodusProPosition}
+	if got != want {
+		t.Errorf("Anlegen stored %+v, want %+v", got, want)
 	}
 
 	err = cmd.TestbonDrucken(ctx, id)

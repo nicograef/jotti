@@ -69,29 +69,6 @@ func (f *zusatzdruckerFixture) createProdukt(t *testing.T, name string, variante
 	return ids
 }
 
-func TestCreateZusatzdrucker_StartetOhneIPProPosition(t *testing.T) {
-	repo := setupZusatzdrucker(t).repo
-	ctx := context.Background()
-
-	zd, err := druckstation.NewZusatzdrucker("Kaffee & Kuchen", "", druckstation.BonmodusProPosition)
-	if err != nil {
-		t.Fatalf("NewZusatzdrucker: %v", err)
-	}
-	id, err := repo.CreateZusatzdrucker(ctx, zd)
-	if err != nil {
-		t.Fatalf("CreateZusatzdrucker: %v", err)
-	}
-
-	got, err := repo.GetZusatzdrucker(ctx, id)
-	if err != nil {
-		t.Fatalf("GetZusatzdrucker: %v", err)
-	}
-	want := druckstation.Zusatzdrucker{ID: id, Name: "Kaffee & Kuchen", DruckerIP: "", Bonmodus: druckstation.BonmodusProPosition}
-	if got != want {
-		t.Errorf("GetZusatzdrucker = %+v, want %+v", got, want)
-	}
-}
-
 func TestGetZusatzdruckerJeVariante_Zusatzdrucker(t *testing.T) {
 	f := setupZusatzdrucker(t)
 	repo := f.repo
