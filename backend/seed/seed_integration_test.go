@@ -151,6 +151,16 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("%d Varianten mit Pfand-Verknüpfung, erwartet 2 (Hugo, Aperol Spritz)", pfandVerknuepfungen)
 	}
 
+	// Die Cocktailbar ist der einzige Zusatzdrucker; ihr ist Produkt 19 (Hugo, Aperol Spritz) zugeordnet.
+	var zusatzdrucker sql.NullString
+	if err := db.QueryRow(`SELECT string_agg(z.name || ' ' || z.drucker_ip || ' ' || z.bonmodus || ' ' || COALESCE(zp.produkt_id::text, '-'), '; ' ORDER BY z.id, zp.produkt_id)
+		FROM zusatzdrucker z LEFT JOIN zusatzdrucker_produkte zp ON zp.zusatzdrucker_id = z.id`).Scan(&zusatzdrucker); err != nil {
+		t.Fatalf("Zusatzdrucker abfragen: %v", err)
+	}
+	if zusatzdrucker.String != "Cocktailbar 192.168.8.56 pro_bestellung 19" {
+		t.Errorf("Zusatzdrucker = %q, erwartet %q", zusatzdrucker.String, "Cocktailbar 192.168.8.56 pro_bestellung 19")
+	}
+
 	// Kassenjournal enthält Events.
 	var eventCount int
 	if err := db.QueryRow("SELECT COUNT(*) FROM kassenjournal").Scan(&eventCount); err != nil {
