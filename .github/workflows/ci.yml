@@ -380,6 +380,19 @@ jobs:
         with:
           name: jotti-exe
 
+      # jotti.exe binds 80 and 443 like the Docker proxy; the runner image may hold port 80 through
+      # http.sys (IIS). The step names the holder and stops IIS, so the smoke test sees a club PC.
+      - name: Free ports 80 and 443
+        shell: pwsh
+        run: |
+          netsh int ipv4 show excludedportrange protocol=tcp
+          netsh http show servicestate view=requestq | Select-String -Pattern 'Registered URLs' -Context 0,4
+          Get-NetTCPConnection -State Listen -LocalPort 80,443 -ErrorAction SilentlyContinue |
+            ForEach-Object { "$($_.LocalAddress):$($_.LocalPort) pid $($_.OwningProcess) $((Get-Process -Id $_.OwningProcess).ProcessName)" }
+          foreach ($name in 'W3SVC', 'WAS') {
+            if (Get-Service -Name $name -ErrorAction SilentlyContinue) { Stop-Service -Name $name -Force; "stopped $name" }
+          }
+
       - name: Start, serve and stop jotti.exe
         shell: bash
         run: bash scripts/einzeldatei-smoke.sh start ./jotti.exe
