@@ -117,6 +117,8 @@ const commonErrorMessages: Record<string, string> = {
     'Dieser Vorgang wurde mit anderer Auswahl schon gebucht. Bitte Historie prüfen und neu erfassen.',
   zahlung_not_found:
     'Die Zahlung wurde nicht gefunden. Bitte neu laden und erneut versuchen.',
+  zuordnung_nicht_moeglich:
+    'Produkt oder Drucker gibt es nicht mehr. Bitte Seite neu laden.',
   zusatzdrucker_nicht_konfiguriert:
     'Für diesen Drucker ist keine Drucker-IP eingetragen. Bitte zuerst eine Drucker-IP eintragen, dann den Testbon senden.',
   zusatzdrucker_not_found:

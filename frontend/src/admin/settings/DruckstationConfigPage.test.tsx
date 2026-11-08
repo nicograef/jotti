@@ -56,7 +56,7 @@ function backend({
 }): FakeBackend {
   return new FakeBackend()
     .respond('admin/get-druckstationen', { druckstationen })
-    .respond('admin/get-zusatzdrucker', { zusatzdrucker })
+    .respond('admin/get-zusatzdrucker', { zusatzdrucker, produktAuswahl: [] })
     .respond('admin/create-zusatzdrucker', { id: 1 })
     .respond('admin/get-fehlgeschlagene-druckauftraege', { druckauftraege })
     .respond('admin/druckauftraege-verwerfen', {

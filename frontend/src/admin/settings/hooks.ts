@@ -10,8 +10,10 @@ import {
   type Kategorie,
 } from './DruckstationBackend'
 import {
+  type ProduktAuswahl,
   type Zusatzdrucker,
   ZusatzdruckerBackend,
+  type ZusatzdruckerUebersicht,
 } from './ZusatzdruckerBackend'
 
 const druckstationBackend = new DruckstationBackend(BackendSingleton)
@@ -102,22 +104,20 @@ export function useFehlgeschlageneDruckauftraege(): FehlgeschlageneDruckauftraeg
   }
 }
 
-interface ZusatzdruckerResult extends QueryResult<Zusatzdrucker[]> {
+interface ZusatzdruckerResult extends QueryResult<ZusatzdruckerUebersicht> {
   zusatzdrucker: Zusatzdrucker[]
+  produktAuswahl: ProduktAuswahl[]
   anlegen: (name: string) => Promise<void>
   aendern: (zusatzdrucker: Zusatzdrucker) => Promise<void>
   loeschen: (id: number) => Promise<void>
   testbonDrucken: (id: number) => Promise<void>
+  produktZuordnen: (produktId: number, zusatzdruckerId: number) => Promise<void>
+  zuordnungEntfernen: (produktId: number) => Promise<void>
 }
 
 export function useZusatzdrucker(): ZusatzdruckerResult {
   const queryClient = useQueryClient()
-  const {
-    isPending,
-    isError,
-    data = [],
-    refetch,
-  } = useQuery({
+  const { isPending, isError, data, refetch } = useQuery({
     queryKey: [ZUSATZDRUCKER_KEY],
     queryFn: () => zusatzdruckerBackend.getZusatzdrucker(),
   })
@@ -144,8 +144,22 @@ export function useZusatzdrucker(): ZusatzdruckerResult {
     await zusatzdruckerBackend.testbonDrucken(id)
   }
 
+  const produktZuordnen = async (
+    produktId: number,
+    zusatzdruckerId: number,
+  ) => {
+    await zusatzdruckerBackend.produktZuordnen(produktId, zusatzdruckerId)
+    await invalidate()
+  }
+
+  const zuordnungEntfernen = async (produktId: number) => {
+    await zusatzdruckerBackend.zuordnungEntfernen(produktId)
+    await invalidate()
+  }
+
   return {
-    zusatzdrucker: data,
+    zusatzdrucker: data?.zusatzdrucker ?? [],
+    produktAuswahl: data?.produktAuswahl ?? [],
     isPending,
     isError,
     refetch,
@@ -153,5 +167,7 @@ export function useZusatzdrucker(): ZusatzdruckerResult {
     aendern,
     loeschen,
     testbonDrucken,
+    produktZuordnen,
+    zuordnungEntfernen,
   }
 }

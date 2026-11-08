@@ -40,7 +40,9 @@ import { useFormActionSubmit } from '@/hooks/use-form-action-submit'
 import { BonmodusOptionen, DruckerIpFeld } from './DruckerFelder'
 import type { Bonmodus } from './DruckstationBackend'
 import { useZusatzdrucker } from './hooks'
+import { ProduktAuswahlDialog } from './ProduktAuswahlDialog'
 import {
+  type ProduktAuswahl,
   type Zusatzdrucker,
   ZUSATZDRUCKER_BONMODI,
   ZusatzdruckerNameSchema,
@@ -126,16 +128,82 @@ function DruckerHinzufuegenDialog({
   )
 }
 
+function ZugeordneteProdukte({
+  zusatzdrucker,
+  produktAuswahl,
+  produktZuordnen,
+  zuordnungEntfernen,
+}: {
+  zusatzdrucker: Zusatzdrucker
+  produktAuswahl: ProduktAuswahl[]
+  produktZuordnen: (produktId: number, zusatzdruckerId: number) => Promise<void>
+  zuordnungEntfernen: (produktId: number) => Promise<void>
+}) {
+  const { id, name, produkte } = zusatzdrucker
+  const { loading, run } = useActionSubmit({
+    actionLabel: 'Produkt entfernen',
+  })
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm text-muted-foreground">Produkte</span>
+      {produkte.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Noch keine Produkte. Sie drucken am Drucker ihrer Kategorie.
+        </p>
+      ) : (
+        <ul className="flex flex-col divide-y rounded-md border">
+          {produkte.map((produkt) => (
+            <li
+              key={produkt.id}
+              className="flex items-center justify-between gap-2 py-1 pr-1 pl-3"
+            >
+              <span className="text-sm">{produkt.name}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={loading}
+                onClick={() =>
+                  void run(async () => {
+                    await zuordnungEntfernen(produkt.id)
+                    toast.success(
+                      `„${produkt.name}“ druckt wieder am Drucker seiner Kategorie.`,
+                    )
+                  })
+                }
+              >
+                Entfernen
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ProduktAuswahlDialog
+        zusatzdruckerName={name}
+        zugeordneteIds={new Set(produkte.map((produkt) => produkt.id))}
+        produktAuswahl={produktAuswahl}
+        zuordnen={(produktId) => produktZuordnen(produktId, id)}
+      />
+    </div>
+  )
+}
+
 function ZusatzdruckerCard({
   zusatzdrucker,
+  produktAuswahl,
   aendern,
   loeschen,
   testbonDrucken,
+  produktZuordnen,
+  zuordnungEntfernen,
 }: {
   zusatzdrucker: Zusatzdrucker
+  produktAuswahl: ProduktAuswahl[]
   aendern: (zusatzdrucker: Zusatzdrucker) => Promise<void>
   loeschen: (id: number) => Promise<void>
   testbonDrucken: (id: number) => Promise<void>
+  produktZuordnen: (produktId: number, zusatzdruckerId: number) => Promise<void>
+  zuordnungEntfernen: (produktId: number) => Promise<void>
 }) {
   const { id, name: gespeicherterName } = zusatzdrucker
   const [name, setName] = useState(gespeicherterName)
@@ -260,6 +328,13 @@ function ZusatzdruckerCard({
         onSelect={(bonmodus) => void waehleBonmodus(bonmodus)}
       />
 
+      <ZugeordneteProdukte
+        zusatzdrucker={zusatzdrucker}
+        produktAuswahl={produktAuswahl}
+        produktZuordnen={produktZuordnen}
+        zuordnungEntfernen={zuordnungEntfernen}
+      />
+
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button
@@ -304,6 +379,7 @@ function ZusatzdruckerCard({
 export function ZusatzdruckerAbschnitt() {
   const {
     zusatzdrucker,
+    produktAuswahl,
     isPending,
     isError,
     refetch,
@@ -311,6 +387,8 @@ export function ZusatzdruckerAbschnitt() {
     aendern,
     loeschen,
     testbonDrucken,
+    produktZuordnen,
+    zuordnungEntfernen,
   } = useZusatzdrucker()
 
   if (isPending) {
@@ -333,9 +411,12 @@ export function ZusatzdruckerAbschnitt() {
         <ZusatzdruckerCard
           key={zd.id}
           zusatzdrucker={zd}
+          produktAuswahl={produktAuswahl}
           aendern={aendern}
           loeschen={loeschen}
           testbonDrucken={testbonDrucken}
+          produktZuordnen={produktZuordnen}
+          zuordnungEntfernen={zuordnungEntfernen}
         />
       ))}
       <div className="flex flex-col gap-2 rounded-xl border border-dashed bg-muted/30 p-5">
