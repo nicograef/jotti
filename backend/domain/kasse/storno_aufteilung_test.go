@@ -152,3 +152,94 @@ func TestComputeStornoAufteilung_AlreadyCorrectedNotStornierbar(t *testing.T) {
 		t.Error("expected ok=false: position already corrected")
 	}
 }
+
+func TestComputeStornoAufteilung_NachStornierung(t *testing.T) {
+	// Bestellt 2, beide bezahlt, 1 bereits storniert → nur noch 1 aus dieser Zahlung stornierbar.
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
+	pay := mustCreateZahlungEvent(t, testSubject, 1, positionenAusBestellung(t, order, 2), 1000)
+	zahlungID := zahlungIDFromEvent(t, pay)
+	storno := mustCreateStornierungEvent(t, testSubject, 1, zahlungID, positionenAusBestellung(t, order, 1), 500)
+	events := []e.Event{order, pay, storno}
+
+	if _, ok := ComputeStornoAufteilung(events, []PositionRef{{PositionID: posID, Menge: 2}}); ok {
+		t.Error("Menge 2: expected ok=false, one piece is already storniert")
+	}
+
+	aufteilung, ok := ComputeStornoAufteilung(events, []PositionRef{{PositionID: posID, Menge: 1}})
+	if !ok {
+		t.Fatal("Menge 1: expected ok=true")
+	}
+	if len(aufteilung.Korrektur) != 0 || aufteilung.KorrekturCents != 0 {
+		t.Errorf("expected no Korrektur, got %+v (%d cents)", aufteilung.Korrektur, aufteilung.KorrekturCents)
+	}
+	if len(aufteilung.Warenruecknahmen) != 1 {
+		t.Fatalf("expected 1 Warenrücknahme, got %d", len(aufteilung.Warenruecknahmen))
+	}
+	wr := aufteilung.Warenruecknahmen[0]
+	if wr.ZahlungID != zahlungID || wr.GesamtCents != 500 || len(wr.Positionen) != 1 || wr.Positionen[0].Menge != 1 {
+		t.Errorf("expected Warenrücknahme %s 1x500, got %+v", zahlungID, wr)
+	}
+}
+
+func TestComputeStornoAufteilung_NachUmbuchung(t *testing.T) {
+	quellSubject, zielSubject := TischSessionSubject(1, 1), TischSessionSubject(1, 2)
+	order := mustCreateBestellungEvent(t, quellSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
+	quelle, ziel, err := NewBestellungUmgebuchtEvents(1, "55555555-5555-4555-8555-555555555555", 1, 2, 1, "TestUser",
+		positionenAusBestellung(t, order, 1), 500, "Umbuchung zu Tisch 2", "Umbuchung von Tisch 1", "")
+	if err != nil {
+		t.Fatalf("umbuchung events: %v", err)
+	}
+	if quelle.Subject != quellSubject || ziel.Subject != zielSubject {
+		t.Fatalf("subjects: got %q/%q", quelle.Subject, ziel.Subject)
+	}
+	var zielData BestellungUmgebuchtV1Data
+	if err := json.Unmarshal(ziel.Data, &zielData); err != nil {
+		t.Fatalf("unmarshal ziel data: %v", err)
+	}
+	zielPosID := zielData.Positionen[0].PositionID
+
+	cases := []struct {
+		name   string
+		events []e.Event
+		ref    PositionRef
+		ok     bool
+	}{
+		{"Quelle Menge 2 übersteigt den Rest", []e.Event{order, quelle}, PositionRef{PositionID: posID, Menge: 2}, false},
+		{"Quelle Menge 1", []e.Event{order, quelle}, PositionRef{PositionID: posID, Menge: 1}, true},
+		{"Ziel Zugang Menge 1", []e.Event{ziel}, PositionRef{PositionID: zielPosID, Menge: 1}, true},
+		{"Ziel Zugang Menge 2 übersteigt den Zugang", []e.Event{ziel}, PositionRef{PositionID: zielPosID, Menge: 2}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			aufteilung, ok := ComputeStornoAufteilung(c.events, []PositionRef{c.ref})
+			if ok != c.ok {
+				t.Fatalf("ok: got %v, want %v", ok, c.ok)
+			}
+			if !c.ok {
+				return
+			}
+			if len(aufteilung.Warenruecknahmen) != 0 {
+				t.Errorf("expected no Warenrücknahmen, got %+v", aufteilung.Warenruecknahmen)
+			}
+			if len(aufteilung.Korrektur) != 1 || aufteilung.Korrektur[0].PositionID != c.ref.PositionID ||
+				aufteilung.Korrektur[0].Menge != 1 || aufteilung.KorrekturCents != 500 {
+				t.Errorf("expected Korrektur %s 1x500, got %+v (%d cents)", c.ref.PositionID, aufteilung.Korrektur, aufteilung.KorrekturCents)
+			}
+		})
+	}
+}
+
+func TestComputeStornoAufteilung_FremdesEventImStream(t *testing.T) {
+	order := mustCreateBestellungEvent(t, testSubject, 1, []Position{testPosition(1, "Beer", "Pils 0.5l", "getraenk", 500, 2)})
+	posID := positionIDAusBestellung(t, order)
+	eroeffnet, err := NewKassensitzungEroeffnetEvent(KassensitzungSubject(1), 1, "TestUser", "2026-07-07", "Maihock 2026", 5000)
+	if err != nil {
+		t.Fatalf("eroeffnet event: %v", err)
+	}
+
+	if _, ok := ComputeStornoAufteilung([]e.Event{order, eroeffnet}, []PositionRef{{PositionID: posID, Menge: 1}}); ok {
+		t.Error("expected ok=false for a kassensitzung-eroeffnet:v1 event in a Tisch stream")
+	}
+}

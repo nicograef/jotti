@@ -1,7 +1,10 @@
 package kasse
 
 import (
+	"encoding/json"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	e "github.com/nicograef/jotti/backend/domain/event"
@@ -24,18 +27,43 @@ func TestGetHistorieFromEvents_ReturnsAllEventTypes(t *testing.T) {
 	orderEvent := mustCreateBestellungEvent(t, testSubject, 1, products)
 	positions := positionenAusBestellung(t, orderEvent, 1)
 
-	events := []e.Event{
-		orderEvent,
-		mustCreateZahlungEvent(t, testSubject, 1, positions, 500),
-		mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500),
+	zahlungV1, err := e.New(1, "TestUser", string(EventTypeZahlungKassiertV1), testSubject, ZahlungKassiertV1Data{
+		ZahlungID:          testZahlungID,
+		Positionen:         toPositionenEventData(positions),
+		GesamtZahlungCents: 500,
+	})
+	if err != nil {
+		t.Fatalf("zahlung v1 event: %v", err)
+	}
+	umbuchung, _, err := NewBestellungUmgebuchtEvents(1, uuid.NewString(), 42, 43, 1, "TestUser", positions, 500, "Umbuchung zu Tisch 43", "Umbuchung von Tisch 42", "")
+	if err != nil {
+		t.Fatalf("umbuchung events: %v", err)
 	}
 
-	history, err := GetHistorieFromEvents(events)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	cases := []struct {
+		event e.Event
+		art   HistorieEintragArt
+	}{
+		{orderEvent, HistorieEintragBestellung},
+		{zahlungV1, HistorieEintragZahlung},
+		{mustCreateZahlungEvent(t, testSubject, 1, positions, 500), HistorieEintragZahlung},
+		{mustCreateStornierungEvent(t, testSubject, 1, testZahlungID, positions, 500), HistorieEintragStornierung},
+		{mustCreateKorrekturEvent(t, testSubject, 1, positions, 500), HistorieEintragStornierung},
+		{umbuchung, HistorieEintragUmbuchung},
 	}
-	if len(history) != 3 {
-		t.Errorf("expected 3 history items, got %d", len(history))
+	for _, c := range cases {
+		t.Run(c.event.Type, func(t *testing.T) {
+			history, err := GetHistorieFromEvents([]e.Event{c.event})
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if len(history) != 1 {
+				t.Fatalf("expected 1 history item, got %d", len(history))
+			}
+			if history[0].Art != c.art {
+				t.Errorf("Art: got %q, want %q", history[0].Art, c.art)
+			}
+		})
 	}
 }
 
@@ -289,5 +317,42 @@ func TestGetHistorieFromEvents_UmbuchungZugangIstStornierbar(t *testing.T) {
 	}
 	if len(zugang.UmbuchbarePositionen) != 1 || zugang.UmbuchbarePositionen[0].Menge != 2 {
 		t.Errorf("expected umbuchbar menge 2, got %+v", zugang.UmbuchbarePositionen)
+	}
+}
+
+// A stored position outside today's master-data rules (price > 99999, name < 3 characters) must
+// stay readable: positionSchema has its own frozen bounds, decoupled from produkt.
+func TestGetHistorieFromEvents_GespeichertePositionAusserhalbStammdatenregeln(t *testing.T) {
+	cases := []struct {
+		name        string
+		produktName string
+		preis       int
+	}{
+		{"Preis über Stammdaten-Obergrenze", "Fass Bier", 100000},
+		{"Name kürzer als Stammdaten-Minimum", "Ei", 50},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			data := `{"bestellungId":"11111111-1111-4111-8111-111111111111","positionen":[{"positionId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","varianteId":7,"produktName":"` +
+				c.produktName + `","varianteName":"30l","kategorie":"getraenk","steuersatz":"regel","einzelpreisCents":` +
+				strconv.Itoa(c.preis) + `,"menge":1}],"gesamtPreisCents":` + strconv.Itoa(c.preis) + `,"kommentar":""}`
+			stored := e.Event{
+				ID: 1, UserID: 1, UserName: "TestUser", Type: string(EventTypeBestellungAufgenommenV1),
+				Time: time.Date(2026, 7, 7, 18, 0, 0, 0, time.UTC), Subject: testSubject, Version: 1,
+				Data: json.RawMessage(data),
+			}
+
+			history, err := GetHistorieFromEvents([]e.Event{stored})
+			if err != nil {
+				t.Fatalf("stored event unreadable: %v", err)
+			}
+			if len(history) != 1 || history[0].Bestellung == nil {
+				t.Fatalf("expected one Bestellung entry, got %+v", history)
+			}
+			pos := history[0].Bestellung.Positionen[0]
+			if pos.EinzelpreisCents != c.preis || pos.ProduktName != c.produktName {
+				t.Errorf("position: got %d/%q, want %d/%q", pos.EinzelpreisCents, pos.ProduktName, c.preis, c.produktName)
+			}
+		})
 	}
 }

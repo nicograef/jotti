@@ -233,14 +233,27 @@ var PositionEingabeSchema = z.Int().
 	LTE(999, z.Message("Menge zu hoch")).
 	Required(z.Message("Menge muss mindestens 1 betragen"))
 
+// Frozen bounds of a stored position. positionSchema validates stored events on every read, so
+// these bounds may only ever widen: tightening the master-data rules (produkt.NameSchema,
+// produkt.PreisCentsSchema) must not make an existing event unreadable. New positions stay strict
+// anyway: a request carries only IDs and Menge, name and price come from validated master data.
+const (
+	positionNameMaxZeichen     = 255
+	positionEinzelpreisMaxCent = 99_999_999
+)
+
+var positionNameSchema = z.String().Trim().
+	TestFunc(zeichen.Min(1), z.Message("Name zu kurz")).
+	TestFunc(zeichen.Max(positionNameMaxZeichen), z.Message("Name zu lang"))
+
 var positionSchema = z.Struct(z.Shape{
 	"PositionID":       z.String().UUID().Required(),
 	"VarianteID":       produkt.IDSchema.Required(),
-	"ProduktName":      produkt.NameSchema.Required(),
-	"VarianteName":     produkt.NameSchema.Required(),
+	"ProduktName":      positionNameSchema.Required(),
+	"VarianteName":     positionNameSchema.Required(),
 	"Kategorie":        z.String().OneOf([]string{string(produkt.EssenKategorie), string(produkt.GetraenkKategorie), string(produkt.SonstigesKategorie)}, z.Message("Ungültige Kategorie")).Required(),
 	"Steuersatz":       z.String().OneOf([]string{string(steuer.RegelSteuersatz), string(steuer.ErmaessigtSteuersatz), string(steuer.BefreitSteuersatz), string(steuer.KombiSteuersatz)}, z.Message("Ungültiger Steuersatz")).Required(),
-	"EinzelpreisCents": produkt.PreisCentsSchema,
+	"EinzelpreisCents": z.Int().GTE(1, z.Message("Preis muss mindestens 1 Cent betragen")).LTE(positionEinzelpreisMaxCent, z.Message("Preis zu hoch")).Required(),
 	"Menge":            z.Int().GTE(1, z.Message("Menge muss mindestens 1 betragen")).Required(),
 })
 

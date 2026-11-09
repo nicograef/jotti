@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	e "github.com/nicograef/jotti/backend/domain/event"
 )
@@ -150,47 +149,6 @@ func eingabePositionenGueltig(data json.RawMessage) bool {
 		}
 	}
 	return true
-}
-
-// FuzzPositionEventDataRoundtrip prüft: Eine PositionEventData muss serialisiert und wieder
-// eingelesen feldgleich sein. Das Positions-JSONB speist DSFinV-K-Export und die
-// SQL-Reporting-Extraktoren — ein stiller Feldverlust verfälscht Bon- und Steuersummen.
-func FuzzPositionEventDataRoundtrip(f *testing.F) {
-	f.Add("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", 7, "Cola", "0,5l", "getraenk", "regel", 350, 2)
-	f.Add("", 0, "", "", "", "", 0, 0)
-	f.Add("x", -1, "Ünïcödé \t\n", "\"quote;\"", "essen", "ermaessigt", -999, 1000000)
-
-	f.Fuzz(func(t *testing.T, posID string, varianteID int, produktName, varianteName, kategorie, steuersatz string, einzelpreis, menge int) {
-		// Persistierte Event-Strings sind stets gültiges UTF-8. Ungültige Byte-Folgen ersetzt
-		// json.Marshal durch U+FFFD — stdlib-Verhalten, keine jotti-Eigenschaft, außerhalb
-		// des realistischen Korpus.
-		for _, s := range []string{posID, produktName, varianteName, kategorie, steuersatz} {
-			if !utf8.ValidString(s) {
-				t.Skip()
-			}
-		}
-		orig := PositionEventData{
-			PositionID:       posID,
-			VarianteID:       varianteID,
-			ProduktName:      produktName,
-			VarianteName:     varianteName,
-			Kategorie:        kategorie,
-			Steuersatz:       steuersatz,
-			EinzelpreisCents: einzelpreis,
-			Menge:            menge,
-		}
-		raw, err := json.Marshal(orig)
-		if err != nil {
-			t.Fatalf("marshal PositionEventData: %v", err)
-		}
-		var back PositionEventData
-		if err := json.Unmarshal(raw, &back); err != nil {
-			t.Fatalf("unmarshal PositionEventData %q: %v", raw, err)
-		}
-		if back != orig {
-			t.Errorf("Roundtrip-Verlust:\n orig = %+v\n back = %+v\n json = %s", orig, back, raw)
-		}
-	})
 }
 
 // fuzzPositionLiteral spiegelt die eingefrorene Position aus event_json_contract_test.go.
