@@ -3,12 +3,14 @@ package main
 import (
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestPruefeRelayStatus(t *testing.T) {
@@ -434,6 +436,72 @@ func TestMeldeErgebnisSendetErfolgeUndFehlversuche(t *testing.T) {
 			}
 			if *got != tt.want {
 				t.Fatalf("Request: got %s, want %s", *got, tt.want)
+			}
+		})
+	}
+}
+
+// TestDruckeUeber spielt den Drucker über net.Pipe: DLE-EOT-Statusabfrage, Antwort
+// (oder keine), danach die Druckdaten auf derselben Verbindung.
+func TestDruckeUeber(t *testing.T) {
+	alt := readTimeout
+	readTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { readTimeout = alt })
+
+	tests := []struct {
+		name         string
+		antwort      []byte // nil: der Drucker antwortet nicht
+		wantErr      string
+		wantGedruckt []byte
+	}{
+		{name: "Papier ok", antwort: []byte{0x12}, wantGedruckt: []byte{0x1B, 0x40}},
+		{name: "Papier fast leer druckt mit Warnung", antwort: []byte{0x1E}, wantGedruckt: []byte{0x1B, 0x40}},
+		{name: "Papier leer bricht vor dem Senden ab", antwort: []byte{0x72}, wantErr: "drucker 10.0.0.5: papier leer (status=0x72)", wantGedruckt: []byte{}},
+		{name: "keine Antwort gilt als ok", antwort: nil, wantGedruckt: []byte{0x1B, 0x40}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			relaySeite, druckerSeite := net.Pipe()
+			type druckerErgebnis struct {
+				abfrage, gedruckt []byte
+				err               error
+			}
+			ergebnis := make(chan druckerErgebnis, 1)
+			go func() {
+				defer func() { _ = druckerSeite.Close() }()
+				abfrage := make([]byte, 3)
+				if _, err := io.ReadFull(druckerSeite, abfrage); err != nil {
+					ergebnis <- druckerErgebnis{err: err}
+					return
+				}
+				if tt.antwort != nil {
+					if _, err := druckerSeite.Write(tt.antwort); err != nil {
+						ergebnis <- druckerErgebnis{err: err}
+						return
+					}
+				}
+				gedruckt, err := io.ReadAll(druckerSeite)
+				ergebnis <- druckerErgebnis{abfrage: abfrage, gedruckt: gedruckt, err: err}
+			}()
+
+			err := druckeUeber(relaySeite, "10.0.0.5", []byte{0x1B, 0x40})
+			_ = relaySeite.Close()
+			got := <-ergebnis
+
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("unerwarteter Fehler: %v", err)
+			}
+			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
+				t.Fatalf("Fehler: got %v, want %q", err, tt.wantErr)
+			}
+			if got.err != nil {
+				t.Fatalf("Drucker-Seite: %v", got.err)
+			}
+			if !reflect.DeepEqual(got.abfrage, []byte{0x10, 0x04, 0x04}) {
+				t.Errorf("Statusabfrage: got % X, want 10 04 04", got.abfrage)
+			}
+			if !reflect.DeepEqual(got.gedruckt, tt.wantGedruckt) {
+				t.Errorf("gedruckt: got % X, want % X", got.gedruckt, tt.wantGedruckt)
 			}
 		})
 	}

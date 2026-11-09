@@ -56,13 +56,15 @@ jobs:
           fi
 
       # Release-Notes aus den Conventional Commits seit dem letzten Tag. Läuft in
-      # beiden Pfaden; beim Dispatch nur als Vorschau in der Job-Summary.
+      # beiden Pfaden; beim Dispatch nur als Vorschau in der Job-Summary. Der
+      # Dry-Run steht auf keinem Tag: --latest zeigte dort den letzten Release,
+      # --unreleased zeigt die Commits, die der nächste Tag veröffentlicht.
       - name: Changelog generieren
         id: changelog
         uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
           config: cliff.toml
-          args: --latest --strip header
+          args: ${{ steps.version.outputs.publish == 'true' && '--latest' || '--unreleased' }} --strip header
 
       - name: Changelog-Vorschau in die Job-Summary
         env:
@@ -163,6 +165,13 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.release.yml down -v
 
+      # Auch im Dry-Run, damit ein kaputter ZIP-Bau vor dem Tag auffällt und nicht
+      # erst nach dem Image-Push.
+      - name: Windows-Release-ZIP bauen
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: make release-windows VERSION="$VERSION"
+
       # Ab hier nur beim echten Release (Tag-Push); der Dry-Run endet hier.
       - name: GHCR-Login
         if: steps.version.outputs.publish == 'true'
@@ -179,12 +188,6 @@ jobs:
           for svc in $SERVICES; do
             docker push "ghcr.io/nicograef/jotti-$svc:$VERSION"
           done
-
-      - name: Windows-Release-ZIP bauen
-        if: steps.version.outputs.publish == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: make release-windows VERSION="$VERSION"
 
       # The runner's gh publishes the release; the title defaults to the tag.
       - name: GitHub-Release veröffentlichen

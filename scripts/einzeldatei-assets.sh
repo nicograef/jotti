@@ -50,7 +50,7 @@ mkdir -p "$CACHE_DIR"
 zip_path="$CACHE_DIR/$ZIP_NAME"
 if ! echo "$POSTGRES_WINDOWS_SHA256  $zip_path" | sha256sum -c --status - 2>/dev/null; then
   info "Downloading $ZIP_URL ..."
-  curl -fsSL -o "$zip_path.part" "$ZIP_URL"
+  curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o "$zip_path.part" "$ZIP_URL"
   echo "$POSTGRES_WINDOWS_SHA256  $zip_path.part" | sha256sum -c --quiet - \
     || fatal "SHA-256 of $ZIP_NAME does not match the pin."
   mv "$zip_path.part" "$zip_path"

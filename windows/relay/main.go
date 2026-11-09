@@ -43,7 +43,9 @@ var version = "dev"
 // Zyklus; ein nicht erreichbarer Drucker verzögert nur seine eigene IP-Gruppe.
 const dialTimeout = 2 * time.Second
 
-const readTimeout = 2 * time.Second
+// readTimeout wartet auf die Antwort der Statusabfrage; eine Variable, damit der
+// Test den Fall ohne Antwort nicht zwei Sekunden lang abwartet.
+var readTimeout = 2 * time.Second
 
 const writeTimeout = 10 * time.Second
 
@@ -278,12 +280,16 @@ func druckeAuftrag(a DruckAuftrag) error {
 		return fmt.Errorf("drucker %s: nicht erreichbar: %w", a.ZielIP, err)
 	}
 	defer func() { _ = conn.Close() }()
+	return druckeUeber(conn, a.ZielIP, escposData)
+}
 
-	if err := checkPrinter(conn, a.ZielIP); err != nil {
-		return fmt.Errorf("drucker %s: %w", a.ZielIP, err)
+// druckeUeber prüft den Drucker und sendet die Daten über dieselbe Verbindung.
+func druckeUeber(conn net.Conn, ip string, escposData []byte) error {
+	if err := checkPrinter(conn, ip); err != nil {
+		return fmt.Errorf("drucker %s: %w", ip, err)
 	}
 	if err := sendToPrinter(conn, escposData); err != nil {
-		return fmt.Errorf("drucker %s: senden fehlgeschlagen: %w", a.ZielIP, err)
+		return fmt.Errorf("drucker %s: senden fehlgeschlagen: %w", ip, err)
 	}
 	return nil
 }

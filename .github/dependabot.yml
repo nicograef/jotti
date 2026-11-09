@@ -62,6 +62,8 @@ updates:
 
   # Caddy and its two modules stay on the versions reverse-proxy/Dockerfile builds; they
   # are bumped by hand with the caddy image bump of the docker group below.
+  # golang-migrate likewise stays on MIGRATE_VERSION of the migrate image and of
+  # scripts/setup-dev-tools.sh; bump all three by hand together.
   - package-ecosystem: 'gomod'
     directory: '/windows/einzeldatei'
     schedule:
@@ -74,6 +76,7 @@ updates:
       - dependency-name: 'github.com/caddyserver/caddy/v2'
       - dependency-name: 'github.com/caddy-dns/acmedns'
       - dependency-name: 'github.com/mholt/caddy-ratelimit'
+      - dependency-name: 'github.com/golang-migrate/migrate/v4'
 
   # scripts/check-pins.sh requires one prettier and one typescript version across
   # frontend and e2e, so group-by bumps each of them in both in one PR.

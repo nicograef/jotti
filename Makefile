@@ -74,7 +74,6 @@ test-e2e: ## E2E-Tests (Playwright) gegen E2E_BASE_URL oder einen eigenen docker
 
 fuzz: ## Fuzz-Targets länger laufen lassen (je Target 90s; kein CI-Dauerlauf)
 	cd backend && go test -run='^$$' -fuzz='FuzzApplyEvent$$' -fuzztime=90s ./domain/kasse/
-	cd backend && go test -run='^$$' -fuzz='FuzzPositionEventDataRoundtrip$$' -fuzztime=90s ./domain/kasse/
 	cd backend && go test -run='^$$' -fuzz='FuzzSerializeCSV$$' -fuzztime=90s ./api/fiskal/dsfinvk/
 	cd backend && go test -run='^$$' -fuzz='FuzzFormatKassenbeleg$$' -fuzztime=90s ./api/druck/bondruck/application/escpos/
 
@@ -214,7 +213,8 @@ prod-harden: ## Optionale Server-Härtung (ufw, fail2ban, unattended-upgrades, S
 	./scripts/prod-harden.sh
 
 # The tag goes only on origin/main's tip with a green CI push run: release.yml runs no tests,
-# and a tag push would otherwise publish unpushed commits CI never saw.
+# and a tag push would otherwise publish unpushed commits CI never saw. The paths filter skips
+# untouched jobs, so the tip also needs a green full run: `gh workflow run ci.yml --ref main`.
 prod-release: ## Release-Tag v$(VERSION) auf grünem origin/main setzen und pushen; release.yml baut und veröffentlicht (VERSION=X.Y.Z)
 	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' \
 	  || { echo "FEHLER: VERSION=X.Y.Z setzen (gefunden: '$(VERSION)')" >&2; exit 1; }
@@ -223,8 +223,14 @@ prod-release: ## Release-Tag v$(VERSION) auf grünem origin/main setzen und push
 	@git fetch --quiet origin main
 	@SHA=$$(git rev-parse HEAD); \
 	if [ "$$SHA" != "$$(git rev-parse origin/main)" ]; then echo "FEHLER: main weicht von origin/main ab; erst pushen oder pullen" >&2; exit 1; fi; \
-	CI=$$(gh run list --workflow ci.yml --branch main --event push --commit "$$SHA" --json conclusion --jq '.[0].conclusion'); \
-	if [ "$$CI" != "success" ]; then echo "FEHLER: CI auf $$SHA ist '$$CI', nicht success" >&2; exit 1; fi
+	for EVENT in push workflow_dispatch; do \
+	  CI=$$(gh run list --workflow ci.yml --branch main --event "$$EVENT" --commit "$$SHA" --json conclusion --jq '.[0].conclusion'); \
+	  if [ "$$CI" != "success" ]; then \
+	    echo "FEHLER: CI ($$EVENT) auf $$SHA ist '$$CI', nicht success" >&2; \
+	    if [ "$$EVENT" = workflow_dispatch ]; then echo "Vollen Lauf starten: gh workflow run ci.yml --ref main" >&2; fi; \
+	    exit 1; \
+	  fi; \
+	done
 	git tag -a -m "v$(VERSION)" v$(VERSION) && git push origin v$(VERSION)
 
 # jotti.rocks Deployment

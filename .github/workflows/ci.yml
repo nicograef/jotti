@@ -7,15 +7,19 @@ on:
   # Public repo: a fork's push runs in the fork, so its PR needs this trigger.
   pull_request:
     branches: [main]
+  # A full run of every job on one commit; make prod-release requires one on the tag commit.
+  workflow_dispatch:
 
 # Least-privilege token; a job that needs more requests its scopes at job level.
 permissions:
   contents: read
 
 # The event name keeps a push run and a pull_request run from cancelling each other.
+# main keeps every run: the paths filter compares with the previous push, so a cancelled
+# run would hide its jobs behind a later green run.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   changes:
@@ -32,7 +36,8 @@ jobs:
       website: ${{ steps.changes.outputs.website }}
       scripts: ${{ steps.changes.outputs.scripts }}
       e2e: ${{ steps.changes.outputs.e2e }}
-      ci: ${{ steps.changes.outputs.ci }}
+      # A dispatch run skips the paths filter and runs every job.
+      ci: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.changes.outputs.ci }}
       golangci-lint: ${{ steps.lint-version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +51,7 @@ jobs:
           [ -n "$VERSION" ] || { echo "No GOLANGCI_LINT_VERSION in scripts/setup-dev-tools.sh."; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Check for changes
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
@@ -59,6 +65,7 @@ jobs:
               - 'Makefile'
             frontend:
               - 'frontend/**'
+              - '.node-version'
             database:
               - 'database/**'
               # the restore drill in upgrade-path
@@ -101,6 +108,7 @@ jobs:
               - 'frontend/**'
               - 'database/migrations/**'
               - 'scripts/einzeldatei-*.sh'
+              - '.node-version'
               - 'go.work'
               - 'go.work.sum'
               - 'scripts/setup-dev-tools.sh'
@@ -112,6 +120,7 @@ jobs:
               - 'TERMS.md'
               - 'Makefile'
               - 'reverse-proxy/Dockerfile*'
+              - '.node-version'
             scripts:
               - 'scripts/**'
             # Everything the E2E stack builds from, plus the suite itself.
@@ -198,6 +207,8 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
+          # go install through the module proxy retries; the binary download does not.
+          install-mode: goinstall
           working-directory: ./backend
 
   resolver-ci:
@@ -218,6 +229,7 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
+          install-mode: goinstall
           install-only: true
 
       - name: Check the module
@@ -247,6 +259,7 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
+          install-mode: goinstall
           install-only: true
 
       - name: Check the module
@@ -273,6 +286,7 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
+          install-mode: goinstall
           install-only: true
 
       - name: Check the module
@@ -320,6 +334,7 @@ jobs:
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: ${{ needs.changes.outputs.golangci-lint }}
+          install-mode: goinstall
           install-only: true
 
       - name: Check the module
@@ -584,9 +599,12 @@ jobs:
       - name: Run repo checks
         run: make check-repo
 
+      # scripts/setup-dev-tools.sh holds the pin, as for golangci-lint.
       - name: Lint workflows
         run: |
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          VERSION="$(sed -n 's/^ACTIONLINT_VERSION="\(.*\)"$/\1/p' scripts/setup-dev-tools.sh)"
+          [ -n "$VERSION" ] || { echo "No ACTIONLINT_VERSION in scripts/setup-dev-tools.sh."; exit 1; }
+          go install "github.com/rhysd/actionlint/cmd/actionlint@$VERSION"
           make check-workflows
 
       # Public repo with fork PRs: audit the workflows for injection and token risks.
@@ -614,7 +632,7 @@ jobs:
       - name: Install gitleaks
         working-directory: ${{ runner.temp }}
         run: |
-          curl -fsSLo gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
           echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           sudo tar -xzf gitleaks.tar.gz -C /usr/local/bin gitleaks
 

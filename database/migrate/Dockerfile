@@ -5,7 +5,7 @@ ARG MIGRATE_VERSION=v4.20.1
 ARG MIGRATE_SHA256=b1e13121d4178b7804a9fb29dca62d57b732390f7e5ae33f2cd65e9b192e1bd4
 
 RUN apk add --no-cache curl \
-    && curl -fsSL -o /tmp/migrate.tar.gz "https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz" \
+    && curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o /tmp/migrate.tar.gz "https://github.com/golang-migrate/migrate/releases/download/${MIGRATE_VERSION}/migrate.linux-amd64.tar.gz" \
     && echo "${MIGRATE_SHA256}  /tmp/migrate.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/migrate.tar.gz -C /usr/local/bin migrate \
     && rm /tmp/migrate.tar.gz \
