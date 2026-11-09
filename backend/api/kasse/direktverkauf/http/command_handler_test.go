@@ -68,7 +68,7 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"stornieren: Verkauf unbekannt", stornieren, application.ErrVerkaufNichtGefunden, validStornoBod, http.StatusBadRequest, "verkauf_not_found"},
 		{"stornieren: Storno-ID mit anderem Inhalt", stornieren, application.ErrVorgangAbweichend, validStornoBod, http.StatusConflict, "vorgang_abweichend"},
 		{"stornieren: ohne Storno-ID", stornieren, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"Rueckgabe"}`, http.StatusBadRequest, "validation_error"},
-		{"stornieren: Kommentar zu kurz", stornieren, nil, `{"verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"ab"}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: Kommentar zu kurz", stornieren, nil, `{"stornierungId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","verkaufId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","positionen":[{"positionId":"6f9619ff-8b86-d011-b42d-00cf4fc964ff","menge":1}],"kommentar":"ab"}`, http.StatusBadRequest, "validation_error"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -205,8 +205,8 @@ func TestDirektverkaufTaetigen_WritesSingleEvent(t *testing.T) {
 	if err := json.Unmarshal(got.event.Data, &data); err != nil {
 		t.Fatalf("failed to unmarshal event data: %v", err)
 	}
-	if data.GesamtbetragCents != testVariant.PreisCents*2 {
-		t.Errorf("expected gesamtbetragCents %d, got %d", testVariant.PreisCents*2, data.GesamtbetragCents)
+	if data.GesamtbetragCents != 700 {
+		t.Errorf("expected gesamtbetragCents 700, got %d", data.GesamtbetragCents)
 	}
 }
 

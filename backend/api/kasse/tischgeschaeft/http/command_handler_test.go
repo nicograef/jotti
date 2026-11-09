@@ -70,6 +70,9 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 		{"kassieren: Pfand ohne Rückgabe-ID", (*CommandHandler).ZahlungKassierenHandler, nil, `{"zahlungId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","tischId":1,` + positionRef + `,"kommentar":"","pfand":{` + pfandPosition + `}}`, http.StatusBadRequest, "validation_error"},
 		{"stornieren: Konflikt", (*CommandHandler).StornierungErteilenHandler, application.ErrConflict, stornoBody, http.StatusConflict, "conflict"},
 		{"stornieren: ohne Storno-ID", (*CommandHandler).StornierungErteilenHandler, nil, `{"tischId":1,` + positionRef + `,"kommentar":"Reklamation"}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: Kommentar zu kurz", (*CommandHandler).StornierungErteilenHandler, nil, `{"stornoId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","tischId":1,` + positionRef + `,"kommentar":"ab"}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: Kommentar leer", (*CommandHandler).StornierungErteilenHandler, nil, `{"stornoId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","tischId":1,` + positionRef + `,"kommentar":""}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: ohne Kommentar", (*CommandHandler).StornierungErteilenHandler, nil, `{"stornoId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","tischId":1,` + positionRef + `}`, http.StatusBadRequest, "validation_error"},
 		{"umbuchen: Konflikt", umbuchen, application.ErrConflict, `{"umbuchungId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","quellTischId":1,"zielTischId":2,` + positionRef + `}`, http.StatusConflict, "conflict"},
 		{"umbuchen: gleicher Tisch", umbuchen, application.ErrUmbuchungGleicherTisch, `{"umbuchungId":"0b6a3f1e-2c4d-4e5f-8a9b-1c2d3e4f5a6b","quellTischId":1,"zielTischId":1,` + positionRef + `}`, http.StatusBadRequest, "umbuchung_gleicher_tisch"},
 	}

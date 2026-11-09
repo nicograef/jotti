@@ -16,6 +16,10 @@ import (
 // Kassensitzung; die Application-Schicht mappt das auf HTTP 409.
 var ErrKassensitzungNichtOffen = errors.New("kassensitzung ist nicht offen")
 
+// ErrKassensitzungWirdAbgeschlossen: der Write traf auf die Abschluss-Barriere
+// ('wird_abgeschlossen'); nur Abschluss-Events passieren sie.
+var ErrKassensitzungWirdAbgeschlossen = errors.New("kassensitzung wird abgeschlossen")
+
 // ErrTischNichtAktiv refuses an event that raises the saldo of a Tisch that is no longer active.
 var ErrTischNichtAktiv = errors.New("tisch ist nicht aktiv")
 

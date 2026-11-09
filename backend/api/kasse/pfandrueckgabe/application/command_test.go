@@ -133,11 +133,12 @@ func TestPfandZurueckgeben_SchreibtVersion1InEigenenStream(t *testing.T) {
 	}
 }
 
-func TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent(t *testing.T) {
-	rueckgabeID := uuid.New().String()
+// gebuchteRueckgabe returns a stored Rückgabe of 2 Gläser à 200 at tischID and its position ID.
+func gebuchteRueckgabe(t *testing.T, rueckgabeID string, tischID int) (event.Event, string) {
+	t.Helper()
 	subject := kasse.PfandrueckgabeSubject(testKassensitzungNr, rueckgabeID)
 	glas := kasse.Position{VarianteID: 2, ProduktName: "Pfand", VarianteName: "Glas", Kategorie: "sonstiges", Steuersatz: "regel", EinzelpreisCents: 200, Menge: 2}
-	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(subject, rueckgabeID, 3, 1, "Test", []kasse.Position{glas}, "")
+	rueckgabe, err := kasse.NewPfandZurueckgegebenEvent(subject, rueckgabeID, tischID, 1, "Test", []kasse.Position{glas}, "")
 	if err != nil {
 		t.Fatalf("rueckgabe event: %v", err)
 	}
@@ -146,16 +147,54 @@ func TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent(t *testing.T) {
 	if err := json.Unmarshal(rueckgabe.Data, &data); err != nil {
 		t.Fatalf("rueckgabe data: %v", err)
 	}
+	return rueckgabe, data.Positionen[0].PositionID
+}
+
+func TestPfandrueckgabeStornieren_ZuGrosseMenge_KeinEvent(t *testing.T) {
+	rueckgabeID := uuid.New().String()
+	rueckgabe, positionID := gebuchteRueckgabe(t, rueckgabeID, 3)
 
 	spy := &spyEventRepo{streamEvents: []event.Event{rueckgabe}}
 	cmd := newPfandCommand(spy)
 
-	refs := []kasse.PositionRef{{PositionID: data.Positionen[0].PositionID, Menge: 3}}
-	err = cmd.PfandrueckgabeStornieren(context.Background(), 2, "Leitung", uuid.New().String(), rueckgabeID, refs, "zu viele")
+	refs := []kasse.PositionRef{{PositionID: positionID, Menge: 3}}
+	err := cmd.PfandrueckgabeStornieren(context.Background(), 2, "Leitung", uuid.New().String(), rueckgabeID, refs, "zu viele")
 	if !errors.Is(err, ErrPositionNichtStornierbar) {
 		t.Fatalf("erwartet ErrPositionNichtStornierbar, bekam %v", err)
 	}
 	if len(spy.written) != 0 {
 		t.Errorf("erwartet kein Event, geschrieben: %d", len(spy.written))
+	}
+}
+
+// Der Storno trägt die tischId der Rückgabe und nur den Betrag der stornierten Menge.
+func TestPfandrueckgabeStornieren_SchreibtBetragUndTischDerRueckgabe(t *testing.T) {
+	rueckgabeID := uuid.New().String()
+	rueckgabe, positionID := gebuchteRueckgabe(t, rueckgabeID, 7)
+
+	spy := &spyEventRepo{streamEvents: []event.Event{rueckgabe}}
+	cmd := newPfandCommand(spy)
+
+	refs := []kasse.PositionRef{{PositionID: positionID, Menge: 1}}
+	if err := cmd.PfandrueckgabeStornieren(context.Background(), 2, "Leitung", uuid.New().String(), rueckgabeID, refs, "Falsch gezählt"); err != nil {
+		t.Fatalf("PfandrueckgabeStornieren: %v", err)
+	}
+
+	if len(spy.written) != 1 {
+		t.Fatalf("erwartet 1 Event, geschrieben: %d", len(spy.written))
+	}
+	w := spy.written[0]
+	if w.event.Type != "pfandrueckgabe-storniert:v1" || w.event.Version != 2 {
+		t.Errorf("type = %q, version = %d, erwartet pfandrueckgabe-storniert:v1 und 2", w.event.Type, w.event.Version)
+	}
+	var data kasse.PfandrueckgabeStorniertV1Data
+	if err := json.Unmarshal(w.event.Data, &data); err != nil {
+		t.Fatalf("event-daten: %v", err)
+	}
+	if data.TischID != 7 || data.GesamtStornierungCents != 200 || data.Kommentar != "Falsch gezählt" {
+		t.Errorf("tischId = %d, gesamtStornierungCents = %d, kommentar = %q; erwartet 7, 200, \"Falsch gezählt\"", data.TischID, data.GesamtStornierungCents, data.Kommentar)
+	}
+	if len(data.Positionen) != 1 || data.Positionen[0].Menge != 1 {
+		t.Errorf("positionen = %+v, erwartet eine Position mit Menge 1", data.Positionen)
 	}
 }

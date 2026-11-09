@@ -51,6 +51,9 @@ func TestCommandHandler_Abweisungen(t *testing.T) {
 	}{
 		{"stornieren: Stornierung abweichend", stornieren, application.ErrPfandrueckgabeAbweichend, validPfandStornoBody, http.StatusConflict, "pfandrueckgabe_abweichend"},
 		{"stornieren: Stornierungs-ID gleich Rückgabe-ID", stornieren, nil, `{"stornierungId":"22222222-2222-4222-8222-222222222222","rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"positionId":"33333333-3333-4333-8333-333333333333","menge":1}],"kommentar":"Falsch gezählt"}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: Kommentar zu kurz", stornieren, nil, `{"stornierungId":"11111111-1111-4111-8111-111111111111","rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"positionId":"33333333-3333-4333-8333-333333333333","menge":1}],"kommentar":"ab"}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: Kommentar leer", stornieren, nil, `{"stornierungId":"11111111-1111-4111-8111-111111111111","rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"positionId":"33333333-3333-4333-8333-333333333333","menge":1}],"kommentar":""}`, http.StatusBadRequest, "validation_error"},
+		{"stornieren: ohne Kommentar", stornieren, nil, `{"stornierungId":"11111111-1111-4111-8111-111111111111","rueckgabeId":"22222222-2222-4222-8222-222222222222","positionen":[{"positionId":"33333333-3333-4333-8333-333333333333","menge":1}]}`, http.StatusBadRequest, "validation_error"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -129,7 +129,7 @@ func (r Repository) writeEventInTx(ctx context.Context, qtx *dbgen.Queries, e ev
 	case kasse.KassensitzungOffen:
 	case kasse.KassensitzungWirdAbgeschlossen:
 		if !kasse.IsAbschlussEventType(e.Type) {
-			return event.Event{}, false, ErrKassensitzungNichtOffen
+			return event.Event{}, false, ErrKassensitzungWirdAbgeschlossen
 		}
 	case kasse.KassensitzungAbgeschlossen:
 		fallthrough

@@ -3,6 +3,7 @@ package application
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -86,13 +87,33 @@ func newTestCommand(ks *kasse.Kassensitzung) Command {
 func TestKassensitzungEroeffnen(t *testing.T) {
 	ctx := context.Background()
 	cmd := newTestCommand(nil) // no open KS
+	journal := repotest.NewKassenjournalRepo(nil, nil)
+	cmd.KassenjournalRepo = journal
 
 	zNr, err := cmd.KassensitzungEroeffnen(ctx, 1, "Admin", "Vereinsfest 2026", 10000)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if zNr < 1 {
-		t.Errorf("expected z_nr >= 1, got %d", zNr)
+	if zNr != 1 {
+		t.Errorf("expected z_nr 1, got %d", zNr)
+	}
+
+	events, err := journal.ReadEventsBySubject(ctx, "kassensitzung-1")
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+	if events[0].Type != "kassensitzung-eroeffnet:v1" || events[0].Version != 1 {
+		t.Errorf("type = %q, version = %d, want kassensitzung-eroeffnet:v1 and 1", events[0].Type, events[0].Version)
+	}
+	var data kasse.KassensitzungEroeffnetV1Data
+	if err := json.Unmarshal(events[0].Data, &data); err != nil {
+		t.Fatalf("event data: %v", err)
+	}
+	if data.BetragCents != 10000 || data.Bezeichnung != "Vereinsfest 2026" || data.EroeffnetVon != 1 {
+		t.Errorf("data = %+v, want betragCents 10000, bezeichnung Vereinsfest 2026, eroeffnetVon 1", data)
 	}
 }
 
@@ -147,12 +168,41 @@ func TestKassensitzungEroeffnen_ParalleleEroeffnung(t *testing.T) {
 }
 
 func TestGeldtransitBuchen(t *testing.T) {
-	ctx := context.Background()
-	cmd := newTestCommand(testOpenKS)
+	tests := []struct {
+		richtung    string
+		betragCents int
+		kommentar   string
+	}{
+		{richtung: "einlage", betragCents: 10000, kommentar: "Wechselgeld nachgelegt"},
+		{richtung: "entnahme", betragCents: 2500, kommentar: "Abschöpfung"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.richtung, func(t *testing.T) {
+			ctx := context.Background()
+			cmd := newTestCommand(testOpenKS)
+			journal := repotest.NewKassenjournalRepo(nil, nil)
+			cmd.KassenjournalRepo = journal
 
-	err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "einlage", 10000, "Wechselgeld nachgelegt")
-	if err != nil {
-		t.Errorf("expected no error, got %v", err)
+			if err := cmd.GeldtransitBuchen(ctx, 1, "Admin", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", tt.richtung, tt.betragCents, tt.kommentar); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			events, err := journal.ReadEventsBySubject(ctx, "kassensitzung-1")
+			if err != nil {
+				t.Fatalf("read events: %v", err)
+			}
+			if len(events) != 1 || events[0].Type != "geldtransit-gebucht:v1" {
+				t.Fatalf("expected one geldtransit-gebucht:v1 event, got %+v", events)
+			}
+			var data kasse.GeldtransitGebuchtV1Data
+			if err := json.Unmarshal(events[0].Data, &data); err != nil {
+				t.Fatalf("event data: %v", err)
+			}
+			want := kasse.GeldtransitGebuchtV1Data{GeldtransitID: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", Richtung: tt.richtung, BetragCents: tt.betragCents, Kommentar: tt.kommentar, GebuchtVon: 1}
+			if data != want {
+				t.Errorf("data = %+v, want %+v", data, want)
+			}
+		})
 	}
 }
 

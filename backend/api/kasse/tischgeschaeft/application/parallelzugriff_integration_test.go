@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/api/kasse/enrichment"
+	"github.com/nicograef/jotti/backend/domain/event"
 	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
@@ -199,6 +201,125 @@ func addMengen(t *testing.T, data []byte, ziel map[int]int) {
 	}
 	for _, p := range d.Positionen {
 		ziel[p.VarianteID] += p.Menge
+	}
+}
+
+// gleichzeitig runs op once per ID behind a shared gate, so both requests read the same stream state.
+func gleichzeitig(ids []string, op func(id string) error) []error {
+	start := make(chan struct{})
+	ergebnisse := make([]error, len(ids))
+	var wg sync.WaitGroup
+	for i, id := range ids {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			ergebnisse[i] = op(id)
+		}()
+	}
+	close(start)
+	wg.Wait()
+	return ergebnisse
+}
+
+// genauEinGewinner fails unless exactly one request succeeded and the other was refused with one
+// of the allowed errors.
+func genauEinGewinner(t *testing.T, ergebnisse []error, erlaubt ...error) {
+	t.Helper()
+	erfolge := 0
+	for _, err := range ergebnisse {
+		if err == nil {
+			erfolge++
+			continue
+		}
+		if !slices.ContainsFunc(erlaubt, func(ziel error) bool { return errors.Is(err, ziel) }) {
+			t.Errorf("unerwarteter Fehler des Verlierers: %v", err)
+		}
+	}
+	if erfolge != 1 {
+		t.Errorf("erwartet genau einen erfolgreichen Request, bekam %d (%v)", erfolge, ergebnisse)
+	}
+}
+
+func zaehleEvents(events []event.Event, typ kasse.EventType) int {
+	anzahl := 0
+	for _, ev := range events {
+		if ev.Type == string(typ) {
+			anzahl++
+		}
+	}
+	return anzahl
+}
+
+// bestelleEinBier books one Bier at 350 and returns its open position.
+func bestelleEinBier(ctx context.Context, t *testing.T, cmd Command, subject string, userID, produktID, tischID, varianteID int) kasse.PositionRef {
+	t.Helper()
+	inputs := []enrichment.PositionInput{{ProduktID: produktID, VarianteID: varianteID, Menge: 1}}
+	if err := cmd.BestellungAufnehmen(ctx, userID, "Anna", uuid.NewString(), tischID, inputs, ""); err != nil {
+		t.Fatalf("BestellungAufnehmen: %v", err)
+	}
+	state, err := cmd.EventRepo.ReadTischSession(ctx, subject)
+	if err != nil {
+		t.Fatalf("ReadTischSession: %v", err)
+	}
+	if len(state.UnbezahltePositionen) != 1 {
+		t.Fatalf("erwartet 1 offene Position, sind %d", len(state.UnbezahltePositionen))
+	}
+	return kasse.PositionRef{PositionID: state.UnbezahltePositionen[0].PositionID, Menge: 1}
+}
+
+// Two devices pay the same position at the same moment with different zahlungIds: exactly one
+// payment lands, the other is refused, and the Tisch carries 350 paid and Saldo 0.
+func TestParallelzugriff_GleichePositionZweimalKassiert(t *testing.T) {
+	ctx, cmd, _, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	ref := bestelleEinBier(ctx, t, cmd, subject, userID, produktID, tischID, varianteID)
+
+	ergebnisse := gleichzeitig([]string{uuid.NewString(), uuid.NewString()}, func(zahlungID string) error {
+		return cmd.ZahlungKassieren(ctx, userID, "Anna", zahlungID, tischID, []kasse.PositionRef{ref}, "", nil)
+	})
+	genauEinGewinner(t, ergebnisse, ErrConflict, ErrPositionNichtBezahlbar)
+
+	events, err := cmd.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("ReadEventsBySubject: %v", err)
+	}
+	if n := zaehleEvents(events, kasse.EventTypeZahlungKassiertV1) + zaehleEvents(events, kasse.EventTypeZahlungKassiertV2); n != 1 {
+		t.Errorf("erwartet 1 zahlung-kassiert-Event, sind %d", n)
+	}
+	state, err := cmd.EventRepo.ReadTischSession(ctx, subject)
+	if err != nil {
+		t.Fatalf("ReadTischSession: %v", err)
+	}
+	if state.GesamtZahlungenCents != 350 || state.SaldoCents != 0 {
+		t.Errorf("gesamtZahlungen/saldo = %d/%d, erwartet 350/0", state.GesamtZahlungenCents, state.SaldoCents)
+	}
+}
+
+// Two devices cancel the same paid position at the same moment with different stornoIds: exactly
+// one stornierung-erteilt:v1 lands, the other request is refused.
+func TestParallelzugriff_GleichePositionZweimalStorniert(t *testing.T) {
+	ctx, cmd, _, userID, ksNr, tischID, produktID, varianteID := setupBestellungIntegration(t)
+	subject := kasse.TischSessionSubject(ksNr, tischID)
+	ref := bestelleEinBier(ctx, t, cmd, subject, userID, produktID, tischID, varianteID)
+	if err := cmd.ZahlungKassieren(ctx, userID, "Anna", uuid.NewString(), tischID, []kasse.PositionRef{ref}, "", nil); err != nil {
+		t.Fatalf("ZahlungKassieren: %v", err)
+	}
+
+	ergebnisse := gleichzeitig([]string{uuid.NewString(), uuid.NewString()}, func(stornoID string) error {
+		return cmd.StornierungErteilen(ctx, userID, "Leitung", uuid.MustParse(stornoID), tischID, []kasse.PositionRef{ref}, "Reklamation")
+	})
+	genauEinGewinner(t, ergebnisse, ErrConflict, ErrPositionNichtStornierbar)
+
+	events, err := cmd.EventRepo.ReadEventsBySubject(ctx, subject)
+	if err != nil {
+		t.Fatalf("ReadEventsBySubject: %v", err)
+	}
+	if n := zaehleEvents(events, kasse.EventTypeStornierungErteiltV1); n != 1 {
+		t.Errorf("erwartet 1 stornierung-erteilt:v1-Event, sind %d", n)
+	}
+	if n := zaehleEvents(events, kasse.EventTypeBestellungKorrigiertV1); n != 0 {
+		t.Errorf("erwartet kein bestellung-korrigiert:v1-Event, sind %d", n)
 	}
 }
 

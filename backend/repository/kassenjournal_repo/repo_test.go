@@ -1177,8 +1177,8 @@ func TestWriteEvent_ZwischenstatusWirdAbgeschlossen(t *testing.T) {
 	// Buchungs-Event wird abgelehnt.
 	tischSubject := kasse.TischSessionSubject(ksNr, tischID)
 	bestellung := newTestEvent(userID, "bestellung-aufgenommen:v1", tischSubject, 1, validBestellungData("b0000000-0000-0000-0000-000000000001", "p0000000-0000-0000-0000-000000000001", 350, 1))
-	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); !errors.Is(err, ErrKassensitzungNichtOffen) {
-		t.Errorf("expected booking to be rejected in wird_abgeschlossen, got %v", err)
+	if _, err := repo.WriteEvent(context.Background(), bestellung, kasse.StreamTypeTischSession, ksNr); !errors.Is(err, ErrKassensitzungWirdAbgeschlossen) {
+		t.Errorf("expected ErrKassensitzungWirdAbgeschlossen for a booking in wird_abgeschlossen, got %v", err)
 	}
 
 	// Abschluss-Event wird zugelassen.

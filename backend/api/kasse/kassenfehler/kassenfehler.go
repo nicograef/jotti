@@ -52,6 +52,8 @@ func (s Sentinels) Schreibfehler(ctx context.Context, err error, logArgs ...any)
 		mapped = s.Conflict
 	case errors.Is(err, kassenjournal_repo.ErrKassensitzungNichtOffen):
 		mapped = s.KasseNichtGeoeffnet
+	case errors.Is(err, kassenjournal_repo.ErrKassensitzungWirdAbgeschlossen):
+		mapped = s.KasseWirdAbgeschlossen
 	case errors.Is(err, kassenjournal_repo.ErrTischNichtAktiv):
 		mapped = s.TischNichtAktiv
 	}
