@@ -34,9 +34,6 @@ Offene Produktentscheidungen und Folgekandidaten ohne Release-Bezug.
 
 ## Folgekandidaten
 
-- [ ] `export.go` liest die Kassensitzung mit `GetOffeneKassensitzung` und `//nolint:forbidigo`;
-      wegen der Sortierung von `GetAllKassensitzungen` liefert `GetAktiveKassensitzung` dieselbe
-      Sitzung — die Ausnahme kauft kein Verhalten. Auflösen und ersetzen.
 - [ ] `scripts/check-ui-labels.sh` prüft das Vorkommen zitierter Bedienelemente in `frontend/src`;
       ein Zitat, das nur als Bezeichner oder Kommentar vorkommt, läuft durch. Treffer in
       Bezeichnern und Kommentaren ausschließen — schärfer ginge es nur gegen gerenderte Texte.

@@ -26,15 +26,13 @@ type Handler struct {
 	Service service
 }
 
-// exportRequest selects the Kassensitzung; 0 or missing means the default session
-// (the open one, else the latest closed).
+// exportRequest selects the Kassensitzung; the number is required.
 type exportRequest struct {
 	KassensitzungNr int `json:"kassensitzungNr"`
 }
 
-// Not Required: zog skips the zero value, so 0 selects the default session.
 var exportSchema = z.Struct(z.Shape{
-	"KassensitzungNr": kasse.KassensitzungNrSchema(),
+	"KassensitzungNr": kasse.KassensitzungNrSchema().Required(),
 })
 
 // ExportHandler streams the chosen Kassensitzung's DSFinV-K ZIP. The /admin/ mount

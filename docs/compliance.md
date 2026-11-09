@@ -392,7 +392,7 @@ Stornierungen erzeugen immer neue Datensätze (GoBD-Radierverbot), nie Änderung
 - **Pfandrückgabe:** Die Rückgabe ist ein negativer `Beleg` ohne Referenz. Pfandrückgaben mindern das Entgelt unabhängig vom Verkauf (Abschn. 10.1 Abs. 8 Satz 3 UStAE). Ihre Stornierung ist ein positiver `Beleg` mit `REF_BON_ID` auf die Rückgabe.
 - **Abgrenzung:** Ein Storno ist ein negativer `Beleg`-Bon mit `GV_TYP = Umsatz` oder `Pfand` in `lines.csv`. Negative Bargeldabflüsse (`GV_TYP = Geldtransit` oder `DifferenzSollIst`) und Pfandrückgaben (`PfandRueckzahlung`) sind keine Stornos und brauchen keine Referenz.
 - **Rechtsgrundlage:** Warenrücknahme und Positionskorrektur folgen der Negativ-Darstellung nach DSFinV-K Tz. 4.2.5 und Tz. 4.2.3. Die Korrektur negiert `MENGE`, statt `P_STORNO` zu setzen. Die Referenz auf den Ursprungsbon folgt Tz. 4.2.2.
-- **Umbuchung:** Abgang und Zugang sind je ein geldneutraler `AVBestellung`-Bon. Der Abgang trägt die `umbuchungId` als `BON_ID`, der Zugang verweist per `REF_BON_ID` darauf.
+- **Umbuchung:** Abgang und Zugang sind je ein geldneutraler `AVBestellung`-Bon. Der Abgang trägt die `umbuchungId` als `BON_ID`, der Zugang verweist per `REF_BON_ID` darauf. Der Abgang negiert `MENGE` in `lines.csv`, der Zugang führt sie positiv (DSFinV-K 3.0 Tz. 4.2.8). So stimmt der Export mit dem vorzeichenbehafteten `processData` der TSE überein.
 - **`references.csv`:** `REF_TYP` ist `Transaktion`, `POS_ZEILE` bleibt leer (Verweis aus dem Bonkopf). Ursprung und Verweis liegen in derselben Kassensitzung. Daher tragen `REF_DATUM`, `REF_Z_KASSE_ID` und `REF_Z_NR` die Werte dieses Abschlusses.
 
 ### 6.7 Steuersatz-Verwaltung

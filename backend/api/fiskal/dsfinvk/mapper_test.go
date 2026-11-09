@@ -740,6 +740,11 @@ func TestMapUmbuchungGeldneutralMitReferenz(t *testing.T) {
 		"references.csv": {
 			{testSerial, erstellung, "3", zugangBonID, "", "Transaktion", "", erstellung, testSerial, "3", umbuchungBonID},
 		},
+		// The Abgang negates MENGE (DSFinV-K 3.0 Tz. 4.2.8) like the signed TSE processData; no GV_TYP on cash-neutral lines.
+		"lines.csv": {
+			{testSerial, erstellung, "3", umbuchungBonID, "1", "", "Bier 0,5l", "", "", "", "", "0", "0", "101", "", "getraenk", "getraenk", "-1,000", "", "", "4,50"},
+			{testSerial, erstellung, "3", zugangBonID, "1", "", "Bier 0,5l", "", "", "", "", "0", "0", "101", "", "getraenk", "getraenk", "1,000", "", "", "4,50"},
+		},
 	}
 	for file, want := range wantRecords {
 		table := tableByFile(t, archive, file)

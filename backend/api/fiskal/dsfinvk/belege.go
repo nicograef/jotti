@@ -18,7 +18,7 @@ type beleg struct {
 	gvTyp            string   // GV_TYP of the lines: "Umsatz", "PfandRueckzahlung" or a cash GV type; pfand overrides it per line
 	zahlart          string   // ZAHLART_TYP: "Bar"; empty for the cash-neutral AVBestellung
 	abrechnungskreis string   // ABRECHNUNGSKREIS (table name); empty without a table (e.g. Direktverkauf)
-	storno           bool     // negative Beleg (Warenrücknahme, Korrektur, Pfand return): flips the sign; BON_STORNO stays 0
+	storno           bool     // negative Beleg (Warenrücknahme, Korrektur, Umbuchung Abgang, Pfand return): flips the sign; BON_STORNO stays 0
 	barabfluss       bool     // reduces the cash balance (Geldtransit withdrawal, shortfall); flips the sign like storno
 	geldneutral      bool     // AVBestellung or AVSonstige: TSE-signed, lines informative only; no revenue, VAT, Zahlart or cash effect
 	nichtSteuerbar   bool     // cash movement without VAT: one line with UST_SCHLUESSEL 5 instead of a tax split
@@ -320,7 +320,8 @@ func (a *belegAbleitung) korrektur(ev event.Event) (beleg, error) {
 }
 
 // umbuchung is a cash-neutral AVBestellung. Source and target share the UmbuchungID:
-// the Abgang carries it as BON_ID, the Zugang references it.
+// the Abgang carries it as BON_ID, the Zugang references it. The Abgang negates MENGE
+// (DSFinV-K 3.0 Tz. 4.2.8), matching the signed TSE processData of the fiscal projection.
 func (a *belegAbleitung) umbuchung(ev event.Event) (beleg, error) {
 	data, err := event.Decode[kasse.BestellungUmgebuchtV1Data](ev)
 	if err != nil {
@@ -341,6 +342,7 @@ func (a *belegAbleitung) umbuchung(ev event.Event) (beleg, error) {
 	}
 	if tischID == data.QuellTischID {
 		bon.bonID = data.UmbuchungID
+		bon.storno = true
 		return bon, nil
 	}
 	bon.bonID = fmt.Sprintf("umbuchung-%d", ev.ID)

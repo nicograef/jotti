@@ -31,7 +31,6 @@ type kassenjournalRepo interface {
 }
 
 type kassensitzungenRepo interface {
-	GetOffeneKassensitzung(ctx context.Context) (*kasse.Kassensitzung, error)
 	GetAllKassensitzungen(ctx context.Context) ([]kasse.Kassensitzung, error)
 }
 
@@ -65,8 +64,7 @@ type Archiv struct {
 	Inhalt    []byte
 }
 
-// Erstellen builds the DSFinV-K archive for the chosen Kassensitzung. nr == 0 selects
-// the default session: the open one, else the latest closed.
+// Erstellen builds the DSFinV-K archive for Kassensitzung nr.
 func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 	log := logging.FromContext(ctx)
 
@@ -110,44 +108,19 @@ func (e Export) Erstellen(ctx context.Context, nr int) (Archiv, error) {
 	}, nil
 }
 
+// resolveKassensitzung looks up the requested Kassensitzung; the HTTP schema guarantees nr >= 1.
 func (e Export) resolveKassensitzung(ctx context.Context, nr int) (kasse.Kassensitzung, error) {
-	log := logging.FromContext(ctx)
-
-	if nr > 0 {
-		alle, err := e.KassensitzungenRepo.GetAllKassensitzungen(ctx)
-		if err != nil {
-			log.Error("Failed to list kassensitzungen", "error", err)
-			return kasse.Kassensitzung{}, ErrDatabase
-		}
-		for _, ks := range alle {
-			if ks.ZNr == nr {
-				return ks, nil
-			}
-		}
-		return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
-	}
-
-	// The export wants exactly the open session; a session in barrier status reaches
-	// the same export via the latest-session branch below.
-	offen, err := e.KassensitzungenRepo.GetOffeneKassensitzung(ctx) //nolint:forbidigo // deliberately the open session only, see above
-	if err != nil {
-		log.Error("Failed to get offene kassensitzung", "error", err)
-		return kasse.Kassensitzung{}, ErrDatabase
-	}
-	if offen != nil {
-		return *offen, nil
-	}
-
 	alle, err := e.KassensitzungenRepo.GetAllKassensitzungen(ctx)
 	if err != nil {
-		log.Error("Failed to list kassensitzungen", "error", err)
+		logging.FromContext(ctx).Error("Failed to list kassensitzungen", "error", err)
 		return kasse.Kassensitzung{}, ErrDatabase
 	}
-	if len(alle) == 0 {
-		return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
+	for _, ks := range alle {
+		if ks.ZNr == nr {
+			return ks, nil
+		}
 	}
-	// GetAllKassensitzungen sorts by datum DESC, so alle[0] is the latest.
-	return alle[0], nil
+	return kasse.Kassensitzung{}, ErrKassensitzungNichtGefunden
 }
 
 func (e Export) snapshot(ctx context.Context, ks kasse.Kassensitzung, erstellung time.Time) (dsfinvk.Snapshot, error) {

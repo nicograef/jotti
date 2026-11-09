@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"math"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/nicograef/jotti/backend/api/fiskal/export/application"
 	"github.com/nicograef/jotti/backend/api/middleware"
-	"github.com/nicograef/jotti/backend/domain/kasse"
 )
 
 type mockService struct {
@@ -21,9 +20,11 @@ type mockService struct {
 	// beiErstellen runs while the archive build is simulated, so the test can inspect
 	// the ResponseWriter state at that moment.
 	beiErstellen func()
+	aufgerufen   bool
 }
 
 func (m *mockService) Erstellen(context.Context, int) (application.Archiv, error) {
+	m.aufgerufen = true
 	if m.beiErstellen != nil {
 		m.beiErstellen()
 	}
@@ -98,7 +99,7 @@ func TestExportHandler_VerlaengertSchreibfristHinterLoggingMiddleware(t *testing
 	h := &Handler{Service: svc}
 
 	before := time.Now()
-	performRequest(t, middleware.LoggingMiddleware(h.ExportHandler()).ServeHTTP, w, 0)
+	performRequest(t, middleware.LoggingMiddleware(h.ExportHandler()).ServeHTTP, w, 1)
 
 	if w.fristBeimSchreiben.IsZero() {
 		t.Fatal("expected SetWriteDeadline to reach the real ResponseWriter through the middleware chain")
@@ -150,7 +151,7 @@ func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 	h := &Handler{Service: svc}
 
 	rec := httptest.NewRecorder()
-	performRequest(t, h.ExportHandler(), rec, 0)
+	performRequest(t, h.ExportHandler(), rec, 1)
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", rec.Code)
@@ -163,29 +164,42 @@ func TestExportHandler_LaeuftWeiterWennFristNichtSetzbar(t *testing.T) {
 	}
 }
 
+// The export needs an explicit Kassensitzung number: 0 or a missing field is no
+// default session, but a validation error like every number out of range.
 func TestExportHandler_InvalidKassensitzungNr(t *testing.T) {
-	for _, nr := range []int{-1, math.MaxInt32 + 1} {
-		h := &Handler{Service: &mockService{}}
-
-		rec := httptest.NewRecorder()
-		performRequest(t, h.ExportHandler(), rec, nr)
-
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("kassensitzungNr %d: expected status 400, got %d", nr, rec.Code)
-		}
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "missing", body: `{}`},
+		{name: "zero", body: `{"kassensitzungNr":0}`},
+		{name: "negative", body: `{"kassensitzungNr":-1}`},
+		{name: "above int4", body: `{"kassensitzungNr":2147483648}`},
 	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockService{}
+			h := &Handler{Service: svc}
 
-// zog's Required() mutates its receiver. The reporting and Kassenführung handlers require a
-// KassensitzungNr, and their schemas must not make the export's optional field required.
-func TestExportHandler_NullBleibtNebenPflichtSchemaGueltig(t *testing.T) {
-	_ = kasse.KassensitzungNrSchema().Required()
-	h := &Handler{Service: &mockService{archiv: application.Archiv{Dateiname: "dsfinvk_1.zip", Inhalt: []byte("zip-inhalt")}}}
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tt.body))
+			h.ExportHandler()(rec, req)
 
-	rec := httptest.NewRecorder()
-	performRequest(t, h.ExportHandler(), rec, 0)
-
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected status 200 for kassensitzungNr 0, got %d", rec.Code)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected status 400, got %d", rec.Code)
+			}
+			var payload struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+				t.Fatalf("expected valid JSON body: %v", err)
+			}
+			if payload.Code != "validation_error" {
+				t.Errorf("expected code %q, got %q", "validation_error", payload.Code)
+			}
+			if svc.aufgerufen {
+				t.Error("expected Erstellen not to run for an invalid kassensitzungNr")
+			}
+		})
 	}
 }
