@@ -212,7 +212,7 @@ func TestBuildSeedDaten_AbgeschlosseneTageAusgeglichen(t *testing.T) {
 }
 
 // TestBuildSeedDaten_TagesabschlussSummen prüft die Summen der Tagesabschluss-Events gegen
-// eine unabhängige Aggregation der erzeugten Tages-Events (Reporting-Formel).
+// kasse.ComputeAbschlussSummen, die Rechnung des produktiven Tagesabschlusses.
 func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 	s, daten := buildTestDaten(t)
 	events := eventsProSitzung(daten)
@@ -228,45 +228,20 @@ func TestBuildSeedDaten_TagesabschlussSummen(t *testing.T) {
 		}
 		abschluss := parseData[kasse.TagesabschlussErstelltV1Data](t, letztes)
 
-		var zahlungen, warenruecknahmen, korrekturen, dv, dvStorno, pfand, pfandStorno, transit int
-		for _, evt := range tagesEvents {
-			switch evt.Type {
-			case string(kasse.EventTypeZahlungKassiertV2):
-				zahlungen += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
-			case string(kasse.EventTypeStornierungErteiltV1):
-				warenruecknahmen += parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
-			case string(kasse.EventTypeBestellungKorrigiertV1):
-				korrekturen += parseData[kasse.BestellungKorrigiertV1Data](t, evt).GesamtCents
-			case string(kasse.EventTypeDirektverkaufGetaetigtV2):
-				dv += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
-			case string(kasse.EventTypeDirektverkaufStorniertV1):
-				dvStorno += parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents
-			case string(kasse.EventTypePfandZurueckgegebenV1):
-				pfand += parseData[kasse.PfandZurueckgegebenV1Data](t, evt).GesamtbetragCents
-			case string(kasse.EventTypePfandrueckgabeStorniertV1):
-				pfandStorno += parseData[kasse.PfandrueckgabeStorniertV1Data](t, evt).GesamtStornierungCents
-			case string(kasse.EventTypeGeldtransitGebuchtV1):
-				data := parseData[kasse.GeldtransitGebuchtV1Data](t, evt)
-				if data.Richtung == "einlage" {
-					transit += data.BetragCents
-				} else {
-					transit -= data.BetragCents
-				}
-			}
+		// Produktiv rechnet KasseAbschliessen die Z-Bon-Summen mit ComputeAbschlussSummen aus den
+		// Events der Sitzung; der Seed muss dieselben Summen liefern.
+		want, err := kasse.ComputeAbschlussSummen(tagesEvents[:len(tagesEvents)-1])
+		if err != nil {
+			t.Fatalf("Sitzung %d: ComputeAbschlussSummen: %v", sitzung.ZNr, err)
 		}
-
-		// Die kassenwirksame Warenrücknahme mindert den Umsatz, die geldneutrale
-		// Korrektur nicht; StornierungCents umfasst beide Storno-Arten. Pfandrückgaben
-		// mindern den Umsatz, ihre Stornierungen heben das auf; beide sind kein Storno.
-		umsatz := zahlungen + dv - dvStorno - warenruecknahmen - pfand + pfandStorno
-		if abschluss.UmsatzGesamtCents != umsatz {
-			t.Errorf("Sitzung %d: UmsatzGesamtCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.UmsatzGesamtCents, umsatz)
+		if abschluss.UmsatzGesamtCents != want.UmsatzCents {
+			t.Errorf("Sitzung %d: UmsatzGesamtCents = %d, ComputeAbschlussSummen %d", sitzung.ZNr, abschluss.UmsatzGesamtCents, want.UmsatzCents)
 		}
-		if abschluss.StornierungCents != warenruecknahmen+korrekturen {
-			t.Errorf("Sitzung %d: StornierungCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.StornierungCents, warenruecknahmen+korrekturen)
+		if abschluss.StornierungCents != want.StornierungCents {
+			t.Errorf("Sitzung %d: StornierungCents = %d, ComputeAbschlussSummen %d", sitzung.ZNr, abschluss.StornierungCents, want.StornierungCents)
 		}
-		if abschluss.GeldtransitCents != transit {
-			t.Errorf("Sitzung %d: GeldtransitCents = %d, unabhängig aggregiert %d", sitzung.ZNr, abschluss.GeldtransitCents, transit)
+		if abschluss.GeldtransitCents != want.GeldtransitCents {
+			t.Errorf("Sitzung %d: GeldtransitCents = %d, ComputeAbschlussSummen %d", sitzung.ZNr, abschluss.GeldtransitCents, want.GeldtransitCents)
 		}
 
 		start := testJetzt.Add(-sitzung.StartVorJetzt)
@@ -500,8 +475,8 @@ func TestBuildSeedDaten_Positionskommentare(t *testing.T) {
 }
 
 // TestBuildSeedDaten_Kassenfuehrung prüft Geldtransit in beide Richtungen sowie den
-// Kassensturz: Der Soll-Bestand entspricht einer unabhängigen Aggregation der vorherigen
-// Events (Kassenbestand-Formel), die Differenz erzeugt die zugehörige Differenz-Buchung.
+// Kassensturz: Der Soll-Bestand folgt aus den vorherigen Events (Anfangsbestand plus
+// ComputeAbschlussSummen), die Differenz erzeugt die zugehörige Differenz-Buchung.
 func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 	_, daten := buildTestDaten(t)
 	events := eventsProSitzung(daten)
@@ -518,55 +493,37 @@ func TestBuildSeedDaten_Kassenfuehrung(t *testing.T) {
 		t.Errorf("Geldtransit-Richtungen %v, erwartet einlage und entnahme", richtungen)
 	}
 
-	// Kassensturz Samstag: Soll-Bestand unabhängig aggregieren (Kassenbestand-Formel).
-	bestand := 0
+	// Kassensturz Samstag: Soll = Anfangsbestand + Bareinnahmen (= Umsatz) + Geldtransit der
+	// Events davor, gerechnet mit kasse.ComputeAbschlussSummen statt einer eigenen Aggregation.
 	var sturz *kasse.KassensturzDurchgefuehrtV1Data
 	var differenz *kasse.DifferenzSollIstGebuchtV1Data
+	var anfangsbestand int
+	var vorSturz []e.Event
 	for _, evt := range events[2] {
-		if evt.Type == string(kasse.EventTypeKassensturzDurchgefuehrtV1) {
+		switch evt.Type {
+		case string(kasse.EventTypeKassensturzDurchgefuehrtV1):
 			data := parseData[kasse.KassensturzDurchgefuehrtV1Data](t, evt)
 			sturz = &data
-			continue
-		}
-		if evt.Type == string(kasse.EventTypeDifferenzSollIstGebuchtV1) {
+		case string(kasse.EventTypeDifferenzSollIstGebuchtV1):
 			data := parseData[kasse.DifferenzSollIstGebuchtV1Data](t, evt)
 			differenz = &data
-			continue
-		}
-		if sturz != nil {
-			continue // nur Events vor dem Kassensturz zählen für den Soll-Bestand
-		}
-		switch evt.Type {
 		case string(kasse.EventTypeKassensitzungEroeffnetV1):
-			bestand += parseData[kasse.KassensitzungEroeffnetV1Data](t, evt).BetragCents
-		case string(kasse.EventTypeZahlungKassiertV2):
-			bestand += parseData[kasse.ZahlungKassiertV1Data](t, evt).GesamtZahlungCents
-		case string(kasse.EventTypeStornierungErteiltV1):
-			// Kassenwirksame Warenrücknahme: Bar-Rückgabe mindert den Bestand.
-			bestand -= parseData[kasse.StornierungErteiltV1Data](t, evt).GesamtStornierungCents
-		case string(kasse.EventTypeDirektverkaufGetaetigtV2):
-			bestand += parseData[kasse.DirektverkaufGetaetigtV1Data](t, evt).GesamtbetragCents
-		case string(kasse.EventTypeDirektverkaufStorniertV1):
-			bestand -= parseData[kasse.DirektverkaufStorniertV1Data](t, evt).GesamtStornierungCents
-		case string(kasse.EventTypePfandZurueckgegebenV1):
-			bestand -= parseData[kasse.PfandZurueckgegebenV1Data](t, evt).GesamtbetragCents
-		case string(kasse.EventTypePfandrueckgabeStorniertV1):
-			bestand += parseData[kasse.PfandrueckgabeStorniertV1Data](t, evt).GesamtStornierungCents
-		case string(kasse.EventTypeGeldtransitGebuchtV1):
-			data := parseData[kasse.GeldtransitGebuchtV1Data](t, evt)
-			if data.Richtung == "einlage" {
-				bestand += data.BetragCents
-			} else {
-				bestand -= data.BetragCents
-			}
+			anfangsbestand = parseData[kasse.KassensitzungEroeffnetV1Data](t, evt).BetragCents
+		}
+		if sturz == nil {
+			vorSturz = append(vorSturz, evt)
 		}
 	}
 
 	if sturz == nil {
 		t.Fatal("kein Kassensturz am Samstag gefunden")
 	}
-	if sturz.SollBestandCents != bestand {
-		t.Errorf("Kassensturz Soll = %d, unabhängig aggregiert %d", sturz.SollBestandCents, bestand)
+	summen, err := kasse.ComputeAbschlussSummen(vorSturz)
+	if err != nil {
+		t.Fatalf("ComputeAbschlussSummen: %v", err)
+	}
+	if soll := anfangsbestand + summen.UmsatzCents + summen.GeldtransitCents; sturz.SollBestandCents != soll {
+		t.Errorf("Kassensturz Soll = %d, aus ComputeAbschlussSummen %d", sturz.SollBestandCents, soll)
 	}
 	if sturz.DifferenzCents == 0 {
 		t.Error("Kassensturz Samstag ohne Differenz, erwartet Soll/Ist-Differenz")

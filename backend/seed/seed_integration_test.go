@@ -5,13 +5,17 @@ package seed
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nicograef/jotti/backend/db/dbtest"
+	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
+	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
 
 // snapshotTischSessions liefert eine deterministische Textrepräsentation der gesamten
@@ -322,9 +326,65 @@ func TestSeedRun_ErstlaufUndGuard(t *testing.T) {
 		t.Errorf("erneuter RebuildAllProjections hat Projektionen verändert:\nvorher:\n%s\nnachher:\n%s", vorRebuild, nachRebuild)
 	}
 
+	// --- Abgeschlossene Tage: Z-Bon und Kassensturz stimmen mit den Reporting-Queries überein ---
+	q := dbgen.New(db)
+	for _, znr := range []int{1, 2} {
+		var abschlussRaw, sturzRaw []byte
+		if err := db.QueryRow("SELECT data FROM kassenjournal WHERE kassensitzung_nr = $1 AND type = 'tagesabschluss-erstellt:v1'", znr).Scan(&abschlussRaw); err != nil {
+			t.Fatalf("Sitzung %d: Tagesabschluss lesen: %v", znr, err)
+		}
+		if err := db.QueryRow("SELECT data FROM kassenjournal WHERE kassensitzung_nr = $1 AND type = 'kassensturz-durchgefuehrt:v1' ORDER BY id DESC LIMIT 1", znr).Scan(&sturzRaw); err != nil {
+			t.Fatalf("Sitzung %d: Kassensturz lesen: %v", znr, err)
+		}
+		var abschluss kasse.TagesabschlussErstelltV1Data
+		if err := json.Unmarshal(abschlussRaw, &abschluss); err != nil {
+			t.Fatalf("Sitzung %d: Tagesabschluss parsen: %v", znr, err)
+		}
+		var sturz kasse.KassensturzDurchgefuehrtV1Data
+		if err := json.Unmarshal(sturzRaw, &sturz); err != nil {
+			t.Fatalf("Sitzung %d: Kassensturz parsen: %v", znr, err)
+		}
+
+		stats, err := q.GetReportingStats(ctx, znr)
+		if err != nil {
+			t.Fatalf("Sitzung %d: GetReportingStats: %v", znr, err)
+		}
+		for _, c := range []struct {
+			name      string
+			got, want int
+		}{
+			{"UmsatzGesamtCents", abschluss.UmsatzGesamtCents, stats.GesamtUmsatzCents},
+			{"StornierungCents", abschluss.StornierungCents, stats.GesamtStornierungenCents},
+			{"GeldtransitCents", abschluss.GeldtransitCents, stats.GesamtGeldtransitCents},
+		} {
+			if c.got != c.want {
+				t.Errorf("Sitzung %d: Tagesabschluss %s = %d, GetReportingStats %d", znr, c.name, c.got, c.want)
+			}
+		}
+
+		// Nach dem Kassensturz bucht der Tag kein Bargeld mehr: der Soll-Bestand ohne Differenz ist
+		// der Soll des Kassensturzes, mit gebuchter Differenz der gezählte Ist-Bestand.
+		bestand, err := q.GetKassenbestand(ctx, znr)
+		if err != nil {
+			t.Fatalf("Sitzung %d: GetKassenbestand: %v", znr, err)
+		}
+		ohneDifferenz := kasse.Kassenbestand{
+			AnfangsbestandCents: bestand.AnfangsbestandCents,
+			BareinnahmenCents:   bestand.BareinnahmenCents,
+			EinlagenCents:       bestand.EinlagenCents,
+			EntnahmenCents:      bestand.EntnahmenCents,
+		}.SollBestandOhneDifferenzCents()
+		if ohneDifferenz != sturz.SollBestandCents {
+			t.Errorf("Sitzung %d: Kassensturz Soll = %d, GetKassenbestand ohne Differenz %d", znr, sturz.SollBestandCents, ohneDifferenz)
+		}
+		if bestand.SollBestandCents != sturz.IstBestandCents {
+			t.Errorf("Sitzung %d: Kassensturz Ist = %d, GetKassenbestand Soll %d", znr, sturz.IstBestandCents, bestand.SollBestandCents)
+		}
+	}
+
 	// --- Zweiter Lauf: Guard greift, ohne etwas zu schreiben ---
-	if err := Run(ctx, db); err == nil {
-		t.Error("zweiter Run sollte am Guard scheitern, lieferte aber keinen Fehler")
+	if err := Run(ctx, db); !errors.Is(err, ErrDatenbankNichtLeer) {
+		t.Errorf("zweiter Run: got %v, want ErrDatenbankNichtLeer", err)
 	}
 
 	var eventCountNachher int
@@ -411,5 +471,54 @@ func TestResetAndSeed_LeertUndSeedetNeu(t *testing.T) {
 	}
 	if kassenidentitaetCountZweitem != 1 {
 		t.Errorf("kassenidentitaet nach zweitem ResetAndSeed: %d Zeile(n), erwartet genau 1", kassenidentitaetCountZweitem)
+	}
+}
+
+// TestRun_GuardBeiEinzelnemKassenjournalEvent: an otherwise empty database with one
+// Kassenjournal event (no users, so no seed insert collides) is refused by the guard alone.
+func TestRun_GuardBeiEinzelnemKassenjournalEvent(t *testing.T) {
+	db := dbtest.Open()
+	cleanSeedDB(t, db)
+	t.Cleanup(func() { cleanSeedDB(t, db) })
+
+	ctx := context.Background()
+
+	// Ohne users- und kassensitzungen-Zeile: die Fremdschlüssel nur für diese Transaktion aussetzen.
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("Transaktion starten: %v", err)
+	}
+	if _, err := tx.Exec("SET LOCAL session_replication_role = replica"); err != nil {
+		t.Fatalf("Fremdschlüssel aussetzen: %v", err)
+	}
+	if _, err := tx.Exec(`INSERT INTO kassenjournal (id, user_id, user_name, type, subject, version, timestamp, data, kassensitzung_nr)
+		OVERRIDING SYSTEM VALUE
+		VALUES (999999, 999, 'Fremd', 'kassensitzung-eroeffnet:v1', 'kassensitzung-999', 1, NOW(),
+		'{"datum":"2026-07-07","bezeichnung":"Fremd","betragCents":0,"eroeffnetVon":999}', 999)`); err != nil {
+		t.Fatalf("Kassenjournal-Event einfügen: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	if err := Run(ctx, db); !errors.Is(err, ErrDatenbankNichtLeer) {
+		t.Fatalf("Run: got %v, want ErrDatenbankNichtLeer", err)
+	}
+
+	for _, c := range []struct {
+		query string
+		want  int
+	}{
+		{"SELECT COUNT(*) FROM kassenjournal", 1},
+		{"SELECT COUNT(*) FROM users", 0},
+		{"SELECT COUNT(*) FROM kassensitzungen", 0},
+	} {
+		var got int
+		if err := db.QueryRow(c.query).Scan(&got); err != nil {
+			t.Fatalf("%s: %v", c.query, err)
+		}
+		if got != c.want {
+			t.Errorf("%s: got %d, want %d — Guard hat geschrieben", c.query, got, c.want)
+		}
 	}
 }

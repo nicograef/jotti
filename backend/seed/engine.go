@@ -35,27 +35,6 @@ type seedDaten struct {
 	Events          []seedEvent
 }
 
-// tagesSummen collects a business day's amounts for the Tagesabschluss.
-// StornierungenCents covers both Storno kinds; only the Warenrücknahme lowers turnover and cash, so it is also kept apart.
-// Pfand returns and their Stornos change turnover and cash but are no Storno.
-type tagesSummen struct {
-	ZahlungenCents            int
-	DirektverkaufCents        int
-	DirektverkaufStornosCents int
-	StornierungenCents        int
-	WarenruecknahmenCents     int
-	PfandrueckgabenCents      int
-	PfandStornosCents         int
-	GeldtransitCents          int
-}
-
-// UmsatzGesamtCents follows gesamt_umsatz_cents of GetReportingStats in backend/sqlc/queries/reporting.sql;
-// the cash-neutral Korrektur does not count.
-func (s tagesSummen) UmsatzGesamtCents() int {
-	return s.ZahlungenCents + s.DirektverkaufCents - s.DirektverkaufStornosCents - s.WarenruecknahmenCents -
-		s.PfandrueckgabenCents + s.PfandStornosCents
-}
-
 // buildSeedDaten deterministically turns the scenario into events and Kassensitzung rows before jetzt, via the domain constructors.
 // Timestamps rise strictly across all sessions and every subject carries gap-free versions from 1.
 func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
@@ -131,7 +110,7 @@ func buildSeedDaten(s szenario, jetzt time.Time) (seedDaten, error) {
 }
 
 // sitzungsBuilder baut die Event-Folge einer Kassensitzung auf. Er hält dafür den laufenden
-// Kassenbestand, die Tagessummen und die aufgelaufenen Events je Tisch, Direktverkauf und Pfandrückgabe,
+// Kassenbestand und die aufgelaufenen Events je Tisch, Direktverkauf und Pfandrückgabe,
 // um Folge-Aktionen (Zahlung, Storno) gegen den tatsächlichen Zustand aufzulösen.
 type sitzungsBuilder struct {
 	sitzung        kassensitzungDrehbuch
@@ -147,7 +126,6 @@ type sitzungsBuilder struct {
 	verkaufEvents   map[string][]event.Event
 	pfandEvents     map[string][]event.Event
 	bestandCents    int
-	summen          tagesSummen
 	kassensturzDone bool
 }
 
@@ -245,7 +223,6 @@ func (b *sitzungsBuilder) kassieren(a kassieren) error {
 	}
 	b.addTisch(a.Tisch, evt)
 	b.bestandCents += betrag
-	b.summen.ZahlungenCents += betrag
 	return nil
 }
 
@@ -293,7 +270,6 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 			return err
 		}
 		b.addTisch(a.Tisch, evt)
-		b.summen.StornierungenCents += aufteilung.KorrekturCents
 	}
 	for _, wr := range aufteilung.Warenruecknahmen {
 		evt, err := kasse.NewStornierungErteiltEvent(subject, uuid.NewString(), a.User, name, wr.ZahlungID, wr.Positionen, wr.GesamtCents, a.Kommentar)
@@ -302,8 +278,6 @@ func (b *sitzungsBuilder) stornieren(a stornieren) error {
 		}
 		b.addTisch(a.Tisch, evt)
 		b.bestandCents -= wr.GesamtCents
-		b.summen.StornierungenCents += wr.GesamtCents
-		b.summen.WarenruecknahmenCents += wr.GesamtCents
 	}
 	return nil
 }
@@ -360,7 +334,6 @@ func (b *sitzungsBuilder) direktverkauf(a direktverkauf) error {
 	b.addVerkauf(a.VerkaufID, evt)
 	betrag := summeCents(positionen)
 	b.bestandCents += betrag
-	b.summen.DirektverkaufCents += betrag
 	return nil
 }
 
@@ -388,7 +361,6 @@ func (b *sitzungsBuilder) direktverkaufStorno(a direktverkaufStorno) error {
 	}
 	b.addVerkauf(a.VerkaufID, evt)
 	b.bestandCents -= betrag
-	b.summen.DirektverkaufStornosCents += betrag
 	return nil
 }
 
@@ -426,7 +398,6 @@ func (b *sitzungsBuilder) pfandrueckgabe(a pfandrueckgabe) error {
 	}
 	b.addPfandrueckgabe(a.RueckgabeID, evt)
 	b.bestandCents -= data.GesamtbetragCents
-	b.summen.PfandrueckgabenCents += data.GesamtbetragCents
 	return nil
 }
 
@@ -455,7 +426,6 @@ func (b *sitzungsBuilder) pfandStorno(a pfandStorno) error {
 	}
 	b.addPfandrueckgabe(a.RueckgabeID, evt)
 	b.bestandCents += betrag
-	b.summen.PfandStornosCents += betrag
 	return nil
 }
 
@@ -472,10 +442,8 @@ func (b *sitzungsBuilder) geldtransit(a geldtransit) error {
 	b.add(evt)
 	if a.Richtung == "einlage" {
 		b.bestandCents += a.BetragCents
-		b.summen.GeldtransitCents += a.BetragCents
 	} else {
 		b.bestandCents -= a.BetragCents
-		b.summen.GeldtransitCents -= a.BetragCents
 	}
 	return nil
 }
@@ -530,10 +498,14 @@ func (b *sitzungsBuilder) schliesseTagAb(start, ende time.Time) error {
 	if err != nil {
 		return err
 	}
+	// Dieselbe Rechnung wie KasseAbschliessen im Produktivbetrieb.
+	summen, err := kasse.ComputeAbschlussSummen(b.events)
+	if err != nil {
+		return fmt.Errorf("tagesabschluss-summen: %w", err)
+	}
 	evt, err := kasse.NewTagesabschlussErstelltEvent(kasse.KassensitzungSubject(b.sitzung.ZNr),
 		b.sitzung.EroeffnetVon, name, b.sitzung.ZNr, start, ende,
-		b.summen.UmsatzGesamtCents(), b.summen.StornierungenCents,
-		b.summen.GeldtransitCents)
+		summen.UmsatzCents, summen.StornierungCents, summen.GeldtransitCents)
 	if err != nil {
 		return fmt.Errorf("tagesabschluss: %w", err)
 	}

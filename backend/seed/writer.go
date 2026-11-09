@@ -3,6 +3,7 @@ package seed
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/nicograef/jotti/backend/repository/kassenjournal_repo"
 	"github.com/nicograef/jotti/backend/sqlc/dbgen"
 )
+
+// ErrDatenbankNichtLeer means the guard refused the seed: the database already holds Kassenjournal events.
+var ErrDatenbankNichtLeer = errors.New("datenbank enthält bereits kassenjournal-events")
 
 // Run writes the demo scenario "3-Tage-Sommerfest TSV Musterstadt e.V." in one transaction and rebuilds the projection.
 // A guard refuses a database that already holds Kassenjournal events.
@@ -68,7 +72,7 @@ func writeSeed(ctx context.Context, database *sql.DB, s szenario, daten seedDate
 			return fmt.Errorf("kassenjournal prüfen: %w", err)
 		}
 		if anzahl > 0 {
-			return fmt.Errorf("datenbank enthält bereits %d kassenjournal-event(s) — seed abgebrochen ohne Schreibzugriff; zum Zurücksetzen: make clean && make up, danach make seed", anzahl)
+			return fmt.Errorf("%w: %d kassenjournal-event(s) — seed abgebrochen ohne Schreibzugriff; zum Zurücksetzen: make clean && make up, danach make seed", ErrDatenbankNichtLeer, anzahl)
 		}
 	}
 
