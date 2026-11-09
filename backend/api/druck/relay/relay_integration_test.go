@@ -145,6 +145,26 @@ func seedTestData(t *testing.T, db *sql.DB) (adminUserID, serviceUserID, produkt
 	return adminID, userID, prodID, varID, tID
 }
 
+// cleanKasseDB removes the Kasse rows a test wrote through the API (journal, projection, TSE and
+// print jobs), so integration suites sharing the database start clean.
+func cleanKasseDB(t *testing.T, db *sql.DB) {
+	t.Helper()
+	stmts := []string{
+		"DELETE FROM tse_signaturauftraege",
+		"DELETE FROM druckauftraege",
+		"DELETE FROM tisch_sessions",
+		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
+		"DELETE FROM kassenjournal",
+		"ALTER TABLE kassenjournal ENABLE TRIGGER kassenjournal_no_delete",
+		"DELETE FROM kassensitzungen",
+	}
+	for _, stmt := range stmts {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Errorf("cleanKasseDB %q: %v", stmt, err)
+		}
+	}
+}
+
 type testEnv struct {
 	server     *httptest.Server
 	adminToken string
@@ -168,6 +188,8 @@ func setupTestEnv(t *testing.T) testEnv {
 	})
 
 	adminUserID, serviceUserID, produktID, varianteID, tischID := seedTestData(t, db)
+	// Registered after the db.Close cleanup, so it runs first (LIFO).
+	t.Cleanup(func() { cleanKasseDB(t, db) })
 
 	// config.Load rejects the throwaway DB's password "admin" as a placeholder, so set a valid one
 	// for validation only; restoring it keeps later tests' dbtest.Open working.

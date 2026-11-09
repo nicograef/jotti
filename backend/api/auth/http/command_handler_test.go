@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -225,6 +226,45 @@ func TestLoginHandler_TrimsSurroundingWhitespace(t *testing.T) {
 
 			if rec.Code != http.StatusOK {
 				t.Errorf("expected status 200 for password %q, got %d", tc.password, rec.Code)
+			}
+		})
+	}
+}
+
+// Jeder Sentinel von SetNewPassword ergibt genau einen Status und Fehlercode; ein unbekannter
+// Fehler wird zum Serverfehler.
+func TestSetPasswordHandler_Fehlercodes(t *testing.T) {
+	tests := []struct {
+		err        error
+		wantStatus int
+		wantCode   string
+	}{
+		{application.ErrUserNotFound, http.StatusBadRequest, "invalid_credentials"},
+		{application.ErrInvalidPassword, http.StatusBadRequest, "invalid_credentials"},
+		{application.ErrNoOnetimePassword, http.StatusBadRequest, "already_has_password"},
+		{application.ErrPasswordTooWeak, http.StatusBadRequest, "password_too_weak"},
+		{application.ErrOnetimePasswordLocked, http.StatusBadRequest, "onetime_password_locked"},
+		{application.ErrDatabase, http.StatusInternalServerError, "internal_server_error"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.err.Error(), func(t *testing.T) {
+			handler := CommandHandler{Command: mockAuthCommand{err: tt.err}}
+
+			body := `{"username":"testuser","password":"newSecurePass123","onetimePassword":"123456"}`
+			req := httptest.NewRequest(http.MethodPost, "/set-password", strings.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			handler.SetPasswordHandler().ServeHTTP(rec, req)
+
+			var resp struct {
+				Code string `json:"code"`
+			}
+			if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if rec.Code != tt.wantStatus || resp.Code != tt.wantCode {
+				t.Errorf("expected %d %q, got %d %q", tt.wantStatus, tt.wantCode, rec.Code, resp.Code)
 			}
 		})
 	}

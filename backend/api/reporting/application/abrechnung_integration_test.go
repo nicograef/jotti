@@ -21,6 +21,7 @@ import (
 func cleanAbrechnungDB(t *testing.T, db *sql.DB) {
 	t.Helper()
 	stmts := []string{
+		"DELETE FROM tse_signaturauftraege",
 		"DELETE FROM tisch_sessions",
 		"ALTER TABLE kassenjournal DISABLE TRIGGER kassenjournal_no_delete",
 		"DELETE FROM kassenjournal",
