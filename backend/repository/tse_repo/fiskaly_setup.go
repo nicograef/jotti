@@ -95,7 +95,7 @@ type clientStateRequest struct {
 // ListTSS lists the account's TSS and returns the environment (TEST/LIVE), which fiskaly sets even for an empty account.
 func (c *FiskalyTSESetupClient) ListTSS(ctx context.Context) (tse.Umgebung, []tse.TSSInfo, error) {
 	resp := tssListResponse{}
-	if err := c.doJSONRequest(ctx, http.MethodGet, "/api/v2/tss", nil, nil, true, &resp); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodGet, "/api/v2/tss", nil, nil, mitAuth, &resp); err != nil {
 		return "", nil, mapSetupError(err)
 	}
 
@@ -118,7 +118,7 @@ func (c *FiskalyTSESetupClient) ListClients(ctx context.Context, tssID string) (
 
 	resp := clientListResponse{}
 	path := fmt.Sprintf("/api/v2/tss/%s/client", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, mitAuth, &resp); err != nil {
 		return nil, mapSetupError(err)
 	}
 
@@ -140,7 +140,7 @@ func (c *FiskalyTSESetupClient) CreateTSS(ctx context.Context) (tse.TSSErstellt,
 
 	resp := createTSSResponse{}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, struct{}{}, true, &resp); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, struct{}{}, mitAuth, &resp); err != nil {
 		return tse.TSSErstellt{}, mapSetupError(err)
 	}
 
@@ -163,7 +163,7 @@ func (c *FiskalyTSESetupClient) GetAdminPUK(ctx context.Context, tssID string) (
 	}
 	resp := tssDetailResponse{}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, mitAuth, &resp); err != nil {
 		return "", mapSetupError(err)
 	}
 	return strings.TrimSpace(resp.AdminPUK), nil
@@ -177,7 +177,7 @@ func (c *FiskalyTSESetupClient) RetrieveTSSStammdaten(ctx context.Context, tssID
 	}
 	resp := tssDetailResponse{}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, true, &resp); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodGet, path, nil, nil, mitAuth, &resp); err != nil {
 		return tse.Stammdaten{}, mapSetupError(err)
 	}
 	return tse.NewStammdaten(resp.TSSSerialNumber, resp.SignatureAlgorithm, resp.PublicKey, resp.Certificate, resp.SignatureTimestampFormat), nil
@@ -200,7 +200,7 @@ func (c *FiskalyTSESetupClient) patchTSSState(ctx context.Context, tssID string,
 		return fmt.Errorf("tss id is required")
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, tssStateRequest{State: string(state)}, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, tssStateRequest{State: string(state)}, mitAuth, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil
@@ -215,7 +215,7 @@ func (c *FiskalyTSESetupClient) SetAdminPIN(ctx context.Context, tssID, puk, pin
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s/admin", url.PathEscape(tssID))
 	body := adminPINRequest{AdminPUK: puk, NewAdminPIN: pin}
-	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, mitAuthOhneRefresh, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil
@@ -228,7 +228,7 @@ func (c *FiskalyTSESetupClient) AuthentifiziereAdmin(ctx context.Context, tssID,
 		return fmt.Errorf("tss id is required")
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s/admin/auth", url.PathEscape(tssID))
-	if err := c.doJSONRequest(ctx, http.MethodPost, path, nil, adminAuthRequest{AdminPIN: pin}, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPost, path, nil, adminAuthRequest{AdminPIN: pin}, mitAuthOhneRefresh, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil
@@ -243,7 +243,7 @@ func (c *FiskalyTSESetupClient) RegistriereClient(ctx context.Context, tssID, cl
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
 	body := registerClientRequest{SerialNumber: serialNumber}
-	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, body, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPut, path, nil, body, mitAuth, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil
@@ -259,7 +259,7 @@ func (c *FiskalyTSESetupClient) ReaktiviereClient(ctx context.Context, tssID, cl
 	}
 	path := fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(tssID), url.PathEscape(clientID))
 	body := clientStateRequest{State: string(tse.ClientRegistered)}
-	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, true, nil); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPatch, path, nil, body, mitAuth, nil); err != nil {
 		return mapSetupError(err)
 	}
 	return nil

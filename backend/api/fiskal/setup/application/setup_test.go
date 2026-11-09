@@ -164,21 +164,51 @@ func TestRichteTSEEin_VorhandeneAktiveTSS(t *testing.T) {
 	}
 }
 
-func TestRichteTSEEin_DeaktivierteTSSBlocktNicht(t *testing.T) {
-	seriennummer := uuid.New()
-	repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: seriennummer}}
-	client := &tsetest.FakeSetupClient{
-		UmgebungResponse:  tse.UmgebungTest,
-		TSSResponse:       []tse.TSSInfo{{ID: "tss-tot", State: "DISABLED"}},
-		CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
-	}
+// A dead TSS does not block a new setup, in LIVE too: fiskaly replaces a DEFECTIVE TSS via createTss.
+func TestRichteTSEEin_ToteTSSBlocktNicht(t *testing.T) {
+	for _, state := range []tse.TSSZustand{tse.TSSDisabled, tse.TSSDeleted, tse.TSSDefective, tse.TSSEvicted} {
+		t.Run(string(state), func(t *testing.T) {
+			repo := &stubCommandRepo{identitaet: tse.Kassenidentitaet{Seriennummer: uuid.New()}}
+			client := &tsetest.FakeSetupClient{
+				UmgebungResponse:  tse.UmgebungLive,
+				TSSResponse:       []tse.TSSInfo{{ID: "tss-tot", State: state}},
+				CreateTSSResponse: tse.TSSErstellt{ID: "tss-neu", PUK: "puk", State: "CREATED"},
+			}
 
-	_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungTest, false)
-	if err != nil {
-		t.Fatalf("unexpected error with only a disabled TSS present: %v", err)
+			_, err := commandMit(repo, client).RichteTSEEin(context.Background(), zugangsdaten(), tse.UmgebungLive, false)
+			if err != nil {
+				t.Fatalf("unexpected error with only a %s TSS present: %v", state, err)
+			}
+			if len(client.ErstellteTSS) != 1 {
+				t.Errorf("expected exactly one new TSS, got %+v", client.ErstellteTSS)
+			}
+		})
 	}
-	if len(client.ErstellteTSS) != 1 {
-		t.Errorf("expected a new TSS to be created, got %+v", client.ErstellteTSS)
+}
+
+func TestHatAktiveTSS(t *testing.T) {
+	tests := []struct {
+		state tse.TSSZustand
+		want  bool
+	}{
+		{tse.TSSCreated, true},
+		{tse.TSSUninitialized, true},
+		{tse.TSSInitialized, true},
+		{tse.TSSDisabled, false},
+		{tse.TSSDeleted, false},
+		{tse.TSSDefective, false},
+		{tse.TSSEvicted, false},
+		{"UNBEKANNT", true},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.state), func(t *testing.T) {
+			if got := hatAktiveTSS([]tse.TSSInfo{{ID: "tss", State: tt.state}}); got != tt.want {
+				t.Errorf("hatAktiveTSS(%s) = %v, want %v", tt.state, got, tt.want)
+			}
+		})
+	}
+	if hatAktiveTSS(nil) {
+		t.Error("expected an empty account to have no active TSS")
 	}
 }
 
@@ -194,6 +224,8 @@ func TestRichteTSEEin_FehlerNachAnlageLiefertGeheimnisse(t *testing.T) {
 		{name: "client registration", client: tsetest.FakeSetupClient{RegistriereErr: errors.New("client registration failed")}, ursache: ErrTSEEinrichtung},
 		{name: "stammdaten fetch", client: tsetest.FakeSetupClient{StammdatenErr: errors.New("fiskaly stammdaten read failed")}, ursache: ErrTSEEinrichtung},
 		{name: "save", saveErr: errors.New("db down"), ursache: ErrDatabase},
+		// A Kassensitzung opened during the lifecycle: the save's own check rejects the device change.
+		{name: "kassensitzung opened meanwhile", saveErr: tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung, ursache: ErrTSEKonfigurationKassensitzungOffen},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -893,6 +925,21 @@ func TestUpdateTSEKonfiguration_PersistiertStammdatenDerNeuenTSS(t *testing.T) {
 	checkStammdaten(t, repo.gespeicherteStammdaten, stammdatenAntwort())
 	if repo.gespeichert == nil || repo.gespeichert.TssID != "tss-von-hand" {
 		t.Errorf("expected the configuration to be saved, got %+v", repo.gespeichert)
+	}
+}
+
+// The save's own check catches a Kassensitzung opened after the check on entry.
+func TestUpdateTSEKonfiguration_KassensitzungBeimSpeichernAktiv(t *testing.T) {
+	repo := &stubCommandRepo{saveErr: tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung}
+	client := &tsetest.FakeSetupClient{StammdatenResponse: stammdatenAntwort()}
+	konfiguration, err := tse.NewKonfiguration("api-key", "api-secret", "tss-von-hand", "client-von-hand")
+	if err != nil {
+		t.Fatalf("unexpected error building konfiguration: %v", err)
+	}
+
+	err = commandMit(repo, client).UpdateTSEKonfiguration(context.Background(), konfiguration)
+	if !errors.Is(err, ErrTSEKonfigurationKassensitzungOffen) {
+		t.Errorf("expected ErrTSEKonfigurationKassensitzungOffen, got %v", err)
 	}
 }
 

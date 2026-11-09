@@ -145,7 +145,7 @@ func (c *FiskalyTSEClient) StartTransaction(ctx context.Context, txID string) (t
 			State:    "ACTIVE",
 			ClientID: c.clientID,
 		},
-		true,
+		mitAuth,
 		&resp,
 	)
 	if err != nil {
@@ -178,7 +178,7 @@ func (c *FiskalyTSEClient) FinishTransaction(ctx context.Context, txID string, p
 				},
 			},
 		},
-		true,
+		mitAuth,
 		&resp,
 	)
 	if err != nil {
@@ -202,7 +202,7 @@ func (c *FiskalyTSEClient) RetrieveTransaction(ctx context.Context, txID string)
 		pfad,
 		nil,
 		nil,
-		true,
+		mitAuth,
 		&resp,
 	)
 	if err != nil {
@@ -249,7 +249,7 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 		fmt.Sprintf("/api/v2/tss/%s", url.PathEscape(c.tssID)),
 		nil,
 		nil,
-		true,
+		mitAuth,
 		&tssResp,
 	)
 	if err != nil {
@@ -263,7 +263,7 @@ func (c *FiskalyTSEClient) TestConnection(ctx context.Context) (tse.VerbindungSt
 		fmt.Sprintf("/api/v2/tss/%s/client/%s", url.PathEscape(c.tssID), url.PathEscape(c.clientID)),
 		nil,
 		nil,
-		true,
+		mitAuth,
 		&clientResp,
 	)
 	if err != nil {

@@ -33,6 +33,8 @@ func (r Repository) GetTSEKonfiguration(ctx context.Context) (tse.Konfiguration,
 // SaveEinrichtung stores the TSE configuration for every write path (setup, takeover, credentials change, clearing).
 // Only the transition from unconfigured to configured also marks the open orders from the unconfigured period
 // tse_nicht_konfiguriert and closes the keine_konfiguration Störungszeitraum, in the same transaction (docs/handbuch.md §3.13).
+// A change of TSS or client fails with tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung while a Kassensitzung is active;
+// the callers check that before their long fiskaly lifecycle, the transaction checks it again at the save.
 func (r Repository) SaveEinrichtung(ctx context.Context, c tse.Konfiguration) error {
 	return db.WithTx(ctx, r.db, func(qtx *dbgen.Queries) error {
 		return saveEinrichtung(ctx, qtx, c)
@@ -51,11 +53,23 @@ func (r Repository) SaveEinrichtungMitStammdaten(ctx context.Context, c tse.Konf
 }
 
 func saveEinrichtung(ctx context.Context, qtx *dbgen.Queries, c tse.Konfiguration) error {
-	warKonfiguriert := false
-	if vorher, err := qtx.GetTSEKonfiguration(ctx); err == nil {
-		warKonfiguriert = toTSEKonfiguration(vorher).IstKonfiguriert()
+	vorher := tse.Konfiguration{}
+	if row, err := qtx.GetTSEKonfiguration(ctx); err == nil {
+		vorher = toTSEKonfiguration(row)
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return db.Error(err)
+	}
+	warKonfiguriert := vorher.IstKonfiguriert()
+
+	// A new API secret on the same TSS and client keeps the signing device and stays allowed.
+	if !vorher.GleichesSignaturgeraet(c) {
+		aktive, err := qtx.GetAktiveKassensitzungNrForShare(ctx)
+		if err != nil {
+			return db.Error(err)
+		}
+		if len(aktive) > 0 {
+			return tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung
+		}
 	}
 
 	if err := qtx.UpsertTSEKonfiguration(ctx, upsertTSEKonfigurationParams(c)); err != nil {

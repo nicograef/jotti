@@ -12,3 +12,9 @@ ON CONFLICT (id) DO UPDATE SET
     tss_id = EXCLUDED.tss_id,
     client_id = EXCLUDED.client_id,
     updated_at = EXCLUDED.updated_at;
+
+-- name: GetAktiveKassensitzungNrForShare :many
+-- In-Transaktions-Guard beim Speichern der TSE-Konfiguration: sperrt eine aktive
+-- Kassensitzung ('offen' oder 'wird_abgeschlossen') mit FOR SHARE, damit das
+-- Signaturgerät nicht mitten im Kassentag wechselt.
+SELECT z_nr FROM kassensitzungen WHERE status <> 'abgeschlossen' FOR SHARE;

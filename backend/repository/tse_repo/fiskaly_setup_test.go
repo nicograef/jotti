@@ -396,6 +396,69 @@ func TestFiskalySetupClient_AdminPINBlocked(t *testing.T) {
 	}
 }
 
+// TestFiskalySetupClient_FalschesAdminGeheimnisOhneWiederholung guards that a 401 on a wrong admin PIN or PUK is sent once:
+// a token refresh and resend would spend a second of the five attempts before fiskaly blocks the PIN.
+func TestFiskalySetupClient_FalschesAdminGeheimnisOhneWiederholung(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		aufruf func(*FiskalyTSESetupClient) error
+	}{
+		{"AuthentifiziereAdmin", http.MethodPost, "/api/v2/tss/tss-1/admin/auth", func(c *FiskalyTSESetupClient) error {
+			return c.AuthentifiziereAdmin(context.Background(), "tss-1", "0000000000")
+		}},
+		{"SetAdminPIN", http.MethodPatch, "/api/v2/tss/tss-1/admin", func(c *FiskalyTSESetupClient) error {
+			return c.SetAdminPIN(context.Background(), "tss-1", "falscher-puk", "0000000000")
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var mu sync.Mutex
+			adminAnfragen, authAnfragen := 0, 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/api/v2/auth":
+					authAnfragen++
+					_ = json.NewEncoder(w).Encode(map[string]any{
+						"access_token":            "token-1",
+						"access_token_expires_at": time.Now().Add(1 * time.Hour).Unix(),
+						"access_token_claims":     map[string]any{"env": "TEST"},
+					})
+				case r.Method == tt.method && r.URL.Path == tt.path:
+					adminAnfragen++
+					w.WriteHeader(http.StatusUnauthorized)
+					_ = json.NewEncoder(w).Encode(map[string]any{"code": "E_UNAUTHORIZED", "message": "wrong admin secret"})
+				default:
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+
+			client, err := NewFiskalyTSESetupClient(server.URL, tse.SetupCredentials{ApiKey: "api-key", ApiSecret: "api-secret"}, nil)
+			if err != nil {
+				t.Fatalf("failed to create setup client: %v", err)
+			}
+
+			err = tt.aufruf(client)
+			if !errors.Is(err, tse.ErrSetupAuthFehlgeschlagen) {
+				t.Errorf("expected ErrSetupAuthFehlgeschlagen, got %v", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if adminAnfragen != 1 {
+				t.Errorf("expected exactly 1 request to %s, got %d", tt.path, adminAnfragen)
+			}
+			if authAnfragen != 1 {
+				t.Errorf("expected exactly 1 token request, got %d", authAnfragen)
+			}
+		})
+	}
+}
+
 // TestMapSetupError pins the fiskaly error mapping: the TSS limit codes arrive with 403 and must not end as auth failures.
 func TestMapSetupError(t *testing.T) {
 	andererFehler := errors.New("boom")

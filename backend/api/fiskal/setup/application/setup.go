@@ -278,6 +278,11 @@ func (c Command) saveEinrichtung(ctx context.Context, log *slog.Logger, client t
 	// On the transition to configured, the same transaction finalises pre-configuration orders
 	// and closes the keine_konfiguration outage (docs/handbuch.md §3.13).
 	if err := c.TSERepo.SaveEinrichtungMitStammdaten(ctx, konfiguration, stammdaten); err != nil {
+		// A Kassensitzung opened during the lifecycle: the TSS exists at fiskaly, a takeover after the closing saves it.
+		if errors.Is(err, tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung) {
+			log.Warn("Kassensitzung opened during TSE setup; TSS exists at fiskaly, recoverable via takeover", "tss_id", tssID, "client_id", clientID)
+			return ErrTSEKonfigurationKassensitzungOffen
+		}
 		log.Error("Failed to save tse_konfiguration with TSE Stammdaten after setup; TSS exists at fiskaly, recoverable via takeover", "error", err, "tss_id", tssID, "client_id", clientID)
 		return ErrDatabase
 	}
@@ -458,10 +463,16 @@ func einrichtungsFehler(log *slog.Logger, err error, schritt, tssID string) erro
 	return ErrTSEEinrichtung
 }
 
-// Only DISABLED TSS count as dead and do not block a new setup.
+// Only a TSS still in its lifecycle (CREATED, UNINITIALIZED, INITIALIZED) blocks a new setup.
+// DISABLED, DELETED, DEFECTIVE and EVICTED are dead: fiskaly replaces a DEFECTIVE TSS via createTss.
+// A state jotti does not know blocks, because a second LIVE TSS incurs ongoing cost.
 func hatAktiveTSS(tssListe []tse.TSSInfo) bool {
 	for _, t := range tssListe {
-		if t.State != tse.TSSDisabled {
+		switch t.State {
+		case tse.TSSDisabled, tse.TSSDeleted, tse.TSSDefective, tse.TSSEvicted:
+		case tse.TSSCreated, tse.TSSUninitialized, tse.TSSInitialized:
+			return true
+		default:
 			return true
 		}
 	}

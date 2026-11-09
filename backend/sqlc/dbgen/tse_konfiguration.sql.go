@@ -10,6 +10,36 @@ import (
 	"time"
 )
 
+const getAktiveKassensitzungNrForShare = `-- name: GetAktiveKassensitzungNrForShare :many
+SELECT z_nr FROM kassensitzungen WHERE status <> 'abgeschlossen' FOR SHARE
+`
+
+// In-Transaktions-Guard beim Speichern der TSE-Konfiguration: sperrt eine aktive
+// Kassensitzung ('offen' oder 'wird_abgeschlossen') mit FOR SHARE, damit das
+// Signaturgerät nicht mitten im Kassentag wechselt.
+func (q *Queries) GetAktiveKassensitzungNrForShare(ctx context.Context) ([]int, error) {
+	rows, err := q.db.QueryContext(ctx, getAktiveKassensitzungNrForShare)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int{}
+	for rows.Next() {
+		var z_nr int
+		if err := rows.Scan(&z_nr); err != nil {
+			return nil, err
+		}
+		items = append(items, z_nr)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTSEKonfiguration = `-- name: GetTSEKonfiguration :one
 SELECT api_key, api_secret, tss_id, client_id, updated_at
 FROM tse_konfiguration

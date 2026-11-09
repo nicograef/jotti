@@ -62,6 +62,9 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 	// to configured; otherwise the keine_konfiguration outage would stay open forever.
 	if !conf.IstKonfiguriert() {
 		if err := c.TSERepo.SaveEinrichtung(ctx, conf); err != nil {
+			if errors.Is(err, tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung) {
+				return ErrTSEKonfigurationKassensitzungOffen
+			}
 			log.Error("Failed to save tse_konfiguration", "error", err)
 			return ErrDatabase
 		}
@@ -76,6 +79,9 @@ func (c Command) UpdateTSEKonfiguration(ctx context.Context, conf tse.Konfigurat
 		return err
 	}
 	if err := c.TSERepo.SaveEinrichtungMitStammdaten(ctx, conf, stammdaten); err != nil {
+		if errors.Is(err, tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung) {
+			return ErrTSEKonfigurationKassensitzungOffen
+		}
 		log.Error("Failed to save tse_konfiguration with TSE Stammdaten", "error", err, "tss_id", conf.TssID)
 		return ErrDatabase
 	}

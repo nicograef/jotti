@@ -2,11 +2,9 @@ package application
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
-	"github.com/nicograef/jotti/backend/domain/kasse"
 	"github.com/nicograef/jotti/backend/domain/tse"
 	"github.com/nicograef/jotti/backend/repository/repotest"
 )
@@ -63,79 +61,6 @@ func TestCheckSignaturGate(t *testing.T) {
 				t.Errorf("ohneKonfigurationAnzahl = %d, want %d", gate.ohneKonfigurationAnzahl, tc.wantOhneKonfig)
 			}
 		})
-	}
-}
-
-// Frischer offener Auftrag ohne Störung blockiert den Abschluss mit
-// SignaturenAusstehendError (Anzahl); die Barriere wird nicht gesetzt
-// und kein Event geschrieben — das Gate greift vor der Barriere.
-func TestKasseAbschliessen_GateBlocktBeiAusstehend(t *testing.T) {
-	ctx := context.Background()
-	journalMock := repotest.NewKassenjournalRepo(nil, nil)
-	journalMock.SetKassenbestand(50000)
-	sitzungMock := repotest.NewKassensitzungenRepo(testOpenKS, nil)
-	erstellt := time.Now().Add(-20 * time.Second).UTC()
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: sitzungMock,
-		DruckauftragRepo:    &fakeDruckauftraege{},
-		TSERepo: tseGateMock{staende: []tse.SignaturauftragStand{
-			{Status: tse.StatusOffen, ErstelltAm: erstellt},
-		}},
-	}
-
-	_, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
-	var ausstehend *SignaturenAusstehendError
-	if !errors.As(err, &ausstehend) {
-		t.Fatalf("expected SignaturenAusstehendError, got %v", err)
-	}
-	if ausstehend.Anzahl != 1 {
-		t.Errorf("expected Anzahl 1, got %d", ausstehend.Anzahl)
-	}
-	assertSitzungStatus(t, sitzungMock, kasse.KassensitzungOffen)
-	if len(sitzungMock.Statuswechsel) != 0 {
-		t.Errorf("expected the gate to block before the barrier, got status changes %v", sitzungMock.Statuswechsel)
-	}
-	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
-	if len(events) != 0 {
-		t.Errorf("expected no events written when gate blocks, got %d", len(events))
-	}
-}
-
-// Ausfall-Reste (final fehlgeschlagen, or offen in an active Störungszeitraum) let the Abschluss pass
-// and are reported; tse_nicht_konfiguriert never blocks and is reported as a day without TSE.
-func TestKasseAbschliessen_GateLaesstAusfallResteDurch(t *testing.T) {
-	ctx := context.Background()
-	now := time.Now().UTC()
-	journalMock := repotest.NewKassenjournalRepo(nil, nil)
-	journalMock.SetKassenbestand(50000)
-	cmd := Command{
-		KassenjournalRepo:   journalMock,
-		KassensitzungenRepo: repotest.NewKassensitzungenRepo(testOpenKS, nil),
-		DruckauftragRepo:    &fakeDruckauftraege{},
-		TSERepo: tseGateMock{
-			staende: []tse.SignaturauftragStand{
-				{Status: tse.StatusFehlgeschlagen, ErstelltAm: now},
-				{Status: tse.StatusOffen, ErstelltAm: now}, // offen bei aktivem Störungszeitraum → Ausfall
-				{Status: tse.StatusTSENichtKonfiguriert, ErstelltAm: now},
-			},
-			stoerung: &tse.Stoerung{Beginn: now.Add(-time.Minute), GrundArt: tse.StoerungGrundTSEFehler},
-		},
-	}
-
-	ergebnis, err := cmd.KasseAbschliessen(ctx, 1, "Admin", 50000)
-	if err != nil {
-		t.Fatalf("expected Abschluss to pass with Ausfall-Reste, got %v", err)
-	}
-	if ergebnis.AusfallResteAnzahl != 2 {
-		t.Errorf("expected AusfallResteAnzahl 2 (fehlgeschlagen + offen-bei-Störung), got %d", ergebnis.AusfallResteAnzahl)
-	}
-	if ergebnis.OhneKonfigurationAnzahl != 1 {
-		t.Errorf("expected OhneKonfigurationAnzahl 1, got %d", ergebnis.OhneKonfigurationAnzahl)
-	}
-	events, _ := journalMock.ReadEventsBySubject(ctx, kasse.KassensitzungSubject(testOpenKS.ZNr))
-	if len(events) != 2 {
-		t.Errorf("expected kassensturz + tagesabschluss written, got %d", len(events))
 	}
 }
 

@@ -1,10 +1,15 @@
 package tse
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 )
+
+// ErrSignaturgeraetWechselBeiAktiverKassensitzung rejects a save that would change TSS or client
+// while a Kassensitzung is offen or wird_abgeschlossen, so the signing device never changes mid-Kassentag.
+var ErrSignaturgeraetWechselBeiAktiverKassensitzung = errors.New("tse signing device change during an active kassensitzung")
 
 type Konfiguration struct {
 	ApiKey    string
@@ -21,6 +26,12 @@ func (t Konfiguration) Credentials() Credentials {
 		TssID:     t.TssID,
 		ClientID:  t.ClientID,
 	}
+}
+
+// GleichesSignaturgeraet reports whether both configurations sign with the same TSS and client;
+// a change of API key or secret alone keeps the device.
+func (t Konfiguration) GleichesSignaturgeraet(andere Konfiguration) bool {
+	return t.TssID == andere.TssID && t.ClientID == andere.ClientID
 }
 
 func (t Konfiguration) Validate() error {

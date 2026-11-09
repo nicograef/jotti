@@ -62,6 +62,17 @@ type errorResponse struct {
 
 type sleepFn func(ctx context.Context, duration time.Duration) error
 
+// authModus says whether a request carries the bearer token and whether a 401 may refresh it and resend once.
+type authModus int
+
+const (
+	ohneAuth authModus = iota
+	mitAuth
+	// mitAuthOhneRefresh is for requests whose 401 judges a secret in the body (admin PIN, admin PUK), not the token.
+	// A resend would spend a second of the five attempts before fiskaly blocks the PIN; tokenExpiryLeeway already refreshes an expiring token.
+	mitAuthOhneRefresh
+)
+
 // fiskalyClient holds the HTTP machinery shared by the signing and setup clients: base URL, key/secret auth with token cache, retries.
 // It needs no TSS or client ID.
 type fiskalyClient struct {
@@ -106,7 +117,7 @@ func (c *fiskalyClient) doJSONRequest(
 	path string,
 	query url.Values,
 	requestBody any,
-	withAuth bool,
+	auth authModus,
 	responseBody any,
 ) error {
 	var payload []byte
@@ -125,7 +136,7 @@ func (c *fiskalyClient) doJSONRequest(
 
 	triedTokenRefresh := false
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
-		antwort, err := c.sendOnce(ctx, method, requestURL, payload, withAuth)
+		antwort, err := c.sendOnce(ctx, method, requestURL, payload, auth != ohneAuth)
 		var netz netzFehler
 		if errors.As(err, &netz) {
 			if ctx.Err() != nil {
@@ -143,7 +154,7 @@ func (c *fiskalyClient) doJSONRequest(
 			return err
 		}
 
-		if withAuth && antwort.status == http.StatusUnauthorized && !triedTokenRefresh {
+		if auth == mitAuth && antwort.status == http.StatusUnauthorized && !triedTokenRefresh {
 			triedTokenRefresh = true
 			c.invalidateToken()
 			// A token refresh is no network retry and uses no attempt, which matters for single-attempt clients (maxRetries = 0).
@@ -235,7 +246,7 @@ func (c *fiskalyClient) getAccessToken(ctx context.Context) (string, tse.Umgebun
 		"api_secret": c.apiSecret,
 	}
 	response := authResponse{}
-	if err := c.doJSONRequest(ctx, http.MethodPost, "/api/v2/auth", nil, request, false, &response); err != nil {
+	if err := c.doJSONRequest(ctx, http.MethodPost, "/api/v2/auth", nil, request, ohneAuth, &response); err != nil {
 		return "", "", err
 	}
 

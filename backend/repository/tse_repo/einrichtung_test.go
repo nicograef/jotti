@@ -5,6 +5,7 @@ package tse_repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -54,7 +55,8 @@ func setupEinrichtung(t *testing.T) (Repository, *einrichtungsUmgebung, func(t *
 		t.Fatalf("insert user: %v", err)
 	}
 	if err := database.QueryRow(
-		"INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, 'Test-Sitzung', 'offen', NOW(), NOW()) RETURNING z_nr",
+		// Closed, because a save that changes TSS or client is refused during an active Kassensitzung.
+		"INSERT INTO kassensitzungen (datum, bezeichnung, status, created_at, updated_at) VALUES ((NOW() AT TIME ZONE 'Europe/Berlin')::date, 'Test-Sitzung', 'abgeschlossen', NOW(), NOW()) RETURNING z_nr",
 	).Scan(&umgebung.ksNr); err != nil {
 		t.Fatalf("insert kassensitzung: %v", err)
 	}
@@ -85,6 +87,13 @@ func (u *einrichtungsUmgebung) insertOffenerAuftrag(t *testing.T, txID string) i
 		t.Fatalf("insert auftrag: %v", err)
 	}
 	return auftragID
+}
+
+func (u *einrichtungsUmgebung) setzeKassensitzungStatus(t *testing.T, status string) {
+	t.Helper()
+	if _, err := u.db.Exec("UPDATE kassensitzungen SET status = $1 WHERE z_nr = $2", status, u.ksNr); err != nil {
+		t.Fatalf("set kassensitzung status: %v", err)
+	}
 }
 
 func (u *einrichtungsUmgebung) status(t *testing.T, auftragID int) string {
@@ -247,5 +256,61 @@ func TestSaveEinrichtungMitStammdaten_BehaeltJedeTSS(t *testing.T) {
 		if got.PublicKey != want.PublicKey || got.Zertifikat != want.Zertifikat {
 			t.Errorf("stammdaten of %s = %+v, want key %q and certificate %q", want.Seriennummer, got, want.PublicKey, want.Zertifikat)
 		}
+	}
+}
+
+// The save checks the active Kassensitzung itself, so one opened during the long setup lifecycle
+// cannot get a new signing device mid-Kassentag. A new API secret on the same TSS and client stays allowed.
+func TestSaveEinrichtung_AktiveKassensitzung(t *testing.T) {
+	neuesGeheimnis, err := tse.NewKonfiguration("api-key", "api-secret-neu", "tss-alt", "client-1")
+	if err != nil {
+		t.Fatalf("build konfiguration: %v", err)
+	}
+	andererClient, err := tse.NewKonfiguration("api-key", "api-secret", "tss-alt", "client-2")
+	if err != nil {
+		t.Fatalf("build konfiguration: %v", err)
+	}
+	leer, err := tse.NewKonfiguration("", "", "", "")
+	if err != nil {
+		t.Fatalf("build leere konfiguration: %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		status        string
+		neu           tse.Konfiguration
+		wantErr       error
+		wantTssID     string
+		wantApiSecret string
+	}{
+		{"neue TSS bei offener Sitzung", "offen", gueltigeKonfiguration(t, "tss-neu"), tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung, "tss-alt", "api-secret"},
+		{"neue TSS waehrend Abschluss", "wird_abgeschlossen", gueltigeKonfiguration(t, "tss-neu"), tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung, "tss-alt", "api-secret"},
+		{"neuer Client bei offener Sitzung", "offen", andererClient, tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung, "tss-alt", "api-secret"},
+		{"Leeren bei offener Sitzung", "offen", leer, tse.ErrSignaturgeraetWechselBeiAktiverKassensitzung, "tss-alt", "api-secret"},
+		{"neues Geheimnis bei offener Sitzung", "offen", neuesGeheimnis, nil, "tss-alt", "api-secret-neu"},
+		{"neue TSS ohne aktive Sitzung", "abgeschlossen", gueltigeKonfiguration(t, "tss-neu"), nil, "tss-neu", "api-secret"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo, umgebung, teardown := setupEinrichtung(t)
+			defer teardown(t)
+			ctx := context.Background()
+
+			if err := repo.SaveEinrichtung(ctx, gueltigeKonfiguration(t, "tss-alt")); err != nil {
+				t.Fatalf("initial konfiguration: %v", err)
+			}
+			umgebung.setzeKassensitzungStatus(t, tt.status)
+
+			if err := repo.SaveEinrichtung(ctx, tt.neu); !errors.Is(err, tt.wantErr) {
+				t.Errorf("SaveEinrichtung error = %v, want %v", err, tt.wantErr)
+			}
+			conf, err := repo.GetTSEKonfiguration(ctx)
+			if err != nil {
+				t.Fatalf("read konfiguration: %v", err)
+			}
+			if conf.TssID != tt.wantTssID || conf.ApiSecret != tt.wantApiSecret {
+				t.Errorf("stored tss %q secret %q, want tss %q secret %q", conf.TssID, conf.ApiSecret, tt.wantTssID, tt.wantApiSecret)
+			}
+		})
 	}
 }
