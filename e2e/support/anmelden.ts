@@ -3,8 +3,8 @@ import { expect } from '@playwright/test'
 
 import type { Zugangsdaten } from './seed'
 
-// Wartet auf die rollenabhängige Weiterleitung: Admin → /admin,
-// Servicekraft → /service.
+// Prüft die rollenabhängige Weiterleitung (AuthRedirect): Admin → /admin,
+// Servicekraft und Serviceleitung → /service.
 export async function anmelden(
   page: Page,
   zugangsdaten: Zugangsdaten,
@@ -16,5 +16,5 @@ export async function anmelden(
 
   await page.getByRole('button', { name: 'Anmelden' }).click()
 
-  await expect(page).not.toHaveURL(/\/login$/)
+  await expect(page).toHaveURL(zugangsdaten.startseite)
 }

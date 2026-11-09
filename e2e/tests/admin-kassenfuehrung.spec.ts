@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
+import { leseSollBestandCents } from '../support/kasse'
 import { resetAndSeed } from '../support/seed'
 
 // Deckt die Kassenführung aus Admin-Sicht ab: die laufende Kassensitzung wird
@@ -16,7 +17,7 @@ test.describe('Admin führt die Kasse', () => {
     const zugangsdaten = await resetAndSeed(request)
     await anmelden(page, zugangsdaten.admin)
 
-    await page.goto('/admin/kasse')
+    const sollVorher = await leseSollBestandCents(page)
     // Die offene Sonntags-Sitzung (ZNr 3) ist als Kassentag-Stepper sichtbar.
     await expect(
       page.getByRole('heading', { name: /Kassentag Nr\. 3/ }),
@@ -34,6 +35,9 @@ test.describe('Admin führt die Kasse', () => {
       .getByRole('button', { name: 'Geld einlegen' })
       .click()
     await expect(page.getByText('Kassenbewegung gebucht.')).toBeVisible()
+
+    // Die Einlage erhöht den Soll-Bestand um genau 25,00 €.
+    expect((await leseSollBestandCents(page)) - sollVorher).toBe(2500)
 
     // Kasse abschließen anstoßen: Soll-Bestand zählen und Dialog öffnen.
     await page.getByLabel('Gezählter Ist-Bestand').fill('500,00')

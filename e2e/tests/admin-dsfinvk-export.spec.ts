@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 
 import { expect, test } from '@playwright/test'
 
@@ -6,8 +6,9 @@ import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
 
 // Deckt den Export-Klickpfad ab: eine abgeschlossene Kassensitzung auswählen
-// und das DSFinV-K-Archiv über die Oberfläche herunterladen. Die inhaltliche
-// Prüfung des Archivs übernimmt der DSFinV-K-Validator, nicht diese Spec.
+// und das DSFinV-K-Archiv über die Oberfläche herunterladen. Geprüft wird nur,
+// dass ein ZIP mit index.xml ankommt; die inhaltliche Prüfung des Archivs
+// übernimmt der DSFinV-K-Validator, nicht diese Spec.
 
 test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
   test('DSFinV-K-Export einer abgeschlossenen Kassensitzung herunterladen', async ({
@@ -42,8 +43,17 @@ test.describe('Admin lädt den DSFinV-K-Export herunter', () => {
       downloadPath,
       'Download muss eine lokale Datei erzeugen',
     ).toBeTruthy()
-    const stats = await stat(downloadPath ?? '')
-    expect(stats.size, 'ZIP-Datei darf nicht leer sein').toBeGreaterThan(0)
+    const archiv = await readFile(downloadPath ?? '')
+    expect(
+      archiv.subarray(0, 4).toString('hex'),
+      'Download muss ein ZIP-Archiv sein (Signatur PK, 0x03, 0x04)',
+    ).toBe('504b0304')
+    // Dateinamen stehen unkomprimiert in den ZIP-Headern; die Beschreibung
+    // index.xml gehört in jedes DSFinV-K-Archiv.
+    expect(
+      archiv.includes('index.xml'),
+      'Archiv muss index.xml enthalten',
+    ).toBe(true)
     expect(download.suggestedFilename()).toMatch(/\.zip$/)
   })
 })

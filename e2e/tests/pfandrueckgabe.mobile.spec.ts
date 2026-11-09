@@ -1,30 +1,18 @@
-import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
+import { leseSollBestandCents } from '../support/kasse'
 import { resetAndSeed } from '../support/seed'
 import { abmelden, waehleVariante, zeileMit } from '../support/servicekraft'
 
-// Pfand am Handy-Viewport: eine Servicekraft verkauft im Direktverkauf Bier
-// 0,5l (4,50 €) mit Pfand Glas (2,00 €) und nimmt das Glas danach über
+// Pfand am Handy-Viewport: eine Servicekraft verkauft im Direktverkauf nur
+// einen Aperol Spritz (5,50 €); dessen verknüpftes Pfand Glas (2,00 €) legt
+// der Warenkorb selbst dazu (Auto-Pfand). Danach nimmt sie das Glas über
 // „Pfand zurück" an. Der Admin liest den Soll-Bestand davor und danach; die
-// Differenz ist Verkauf minus ausgezahltes Pfand.
+// Differenz ist Verkauf samt Pfand minus ausgezahltes Pfand.
 
-const VERKAUF_CENTS = 650
+const VERKAUF_CENTS = 750
 const PFAND_CENTS = 200
-
-// Betrag und Label „Soll-Bestand" teilen einen Container, der Betrag steht
-// vorn; bis der Kassenbestand geladen ist, zeigt die Seite „—".
-async function leseSollBestandCents(page: Page): Promise<number> {
-  await page.goto('/admin/kasse')
-  const soll = page.getByText(/^Soll-Bestand/).locator('..')
-  await expect(soll).toHaveText(/^\d+,\d{2}\s*€/)
-  const text = (await soll.textContent()) ?? ''
-  const treffer = /^(\d+),(\d{2})/.exec(text)
-  expect(treffer, `Soll-Bestand nicht lesbar (Text: „${text}")`).not.toBeNull()
-  const [, euro = '', cent = ''] = treffer ?? []
-  return Number(euro) * 100 + Number(cent)
-}
 
 test.describe('Servicekraft verkauft mit Pfand und nimmt das Glas zurück', () => {
   test('der Soll-Bestand steigt um den Verkauf minus das ausgezahlte Pfand', async ({
@@ -41,9 +29,10 @@ test.describe('Servicekraft verkauft mit Pfand und nimmt das Glas zurück', () =
     await page.goto('/service/direktverkauf')
     await expect(page.getByRole('tab', { name: 'Verkaufen' })).toBeVisible()
 
-    await waehleVariante(page, 'Bier', '0,5l')
-    await waehleVariante(page, 'Pfand', 'Glas')
-    await page.getByRole('button', { name: /Kassieren.*6,50/ }).click()
+    // Nur das Getränk wählen: 7,50 € statt 5,50 € beweist, dass das Pfand
+    // automatisch mitkommt.
+    await waehleVariante(page, 'Hugo/Aperol', 'Aperol Spritz')
+    await page.getByRole('button', { name: /Kassieren.*7,50/ }).click()
     const kassierenDrawer = page.getByRole('dialog')
     await kassierenDrawer
       .getByRole('button', { name: 'Verkauf abschließen' })

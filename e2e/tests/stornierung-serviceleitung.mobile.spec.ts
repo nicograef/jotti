@@ -7,6 +7,7 @@ import {
   kassierePosition,
   oeffneHistorienDetail,
   oeffneTisch,
+  tischSaldo,
   zeileMit,
 } from '../support/servicekraft'
 
@@ -38,8 +39,10 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
 
     await kassierePosition(page, 'Brezel Normal')
 
-    // Saldo zeigt nur noch die unbezahlten Pommes.
-    await expect(page.getByText('2,50 €').first()).toBeVisible()
+    // Saldo zeigt nur noch die unbezahlten Pommes. Geprüft wird der Header-Saldo:
+    // „2,50 €" und „0,00 €" stünden sonst auch als Preis bzw. Tisch-Saldo
+    // anderswo auf der Seite.
+    await expect(tischSaldo(page)).toHaveText('2,50 €')
 
     // --- Geldneutrale Korrektur: Storno der unbezahlten Pommes-Bestellung ---
     await page.getByRole('tab', { name: 'Historie' }).click()
@@ -63,7 +66,7 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
 
     // Die geldneutrale Korrektur gleicht den Saldo aus — der Tisch ist wieder
     // bei 0,00 €.
-    await expect(page.getByText('0,00 €').first()).toBeVisible()
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
 
     // --- Kassenwirksame Warenrücknahme: Storno der bezahlten Brezel-Bestellung ---
     // Die Bestellung, aus der die kassierte Position stammt, bleibt weiterhin
@@ -85,7 +88,7 @@ test.describe('Serviceleitung storniert geldneutral und mit Warenrücknahme', ()
     // Die Warenrücknahme lässt den Tisch-Saldo unverändert (die Position war
     // bereits bezahlt) und erscheint als eigener „Warenrücknahme"-Eintrag mit
     // dem erstatteten Betrag in der Historie.
-    await expect(page.getByText('0,00 €').first()).toBeVisible()
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
     const stornoEintrag = page.getByRole('button', { name: /Warenrücknahme/ })
     await expect(stornoEintrag).toBeVisible()
     await expect(stornoEintrag).toContainText('2,00')

@@ -1,11 +1,57 @@
+import type { APIRequestContext } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 
 import { anmelden } from '../support/anmelden'
 import { resetAndSeed } from '../support/seed'
+import { oeffneTisch, waehleVariante } from '../support/servicekraft'
 
 // Deckt den Verwaltungspfad für die Bondrucker ab: die Drucker-IP einer
 // Station ändern und einen Zusatzdrucker mit Produkt einrichten. Name und IP
-// werden on-blur gespeichert (kein Speichern-Button).
+// werden on-blur gespeichert (kein Speichern-Button). Eine Bestellung über die
+// Oberfläche muss danach als Druckauftrag beim Relay ankommen.
+
+// RELAY_AUTH_TOKEN aus docker-compose.e2e.yml.
+const RELAY_TOKEN = 'e2e-relay-token-do-not-use-in-production'
+
+interface Druckauftrag {
+  id: number
+  zielIp: string
+  payload: string // Base64 ESC/POS
+}
+
+async function offeneDruckauftraege(
+  request: APIRequestContext,
+): Promise<Druckauftrag[]> {
+  const response = await request.post('/api/relay/poll', {
+    data: { token: RELAY_TOKEN },
+  })
+  expect(
+    response.ok(),
+    `Relay-Poll muss erfolgreich sein (Status ${response.status().toString()})`,
+  ).toBeTruthy()
+  return ((await response.json()) as { auftraege: Druckauftrag[] }).auftraege
+}
+
+// Meldet alle offenen Aufträge (Seed-Historie, Testbon) als gedruckt, damit
+// danach nur die Aufträge der Bestellung offen sind. Der Poll liefert höchstens
+// 200 Aufträge je Abruf, daher die Schleife.
+async function quittiereOffeneDruckauftraege(
+  request: APIRequestContext,
+): Promise<void> {
+  for (let runde = 0; runde < 10; runde++) {
+    const offene = await offeneDruckauftraege(request)
+    if (offene.length === 0) return
+    const response = await request.post('/api/relay/ergebnis', {
+      data: {
+        token: RELAY_TOKEN,
+        gedruckteIds: offene.map((auftrag) => auftrag.id),
+        fehlversuche: [],
+      },
+    })
+    expect(response.ok(), 'Relay-Ergebnis muss erfolgreich sein').toBeTruthy()
+  }
+  throw new Error('Offene Druckaufträge ließen sich nicht quittieren')
+}
 
 test.describe('Admin verwaltet Druckstationen', () => {
   test('Drucker-IP einer Station ändern', async ({ page, request }) => {
@@ -94,5 +140,27 @@ test.describe('Admin verwaltet Druckstationen', () => {
       page.getByRole('heading', { name: 'Bondrucker' }),
     ).toBeVisible()
     await expect(karte.getByText('Kuchen', { exact: true })).toBeVisible()
+
+    // Eine Kuchen-Bestellung über die Oberfläche erzeugt genau einen Bon am
+    // Zusatzdrucker, mit Produkt und Bestellkommentar. „Tisch 13" ist im
+    // Demo-Drehbuch des laufenden Tages unbenutzt.
+    await quittiereOffeneDruckauftraege(request)
+    await oeffneTisch(page, 'Tisch 13')
+    await waehleVariante(page, 'Kuchen', 'Stück')
+    // Ab lg steht der Abschluss als feste Spalte neben der Produktliste.
+    await page.getByPlaceholder('Kommentar (optional)').fill('ohne Sahne')
+    await page.getByRole('button', { name: 'Bestellung aufnehmen' }).click()
+    await expect(
+      page.getByText('Bestellung wurde aufgenommen.').first(),
+    ).toBeVisible()
+
+    const bons = (await offeneDruckauftraege(request))
+      .filter((auftrag) => auftrag.zielIp === '192.168.8.60')
+      .map((auftrag) =>
+        Buffer.from(auftrag.payload, 'base64').toString('latin1'),
+      )
+    expect(bons, 'genau ein Bon am Zusatzdrucker').toHaveLength(1)
+    expect(bons[0]).toContain('Kuchen')
+    expect(bons[0]).toContain('ohne Sahne')
   })
 })

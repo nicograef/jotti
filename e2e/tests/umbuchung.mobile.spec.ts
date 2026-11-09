@@ -6,6 +6,7 @@ import {
   bestellePosition,
   oeffneHistorienDetail,
   oeffneTisch,
+  tischSaldo,
   zeileMit,
 } from '../support/servicekraft'
 
@@ -27,7 +28,9 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await oeffneTisch(page, QUELL_TISCH)
     await bestellePosition(page, 'Wasser', 'Still 0,5l') // 2,00 €
 
-    await expect(page.getByText('2,00 €').first()).toBeVisible()
+    // Der Saldo im Tisch-Header, nicht irgendein Text: „2,00 €" steht auch als
+    // Preis an Wasser, Brezel und Kaffee in der Produktliste.
+    await expect(tischSaldo(page)).toHaveText('2,00 €')
 
     await page.getByRole('tab', { name: 'Historie' }).click()
     const detail = await oeffneHistorienDetail(page, /Bestellung/)
@@ -69,11 +72,11 @@ test.describe('Servicekraft bucht eine Bestellung auf einen anderen Tisch um', (
     await expect(page.getByText(`Auf ${ZIEL_TISCH} umgebucht.`)).toBeVisible()
 
     // Der Quelltisch ist danach ausgeglichen …
-    await expect(page.getByText('0,00 €').first()).toBeVisible()
+    await expect(tischSaldo(page)).toHaveText('0,00 €')
 
     // … und der Zieltisch zeigt den übernommenen Saldo.
     await oeffneTisch(page, ZIEL_TISCH)
-    await expect(page.getByText('2,00 €').first()).toBeVisible()
+    await expect(tischSaldo(page)).toHaveText('2,00 €')
 
     // Der Umbuchungs-Zugang trägt das Benutzerkommentar (Autotext bleibt Titel).
     // Der Autotext lautet "Umbuchung von <Tischname>" — mit dem Seed-Namen

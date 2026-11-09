@@ -70,14 +70,19 @@ export async function waehleVariante(
     variante,
     'Variante hinzufügen',
   )
+  // Bis die Produkte geladen sind, steht nur ProductListSkeleton im DOM; die
+  // nicht wartenden isVisible-Prüfungen unten liefen sonst ins Leere.
+  await expect(
+    page.getByRole('button', { name: 'Variante hinzufügen' }).first(),
+  ).toBeVisible()
   // Der Produktname verrät die Kategorie nicht — reihum jeden Chip probieren,
   // bis die Zeile im DOM erscheint.
-  if (!(await variantenZeile.isVisible().catch(() => false))) {
+  if (!(await variantenZeile.isVisible())) {
     for (const label of KATEGORIE_CHIPS) {
       const chip = page.getByRole('button', { name: label, exact: true })
-      if (await chip.isVisible().catch(() => false)) {
+      if (await chip.isVisible()) {
         await chip.click()
-        if (await variantenZeile.isVisible().catch(() => false)) break
+        if (await variantenZeile.isVisible()) break
       }
     }
   }
@@ -179,9 +184,15 @@ async function bestaetigeZahlung(page: Page): Promise<void> {
 async function offeneTischNamen(page: Page): Promise<string[]> {
   await page.goto('/service/tische')
   await page.getByRole('button', { name: 'Alle Tische' }).click()
-  const zeilen = await page
-    .getByRole('button', { name: /^.+\d,\d{2}\s*€$/ })
-    .all()
+  const drawer = page.getByRole('dialog', { name: 'Alle Tische' })
+  const zeilenLocator = drawer.getByRole('button', {
+    name: /^.+\d,\d{2}\s*€$/,
+  })
+  // Der Drawer zeigt bis zum Ende des Fetch eine leere Liste; danach stehen
+  // alle Zeilen auf einmal im DOM. Ohne dieses Warten liefert .all() [] und
+  // kein Tisch würde abgerechnet.
+  await expect(zeilenLocator.first()).toBeVisible()
+  const zeilen = await zeilenLocator.all()
   const namen: string[] = []
   for (const zeile of zeilen) {
     const spans = zeile.locator('span')
@@ -192,6 +203,7 @@ async function offeneTischNamen(page: Page): Promise<string[]> {
     }
   }
   await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
   return namen
 }
 
