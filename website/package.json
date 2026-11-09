@@ -21,8 +21,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "^7.3.5",
-    "@astrojs/react": "^7.1.2",
+    "@astrojs/markdown-remark": "^7.3.6",
+    "@astrojs/react": "^7.1.4",
     "@astrojs/starlight": "^0.42.8",
     "@lucide/astro": "1.70.0",
     "astro": "^7.4.5",
@@ -37,7 +37,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "oxlint": "^1.91.0",
-    "oxlint-tsgolint": "^7.0.2005",
+    "oxlint-tsgolint": "^7.0.2006",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.4",
     "typescript": "~6.0.3",
