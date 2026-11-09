@@ -207,6 +207,40 @@ func TestBestellungAufnehmen_DrucktAmZusatzdrucker(t *testing.T) {
 	}
 }
 
+// bestellung-aufgenommen:v1 trägt kein Pfand-Kennzeichen: Der Command reicht es aus den Stammdaten an die
+// Arbeitsbon-Policy, damit das Pfand-Glas keinen eigenen Bon an der Getränke-Station druckt.
+func TestBestellungAufnehmen_PfandOhneArbeitsbon(t *testing.T) {
+	ctx := context.Background()
+	glas := produkt.Produkt{ID: 2, Name: "Pfand Glas", Kategorie: produkt.GetraenkKategorie, Steuersatz: steuer.RegelSteuersatz, Pfand: true, Status: produkt.ActiveStatus}
+	glasVariante := produkt.Variante{ID: 9, Name: "Glas", PreisCents: 200, Status: produkt.ActiveStatus}
+	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct, glas}, nil)
+	productMock.AddVariante(testProduct.ID, testVariant)
+	productMock.AddVariante(glas.ID, glasVariante)
+
+	eventMock := repotest.NewKassenjournalRepo(nil, nil)
+	command := newTestCommandWithEventMock([]tisch.Tisch{testActiveTisch}, eventMock)
+	command.ProduktRepo = productMock
+	command.DruckstationRepo = &mockDruckstationRepo{konfig: map[string]druckstation.Druckstation{
+		"getraenk": {DruckerIP: "192.168.1.50", Bonmodus: "pro_position"},
+	}}
+
+	inputs := []enrichment.PositionInput{
+		{ProduktID: testProduct.ID, VarianteID: testVariant.ID, Menge: 2},
+		{ProduktID: glas.ID, VarianteID: glasVariante.ID, Menge: 2},
+	}
+	if err := command.BestellungAufnehmen(ctx, 1, "Test User", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac", 1, inputs, ""); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	enqueued := eventMock.CapturedDruckauftraege()
+	if len(enqueued) != 1 {
+		t.Fatalf("expected 1 enqueued druckauftrag (Cola only), got %d", len(enqueued))
+	}
+	if enqueued[0].ZielIP != "192.168.1.50" {
+		t.Errorf("expected ZielIP 192.168.1.50, got %s", enqueued[0].ZielIP)
+	}
+}
+
 func TestBestellungAufnehmen_SchreibtPositionskommentar(t *testing.T) {
 	ctx := context.Background()
 	productMock := repotest.NewProduktRepo([]produkt.Produkt{testProduct}, nil)

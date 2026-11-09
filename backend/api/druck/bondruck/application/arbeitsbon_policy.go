@@ -26,18 +26,21 @@ type arbeitsbonDaten struct {
 // CreateArbeitsbonAuftraegeFromEvent routes the event's positions to their Druckziel: the
 // Zusatzdrucker of the Produkt (keyed by VarianteID) before the Druckstation of the Kategorie.
 // A target without a printer IP creates no job; an assigned Zusatzdrucker never falls back to the
-// Kategorie. Routing rule: docs/handbuch.md §4.5.
+// Kategorie. Pfand positions print on no Arbeitsbon: a position counts as Pfand when its variant is in
+// pfandVarianten (the Stammdaten, as bestellung-aufgenommen:v1 carries no flag) or its event flag is set.
+// Routing rule: docs/handbuch.md §4.5.
 func CreateArbeitsbonAuftraegeFromEvent(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
 	zusatzdrucker map[int]druckstation.Zusatzdrucker,
+	pfandVarianten map[int]bool,
 	tischName string,
 ) []druckstation.NeuerDruckauftrag {
 	switch kasse.EventType(evt.Type) {
 	case kasse.EventTypeBestellungAufgenommenV1:
-		return createStationsAuftraege(evt, druckstationen, zusatzdrucker, tischName, druckstation.EventReferenz(druckstation.ReferenzBestellung, evt.ID))
+		return createStationsAuftraege(evt, druckstationen, zusatzdrucker, pfandVarianten, tischName, druckstation.EventReferenz(druckstation.ReferenzBestellung, evt.ID))
 	case kasse.EventTypeDirektverkaufGetaetigtV1, kasse.EventTypeDirektverkaufGetaetigtV2:
-		return createDirektverkaufAuftraege(evt, druckstationen, zusatzdrucker)
+		return createDirektverkaufAuftraege(evt, druckstationen, zusatzdrucker, pfandVarianten)
 	case kasse.EventTypeZahlungKassiertV1, kasse.EventTypeZahlungKassiertV2, kasse.EventTypeStornierungErteiltV1,
 		kasse.EventTypeBestellungKorrigiertV1, kasse.EventTypeBestellungUmgebuchtV1,
 		kasse.EventTypeDirektverkaufStorniertV1, kasse.EventTypePfandZurueckgegebenV1, kasse.EventTypePfandrueckgabeStorniertV1,
@@ -53,8 +56,9 @@ func createDirektverkaufAuftraege(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
 	zusatzdrucker map[int]druckstation.Zusatzdrucker,
+	pfandVarianten map[int]bool,
 ) []druckstation.NeuerDruckauftrag {
-	data, ok := unmarshalPositionenMitKommentar(evt)
+	data, ok := unmarshalPositionenOhnePfand(evt, pfandVarianten)
 	if !ok {
 		return nil
 	}
@@ -78,13 +82,7 @@ func createAbholbonAuftraege(
 	station druckstation.Druckstation,
 	referenz string,
 ) []druckstation.NeuerDruckauftrag {
-	// Pfand-Positionen erscheinen auf keinem Abholbon: Das Glas kommt mit dem Getränk, es gibt nichts abzuholen.
-	positionen := make([]kasse.Position, 0, len(data.Positionen))
-	for _, pos := range data.Positionen {
-		if !pos.Pfand {
-			positionen = append(positionen, pos)
-		}
-	}
+	positionen := data.Positionen
 	if len(positionen) == 0 {
 		return nil
 	}
@@ -132,10 +130,11 @@ func createStationsAuftraege(
 	evt event.Event,
 	druckstationen map[string]druckstation.Druckstation,
 	zusatzdrucker map[int]druckstation.Zusatzdrucker,
+	pfandVarianten map[int]bool,
 	kontextName string,
 	referenz string,
 ) []druckstation.NeuerDruckauftrag {
-	data, ok := unmarshalPositionenMitKommentar(evt)
+	data, ok := unmarshalPositionenOhnePfand(evt, pfandVarianten)
 	if !ok {
 		return nil
 	}
@@ -225,11 +224,32 @@ func createStationsAuftraegeFromData(
 	return auftraege
 }
 
-func unmarshalPositionenMitKommentar(evt event.Event) (arbeitsbonDaten, bool) {
+// unmarshalPositionenOhnePfand drops the Pfand positions: Pfand is money, not work for kitchen or bar, so no
+// Arbeitsbon or Abholbon lists it (D26).
+func unmarshalPositionenOhnePfand(evt event.Event, pfandVarianten map[int]bool) (arbeitsbonDaten, bool) {
 	data, err := event.Decode[positionenMitKommentarEventData](evt)
 	if err != nil {
 		return arbeitsbonDaten{}, false
 	}
 
-	return arbeitsbonDaten{Positionen: kasse.PositionenV2MitKommentar(data.Positionen), Kommentar: data.Kommentar}, true
+	alle := kasse.PositionenV2MitKommentar(data.Positionen)
+	positionen := make([]kasse.Position, 0, len(alle))
+	for _, pos := range alle {
+		if !pos.Pfand && !pfandVarianten[pos.VarianteID] {
+			positionen = append(positionen, pos)
+		}
+	}
+	return arbeitsbonDaten{Positionen: positionen, Kommentar: data.Kommentar}, true
+}
+
+// PfandVarianten marks the variants of the enriched positions that belong to a Pfand-Produkt, the form
+// CreateArbeitsbonAuftraegeFromEvent takes.
+func PfandVarianten(positionen []kasse.Position) map[int]bool {
+	pfand := map[int]bool{}
+	for _, pos := range positionen {
+		if pos.Pfand {
+			pfand[pos.VarianteID] = true
+		}
+	}
+	return pfand
 }

@@ -129,7 +129,7 @@ func (c Command) BestellungAufnehmen(ctx context.Context, userID int, userName s
 	}
 
 	buildAuftraege := func(stored event.Event) []druckstation.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, tischName)
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, bondruckApp.PfandVarianten(positionen), tischName)
 	}
 
 	// Bestellungen validieren keinen Stream-Zustand (reines Anhängen); die Version wird deshalb erst

@@ -86,7 +86,7 @@ func (c Command) DirektverkaufTaetigen(ctx context.Context, userID int, userName
 	}
 
 	buildAuftraege := func(stored event.Event) []druckstation.NeuerDruckauftrag {
-		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, "")
+		return bondruckApp.CreateArbeitsbonAuftraegeFromEvent(stored, druckstationen, zusatzdrucker, bondruckApp.PfandVarianten(positionen), "")
 	}
 
 	events := []kassenjournal_repo.NeuesEvent{{Event: evt, StreamType: kasse.StreamTypeDirektverkauf, BuildAuftraege: buildAuftraege}}

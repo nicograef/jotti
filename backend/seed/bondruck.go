@@ -81,6 +81,7 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 	}
 
 	zusatzdrucker := zusatzdruckerJeVariante(s)
+	pfandVarianten := pfandVariantenIndex(s.Produkte)
 
 	tischNamen := make(map[int]string, len(s.Tische))
 	for _, t := range s.Tische {
@@ -105,7 +106,7 @@ func buildDruckauftraege(s szenario, events []seedEvent, signaturen map[int]*tse
 			tischName = tischNamen[tischID]
 		}
 
-		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, tischName) {
+		for _, auftrag := range bondruckApp.CreateArbeitsbonAuftraegeFromEvent(evt, stationen, zusatzdrucker, pfandVarianten, tischName) {
 			zeilen = append(zeilen, b.zeile(auftrag, evt.Time))
 		}
 
