@@ -8,7 +8,7 @@
 # adds the website, and runs the bundled Caddy directly on the static Caddyfile.rocks.
 # The build context is the repository root; Dockerfile.dockerignore limits it.
 
-FROM caddy:2.11.7-builder AS caddy-builder
+FROM caddy:2.11.8-builder AS caddy-builder
 
 RUN xcaddy build \
   --with github.com/caddy-dns/acmedns@v0.7.0 \
@@ -54,7 +54,7 @@ COPY website/ ./
 COPY docs/ /docs/
 RUN pnpm build
 
-FROM caddy:2.11.7 AS app
+FROM caddy:2.11.9 AS app
 
 COPY --from=caddy-builder /usr/bin/caddy /usr/bin/caddy
 COPY --from=proxy-builder /go/bin/jotti-reverse-proxy /usr/local/bin/jotti-reverse-proxy
