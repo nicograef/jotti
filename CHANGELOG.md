@@ -28,6 +28,7 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - Zusatzdrucker: Admins legen weitere Bondrucker an und ordnen ihnen einzelne Produkte zu. Deren Arbeitsbons drucken dort statt an der Station ihrer Kategorie.
 - Bondrucker drucken Umlaute in der Codepage PC437, auch auf Epson-Druckern; der Testbon zeigt dazu eine Umlautzeile.
 - Arbeitsbons piepen nicht mehr. Steuerzeichen in Namen und Kommentaren erreichen den Drucker nicht.
+- Arbeitsbons an Druckstation und Zusatzdrucker lassen Pfand-Positionen weg, wie schon der Abholbon.
 
 ### Kassenführung
 
@@ -58,13 +59,20 @@ Erste stabile Version von jotti, dem kostenlosen Kassensystem für Vereinsfeste.
 - Anbindung einer BSI-zertifizierten Cloud-TSE von fiskaly, die jeden Vorgang signiert.
 - Die TSE-Einrichtung bleibt gesperrt, solange eine Kassensitzung aktiv ist.
 - Fehlgeschlagene TSE-Signaturen meldet die Finanzamt-Seite vor dem Signatur-Rückstand.
+- Ein neues oder zurückgesetztes Passwort meldet alle Sitzungen der Person ab.
+- Eine TSE in der fiskaly-TEST-Umgebung zeigt jotti als nicht gesetzeskonform an.
+- Eine defekte oder gelöschte TSE lässt sich im Einrichtungs-Wizard durch eine neue ersetzen.
+- Ein falscher Admin-PIN oder PUK zählt bei fiskaly nur noch als ein Fehlversuch.
 - Gesetzeskonforme Belegausgabe mit TSE-Signatur, QR-Code, Steuersatz und Betreiberadresse.
 - Alle Zeitstempel auf Kassenbelegen und Bons in deutscher Ortszeit.
 - Betreiber-Stammdaten in den amtlichen DSFinV-K-Feldlängen, nach Zeichen gezählt: Umlaute zählen einfach.
 - Das ELSTER-Meldedatum folgt dem deutschen Kalendertag.
+- Der DSFinV-K-Export führt je Signatur die Stammdaten ihrer TSS.
+- Der DSFinV-K-Export weist bei einer Umbuchung die abgehende Position mit negativer Menge aus.
 
 ### Betrieb
 
 - Windows: `jotti-restore.cmd` und `jotti-repair.cmd` enden nach der Datenbankarbeit; gestartet wird jotti danach mit `jotti-start.exe`.
 - Server-Stack unter eigener Domain: `JOTTI_DOMAIN` ist Pflicht, ohne die Variable bricht jeder Befehl des Stacks ab.
 - Der Reverse-Proxy liefert die App selbst aus, den eigenen Frontend-Container gibt es nicht mehr. Server-Stack: vor `make prod-update` einmal die Projektdateien der neuen Version holen, denn die alte Compose-Datei verlangt das nicht mehr veröffentlichte Image `jotti-frontend`.
+- `make prod-harden` sperrt die root-Anmeldung per SSH. Vorher einen sudo-Benutzer mit SSH-Schlüssel anlegen.

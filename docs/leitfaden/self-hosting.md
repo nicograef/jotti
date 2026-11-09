@@ -55,7 +55,7 @@ beteiligt.
    ```bash
    JOTTI_DOMAIN=kasse-musterverein.de
    LETSENCRYPT_EMAIL=vorstand@musterverein.de
-   JOTTI_VERSION=v0.18.0
+   JOTTI_VERSION=v0.19.0
    ```
 
    Die aktuelle Versionsnummer übernehmt ihr von der
