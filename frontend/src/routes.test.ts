@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { signIn, signOut } from '@/test/auth'
+
 import { getArbeitsmodus } from './lib/arbeitsmodus'
+import type { UserRole } from './lib/identity'
 import {
+  AdminGuard,
+  AuthRedirect,
   ServiceDirektverkaufLoader,
+  ServiceGuard,
   ServiceIndexRedirect,
   ServiceTableGuard,
   ServiceTischauswahlLoader,
@@ -62,5 +68,52 @@ describe('ServiceIndexRedirect', () => {
     ServiceTischauswahlLoader()
 
     expect(locationOf(ServiceIndexRedirect())).toBe('tische')
+  })
+})
+
+function anmelden(role: UserRole | 'none') {
+  if (role === 'none') signOut()
+  else signIn({ role })
+}
+
+function zielVon(result: unknown): string | undefined {
+  return result === undefined ? undefined : locationOf(result)
+}
+
+describe('Rollen-Guards', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    signOut()
+  })
+
+  it.each([
+    ['none', '/'],
+    ['service', '/'],
+    ['serviceleitung', '/'],
+    ['admin', undefined],
+  ] as const)('AdminGuard für %s leitet auf %s', (role, ziel) => {
+    anmelden(role)
+
+    expect(zielVon(AdminGuard())).toBe(ziel)
+  })
+
+  it.each([
+    ['none', '/'],
+    ['service', undefined],
+  ] as const)('ServiceGuard für %s leitet auf %s', (role, ziel) => {
+    anmelden(role)
+
+    expect(zielVon(ServiceGuard())).toBe(ziel)
+  })
+
+  it.each([
+    ['none', undefined],
+    ['service', '/service'],
+    ['serviceleitung', '/service'],
+    ['admin', '/admin'],
+  ] as const)('AuthRedirect für %s leitet auf %s', (role, ziel) => {
+    anmelden(role)
+
+    expect(zielVon(AuthRedirect())).toBe(ziel)
   })
 })

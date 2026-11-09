@@ -1,9 +1,11 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { VorgangsRegisterSingleton } from '@/lib/VorgangsRegister'
+import { FakeBackend } from '@/test/FakeBackend'
 import { testPosition } from '@/test/fixtures'
+import { renderWithBackend } from '@/test/render'
 
 import type { Bestellung } from './Bestellung'
 import { HistorieStornierungDrawer } from './HistorieStornierungDrawer'
@@ -112,6 +114,62 @@ describe('HistorieStornierungDrawer', () => {
       'Falsch bestellt',
     )
     expect(button).toBeEnabled()
+  })
+})
+
+describe('HistorieStornierungDrawer beim Senden', () => {
+  const gueltigePositionId = '00000000-0000-4000-8000-000000000001'
+
+  it('sendet die Stornierung und behält den Idempotenz-Schlüssel nur für denselben Inhalt', async () => {
+    const user = userEvent.setup()
+    const fake = new FakeBackend().fail('serviceleitung/stornierung-erteilen')
+    // Die Anfrage-Validierung verlangt eine UUID v4.
+    const stornierbar = { ...position, positionId: gueltigePositionId }
+    renderWithBackend(
+      <HistorieStornierungDrawer
+        tisch={tisch}
+        quelle={{ ...quelle, stornierbarePositionen: [stornierbar] }}
+        onClose={vi.fn()}
+        onStornierungErteilt={vi.fn()}
+      />,
+      fake,
+    )
+    const senden = async (anzahl: number) => {
+      await user.click(
+        screen.getByRole('button', { name: 'Stornierung erteilen' }),
+      )
+      await waitFor(() => {
+        expect(fake.bodies('serviceleitung/stornierung-erteilen')).toHaveLength(
+          anzahl,
+        )
+      })
+    }
+
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await senden(1)
+    await senden(2)
+    await user.click(screen.getByRole('button', { name: /hinzufügen/ }))
+    await senden(3)
+
+    const bodies = fake.bodies('serviceleitung/stornierung-erteilen') as {
+      stornoId: string
+    }[]
+    expect(bodies[0]).toEqual({
+      stornoId: bodies[0]?.stornoId,
+      tischId: 1,
+      positionen: [{ positionId: gueltigePositionId, menge: 1 }],
+      kommentar: 'Falsch gebucht',
+    })
+    expect(bodies[0]?.stornoId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(bodies[1]?.stornoId).toBe(bodies[0]?.stornoId)
+    expect(bodies[2]).toMatchObject({
+      positionen: [{ positionId: gueltigePositionId, menge: 2 }],
+    })
+    expect(bodies[2]?.stornoId).not.toBe(bodies[0]?.stornoId)
   })
 })
 

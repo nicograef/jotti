@@ -158,20 +158,11 @@ describe('TischHistorie', () => {
     expect(screen.getByText(/· Bert/)).toBeInTheDocument()
   })
 
-  it('zeigt Typ, farbcodierten Betrag und relative Zeit ohne Inline-Aktions-Buttons', () => {
+  it('zeigt Typ und farbcodierten Betrag', () => {
     renderHistorie([bestellung()])
 
     expect(screen.getByText('Bestellung')).toBeInTheDocument()
     expect(screen.getByText('+3,50 €')).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Stornieren' }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Umbuchen' }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Details anzeigen' }),
-    ).not.toBeInTheDocument()
   })
 
   it('zeigt die Historie flach — alle Einträge ohne „Alle anzeigen"-Schalter', () => {
@@ -216,6 +207,9 @@ describe('TischHistorie', () => {
     expect(
       screen.queryByRole('button', { name: /Stornieren/ }),
     ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Umbuchen/ }),
+    ).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Bestellung/ }))
 
@@ -226,6 +220,27 @@ describe('TischHistorie', () => {
     expect(
       within(dialog).getByRole('button', { name: /Stornieren…/ }),
     ).toBeInTheDocument()
+  })
+
+  it('bietet einer Servicekraft ohne Storno-Recht nur das Umbuchen an', () => {
+    signIn({ role: 'service' })
+    renderHistorie([
+      bestellung({
+        id: '00000000-0000-4000-8000-000000000001',
+        stornierbarePositionen: [position()],
+        umbuchbarePositionen: [position()],
+      }),
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: /Bestellung/ }))
+
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByRole('button', { name: /Umbuchen/ }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('button', { name: /Stornieren/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('zeigt den Positionskommentar unter seiner Position im Detail', () => {

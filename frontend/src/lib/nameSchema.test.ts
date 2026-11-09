@@ -15,6 +15,27 @@ describe('createNameSchema', () => {
     expect(schema.safeParse('a'.repeat(101)).success).toBe(false)
   })
 
+  it.each([
+    [2, false],
+    [3, true],
+    [100, true],
+    [101, false],
+  ])(
+    'zählt %i Emojis als Codepoints wie das Backend, gültig: %s',
+    (anzahl, gueltig) => {
+      expect(schema.safeParse('🍺'.repeat(anzahl)).success).toBe(gueltig)
+    },
+  )
+
+  it('meldet die Grenzen mit den Namensmeldungen', () => {
+    expect(schema.safeParse('ab').error?.issues[0]?.message).toBe(
+      'Das sieht nicht nach einem echten Namen aus.',
+    )
+    expect(schema.safeParse('a'.repeat(101)).error?.issues[0]?.message).toBe(
+      'Der Name ist zu lang.',
+    )
+  })
+
   it('trimmt vor der Prüfung', () => {
     expect(schema.parse('  Zelt 3  ')).toBe('Zelt 3')
     expect(schema.safeParse('   ').success).toBe(false)

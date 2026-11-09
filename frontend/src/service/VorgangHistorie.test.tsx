@@ -191,6 +191,22 @@ describe('VorgangHistorie', () => {
     expect(onErfolg).toHaveBeenCalledWith('Stornierung gebucht.')
   })
 
+  it('offers no cancellation to a service role without canCancel', async () => {
+    signIn({ role: 'service' })
+    const user = userEvent.setup()
+    renderHistorie([verkauf])
+
+    await user.click(screen.getByRole('button', { name: /Verkauf/ }))
+
+    const dialog = screen.getByRole('dialog')
+    expect(
+      within(dialog).getByRole('button', { name: 'Kassenbeleg drucken' }),
+    ).toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('button', { name: /Stornieren/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('triggers kassenbeleg print for a sale with exactly one belegDrucken call', async () => {
     const user = userEvent.setup()
     const aktion = renderHistorie([verkauf])

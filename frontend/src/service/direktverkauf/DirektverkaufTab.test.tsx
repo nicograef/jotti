@@ -63,7 +63,19 @@ const pfandProdukt: Produkt = {
   ],
 }
 
-function renderDirektverkauf() {
+const bier: Produkt = {
+  ...testProdukt,
+  id: 5,
+  name: 'Bier',
+  kategorie: 'getraenk',
+  steuersatz: 'regel',
+  varianten: [
+    { ...testProdukt.varianten[0], id: 50, name: '0,3 l', preisCents: 300 },
+    { ...testProdukt.varianten[0], id: 51, name: '0,5 l', preisCents: 450 },
+  ],
+}
+
+function renderDirektverkauf(products: Produkt[] = [testProdukt]) {
   const fake = backend()
   // Der Aktionsbutton rendert per Portal in den ServiceDock; deshalb wird der
   // DirektverkaufTab hier in ein Dock eingebettet (leiste bleibt leer).
@@ -71,7 +83,7 @@ function renderDirektverkauf() {
     <ServiceDock leiste={null}>
       <DirektverkaufTabHarness
         pfandProdukte={[]}
-        products={[testProdukt]}
+        products={products}
         productsLoading={false}
         onErfolg={vi.fn()}
       />
@@ -126,6 +138,36 @@ describe('DirektverkaufTab', () => {
       expect(dialog).not.toBeInTheDocument()
     })
     expect(screen.getByRole('button', { name: /Kassieren/ })).toBeDisabled()
+  })
+
+  it('verkauft die gewählte Variante aus der gewählten Kategorie', async () => {
+    const user = userEvent.setup()
+    const { fake } = renderDirektverkauf([testProdukt, bier])
+
+    expect(screen.getByText('Bratwurst')).toBeInTheDocument()
+    expect(screen.queryByText('Bier')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Getränke' }))
+    expect(screen.queryByText('Bratwurst')).not.toBeInTheDocument()
+    await user.click(
+      screen.getAllByRole('button', { name: 'Variante hinzufügen' })[1],
+    )
+
+    const kassierenButton = screen.getByRole('button', { name: /Kassieren/ })
+    expect(kassierenButton).toHaveTextContent('4,50 €')
+    await user.click(kassierenButton)
+    await user.click(
+      await screen.findByRole('button', { name: 'Verkauf abschließen' }),
+    )
+
+    await waitFor(() => {
+      expect(fake.bodies('service/direktverkauf-taetigen')).toHaveLength(1)
+    })
+    expect(fake.bodies('service/direktverkauf-taetigen')).toEqual([
+      expect.objectContaining({
+        positionen: [{ produktId: 5, varianteId: 51, menge: 1 }],
+      }),
+    ])
   })
 
   // Ein verrechneter Verkauf, dessen Antwort verloren ging, weicht beim Wiederholen mit anderem

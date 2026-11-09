@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BackendError } from '@/lib/Backend'
 import type { Produkt } from '@/lib/produktSchemas'
+import { signIn, signOut } from '@/test/auth'
 import { FakeBackend } from '@/test/FakeBackend'
 import { testProdukt } from '@/test/fixtures'
 import { renderWithBackend, setViewportWidth } from '@/test/render'
@@ -21,6 +22,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  signOut()
   vi.clearAllMocks()
   setViewportWidth(1024)
 })
@@ -241,5 +243,66 @@ describe('DirektverkaufPage', () => {
     await waitFor(() => {
       expect(fake.bodies('service/beleg-drucken')).toEqual([body])
     })
+  })
+
+  it('sendet den Storno und behält die stornierungId nur für denselben Inhalt', async () => {
+    signIn({ role: 'serviceleitung' })
+    const user = userEvent.setup()
+    const fake = backend()
+      .respond('service/get-direktverkauf-historie', {
+        historie: [
+          {
+            ...stornierterVerkauf,
+            offenePositionen: [cola],
+            gesamtStorniertCents: 0,
+            stornierungen: [],
+          },
+        ],
+      })
+      .fail('serviceleitung/direktverkauf-stornieren')
+    renderWithBackend(<DirektverkaufPage />, fake)
+    const senden = async (anzahl: number) => {
+      await user.click(
+        screen.getByRole('button', { name: 'Stornierung erteilen' }),
+      )
+      await waitFor(() => {
+        expect(
+          fake.bodies('serviceleitung/direktverkauf-stornieren'),
+        ).toHaveLength(anzahl)
+      })
+    }
+
+    await user.click(screen.getByRole('tab', { name: 'Historie' }))
+    await user.click(await screen.findByRole('button', { name: /Verkauf/ }))
+    await user.click(screen.getByRole('button', { name: /Stornieren…/ }))
+    await user.click(
+      screen.getByRole('button', { name: 'Cola 0,5l hinzufügen' }),
+    )
+    await user.type(
+      screen.getByPlaceholderText('Kommentar (erforderlich)'),
+      'Falsch gebucht',
+    )
+    await senden(1)
+    await senden(2)
+    await user.click(
+      screen.getByRole('button', { name: 'Cola 0,5l hinzufügen' }),
+    )
+    await senden(3)
+
+    const bodies = fake.bodies('serviceleitung/direktverkauf-stornieren') as {
+      stornierungId: string
+    }[]
+    expect(bodies[0]).toEqual({
+      stornierungId: bodies[0]?.stornierungId,
+      verkaufId,
+      positionen: [{ positionId: cola.positionId, menge: 1 }],
+      kommentar: 'Falsch gebucht',
+    })
+    expect(bodies[0]?.stornierungId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(bodies[1]?.stornierungId).toBe(bodies[0]?.stornierungId)
+    expect(bodies[2]).toMatchObject({
+      positionen: [{ positionId: cola.positionId, menge: 2 }],
+    })
+    expect(bodies[2]?.stornierungId).not.toBe(bodies[0]?.stornierungId)
   })
 })

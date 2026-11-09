@@ -13,20 +13,20 @@ import { HydrateFallbackPage } from './pages/HydrateFallbackPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordPage } from './pages/PasswordPage'
 
-function AuthRedirect() {
+export function AuthRedirect() {
   if (!AuthSingleton.isAuthenticated) return
 
   return redirect(AuthSingleton.isAdmin ? '/admin' : '/service')
 }
 
-function AdminGuard() {
+export function AdminGuard() {
   if (!AuthSingleton.isAuthenticated || !AuthSingleton.isAdmin) {
     return redirect('/')
   }
 }
 
 // Every role the token schema admits may use /service.
-function ServiceGuard() {
+export function ServiceGuard() {
   if (!AuthSingleton.isAuthenticated) {
     return redirect('/')
   }

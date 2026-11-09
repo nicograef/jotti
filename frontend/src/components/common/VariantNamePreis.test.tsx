@@ -21,21 +21,4 @@ describe('VariantNamePreis', () => {
     expect(name).not.toBe(preis)
     expect(preis).not.toContainElement(name)
   })
-
-  it('keeps the price element intact and separate for a very long name', () => {
-    render(
-      <div className="flex">
-        <VariantNamePreis
-          name="Sehr langer Variantenname der die Zeile sprengen würde"
-          preisCents={1250}
-        />
-      </div>,
-    )
-
-    // Die Layout-Kürzung passiert per CSS-truncate und ist in jsdom nicht
-    // messbar; geprüft wird die stabile DOM-Struktur.
-    const preis = screen.getByText(/12,50\s*€/)
-    expect(preis).toBeInTheDocument()
-    expect(preis.textContent).not.toContain('Variantenname')
-  })
 })

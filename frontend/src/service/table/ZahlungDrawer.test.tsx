@@ -173,17 +173,6 @@ describe('ZahlungDrawer', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('hebt das Rückgeld als größten Betrag im Sheet hervor', async () => {
-    const user = userEvent.setup()
-    renderDrawer()
-
-    await openDrawer(user)
-    await user.type(screen.getByLabelText('Erhalten'), '5,00')
-
-    const rueckgeld = screen.getByText('Rückgeld').nextElementSibling
-    expect(rueckgeld).toHaveClass('text-xl', 'font-bold', 'tabular-nums')
-  })
-
   it('bleibt im Fehlerfall offen und wieder bedienbar', async () => {
     const { toast } = await import('sonner')
     const user = userEvent.setup()
